@@ -7,6 +7,25 @@ const state = {
   paused: false,
   mode: "overview" // overview | ion | synapse
 };
+
+// =====================================================
+// CAMERA STATE
+// =====================================================
+const camera = {
+  x: 0,
+  y: 0,
+  zoom: 1,
+
+  targetX: 0,
+  targetY: 0,
+  targetZoom: 1,
+
+  lerpSpeed: 0.08
+};
+
+// =====================================================
+// MODE SWITCHING
+// =====================================================
 function setMode(mode) {
   state.mode = mode;
 
@@ -27,6 +46,8 @@ function setMode(mode) {
     camera.targetY = 0;
     camera.targetZoom = 2.5;
   }
+}
+
 // =====================================================
 // P5 SETUP
 // =====================================================
@@ -43,33 +64,37 @@ function setup() {
 // =====================================================
 function draw() {
   background(15, 17, 21);
-camera.x += (camera.targetX - camera.x) * camera.lerpSpeed;
-camera.y += (camera.targetY - camera.y) * camera.lerpSpeed;
-camera.zoom += (camera.targetZoom - camera.zoom) * camera.lerpSpeed;
+
+  // Smooth camera interpolation
+  camera.x += (camera.targetX - camera.x) * camera.lerpSpeed;
+  camera.y += (camera.targetY - camera.y) * camera.lerpSpeed;
+  camera.zoom += (camera.targetZoom - camera.zoom) * camera.lerpSpeed;
+
   if (!state.paused) {
     state.time += state.dt;
   }
 
-  switch (state.mode) {
+  // Apply camera transform
   push();
-translate(width / 2, height / 2);
-scale(camera.zoom);
-translate(-camera.x, -camera.y);
+  translate(width / 2, height / 2);
+  scale(camera.zoom);
+  translate(-camera.x, -camera.y);
 
-switch (state.mode) {
-  case "overview":
-    drawOverview(state);
-    break;
-  case "ion":
-    drawIonView(state);
-    break;
-  case "synapse":
-    drawSynapseView(state);
-    break;
-}
+  switch (state.mode) {
+    case "overview":
+      drawOverview(state);
+      break;
+    case "ion":
+      drawIonView(state);
+      break;
+    case "synapse":
+      drawSynapseView(state);
+      break;
+  }
 
-pop();
-      
+  pop();
+
+  // UI (not affected by camera)
   drawTimeReadout();
 }
 
