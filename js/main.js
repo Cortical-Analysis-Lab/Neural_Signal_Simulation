@@ -1,3 +1,6 @@
+console.log("✅ main.js loaded");
+
+
 // =====================================================
 // GLOBAL SIMULATION STATE (SINGLE SOURCE OF TRUTH)
 // =====================================================
