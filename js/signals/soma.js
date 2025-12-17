@@ -9,14 +9,20 @@ const soma = {
   tau: 0.98         // decay factor per frame
 };
 
-// Call when an EPSP reaches the soma
-function addEPSPToSoma(amplitude) {
-  // Map bouton size → mV contribution
 function addEPSPToSoma(amplitude) {
   const normalized = constrain((amplitude - 6) / 24, 0, 1);
-  const deltaV = 2 + 8 * normalized * normalized; // quadratic
+
+  // Base nonlinear EPSP
+  let deltaV = 2 + 8 * normalized * normalized;
+
+  // VERY STRONG synapse bonus (driver input)
+  if (amplitude >= 24) {
+    deltaV += 6;  // pushes Vm near / over threshold
+  }
+
   soma.Vm += deltaV;
 }
+
 
 // Passive decay back to rest
 function updateSoma() {
