@@ -7,7 +7,9 @@ const state = {
   paused: false,
   mode: "overview" // overview | ionZoom | synapseZoom
 };
-
+function setMode(mode) {
+  state.mode = mode;
+}
 // =====================================================
 // P5 SETUP
 // =====================================================
