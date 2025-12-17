@@ -54,13 +54,16 @@ function setMode(mode) {
 // =====================================================
 // P5 SETUP
 // =====================================================
+let canvas;
+
 function setup() {
-  const canvas = createCanvas(windowWidth, windowHeight);
+  canvas = createCanvas(windowWidth, windowHeight);
   canvas.parent(document.body);
   frameRate(60);
   initSynapses();
   document.getElementById("pauseBtn").onclick = togglePause;
 }
+
 
 // =====================================================
 // MAIN LOOP
