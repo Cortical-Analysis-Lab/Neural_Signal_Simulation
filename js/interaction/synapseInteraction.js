@@ -1,12 +1,14 @@
 // =====================================================
-// SYNAPSE INTERACTION (DESKTOP ONLY, CLEAN)
+// SYNAPSE INTERACTION — CLICK-BASED SIZE CONTROL
 // =====================================================
 
-let activeSynapse = null;
+const SIZE_STEP = 2;
+const MIN_RADIUS = 6;
+const MAX_RADIUS = 30;
 
+// Convert screen → world coordinates (camera aware)
 function getWorldPoint(x, y) {
   const rect = canvas.elt.getBoundingClientRect();
-
   const cx = x - rect.left;
   const cy = y - rect.top;
 
@@ -16,6 +18,7 @@ function getWorldPoint(x, y) {
   };
 }
 
+// Hover detection
 function updateSynapseHover() {
   if (!neuron || !neuron.synapses) return;
 
@@ -28,28 +31,31 @@ function updateSynapseHover() {
   });
 }
 
+// Mouse click handling
 function mousePressed() {
+  const p = getWorldPoint(mouseX, mouseY);
+
   neuron.synapses.forEach(s => {
-    if (s.hovered) {
-      activeSynapse = s;
-      spawnEPSP(s);
+    if (!s.hovered) return;
+
+    // Button positions
+    const bx = s.x + s.radius + 12;
+    const plusPos = { x: bx, y: s.y - 10 };
+    const minusPos = { x: bx, y: s.y + 10 };
+
+    // PLUS button
+    if (dist(p.x, p.y, plusPos.x, plusPos.y) < 8) {
+      s.radius = min(s.radius + SIZE_STEP, MAX_RADIUS);
+      return;
     }
+
+    // MINUS button
+    if (dist(p.x, p.y, minusPos.x, minusPos.y) < 8) {
+      s.radius = max(s.radius - SIZE_STEP, MIN_RADIUS);
+      return;
+    }
+
+    // Otherwise: click bouton → spawn EPSP
+    spawnEPSP(s);
   });
 }
-
-function mouseDragged() {
-  if (!activeSynapse) return;
-
-  const delta = mouseY - pmouseY;
-
-  activeSynapse.radius = constrain(
-    activeSynapse.radius - delta * 0.15,
-    6,
-    30
-  );
-}
-
-function mouseReleased() {
-  activeSynapse = null;
-}
-
