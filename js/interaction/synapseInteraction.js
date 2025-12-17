@@ -1,4 +1,3 @@
-
 // =====================================================
 // SYNAPSE INTERACTION (DESKTOP ONLY, CLEAN)
 // =====================================================
@@ -17,14 +16,12 @@ function getWorldPoint(x, y) {
   };
 }
 
-
 function updateSynapseHover() {
   if (!neuron || !neuron.synapses) return;
 
   const p = getWorldPoint(mouseX, mouseY);
 
   neuron.synapses.forEach(s => {
-    // Visual radius ≈ drawn radius + perceptual buffer
     const hitRadius = s.radius + 8;
     const d = dist(p.x, p.y, s.x, s.y);
     s.hovered = d < hitRadius;
@@ -32,26 +29,27 @@ function updateSynapseHover() {
 }
 
 function mousePressed() {
-  console.log("mousePressed");
-
   neuron.synapses.forEach(s => {
     if (s.hovered) {
-      console.log("Spawn EPSP from synapse", s.id);
+      activeSynapse = s;
       spawnEPSP(s);
     }
   });
 }
 
 function mouseDragged() {
-  if (activeSynapse) {
-    activeSynapse.radius = constrain(
-      activeSynapse.radius - movedY * 0.1,
-      6,
-      30
-    );
-  }
+  if (!activeSynapse) return;
+
+  const delta = mouseY - pmouseY;
+
+  activeSynapse.radius = constrain(
+    activeSynapse.radius - delta * 0.15,
+    6,
+    30
+  );
 }
 
 function mouseReleased() {
   activeSynapse = null;
 }
+
