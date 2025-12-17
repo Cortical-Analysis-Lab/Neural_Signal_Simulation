@@ -20,12 +20,12 @@ function drawNeuron() {
     line(0, 0, end.x, end.y);
   });
 
-  // Synaptic boutons
-  neuron.synapses.forEach(s => {
-    push();
-    noStroke();
-    fill(s.hovered ? 255 : 200);
-    ellipse(s.x, s.y, s.radius * 2);
-    pop();
-  });
+  // Synaptic boutons (DEBUG)
+neuron.synapses.forEach(s => {
+  push();
+  noStroke();
+  fill(s.hovered ? color(255, 0, 0) : color(200));
+  ellipse(s.x, s.y, s.radius * 2);
+  pop();
+});
 }
