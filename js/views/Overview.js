@@ -4,7 +4,7 @@
 
 function drawOverview(state) {
   push();
-  scale(2);          // ← SCALE EVERYTHING
+  scale(1.5);          // ← SCALE EVERYTHING
   drawNeuron();
   updateSynapseHover();
   updateEPSPs();
