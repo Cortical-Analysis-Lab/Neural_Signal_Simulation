@@ -12,7 +12,9 @@ const soma = {
 // Call when an EPSP reaches the soma
 function addEPSPToSoma(amplitude) {
   // Map bouton size → mV contribution
-  const deltaV = map(amplitude, 6, 30, 0.5, 4);
+function addEPSPToSoma(amplitude) {
+  const normalized = constrain((amplitude - 6) / 24, 0, 1);
+  const deltaV = 2 + 8 * normalized * normalized; // quadratic
   soma.Vm += deltaV;
 }
 
