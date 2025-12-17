@@ -1,0 +1,36 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #0f1115;
+  color: #eaeaea;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow: hidden;
+}
+
+#ui {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+  background: rgba(20, 24, 32, 0.85);
+  padding: 10px 14px;
+  border-radius: 8px;
+}
+
+#ui h1 {
+  font-size: 16px;
+  margin: 0 0 6px 0;
+}
+
+button {
+  background: #2e7df6;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #1f64d8;
+}
