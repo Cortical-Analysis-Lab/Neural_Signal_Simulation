@@ -1,6 +1,7 @@
 // =====================================================
 // SYNAPSE INTERACTION (HOVER + +/- CONTROLS)
 // =====================================================
+const VIEW_SCALE = 1.5; // must match Overview.js
 
 let activeSynapse = null;
 let hoverLock = null;
@@ -10,12 +11,13 @@ let hoverLock = null;
 // -----------------------------------------------------
 function getWorldPoint(x, y) {
   const rect = canvas.elt.getBoundingClientRect();
+
   const cx = x - rect.left;
   const cy = y - rect.top;
 
   return {
-    x: (cx - width / 2) / camera.zoom + camera.x,
-    y: (cy - height / 2) / camera.zoom + camera.y
+    x: (cx - width / 2) / (camera.zoom * VIEW_SCALE) + camera.x,
+    y: (cy - height / 2) / (camera.zoom * VIEW_SCALE) + camera.y
   };
 }
 
