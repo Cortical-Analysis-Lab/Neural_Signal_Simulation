@@ -1,3 +1,7 @@
+// =====================================================
+// SYNAPSE INTERACTION (DESKTOP + MOBILE SAFE)
+// =====================================================
+
 let activeSynapse = null;
 
 function getWorldPoint(x, y) {
@@ -8,6 +12,8 @@ function getWorldPoint(x, y) {
 }
 
 function updateSynapseHover() {
+  if (!window.neuron || !neuron.synapses) return;
+
   const p = getWorldPoint(mouseX, mouseY);
 
   neuron.synapses.forEach(s => {
@@ -35,6 +41,30 @@ function mouseDragged() {
     );
   }
 }
+
+function mouseReleased() {
+  activeSynapse = null;
+}
+
+// ---------- MOBILE ----------
+function touchStarted() {
+  mouseX = touches[0].x;
+  mouseY = touches[0].y;
+  mousePressed();
+  return false;
+}
+
+function touchMoved() {
+  mouseX = touches[0].x;
+  mouseY = touches[0].y;
+  mouseDragged();
+  return false;
+}
+
+function touchEnded() {
+  mouseReleased();
+  return false;
+}}
 
 function mouseReleased() {
   activeSynapse = null;
