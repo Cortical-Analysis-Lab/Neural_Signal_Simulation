@@ -13,7 +13,7 @@ function addEPSPToSoma(amplitude) {
   const normalized = constrain((amplitude - 6) / 24, 0, 1);
 
   // Base nonlinear EPSP
-  let deltaV = 2 + 8 * normalized * normalized;
+  let deltaV = 1 + 20 * normalized * normalized;
 
   // VERY STRONG synapse bonus (driver input)
   if (amplitude >= 24) {
