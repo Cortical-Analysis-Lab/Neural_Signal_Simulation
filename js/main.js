@@ -91,9 +91,7 @@ function draw() {
       drawSynapseView(state);
       break;
   }
-  fill(255, 0, 0);
-  noStroke();
-  ellipse(0, 0, 20, 20);
+
   pop();
 
   // UI (not affected by camera)
