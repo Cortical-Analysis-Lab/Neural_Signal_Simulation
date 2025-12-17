@@ -73,33 +73,25 @@ function initSynapses() {
     }
 
     // -------------------------
-    // Synapse on primary branch
+    // ONE synapse per dendritic tree
     // -------------------------
-    const primaryEnd = primaryBranch[primaryBranch.length - 1];
-
-    neuron.synapses.push({
+    let targetBranch = primaryBranch;
+    
+    // 50% chance to place synapse on side branch if it exists
+    if (sideBranch && random() < 0.5) {
+      targetBranch = sideBranch;
+    }
+    
+    const end = targetBranch[targetBranch.length - 1];
+    
+       neuron.synapses.push({
       id: synapseId++,
-      x: primaryEnd.x + random(-12, 12),
-      y: primaryEnd.y + random(-12, 12),
+      x: end.x + random(-8, 8),
+      y: end.y + random(-8, 8),
       radius: 12,
       hovered: false,
-      branch: primaryBranch
+      branch: targetBranch
     });
 
-    // -------------------------
-    // Synapse on side branch (if exists)
-    // -------------------------
-    if (sideBranch) {
-      const sideEnd = sideBranch[sideBranch.length - 1];
-
-      neuron.synapses.push({
-        id: synapseId++,
-        x: sideEnd.x + random(-12, 12),
-        y: sideEnd.y + random(-12, 12),
-        radius: 12,
-        hovered: false,
-        branch: sideBranch
-      });
-    }
   });
-}
+}     
