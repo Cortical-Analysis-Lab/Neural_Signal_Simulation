@@ -12,15 +12,15 @@ const epsps = [];
 function spawnEPSP(synapse) {
   epsps.push({
     synapseId: synapse.id,
-    branch: synapse.branch,     // ← path reference
-    progress: 0,                // 0 = synapse, 1 = soma
-    amplitude: synapse.radius,  // bouton size encodes strength
-    speed: 0.012,               // slightly faster for clarity
+    branch: synapse.branch,
+    progress: 0,
+    amplitude: synapse.radius,
+    baseAmplitude: synapse.radius, // ← ADD THIS
+    speed: 0.012,
     decay: 0.995
   });
-
-  console.log("EPSP spawned from synapse", synapse.id);
 }
+
 
 /**
  * Update EPSP propagation and decay
