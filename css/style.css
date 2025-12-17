@@ -6,7 +6,26 @@ html, body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   overflow: hidden;
 }
+#ui {
+  max-width: calc(100vw - 24px);
+}
 
+@media (max-width: 600px) {
+  #ui {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+  }
+
+  #ui h1 {
+    font-size: 14px;
+  }
+
+  button {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+}
 #ui {
   position: absolute;
   top: 12px;
