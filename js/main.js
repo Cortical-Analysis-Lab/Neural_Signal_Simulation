@@ -5,7 +5,7 @@ const state = {
   time: 0,          // ms
   dt: 16.67,        // ms (60 FPS)
   paused: false,
-  mode: "overview" // overview | ionZoom | synapseZoom
+  mode: "overview" // overview | ion | synapse
 };
 function setMode(mode) {
   state.mode = mode;
