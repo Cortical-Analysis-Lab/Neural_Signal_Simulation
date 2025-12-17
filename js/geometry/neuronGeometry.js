@@ -53,6 +53,8 @@ function initSynapses() {
     neuron.dendrites.push(primaryBranch);
 
     // Optional small side branch (biological but clean)
+    let sideBranch = null;
+
     if (random() < 1.0) {
       const sideAngle = angle + random(-40, -20);
       const side1 = polarToCartesian(sideAngle, 140);
@@ -61,23 +63,43 @@ function initSynapses() {
         y: side1.y + random(-10, 10)
       };
 
-      neuron.dendrites.push([
+      sideBranch = [
         { x: mid.x,  y: mid.y,  r: 2.5 },
         { x: side1.x, y: side1.y, r: 1.8 },
         { x: side2.x, y: side2.y, r: 1.2 }
-      ]);
+      ];
+
+      neuron.dendrites.push(sideBranch);
     }
 
-    // Synapse near distal end of primary dendrite
+    // -------------------------
+    // Synapse on primary branch
+    // -------------------------
+    const primaryEnd = primaryBranch[primaryBranch.length - 1];
+
     neuron.synapses.push({
       id: synapseId++,
-      x: end.x + random(-6, 6),
-      y: end.y + random(-6, 6),
+      x: primaryEnd.x + random(-12, 12),
+      y: primaryEnd.y + random(-12, 12),
       radius: 12,
       hovered: false,
-
-      // CRITICAL: store actual branch reference
       branch: primaryBranch
     });
+
+    // -------------------------
+    // Synapse on side branch (if exists)
+    // -------------------------
+    if (sideBranch) {
+      const sideEnd = sideBranch[sideBranch.length - 1];
+
+      neuron.synapses.push({
+        id: synapseId++,
+        x: sideEnd.x + random(-12, 12),
+        y: sideEnd.y + random(-12, 12),
+        radius: 12,
+        hovered: false,
+        branch: sideBranch
+      });
+    }
   });
 }
