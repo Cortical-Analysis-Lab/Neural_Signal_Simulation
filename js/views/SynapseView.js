@@ -3,8 +3,8 @@ function drawSynapseView(state) {
   fill(255, 180, 120);
   textAlign(CENTER, CENTER);
   textSize(24);
-  text("SYNAPSE VIEW", width / 2, height / 2 - 40);
+  text("SYNAPSE VIEW", 0, -40);
   textSize(14);
-  text("Vesicle release & receptors (placeholder)", width / 2, height / 2);
+  text("Vesicle release & receptors (placeholder)", 0, 0);
   pop();
 }
