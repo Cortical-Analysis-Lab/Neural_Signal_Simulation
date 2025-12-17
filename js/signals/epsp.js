@@ -54,24 +54,24 @@ function drawEPSPs() {
   epsps.forEach(e => {
     if (!e.branch || e.branch.length < 2) return;
 
-    // Total number of segments
+    // Branch goes proximal → distal, so we reverse indexing
     const segments = e.branch.length - 1;
 
-    // Determine which segment we're on
-    const t = e.progress * segments;
+    // Progress runs from distal → soma
+    const t = (1 - e.progress) * segments;
     const idx = floor(t);
     const localT = t - idx;
 
-    // Clamp to valid segment
     const i = constrain(idx, 0, segments - 1);
 
-    const p1 = e.branch[i];
-    const p2 = e.branch[i + 1];
+    const p1 = e.branch[i + 1];
+    const p2 = e.branch[i];
 
     const x = lerp(p1.x, p2.x, localT);
     const y = lerp(p1.y, p2.y, localT);
 
-    const w = map(e.amplitude, 6, 30, 2, 10);
+    // IMPORTANT: visual size depends on ORIGINAL synapse size
+    const w = map(e.baseAmplitude, 6, 30, 3, 12);
 
     push();
     stroke(80, 150, 255); // EPSP BLUE
@@ -80,4 +80,5 @@ function drawEPSPs() {
     pop();
   });
 }
+
 
