@@ -3,11 +3,14 @@
 // =====================================================
 
 function drawOverview(state) {
+  push();
+  scale(2);          // ← SCALE EVERYTHING
   drawNeuron();
   updateSynapseHover();
   updateEPSPs();
   updateSoma();
   drawEPSPs();
+  pop();
 }
 
 // -----------------------------------------------------
