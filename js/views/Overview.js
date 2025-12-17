@@ -23,7 +23,7 @@ function drawNeuron() {
       const p1 = branch[i];
       const p2 = branch[i + 1];
 
-      stroke(150, 150, 160);
+      stroke(235, 220, 160); // pastel yellow dendrites
       strokeWeight(p1.r);
       noFill();
       line(p1.x, p1.y, p2.x, p2.y);
@@ -31,21 +31,31 @@ function drawNeuron() {
   });
 
   // =====================
-  // SOMA (pastel yellow)
+  // SOMA (pastel yellow + Vm glow)
   // =====================
   push();
+  
+  const depol = constrain(map(soma.Vm, soma.rest, soma.threshold, 0, 1), 0, 1);
+  const glow = lerpColor(
+    color(245, 232, 170),
+    color(255, 245, 200),
+    depol
+  );
+  
   stroke(220, 200, 120);
   strokeWeight(2);
-  fill(245, 232, 170); // pastel yellow
+  fill(glow);
+  
   ellipse(0, 0, neuron.somaRadius * 2.1, neuron.somaRadius * 1.8);
   pop();
+
 
   // =====================
   // AXON HILLOCK
   // =====================
   push();
   noStroke();
-  fill(215, 195, 130);
+  fill(235, 220, 160);
   beginShape();
   vertex(neuron.somaRadius, -6);
   vertex(neuron.somaRadius + neuron.hillock.length, 0);
@@ -56,7 +66,7 @@ function drawNeuron() {
   // =====================
   // AXON (RIGHT)
   // =====================
-  stroke(180);
+  stroke(235, 220, 160); // pastel yellow axon
   strokeWeight(3);
   noFill();
   beginShape();
