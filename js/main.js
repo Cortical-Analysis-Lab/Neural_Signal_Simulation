@@ -45,7 +45,7 @@ function setMode(mode) {
   }
 
   if (mode === "synapse") {
-    camera.targetX = 200;
+    camera.targetX = 0;
     camera.targetY = 0;
     camera.targetZoom = 2.5;
   }
