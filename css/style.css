@@ -34,3 +34,8 @@ button {
 button:hover {
   background: #1f64d8;
 }
+.buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
