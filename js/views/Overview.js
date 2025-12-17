@@ -1,6 +1,8 @@
 function drawOverview(state) {
   drawNeuron();
   updateSynapseHover();
+  updateEPSPs();
+  drawEPSPs();
 }
 function drawNeuron() {
   // Soma
