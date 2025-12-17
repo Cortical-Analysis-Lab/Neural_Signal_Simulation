@@ -18,44 +18,59 @@ function getWorldPoint(x, y) {
   };
 }
 
-// Hover detection
+// -----------------------------------------------------
+// Hover detection (bouton + plus/minus = ONE hover zone)
+// -----------------------------------------------------
 function updateSynapseHover() {
   if (!neuron || !neuron.synapses) return;
 
   const p = getWorldPoint(mouseX, mouseY);
 
   neuron.synapses.forEach(s => {
-    const hitRadius = s.radius + 8;
-    const d = dist(p.x, p.y, s.x, s.y);
-    s.hovered = d < hitRadius;
+    // Bouton hit
+    const boutonHit =
+      dist(p.x, p.y, s.x, s.y) < s.radius + 8;
+
+    // Plus / Minus button positions
+    const bx = s.x + s.radius + 18;
+
+    const plusHit =
+      dist(p.x, p.y, bx, s.y - 16) < 14;
+
+    const minusHit =
+      dist(p.x, p.y, bx, s.y + 16) < 14;
+
+    // Hover if ANY part is hit
+    s.hovered = boutonHit || plusHit || minusHit;
   });
 }
 
+// -----------------------------------------------------
 // Mouse click handling
+// -----------------------------------------------------
 function mousePressed() {
   const p = getWorldPoint(mouseX, mouseY);
 
   neuron.synapses.forEach(s => {
     if (!s.hovered) return;
 
-    // Button positions
-    const bx = s.x + s.radius + 12;
-    const plusPos = { x: bx, y: s.y - 10 };
-    const minusPos = { x: bx, y: s.y + 10 };
+    const bx = s.x + s.radius + 18;
+    const plusPos = { x: bx, y: s.y - 16 };
+    const minusPos = { x: bx, y: s.y + 16 };
 
     // PLUS button
-    if (dist(p.x, p.y, plusPos.x, plusPos.y) < 8) {
+    if (dist(p.x, p.y, plusPos.x, plusPos.y) < 14) {
       s.radius = min(s.radius + SIZE_STEP, MAX_RADIUS);
       return;
     }
 
     // MINUS button
-    if (dist(p.x, p.y, minusPos.x, minusPos.y) < 8) {
+    if (dist(p.x, p.y, minusPos.x, minusPos.y) < 14) {
       s.radius = max(s.radius - SIZE_STEP, MIN_RADIUS);
       return;
     }
 
-    // Otherwise: click bouton → spawn EPSP
+    // Otherwise: clicking the bouton itself → EPSP
     spawnEPSP(s);
   });
 }
