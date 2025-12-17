@@ -1,5 +1,5 @@
 // =====================================================
-// OVERVIEW VIEW — NEURON + EPSPs + ACTION POTENTIAL
+// OVERVIEW VIEW — BIOLOGICAL NEURON
 // =====================================================
 
 function drawOverview(state) {
@@ -8,104 +8,85 @@ function drawOverview(state) {
   updateEPSPs();
   updateSoma();
   drawEPSPs();
-
-  // Reset firing flag after refractory ends
-  if (isFiring && refractory <= 0) {
-    isFiring = false;
-  }
 }
 
 // -----------------------------------------------------
-// Draw neuron geometry and activity
+// Draw full neuron
 // -----------------------------------------------------
 function drawNeuron() {
 
   // =====================
-  // Soma (Vm visualization)
+  // DENDRITES (LEFT)
+  // =====================
+  neuron.dendrites.forEach(branch => {
+    for (let i = 0; i < branch.length - 1; i++) {
+      const p1 = branch[i];
+      const p2 = branch[i + 1];
+
+      stroke(140);
+      strokeWeight(p1.r);
+      noFill();
+      line(p1.x, p1.y, p2.x, p2.y);
+    }
+  });
+
+  // =====================
+  // SOMA (organic oval)
   // =====================
   push();
   noStroke();
-
-  const t = constrain(
-    map(soma.Vm, soma.rest, soma.threshold, 0, 1),
-    0,
-    1
-  );
-
-  const somaColor = lerpColor(
-    color(80, 80, 120),     // resting
-    color(80, 150, 255),    // depolarized
-    t
-  );
-
-  fill(somaColor);
-
-  const r = neuron.somaRadius * (1 + 0.15 * t);
-  ellipse(0, 0, r * 2);
+  fill(160);
+  ellipse(0, 0, neuron.somaRadius * 2.1, neuron.somaRadius * 1.8);
   pop();
 
   // =====================
-  // Dendrites
+  // AXON HILLOCK
   // =====================
-  stroke(150);
-  strokeWeight(4);
-  neuron.dendrites.forEach(d => {
-    const end = polarToCartesian(d.angle, d.length);
-    line(0, 0, end.x, end.y);
-  });
-
-  // =====================
-  // Synaptic boutons + controls
-  // =====================
-  neuron.synapses.forEach(s => {
-    push();
-
-    noStroke();
-    fill(s.hovered ? color(255, 0, 0) : color(200));
-    ellipse(s.x, s.y, s.radius * 2);
-
-    if (s.hovered) {
-      fill(240);
-      textAlign(CENTER, CENTER);
-      textSize(20);
-
-      const bx = s.x + s.radius + 18;
-
-      text("+", bx, s.y - 16);
-      text("−", bx, s.y + 16);
-
-      textSize(10);
-      fill(180);
-
-      if (s.radius <= 6) {
-        text("Minimum size", s.x, s.y + s.radius + 16);
-      }
-      if (s.radius >= 30) {
-        text("Maximum size", s.x, s.y + s.radius + 16);
-      }
-    }
-
-    pop();
-  });
+  push();
+  fill(120);
+  noStroke();
+  beginShape();
+  vertex(neuron.somaRadius, -6);
+  vertex(neuron.somaRadius + neuron.hillock.length, 0);
+  vertex(neuron.somaRadius, 6);
+  endShape(CLOSE);
+  pop();
 
   // =====================
-  // Axon hillock AP flash
+  // AXON
+  // =====================
+  stroke(120);
+  strokeWeight(3);
+  noFill();
+
+  beginShape();
+  vertex(neuron.somaRadius + neuron.hillock.length, 0);
+  bezierVertex(
+    neuron.somaRadius + 60, 10,
+    neuron.somaRadius + 120, -10,
+    neuron.somaRadius + neuron.axon.length, 0
+  );
+  endShape();
+
+  // =====================
+  // ACTION POTENTIAL FLASH
   // =====================
   if (isFiring) {
     push();
     noStroke();
-    fill(0, 255, 120); // AP GREEN
-    ellipse(neuron.somaRadius + 12, 0, 12, 12);
+    fill(0, 255, 120);
+    ellipse(neuron.somaRadius + neuron.hillock.length + 4, 0, 10, 10);
     pop();
   }
 
   // =====================
-  // Vm readout
+  // SYNAPTIC BOUTONS
   // =====================
-  push();
-  fill(220);
-  textSize(12);
-  textAlign(CENTER, TOP);
-  text(`${soma.Vm.toFixed(1)} mV`, 0, neuron.somaRadius + 12);
-  pop();
+  neuron.synapses.forEach(s => {
+    push();
+    noStroke();
+    fill(s.hovered ? color(255, 0, 0) : color(200));
+    ellipse(s.x, s.y, s.radius * 2);
+    pop();
+  });
 }
