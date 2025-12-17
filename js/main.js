@@ -55,7 +55,7 @@ function setup() {
   const canvas = createCanvas(windowWidth, windowHeight);
   canvas.parent(document.body);
   frameRate(60);
-
+  initSynapses();
   document.getElementById("pauseBtn").onclick = togglePause;
 }
 
