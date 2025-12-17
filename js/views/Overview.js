@@ -1,5 +1,5 @@
 // =====================================================
-// OVERVIEW VIEW — NEURON + SYNAPSES + SOMA SUMMATION
+// OVERVIEW VIEW — NEURON + EPSPs + ACTION POTENTIAL
 // =====================================================
 
 function drawOverview(state) {
@@ -8,15 +8,20 @@ function drawOverview(state) {
   updateEPSPs();
   updateSoma();
   drawEPSPs();
+
+  // Reset firing flag after refractory ends
+  if (isFiring && refractory <= 0) {
+    isFiring = false;
+  }
 }
 
 // -----------------------------------------------------
-// Draw neuron geometry and soma membrane potential
+// Draw neuron geometry and activity
 // -----------------------------------------------------
 function drawNeuron() {
 
   // =====================
-  // Soma (membrane potential visualization)
+  // Soma (Vm visualization)
   // =====================
   push();
   noStroke();
@@ -28,8 +33,8 @@ function drawNeuron() {
   );
 
   const somaColor = lerpColor(
-    color(80, 80, 120),
-    color(80, 150, 255),
+    color(80, 80, 120),     // resting
+    color(80, 150, 255),    // depolarized
     t
   );
 
@@ -55,13 +60,11 @@ function drawNeuron() {
   neuron.synapses.forEach(s => {
     push();
 
-    // Bouton
     noStroke();
     fill(s.hovered ? color(255, 0, 0) : color(200));
     ellipse(s.x, s.y, s.radius * 2);
 
     if (s.hovered) {
-      // Plus / Minus controls
       fill(240);
       textAlign(CENTER, CENTER);
       textSize(20);
@@ -71,7 +74,6 @@ function drawNeuron() {
       text("+", bx, s.y - 16);
       text("−", bx, s.y + 16);
 
-      // Size limit labels
       textSize(10);
       fill(180);
 
@@ -85,6 +87,17 @@ function drawNeuron() {
 
     pop();
   });
+
+  // =====================
+  // Axon hillock AP flash
+  // =====================
+  if (isFiring) {
+    push();
+    noStroke();
+    fill(0, 255, 120); // AP GREEN
+    ellipse(neuron.somaRadius + 12, 0, 12, 12);
+    pop();
+  }
 
   // =====================
   // Vm readout
