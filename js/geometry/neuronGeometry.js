@@ -34,7 +34,7 @@ function initSynapses() {
   neuron.dendrites = [];
   neuron.synapses = [];
 
-  const primaryAngles = [160, 200, 240]; // LEFT-facing fan
+  const primaryAngles = [150, 170, 200, 220, 250, 270];
   let synapseId = 0;
 
   primaryAngles.forEach(angle => {
