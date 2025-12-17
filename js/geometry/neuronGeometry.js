@@ -53,7 +53,7 @@ function initSynapses() {
     neuron.dendrites.push(primaryBranch);
 
     // Optional small side branch (biological but clean)
-    if (random() < 0.9) {
+    if (random() < 1.0) {
       const sideAngle = angle + random(-40, -20);
       const side1 = polarToCartesian(sideAngle, 140);
       const side2 = {
