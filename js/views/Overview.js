@@ -1,5 +1,5 @@
 // =====================================================
-// OVERVIEW VIEW — BIOLOGICAL NEURON
+// OVERVIEW VIEW — BIOLOGICAL, CLEAN, POLARIZED
 // =====================================================
 
 function drawOverview(state) {
@@ -23,7 +23,7 @@ function drawNeuron() {
       const p1 = branch[i];
       const p2 = branch[i + 1];
 
-      stroke(140);
+      stroke(150, 150, 160);
       strokeWeight(p1.r);
       noFill();
       line(p1.x, p1.y, p2.x, p2.y);
@@ -31,11 +31,12 @@ function drawNeuron() {
   });
 
   // =====================
-  // SOMA (organic oval)
+  // SOMA (pastel yellow)
   // =====================
   push();
-  noStroke();
-  fill(160);
+  stroke(220, 200, 120);
+  strokeWeight(2);
+  fill(245, 232, 170); // pastel yellow
   ellipse(0, 0, neuron.somaRadius * 2.1, neuron.somaRadius * 1.8);
   pop();
 
@@ -43,8 +44,8 @@ function drawNeuron() {
   // AXON HILLOCK
   // =====================
   push();
-  fill(120);
   noStroke();
+  fill(215, 195, 130);
   beginShape();
   vertex(neuron.somaRadius, -6);
   vertex(neuron.somaRadius + neuron.hillock.length, 0);
@@ -53,12 +54,11 @@ function drawNeuron() {
   pop();
 
   // =====================
-  // AXON
+  // AXON (RIGHT)
   // =====================
-  stroke(120);
+  stroke(180);
   strokeWeight(3);
   noFill();
-
   beginShape();
   vertex(neuron.somaRadius + neuron.hillock.length, 0);
   bezierVertex(
@@ -74,19 +74,60 @@ function drawNeuron() {
   if (isFiring) {
     push();
     noStroke();
-    fill(0, 255, 120);
-    ellipse(neuron.somaRadius + neuron.hillock.length + 4, 0, 10, 10);
+    fill(0, 255, 120); // AP GREEN
+    ellipse(neuron.somaRadius + neuron.hillock.length + 6, 0, 12, 12);
     pop();
   }
 
   // =====================
-  // SYNAPTIC BOUTONS
+  // SYNAPTIC BOUTONS + CONTROLS
   // =====================
   neuron.synapses.forEach(s => {
+
+    // Bouton
     push();
     noStroke();
-    fill(s.hovered ? color(255, 0, 0) : color(200));
+    fill(s.hovered ? color(255, 200, 200) : color(220));
     ellipse(s.x, s.y, s.radius * 2);
     pop();
+
+    // +/- controls
+    if (s.hovered) {
+      drawSynapseControls(s);
+    }
   });
+}
+
+// -----------------------------------------------------
+// Draw + / − controls and feedback
+// -----------------------------------------------------
+function drawSynapseControls(s) {
+
+  textAlign(CENTER, CENTER);
+  textSize(18);
+  noStroke();
+
+  // PLUS
+  fill(80, 200, 120);
+  ellipse(s.x, s.y - s.radius - 18, 18, 18);
+  fill(0);
+  text("+", s.x, s.y - s.radius - 19);
+
+  // MINUS
+  fill(200, 100, 100);
+  ellipse(s.x, s.y + s.radius + 18, 18, 18);
+  fill(0);
+  text("–", s.x, s.y + s.radius + 18);
+
+  // Feedback text
+  textSize(10);
+  fill(220);
+
+  if (s.radius >= 30) {
+    text("Maximum size", s.x, s.y - s.radius - 36);
+  }
+
+  if (s.radius <= 6) {
+    text("Minimum size", s.x, s.y + s.radius + 36);
+  }
 }
