@@ -31,13 +31,12 @@ function updateSynapseHover() {
   });
 }
 
-
-
-
 function mousePressed() {
+  console.log("mousePressed");
+
   neuron.synapses.forEach(s => {
     if (s.hovered) {
-      activeSynapse = s;
+      console.log("Spawn EPSP from synapse", s.id);
       spawnEPSP(s);
     }
   });
