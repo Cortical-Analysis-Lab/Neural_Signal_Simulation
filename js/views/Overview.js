@@ -64,12 +64,12 @@ function drawNeuron() {
       // Plus / Minus controls
       fill(240);
       textAlign(CENTER, CENTER);
-      textSize(12);
+      textSize(20);
 
-      const bx = s.x + s.radius + 12;
+      const bx = s.x + s.radius + 18;
 
-      text("+", bx, s.y - 10);
-      text("−", bx, s.y + 10);
+      text("+", bx, s.y - 16);
+      text("−", bx, s.y + 16);
 
       // Size limit labels
       textSize(10);
