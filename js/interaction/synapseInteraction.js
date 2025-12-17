@@ -19,22 +19,9 @@ function getWorldPoint(x, y) {
 
 
 function updateSynapseHover() {
-  if (!window.neuron || !neuron.synapses) return;
-
-  const p = getWorldPoint(mouseX, mouseY);
-
-  // DEBUG: draw mouse world position
-  push();
-  stroke(0, 255, 0);
-  strokeWeight(12);
-  point(p.x, p.y);
-  pop();
-
-  neuron.synapses.forEach(s => {
-    const d = dist(p.x, p.y, s.x, s.y);
-    s.hovered = d < s.radius;
-  });
+  console.log("mouseX, mouseY:", mouseX, mouseY);
 }
+
 
 
 function mousePressed() {
