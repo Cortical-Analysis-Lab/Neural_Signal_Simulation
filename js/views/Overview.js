@@ -1,5 +1,5 @@
 // =====================================================
-// OVERVIEW VIEW — NEURON + EPSPs + SOMA SUMMATION
+// OVERVIEW VIEW — NEURON + SYNAPSES + SOMA SUMMATION
 // =====================================================
 
 function drawOverview(state) {
@@ -11,24 +11,22 @@ function drawOverview(state) {
 }
 
 // -----------------------------------------------------
-// Draw neuron geometry + soma potential visualization
+// Draw neuron geometry and soma membrane potential
 // -----------------------------------------------------
 function drawNeuron() {
 
   // =====================
-  // Soma (membrane potential)
+  // Soma (membrane potential visualization)
   // =====================
   push();
   noStroke();
 
-  // Normalize Vm between rest and threshold
   const t = constrain(
     map(soma.Vm, soma.rest, soma.threshold, 0, 1),
     0,
     1
   );
 
-  // Dark at rest → brighter blue with depolarization
   const somaColor = lerpColor(
     color(80, 80, 120),
     color(80, 150, 255),
@@ -37,7 +35,6 @@ function drawNeuron() {
 
   fill(somaColor);
 
-  // Slight swelling with depolarization
   const r = neuron.somaRadius * (1 + 0.15 * t);
   ellipse(0, 0, r * 2);
   pop();
@@ -53,18 +50,44 @@ function drawNeuron() {
   });
 
   // =====================
-  // Synaptic boutons
+  // Synaptic boutons + controls
   // =====================
   neuron.synapses.forEach(s => {
     push();
+
+    // Bouton
     noStroke();
     fill(s.hovered ? color(255, 0, 0) : color(200));
     ellipse(s.x, s.y, s.radius * 2);
+
+    if (s.hovered) {
+      // Plus / Minus controls
+      fill(240);
+      textAlign(CENTER, CENTER);
+      textSize(12);
+
+      const bx = s.x + s.radius + 12;
+
+      text("+", bx, s.y - 10);
+      text("−", bx, s.y + 10);
+
+      // Size limit labels
+      textSize(10);
+      fill(180);
+
+      if (s.radius <= 6) {
+        text("Minimum size", s.x, s.y + s.radius + 16);
+      }
+      if (s.radius >= 30) {
+        text("Maximum size", s.x, s.y + s.radius + 16);
+      }
+    }
+
     pop();
   });
 
   // =====================
-  // Vm readout (optional but useful)
+  // Vm readout
   // =====================
   push();
   fill(220);
