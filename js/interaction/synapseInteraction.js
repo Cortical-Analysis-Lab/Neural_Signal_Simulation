@@ -1,12 +1,13 @@
 // =====================================================
-// SYNAPSE INTERACTION — CLICK-BASED SIZE CONTROL
+// SYNAPSE INTERACTION (HOVER + +/- CONTROLS)
 // =====================================================
 
-const SIZE_STEP = 2;
-const MIN_RADIUS = 6;
-const MAX_RADIUS = 30;
+let activeSynapse = null;
+let hoverLock = null;
 
-// Convert screen → world coordinates (camera aware)
+// -----------------------------------------------------
+// Convert screen → world coordinates
+// -----------------------------------------------------
 function getWorldPoint(x, y) {
   const rect = canvas.elt.getBoundingClientRect();
   const cx = x - rect.left;
@@ -19,7 +20,7 @@ function getWorldPoint(x, y) {
 }
 
 // -----------------------------------------------------
-// Hover detection (bouton + plus/minus = ONE hover zone)
+// Hover detection with lock
 // -----------------------------------------------------
 function updateSynapseHover() {
   if (!neuron || !neuron.synapses) return;
@@ -27,26 +28,16 @@ function updateSynapseHover() {
   const p = getWorldPoint(mouseX, mouseY);
 
   neuron.synapses.forEach(s => {
-    // Bouton hit
-    const boutonHit =
-      dist(p.x, p.y, s.x, s.y) < s.radius + 8;
+    const d = dist(p.x, p.y, s.x, s.y);
+    const hit = d < s.radius + 12;
 
-    // Plus / Minus button positions
-    const bx = s.x + s.radius + 18;
-
-    const plusHit =
-      dist(p.x, p.y, bx, s.y - 16) < 14;
-
-    const minusHit =
-      dist(p.x, p.y, bx, s.y + 16) < 14;
-
-    // Hover if ANY part is hit
-    s.hovered = boutonHit || plusHit || minusHit;
+    if (hit) hoverLock = s;
+    s.hovered = hit || hoverLock === s;
   });
 }
 
 // -----------------------------------------------------
-// Mouse click handling
+// Mouse pressed — EPSP spawn or +/- click
 // -----------------------------------------------------
 function mousePressed() {
   const p = getWorldPoint(mouseX, mouseY);
@@ -54,23 +45,32 @@ function mousePressed() {
   neuron.synapses.forEach(s => {
     if (!s.hovered) return;
 
-    const bx = s.x + s.radius + 18;
-    const plusPos = { x: bx, y: s.y - 16 };
-    const minusPos = { x: bx, y: s.y + 16 };
-
-    // PLUS button
-    if (dist(p.x, p.y, plusPos.x, plusPos.y) < 14) {
-      s.radius = min(s.radius + SIZE_STEP, MAX_RADIUS);
+    // + button (above)
+    const plusY = s.y - s.radius - 18;
+    if (dist(p.x, p.y, s.x, plusY) < 10) {
+      s.radius = constrain(s.radius + 2, 6, 30);
       return;
     }
 
-    // MINUS button
-    if (dist(p.x, p.y, minusPos.x, minusPos.y) < 14) {
-      s.radius = max(s.radius - SIZE_STEP, MIN_RADIUS);
+    // - button (below)
+    const minusY = s.y + s.radius + 18;
+    if (dist(p.x, p.y, s.x, minusY) < 10) {
+      s.radius = constrain(s.radius - 2, 6, 30);
       return;
     }
 
-    // Otherwise: clicking the bouton itself → EPSP
-    spawnEPSP(s);
+    // Otherwise, click synapse body → EPSP
+    const d = dist(p.x, p.y, s.x, s.y);
+    if (d < s.radius) {
+      spawnEPSP(s);
+    }
   });
+}
+
+// -----------------------------------------------------
+// Release clears hover lock
+// -----------------------------------------------------
+function mouseReleased() {
+  activeSynapse = null;
+  hoverLock = null;
 }
