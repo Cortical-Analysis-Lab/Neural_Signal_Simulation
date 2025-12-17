@@ -14,6 +14,7 @@ function getWorldPoint(x, y) {
 
 function updateSynapseHover() {
   if (!window.neuron || !neuron.synapses) return;
+  console.log("hover check");
 
   const p = getWorldPoint(mouseX, mouseY);
 
