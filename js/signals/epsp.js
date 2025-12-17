@@ -33,9 +33,16 @@ function updateEPSPs() {
     e.amplitude *= e.decay;
 
     // Remove EPSP when it reaches soma or fades out
-    if (e.progress >= 1 || e.amplitude < 1) {
-      epsps.splice(i, 1);
-    }
+    if (e.progress >= 1) {
+  addEPSPToSoma(e.amplitude);   // ← NEW
+  epsps.splice(i, 1);
+  continue;
+}
+
+if (e.amplitude < 1) {
+  epsps.splice(i, 1);
+}
+
   }
 }
 
