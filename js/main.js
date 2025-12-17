@@ -33,7 +33,7 @@ function draw() {
 
   switch (state.mode) {
   case "overview":
-    drawOverviewView(state);
+    drawOverview(state);
     break;
   case "ion":
     drawIonView(state);
@@ -43,17 +43,6 @@ function draw() {
     break;
 };
   drawTimeReadout();
-}
-
-// =====================================================
-// BASELINE VISUAL (TEMPORARY)
-// =====================================================
-function drawBaseline() {
-  push();
-  stroke(80);
-  noFill();
-  ellipse(width / 2, height / 2, 200, 200);
-  pop();
 }
 
 // =====================================================
