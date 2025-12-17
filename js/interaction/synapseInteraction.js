@@ -47,14 +47,14 @@ function mousePressed() {
 
     // + button (above)
     const plusY = s.y - s.radius - 18;
-    if (dist(p.x, p.y, s.x, plusY) < 10) {
+    if (dist(p.x, p.y, s.x, plusY) < 16) {
       s.radius = constrain(s.radius + 2, 6, 30);
       return;
     }
 
     // - button (below)
     const minusY = s.y + s.radius + 18;
-    if (dist(p.x, p.y, s.x, minusY) < 10) {
+    if (dist(p.x, p.y, s.x, minusY) < 16) {
       s.radius = constrain(s.radius - 2, 6, 30);
       return;
     }
