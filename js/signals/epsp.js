@@ -27,10 +27,6 @@ function updateEPSPs() {
 }
 
 function drawEPSPs() {
-  stroke(80, 150, 255); // EPSP BLUE
-  strokeWeight(3);
-  noFill();
-
   epsps.forEach(e => {
     const syn = neuron.synapses[e.synapseId];
     const d = neuron.dendrites[e.synapseId];
@@ -42,7 +38,8 @@ function drawEPSPs() {
     const y = lerp(start.y, end.y, e.progress);
 
     push();
-    strokeWeight(map(e.amplitude, 4, 30, 1, 6));
+    stroke(80, 150, 255); // EPSP BLUE
+    strokeWeight(map(e.amplitude, 6, 30, 3, 10));
     point(x, y);
     pop();
   });
