@@ -19,8 +19,18 @@ function getWorldPoint(x, y) {
 
 
 function updateSynapseHover() {
-  console.log("mouseX, mouseY:", mouseX, mouseY);
+  if (!neuron || !neuron.synapses) return;
+
+  const p = getWorldPoint(mouseX, mouseY);
+
+  neuron.synapses.forEach(s => {
+    // Visual radius ≈ drawn radius + perceptual buffer
+    const hitRadius = s.radius + 8;
+    const d = dist(p.x, p.y, s.x, s.y);
+    s.hovered = d < hitRadius;
+  });
 }
+
 
 
 
