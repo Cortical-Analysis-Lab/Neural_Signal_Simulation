@@ -52,16 +52,25 @@ function updateEPSPs() {
  */
 function drawEPSPs() {
   epsps.forEach(e => {
-    if (!e.branch || e.branch.length === 0) return;
+    if (!e.branch || e.branch.length < 2) return;
 
-    // EPSP starts at distal end of dendrite
-    const start = e.branch[e.branch.length - 1];
+    // Total number of segments
+    const segments = e.branch.length - 1;
 
-    // Interpolate toward soma (0,0)
-    const x = lerp(start.x, 0, e.progress);
-    const y = lerp(start.y, 0, e.progress);
+    // Determine which segment we're on
+    const t = e.progress * segments;
+    const idx = floor(t);
+    const localT = t - idx;
 
-    // Visual scaling strongly tied to synapse size
+    // Clamp to valid segment
+    const i = constrain(idx, 0, segments - 1);
+
+    const p1 = e.branch[i];
+    const p2 = e.branch[i + 1];
+
+    const x = lerp(p1.x, p2.x, localT);
+    const y = lerp(p1.y, p2.y, localT);
+
     const w = map(e.amplitude, 6, 30, 2, 10);
 
     push();
@@ -71,3 +80,4 @@ function drawEPSPs() {
     pop();
   });
 }
+
