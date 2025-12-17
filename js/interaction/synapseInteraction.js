@@ -14,15 +14,22 @@ function getWorldPoint(x, y) {
 
 function updateSynapseHover() {
   if (!window.neuron || !neuron.synapses) return;
-  console.log("hover check");
 
   const p = getWorldPoint(mouseX, mouseY);
 
+  // DEBUG: draw mouse world position
+  push();
+  stroke(0, 255, 0);
+  strokeWeight(12);
+  point(p.x, p.y);
+  pop();
+
   neuron.synapses.forEach(s => {
     const d = dist(p.x, p.y, s.x, s.y);
-    s.hovered = d < s.radius + 10;
+    s.hovered = d < s.radius;
   });
 }
+
 
 function mousePressed() {
   neuron.synapses.forEach(s => {
