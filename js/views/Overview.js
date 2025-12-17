@@ -27,7 +27,7 @@ function drawNeuron() {
       const p2 = branch[i + 1];
 
       stroke(235, 220, 160); // pastel yellow dendrites
-      strokeWeight(p1.r);
+      strokeWeight(p1.r * 2.5);
       noFill();
       line(p1.x, p1.y, p2.x, p2.y);
     }
@@ -45,9 +45,10 @@ function drawNeuron() {
     depol
   );
   
-  stroke(220, 200, 120);
-  strokeWeight(2);
+  stroke(190, 165, 90);
+  strokeWeight(3);
   fill(glow);
+
   
   ellipse(0, 0, neuron.somaRadius * 2.1, neuron.somaRadius * 1.8);
   // Vm display inside soma
