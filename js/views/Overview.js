@@ -47,6 +47,15 @@ function drawNeuron() {
   fill(glow);
   
   ellipse(0, 0, neuron.somaRadius * 2.1, neuron.somaRadius * 1.8);
+  // Vm display inside soma
+  push();
+  fill(60);
+  noStroke();
+  textAlign(CENTER, CENTER);
+  textSize(14);
+  text(`${soma.Vm.toFixed(1)} mV`, 0, 2);
+  pop();
+
   pop();
 
 
