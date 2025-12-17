@@ -6,11 +6,17 @@
 let activeSynapse = null;
 
 function getWorldPoint(x, y) {
+  const rect = canvas.elt.getBoundingClientRect();
+
+  const cx = x - rect.left;
+  const cy = y - rect.top;
+
   return {
-    x: (x - width / 2) / camera.zoom + camera.x,
-    y: (y - height / 2) / camera.zoom + camera.y
+    x: (cx - width / 2) / camera.zoom + camera.x,
+    y: (cy - height / 2) / camera.zoom + camera.y
   };
 }
+
 
 function updateSynapseHover() {
   if (!window.neuron || !neuron.synapses) return;
