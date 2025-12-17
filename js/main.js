@@ -31,7 +31,17 @@ function draw() {
     state.time += state.dt;
   }
 
-  drawBaseline();
+  switch (state.mode) {
+  case "overview":
+    drawOverviewView(state);
+    break;
+  case "ion":
+    drawIonView(state);
+    break;
+  case "synapse":
+    drawSynapseView(state);
+    break;
+};
   drawTimeReadout();
 }
 
