@@ -52,33 +52,46 @@ function updateEPSPs() {
  */
 function drawEPSPs() {
   epsps.forEach(e => {
-    if (!e.branch || e.branch.length < 2) return;
+    const syn = neuron.synapses[e.synapseId];
+    if (!syn || !syn.branch) return;
 
-    // Branch goes proximal → distal, so we reverse indexing
-    const segments = e.branch.length - 1;
+    const branch = syn.branch;
 
-    // Progress runs from distal → soma
-    const t = (1 - e.progress) * segments;
-    const idx = floor(t);
-    const localT = t - idx;
+    // EPSPs travel from distal → proximal → soma
+    // Branch is ordered soma → distal, so reverse it
+    const path = [...branch].reverse();
 
-    const i = constrain(idx, 0, segments - 1);
+    // Total number of segments
+    const segments = path.length - 1;
+    if (segments <= 0) return;
 
-    const p1 = e.branch[i + 1];
-    const p2 = e.branch[i];
+    // Map progress (0–1) to segment index
+    const totalProgress = e.progress * segments;
+    const segIndex = floor(totalProgress);
+    const localT = totalProgress - segIndex;
 
-    const x = lerp(p1.x, p2.x, localT);
-    const y = lerp(p1.y, p2.y, localT);
+    // Clamp indices
+    const i0 = constrain(segIndex, 0, segments - 1);
+    const i1 = constrain(segIndex + 1, 0, segments);
 
-    // IMPORTANT: visual size depends on ORIGINAL synapse size
+    const p0 = path[i0];
+    const p1 = path[i1];
+
+    // Interpolate along the dendritic segment
+    const x = lerp(p0.x, p1.x, localT);
+    const y = lerp(p0.y, p1.y, localT);
+
+    // Thickness scales with synapse size
     const w = map(e.baseAmplitude, 6, 30, 3, 12);
 
     push();
-    stroke(80, 150, 255); // EPSP BLUE
+    stroke(80, 150, 255); // EPSP blue
     strokeWeight(w);
     point(x, y);
     pop();
   });
 }
+
+
 
 
