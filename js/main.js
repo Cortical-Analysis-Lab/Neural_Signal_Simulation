@@ -9,7 +9,24 @@ const state = {
 };
 function setMode(mode) {
   state.mode = mode;
-}
+
+  if (mode === "overview") {
+    camera.targetX = 0;
+    camera.targetY = 0;
+    camera.targetZoom = 1;
+  }
+
+  if (mode === "ion") {
+    camera.targetX = 0;
+    camera.targetY = 0;
+    camera.targetZoom = 2.5;
+  }
+
+  if (mode === "synapse") {
+    camera.targetX = 200;
+    camera.targetY = 0;
+    camera.targetZoom = 2.5;
+  }
 // =====================================================
 // P5 SETUP
 // =====================================================
@@ -26,12 +43,20 @@ function setup() {
 // =====================================================
 function draw() {
   background(15, 17, 21);
-
+camera.x += (camera.targetX - camera.x) * camera.lerpSpeed;
+camera.y += (camera.targetY - camera.y) * camera.lerpSpeed;
+camera.zoom += (camera.targetZoom - camera.zoom) * camera.lerpSpeed;
   if (!state.paused) {
     state.time += state.dt;
   }
 
   switch (state.mode) {
+  push();
+translate(width / 2, height / 2);
+scale(camera.zoom);
+translate(-camera.x, -camera.y);
+
+switch (state.mode) {
   case "overview":
     drawOverview(state);
     break;
@@ -41,7 +66,10 @@ function draw() {
   case "synapse":
     drawSynapseView(state);
     break;
-};
+}
+
+pop();
+      
   drawTimeReadout();
 }
 
