@@ -15,7 +15,7 @@ let isFiring = false;
 let refractory = 0;
 
 // -----------------------------------------------------
-// EPSP arrival at soma
+// PSP arrival at soma (EPSP / IPSP)
 // -----------------------------------------------------
 function addEPSPToSoma(amplitude, type) {
 
@@ -26,19 +26,14 @@ function addEPSPToSoma(amplitude, type) {
 
   if (type === "exc") {
     // Strong nonlinear EPSP
-    // Small synapses → tiny effect
-    // Large synapses → explosive effect
     deltaV = 2 + 40 * pow(norm, 2.5);
-
-  } else { // inhibitory
-    deltaV = - (2 + 30 * pow(norm, 2));
+  } else {
+    // Inhibitory PSP
+    deltaV = -(2 + 30 * pow(norm, 2));
   }
 
   soma.Vm += deltaV;
 }
-
-}
-
 
 // -----------------------------------------------------
 // Soma update (decay, threshold, refractory)
