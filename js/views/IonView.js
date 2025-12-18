@@ -1,3 +1,5 @@
+console.log("ion view loaded");
+
 function drawIonView(state) {
   push();
   fill(120, 180, 255);
