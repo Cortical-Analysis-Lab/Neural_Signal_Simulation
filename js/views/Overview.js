@@ -133,3 +133,41 @@ function drawNeuron() {
     }
   });
 }
+
+// -----------------------------------------------------
+// Draw + / − controls and feedback (GLOBAL)
+// -----------------------------------------------------
+function drawSynapseControls(s) {
+  push();
+
+  textAlign(CENTER, CENTER);
+  textSize(18);
+  noStroke();
+
+  // PLUS
+  fill(80, 200, 120);
+  ellipse(s.x, s.y - s.radius - 18, 18, 18);
+  fill(0);
+  text("+", s.x, s.y - s.radius - 19);
+
+  // MINUS
+  fill(200, 100, 100);
+  ellipse(s.x, s.y + s.radius + 18, 18, 18);
+  fill(0);
+  text("–", s.x, s.y + s.radius + 18);
+
+  // Feedback text
+  textSize(10);
+  fill(220);
+
+  if (s.radius >= 30) {
+    text("Maximum size", s.x, s.y - s.radius - 36);
+  }
+
+  if (s.radius <= 6) {
+    text("Minimum size", s.x, s.y + s.radius + 36);
+  }
+
+  pop();
+}
+
