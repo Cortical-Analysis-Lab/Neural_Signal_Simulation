@@ -20,7 +20,7 @@ const camera = {
 
   targetX: 0,
   targetY: 0,
-  targetZoom: 1,
+  targetZoom: 1.05,
 
   lerpSpeed: 0.08
 };
