@@ -65,11 +65,14 @@ function initSynapses() {
 
     neuron.synapses.push({
       id: synapseId++,
-      x: end.x + random(-8, 8),
-      y: end.y + random(-8, 8),
+      x: branchEnd.x + random(-8, 8),
+      y: branchEnd.y + random(-8, 8),
       radius: 12,
       hovered: false,
-      type: random() < 0.75 ? "exc" : "inh", // ← 75% excitatory
+    
+      type: random() < 0.7 ? "exc" : "inh", // excitatory / inhibitory
+      selected: false,                     // ← NEW
+    
       path: buildPathToSoma(targetBranch)
     });
   });
