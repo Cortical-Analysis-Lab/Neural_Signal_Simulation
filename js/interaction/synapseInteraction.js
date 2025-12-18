@@ -14,17 +14,12 @@ function getWorldPoint(x, y) {
   const cx = x - rect.left;
   const cy = y - rect.top;
 
-  // Undo camera transform
-  let wx = (cx - width / 2) / camera.zoom + camera.x;
-  let wy = (cy - height / 2) / camera.zoom + camera.y;
-
-  // Undo Overview scale ONLY
-  wx /= OVERVIEW_SCALE;
-  wy /= OVERVIEW_SCALE;
+  // Undo camera transform ONLY
+  const wx = (cx - width / 2) / camera.zoom + camera.x;
+  const wy = (cy - height / 2) / camera.zoom + camera.y;
 
   return { x: wx, y: wy };
 }
-
 
 // -----------------------------------------------------
 // Hover detection
@@ -77,10 +72,10 @@ function mousePressed() {
     }
 
     // -----------------------------------
-    // SINGLE EPSP
+    // SINGLE PSP
     // -----------------------------------
     if (dist(p.x, p.y, s.x, s.y) < s.radius) {
-      spawnEPSP(s);
+      spawnEPSP(s); // still valid alias
     }
   });
 }
@@ -89,6 +84,7 @@ function mousePressed() {
 // Keyboard control
 // -----------------------------------------------------
 function keyPressed() {
+
   // Fire selected synapses
   if (key === ' ') {
     neuron.synapses.forEach(s => {
