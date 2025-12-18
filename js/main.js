@@ -8,8 +8,8 @@ window.OVERVIEW_SCALE = 1.2;
 // =====================================================
 // OVERVIEW CAMERA OFFSETS (FINE FRAMING)
 // =====================================================
-const OVERVIEW_CENTER_X = -40;  // move neuron left
-const OVERVIEW_CENTER_Y = 30;   // move neuron down
+const OVERVIEW_CENTER_X = -70;  // move neuron left
+const OVERVIEW_CENTER_Y = 60;   // move neuron down
 
 
 // =====================================================
