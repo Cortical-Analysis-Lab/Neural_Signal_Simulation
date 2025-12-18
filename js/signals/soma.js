@@ -17,18 +17,26 @@ let refractory = 0;
 // -----------------------------------------------------
 // EPSP arrival at soma
 // -----------------------------------------------------
-function addEPSPToSoma(amplitude, type = "exc") {
+function addEPSPToSoma(amplitude, type) {
+
+  // Normalize bouton size (6 → 30)
   const norm = constrain((amplitude - 6) / 24, 0, 1);
 
-  let deltaV = 1 + 20 * norm * norm;
+  let deltaV;
 
-  if (amplitude >= 24) deltaV += 6;
+  if (type === "exc") {
+    // Strong nonlinear EPSP
+    // Small synapses → tiny effect
+    // Large synapses → explosive effect
+    deltaV = 2 + 40 * pow(norm, 2.5);
 
-  if (type === "inh") {
-    soma.Vm -= deltaV * 1.1;   // IPSPs slightly stronger
-  } else {
-    soma.Vm += deltaV;
+  } else { // inhibitory
+    deltaV = - (2 + 30 * pow(norm, 2));
   }
+
+  soma.Vm += deltaV;
+}
+
 }
 
 
