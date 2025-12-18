@@ -14,14 +14,17 @@ function getWorldPoint(x, y) {
   const cx = x - rect.left;
   const cy = y - rect.top;
 
+  // Undo camera transform
   let wx = (cx - width / 2) / camera.zoom + camera.x;
   let wy = (cy - height / 2) / camera.zoom + camera.y;
 
+  // Undo Overview scale ONLY
   wx /= OVERVIEW_SCALE;
-  wy = (wy - NEURON_Y_OFFSET) / OVERVIEW_SCALE;
+  wy /= OVERVIEW_SCALE;
 
   return { x: wx, y: wy };
 }
+
 
 // -----------------------------------------------------
 // Hover detection
