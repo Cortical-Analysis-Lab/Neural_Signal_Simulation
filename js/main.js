@@ -3,7 +3,7 @@ console.log("✅ main.js loaded");
 // =====================================================
 // GLOBAL VIEW CONSTANTS
 // =====================================================
-window.OVERVIEW_SCALE = 1.5;
+window.OVERVIEW_SCALE = 1.2;
 
 // =====================================================
 // UI LAYOUT CONSTANTS (SAFE DRAW AREA)
