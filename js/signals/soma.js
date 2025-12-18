@@ -1,6 +1,7 @@
 // =====================================================
 // SOMA MEMBRANE POTENTIAL + ACTION POTENTIAL MODEL
 // =====================================================
+console.log("soma loaded");
 
 const soma = {
   Vm: -65,        // resting membrane potential (mV)
