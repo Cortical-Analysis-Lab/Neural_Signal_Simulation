@@ -2,6 +2,7 @@
 // SYNAPSE INTERACTION (HOVER + +/- CONTROLS)
 // =====================================================
 console.log("interaction loaded");
+console.log("Interaction constants:", OVERVIEW_SCALE, NEURON_Y_OFFSET);
 
 const VIEW_SCALE = 1.5; // must match Overview.js
 
