@@ -1,34 +1,30 @@
 // =====================================================
-// POSTSYNAPTIC POTENTIAL (PSP) MODEL
-// Supports EPSPs (excitatory) and IPSPs (inhibitory)
+// POSTSYNAPTIC POTENTIAL (EPSP / IPSP) MODEL
 // =====================================================
 console.log("psp loaded");
 
 // Active postsynaptic potentials
-const psps = [];
+const epsps = [];
 
 // -----------------------------------------------------
 // Spawn a PSP from a synapse
+// (Backward-compatible name kept intentionally)
 // -----------------------------------------------------
-function spawnPSP(synapse) {
-  psps.push({
+function spawnEPSP(synapse) {
+  epsps.push({
     synapseId: synapse.id,
+    path: synapse.path,
 
     progress: 0,                    // 0 → synapse, 1 → soma
     amplitude: synapse.radius,      // decays over time
-    baseAmplitude: synapse.radius,  // fixed reference for thickness
+    baseAmplitude: synapse.radius,  // fixed reference
 
     speed: 0.012,
-    decay: 0.995,
+    decay: 0.992,                   // ← stronger decay = weak PSPs fail
 
     type: synapse.type              // "exc" or "inh"
   });
 }
-
-// -----------------------------------------------------
-// Backward compatibility (old name still works)
-// -----------------------------------------------------
-const spawnEPSP = spawnPSP;
 
 // -----------------------------------------------------
 // Update PSP propagation + decay
@@ -38,12 +34,10 @@ function updateEPSPs() {
     const e = epsps[i];
 
     e.progress += e.speed;
+    e.amplitude *= e.decay;
 
-    // Stronger dendritic attenuation
-    e.amplitude *= 0.985;   // was 0.995
-
-    // Remove if too weak before soma
-    if (e.amplitude < 1.0) {
+    // PSP faded out before reaching soma
+    if (e.amplitude < 0.6) {
       epsps.splice(i, 1);
       continue;
     }
@@ -56,37 +50,31 @@ function updateEPSPs() {
   }
 }
 
-
 // -----------------------------------------------------
 // Draw PSPs along dendritic paths
 // -----------------------------------------------------
 function drawEPSPs() {
-  psps.forEach(p => {
-    const syn = neuron.synapses[p.synapseId];
-    if (!syn || !syn.path) return;
+  epsps.forEach(e => {
+    if (!e.path || e.path.length < 2) return;
 
-    const path = syn.path;
-    const segments = path.length - 1;
-    if (segments <= 0) return;
-
-    // Map progress onto dendritic segments
-    const total = p.progress * segments;
+    const segments = e.path.length - 1;
+    const total = e.progress * segments;
     const idx = floor(total);
     const t = total - idx;
 
-    const p0 = path[constrain(idx, 0, segments - 1)];
-    const p1 = path[constrain(idx + 1, 0, segments)];
+    const p0 = e.path[constrain(idx, 0, segments - 1)];
+    const p1 = e.path[constrain(idx + 1, 0, segments)];
 
     const x = lerp(p0.x, p1.x, t);
     const y = lerp(p0.y, p1.y, t);
 
-    // Thickness reflects synaptic strength
-    const w = map(e.amplitude, 1, 30, 1, 12);
+    // PSP shrinks visually as it decays
+    const strength = map(e.amplitude, 6, 30, 0.4, 1.2, true);
+    const w = map(e.baseAmplitude, 6, 30, 3, 12) * strength;
 
-    // Color reflects synapse type
-    const c = p.type === "exc"
-      ? color(100, 240, 160)   // excitatory green
-      : color(240, 100, 100);  // inhibitory red
+    const c = e.type === "exc"
+      ? color(90, 255, 150)   // excitatory green
+      : color(255, 90, 90);   // inhibitory red
 
     push();
     stroke(c);
