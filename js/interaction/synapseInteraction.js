@@ -4,7 +4,8 @@
 console.log("interaction loaded");
 console.log("Interaction constants:", OVERVIEW_SCALE, NEURON_Y_OFFSET);
 
-const VIEW_SCALE = 1.5; // must match Overview.js
+wx /= OVERVIEW_SCALE;
+wy = (wy - NEURON_Y_OFFSET) / OVERVIEW_SCALE;
 
 let activeSynapse = null;
 let hoverLock = null;
