@@ -6,6 +6,9 @@ console.log("✅ main.js loaded");
 window.OVERVIEW_SCALE = 1.5;
 window.NEURON_Y_OFFSET = 60;
 
+// Height reserved for bottom observation panel (px)
+const OBS_PANEL_HEIGHT = 120;
+
 
 // =====================================================
 // GLOBAL SIMULATION STATE (SINGLE SOURCE OF TRUTH)
@@ -16,6 +19,7 @@ const state = {
   paused: false,
   mode: "overview" // overview | ion | synapse
 };
+
 
 // =====================================================
 // CAMERA STATE
@@ -31,6 +35,7 @@ const camera = {
 
   lerpSpeed: 0.08
 };
+
 
 // =====================================================
 // MODE SWITCHING
@@ -57,6 +62,7 @@ function setMode(mode) {
   }
 }
 
+
 // =====================================================
 // P5 SETUP
 // =====================================================
@@ -66,7 +72,9 @@ function setup() {
   canvas = createCanvas(windowWidth, windowHeight);
   canvas.parent(document.body);
   frameRate(60);
+
   initSynapses();
+
   document.getElementById("pauseBtn").onclick = togglePause;
 }
 
@@ -86,9 +94,17 @@ function draw() {
     state.time += state.dt;
   }
 
-  // Apply camera transform
+  // =====================================================
+  // APPLY CAMERA TRANSFORM
+  // Shift UP to avoid bottom observation panel
+  // =====================================================
   push();
-  translate(width / 2, height / 2);
+
+  translate(
+    width / 2,
+    height / 2 - OBS_PANEL_HEIGHT / 2   // 👈 KEY FIX
+  );
+
   scale(camera.zoom);
   translate(-camera.x, -camera.y);
 
@@ -106,9 +122,12 @@ function draw() {
 
   pop();
 
-  // UI (not affected by camera)
+  // =====================================================
+  // UI (NOT affected by camera)
+  // =====================================================
   drawTimeReadout();
 }
+
 
 // =====================================================
 // UI HELPERS
@@ -128,6 +147,7 @@ function togglePause() {
   document.getElementById("pauseBtn").innerText =
     state.paused ? "Resume" : "Pause";
 }
+
 
 // =====================================================
 // RESPONSIVE CANVAS
