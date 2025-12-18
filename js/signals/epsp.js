@@ -1,6 +1,7 @@
 // =====================================================
 // EPSP SIGNAL MODEL
 // =====================================================
+console.log("epsp loaded");
 
 // Active EPSPs traveling toward soma
 const epsps = [];
