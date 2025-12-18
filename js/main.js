@@ -74,8 +74,6 @@ function setup() {
   frameRate(60);
 
   initSynapses();
-  recenterNeuronGeometry();   // ✅ THIS LINE
-
   setMode("overview");
 
   document.getElementById("pauseBtn").onclick = togglePause;
