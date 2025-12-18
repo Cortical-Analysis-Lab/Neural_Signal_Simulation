@@ -17,20 +17,20 @@ let refractory = 0;
 // -----------------------------------------------------
 // EPSP arrival at soma
 // -----------------------------------------------------
-function addEPSPToSoma(amplitude) {
-  // amplitude = bouton radius (6 → 30)
-  const normalized = constrain((amplitude - 6) / 24, 0, 1);
+function addEPSPToSoma(amplitude, type = "exc") {
+  const norm = constrain((amplitude - 6) / 24, 0, 1);
 
-  // Strong nonlinear weighting (educational gain)
-  let deltaV = 1 + 20 * normalized * normalized;
+  let deltaV = 1 + 20 * norm * norm;
 
-  // Very strong "driver" synapse bonus
-  if (amplitude >= 24) {
-    deltaV += 6;
+  if (amplitude >= 24) deltaV += 6;
+
+  if (type === "inh") {
+    soma.Vm -= deltaV * 1.1;   // IPSPs slightly stronger
+  } else {
+    soma.Vm += deltaV;
   }
-
-  soma.Vm += deltaV;
 }
+
 
 // -----------------------------------------------------
 // Soma update (decay, threshold, refractory)
