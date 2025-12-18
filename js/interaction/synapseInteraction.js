@@ -1,18 +1,26 @@
 // =====================================================
-// SYNAPSE INTERACTION (HOVER + +/- CONTROLS)
+// SYNAPSE INTERACTION (ROBUST HOVER + +/- CONTROLS)
 // =====================================================
 console.log("interaction loaded");
 
-// Shared interaction state (must be hoisted)
-var activeSynapse = null;
+// -----------------------------------------------------
+// CONFIG — adjust safely here
+// -----------------------------------------------------
+const SYNAPSE_HIT_PAD     = 22;  // invisible hover padding
+const CONTROL_HIT_RADIUS = 20;  // + / − click radius
+
+// Shared interaction state (hoisted safely)
 var hoverLock = null;
 
 // -----------------------------------------------------
-// Convert screen → world coordinates
+// Convert screen → neuron world coordinates
 // -----------------------------------------------------
 function getWorldPoint(x, y) {
+  if (!canvas) return { x: 0, y: 0 };
+
   const rect = canvas.elt.getBoundingClientRect();
 
+  // Screen → canvas
   const cx = x - rect.left;
   const cy = y - rect.top;
 
@@ -28,56 +36,61 @@ function getWorldPoint(x, y) {
 }
 
 // -----------------------------------------------------
-// Hover detection with lock
+// Hover detection (stable + forgiving)
 // -----------------------------------------------------
 function updateSynapseHover() {
   if (!neuron || !neuron.synapses) return;
 
   const p = getWorldPoint(mouseX, mouseY);
+  hoverLock = null;
 
   neuron.synapses.forEach(s => {
+    const hitRadius = s.radius + SYNAPSE_HIT_PAD;
     const d = dist(p.x, p.y, s.x, s.y);
-    const hit = d < s.radius + 20;
 
-    if (hit) hoverLock = s;
-    s.hovered = hit || hoverLock === s;
+    if (d < hitRadius) hoverLock = s;
+  });
+
+  neuron.synapses.forEach(s => {
+    s.hovered = (hoverLock === s);
   });
 }
 
 // -----------------------------------------------------
-// Mouse pressed — EPSP spawn or +/- click
+// Mouse press — resize or spawn EPSP
 // -----------------------------------------------------
 function mousePressed() {
+  if (!neuron || !neuron.synapses) return;
+
   const p = getWorldPoint(mouseX, mouseY);
 
   neuron.synapses.forEach(s => {
     if (!s.hovered) return;
 
-    // + button
+    // + button (above synapse)
     const plusY = s.y - s.radius - 18;
-    if (dist(p.x, p.y, s.x, plusY) < 16) {
+    if (dist(p.x, p.y, s.x, plusY) < CONTROL_HIT_RADIUS) {
       s.radius = constrain(s.radius + 2, 6, 30);
       return;
     }
 
-    // - button
+    // − button (below synapse)
     const minusY = s.y + s.radius + 18;
-    if (dist(p.x, p.y, s.x, minusY) < 16) {
+    if (dist(p.x, p.y, s.x, minusY) < CONTROL_HIT_RADIUS) {
       s.radius = constrain(s.radius - 2, 6, 30);
       return;
     }
 
     // Synapse body → EPSP
-    if (dist(p.x, p.y, s.x, s.y) < s.radius) {
+    if (dist(p.x, p.y, s.x, s.y) < s.radius + 6) {
       spawnEPSP(s);
     }
   });
 }
 
 // -----------------------------------------------------
-// Release clears hover lock
+// Mouse release — clear hover lock
 // -----------------------------------------------------
 function mouseReleased() {
-  activeSynapse = null;
   hoverLock = null;
 }
