@@ -4,7 +4,6 @@
 
 function drawOverview(state) {
   push();
-  translate(0, NEURON_Y_OFFSET);   // ← SHIFT DOWN
   scale(OVERVIEW_SCALE);
   drawNeuron();
   updateSynapseHover();
