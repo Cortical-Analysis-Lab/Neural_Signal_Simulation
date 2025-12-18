@@ -34,25 +34,28 @@ const spawnEPSP = spawnPSP;
 // Update PSP propagation + decay
 // -----------------------------------------------------
 function updateEPSPs() {
-  for (let i = psps.length - 1; i >= 0; i--) {
-    const p = psps[i];
+  for (let i = epsps.length - 1; i >= 0; i--) {
+    const e = epsps[i];
 
-    p.progress += p.speed;
-    p.amplitude *= p.decay;
+    e.progress += e.speed;
 
-    // Reached soma
-    if (p.progress >= 1) {
-      addEPSPToSoma(p.amplitude, p.type);
-      psps.splice(i, 1);
+    // Stronger dendritic attenuation
+    e.amplitude *= 0.985;   // was 0.995
+
+    // Remove if too weak before soma
+    if (e.amplitude < 1.0) {
+      epsps.splice(i, 1);
       continue;
     }
 
-    // Fully decayed before reaching soma
-    if (p.amplitude < 0.5) {
-      psps.splice(i, 1);
+    // Reached soma
+    if (e.progress >= 1) {
+      addEPSPToSoma(e.amplitude, e.type);
+      epsps.splice(i, 1);
     }
   }
 }
+
 
 // -----------------------------------------------------
 // Draw PSPs along dendritic paths
@@ -78,7 +81,7 @@ function drawEPSPs() {
     const y = lerp(p0.y, p1.y, t);
 
     // Thickness reflects synaptic strength
-    const w = map(p.baseAmplitude, 6, 30, 3, 12);
+    const w = map(e.amplitude, 1, 30, 1, 12);
 
     // Color reflects synapse type
     const c = p.type === "exc"
