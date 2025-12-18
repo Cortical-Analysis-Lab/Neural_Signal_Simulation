@@ -72,18 +72,18 @@ function drawNeuron() {
   pop();
 
   // =====================
-  // AXON INITIAL SEGMENT (RING)
+  // AXON HILLOCK (ROUNDED CYLINDER)
   // =====================
   push();
-  noFill();
-  stroke(235, 220, 160);
-  strokeWeight(4);
-  ellipse(
-    neuron.somaRadius + 6,
-    0,
-    14,
-    14
-  );
+  noStroke();
+  fill(235, 220, 160);
+  
+  const hx = neuron.somaRadius + 8;
+  const hw = 14;
+  const hh = 8;
+  
+  rectMode(CENTER);
+  rect(hx, 0, hw, hh, hh / 2); // rounded cylinder
   pop();
 
   // =====================
