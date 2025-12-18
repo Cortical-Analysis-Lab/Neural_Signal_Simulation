@@ -1,5 +1,5 @@
 // =====================================================
-// EPSP SIGNAL MODEL
+// EPSP SIGNAL MODEL — PATH-BASED (AUTHORITATIVE)
 // =====================================================
 console.log("epsp loaded");
 
@@ -10,12 +10,14 @@ const epsps = [];
 // Spawn a new EPSP from a synapse
 // -----------------------------------------------------
 function spawnEPSP(synapse) {
+
+  if (!synapse.path || synapse.path.length < 2) return;
+
   epsps.push({
-    synapseId: synapse.id,
-    branch: synapse.branch,
-    progress: 0,                    // 0 → synapse, 1 → soma
+    path: synapse.path,          // FULL path: synapse → soma
+    progress: 0,                 // 0 → synapse, 1 → soma
     amplitude: synapse.radius,
-    baseAmplitude: synapse.radius,  // for thickness scaling
+    baseAmplitude: synapse.radius,
     speed: 0.012,
     decay: 0.995
   });
@@ -46,24 +48,19 @@ function updateEPSPs() {
 }
 
 // -----------------------------------------------------
-// Draw EPSPs along dendritic branches
+// Draw EPSPs along full dendritic path → soma
 // -----------------------------------------------------
 function drawEPSPs() {
   epsps.forEach(e => {
-    const syn = neuron.synapses[e.synapseId];
-    if (!syn || !syn.branch) return;
-    console.log("drawing epsp", e.progress);
 
-    // Branch is ordered soma → distal
-    // EPSP travels distal → soma, so reverse
-    const path = syn.path;
+    const path = e.path;
+    if (!path || path.length < 2) return;
 
     const segments = path.length - 1;
-    if (segments <= 0) return;
 
-    // Map progress (0–1) onto branch segments
+    // Convert global progress (0–1) to segment index
     const total = e.progress * segments;
-    const idx = floor(total);
+    const idx = Math.floor(total);
     const t = total - idx;
 
     const i0 = constrain(idx, 0, segments - 1);
@@ -75,7 +72,6 @@ function drawEPSPs() {
     const x = lerp(p0.x, p1.x, t);
     const y = lerp(p0.y, p1.y, t);
 
-    // Thickness scales with synapse size
     const w = map(e.baseAmplitude, 6, 30, 3, 12);
 
     push();
