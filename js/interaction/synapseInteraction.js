@@ -37,7 +37,7 @@ function updateSynapseHover() {
 
   neuron.synapses.forEach(s => {
     const d = dist(p.x, p.y, s.x, s.y);
-    const hit = d < s.radius + 12;
+    const hit = d < s.radius + 20;
 
     if (hit) hoverLock = s;
     s.hovered = hit || hoverLock === s;
