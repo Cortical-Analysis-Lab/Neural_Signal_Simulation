@@ -1,3 +1,5 @@
+console.log("synapse view loaded");
+
 function drawSynapseView(state) {
   push();
   fill(255, 180, 120);
