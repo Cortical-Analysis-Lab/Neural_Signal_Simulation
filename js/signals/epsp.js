@@ -52,40 +52,33 @@ function updateEPSPs() {
  */
 function drawEPSPs() {
   epsps.forEach(e => {
-    const syn = neuron.synapses[e.synapseId];
+    const syn = e.synapse;
     if (!syn || !syn.branch) return;
 
     const branch = syn.branch;
 
-    // EPSPs travel from distal → proximal → soma
-    // Branch is ordered soma → distal, so reverse it
+    // EPSPs travel distal → soma
     const path = [...branch].reverse();
-
-    // Total number of segments
     const segments = path.length - 1;
     if (segments <= 0) return;
 
-    // Map progress (0–1) to segment index
     const totalProgress = e.progress * segments;
     const segIndex = floor(totalProgress);
     const localT = totalProgress - segIndex;
 
-    // Clamp indices
     const i0 = constrain(segIndex, 0, segments - 1);
     const i1 = constrain(segIndex + 1, 0, segments);
 
     const p0 = path[i0];
     const p1 = path[i1];
 
-    // Interpolate along the dendritic segment
     const x = lerp(p0.x, p1.x, localT);
     const y = lerp(p0.y, p1.y, localT);
 
-    // Thickness scales with synapse size
     const w = map(e.baseAmplitude, 6, 30, 3, 12);
 
     push();
-    stroke(80, 150, 255); // EPSP blue
+    stroke(80, 150, 255);
     strokeWeight(w);
     point(x, y);
     pop();
