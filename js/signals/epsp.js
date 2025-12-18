@@ -52,6 +52,7 @@ function drawEPSPs() {
   epsps.forEach(e => {
     const syn = neuron.synapses[e.synapseId];
     if (!syn || !syn.branch) return;
+    console.log("drawing epsp", e.progress);
 
     // Branch is ordered soma → distal
     // EPSP travels distal → soma, so reverse
