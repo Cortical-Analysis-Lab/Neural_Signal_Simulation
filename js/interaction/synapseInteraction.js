@@ -14,14 +14,21 @@ let hoverLock = null;
 function getWorldPoint(x, y) {
   const rect = canvas.elt.getBoundingClientRect();
 
+  // Screen → canvas
   const cx = x - rect.left;
   const cy = y - rect.top;
 
-  return {
-    x: (cx - width / 2) / (camera.zoom * VIEW_SCALE) + camera.x,
-    y: (cy - height / 2) / (camera.zoom * VIEW_SCALE) + camera.y
-  };
+  // Undo camera transform
+  let wx = (cx - width / 2) / camera.zoom + camera.x;
+  let wy = (cy - height / 2) / camera.zoom + camera.y;
+
+  // Undo Overview transforms
+  wx /= OVERVIEW_SCALE;
+  wy = (wy - NEURON_Y_OFFSET) / OVERVIEW_SCALE;
+
+  return { x: wx, y: wy };
 }
+
 
 // -----------------------------------------------------
 // Hover detection with lock
