@@ -2,14 +2,10 @@
 // SYNAPSE INTERACTION (HOVER + +/- CONTROLS)
 // =====================================================
 console.log("interaction loaded");
-console.log("Interaction constants:", OVERVIEW_SCALE, NEURON_Y_OFFSET);
 
-wx /= OVERVIEW_SCALE;
-wy = (wy - NEURON_Y_OFFSET) / OVERVIEW_SCALE;
-
+// Shared interaction state (must be hoisted)
 var activeSynapse = null;
 var hoverLock = null;
-
 
 // -----------------------------------------------------
 // Convert screen → world coordinates
@@ -17,7 +13,6 @@ var hoverLock = null;
 function getWorldPoint(x, y) {
   const rect = canvas.elt.getBoundingClientRect();
 
-  // Screen → canvas
   const cx = x - rect.left;
   const cy = y - rect.top;
 
@@ -31,7 +26,6 @@ function getWorldPoint(x, y) {
 
   return { x: wx, y: wy };
 }
-
 
 // -----------------------------------------------------
 // Hover detection with lock
@@ -59,23 +53,22 @@ function mousePressed() {
   neuron.synapses.forEach(s => {
     if (!s.hovered) return;
 
-    // + button (above)
+    // + button
     const plusY = s.y - s.radius - 18;
     if (dist(p.x, p.y, s.x, plusY) < 16) {
       s.radius = constrain(s.radius + 2, 6, 30);
       return;
     }
 
-    // - button (below)
+    // - button
     const minusY = s.y + s.radius + 18;
     if (dist(p.x, p.y, s.x, minusY) < 16) {
       s.radius = constrain(s.radius - 2, 6, 30);
       return;
     }
 
-    // Otherwise, click synapse body → EPSP
-    const d = dist(p.x, p.y, s.x, s.y);
-    if (d < s.radius) {
+    // Synapse body → EPSP
+    if (dist(p.x, p.y, s.x, s.y) < s.radius) {
       spawnEPSP(s);
     }
   });
