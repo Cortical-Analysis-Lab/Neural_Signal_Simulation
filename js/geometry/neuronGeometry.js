@@ -1,6 +1,7 @@
 // =====================================================
 // BIOLOGICAL-BUT-CLEAN NEURON GEOMETRY
 // =====================================================
+console.log("geometry loaded");
 
 const neuron = {
   somaRadius: 42,
