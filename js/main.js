@@ -1,5 +1,10 @@
 console.log("✅ main.js loaded");
 
+// =====================================================
+// SHARED VIEW CONSTANTS (GLOBAL)
+// =====================================================
+const OVERVIEW_SCALE = 1.5;
+const NEURON_Y_OFFSET = 60;
 
 // =====================================================
 // GLOBAL SIMULATION STATE (SINGLE SOURCE OF TRUTH)
