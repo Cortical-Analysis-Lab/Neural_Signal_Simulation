@@ -124,17 +124,34 @@ function drawNeuron() {
   push();
   noStroke();
 
-  if (s.type === "exc") {
-    fill(s.hovered ? color(160,255,180) : color(80,220,120));
-  } else {
-    fill(s.hovered ? color(255,170,170) : color(220,80,80));
+  // Base color by type
+  let c = s.type === "exc"
+    ? color(120, 220, 140)
+    : color(220, 120, 120);
+
+  // Hover highlight
+  if (s.hovered) {
+    c = lerpColor(c, color(255), 0.25);
   }
 
+  fill(c);
   ellipse(s.x, s.y, s.radius * 2);
+
+  // Selection ring
+  if (s.selected) {
+    stroke(255);
+    strokeWeight(2);
+    noFill();
+    ellipse(s.x, s.y, s.radius * 2.6);
+  }
+
   pop();
 
-  if (s.hovered) drawSynapseControls(s);
+  if (s.hovered) {
+    drawSynapseControls(s);
+  }
 });
+
 
 }
 
