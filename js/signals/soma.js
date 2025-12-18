@@ -20,20 +20,28 @@ let refractory = 0;
 function addEPSPToSoma(amplitude, type) {
 
   // Normalize bouton size (6 → 30)
-  const norm = constrain((amplitude - 6) / 24, 0, 1);
+  const normalized = constrain((amplitude - 6) / 24, 0, 1);
 
   let deltaV;
 
   if (type === "exc") {
-    // Strong nonlinear EPSP
-    deltaV = 2 + 40 * pow(norm, 2.5);
+
+    // Strong nonlinear boost
+    deltaV = 3 + 28 * normalized * normalized;
+
+    // Driver synapse guarantee
+    if (normalized > 0.9) {
+      deltaV += 10;   // ensures threshold crossing
+    }
+
   } else {
     // Inhibitory PSP
-    deltaV = -(2 + 30 * pow(norm, 2));
+    deltaV = - (4 + 20 * normalized);
   }
 
   soma.Vm += deltaV;
 }
+
 
 // -----------------------------------------------------
 // Soma update (decay, threshold, refractory)
