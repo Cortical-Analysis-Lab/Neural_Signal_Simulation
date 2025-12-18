@@ -43,7 +43,7 @@ function initSynapses() {
     // Primary dendrite (curved, tapered)
     const base = polarToCartesian(angle, neuron.somaRadius + 6);
     const mid  = polarToCartesian(angle + random(-12, 12), 110);
-    const end  = polarToCartesian(angle + random(-18, 18), 190);
+    const distal = polarToCartesian(angle + random(-18, 18), 190);
 
     const primaryBranch = [
       { x: base.x, y: base.y, r: 4 },
