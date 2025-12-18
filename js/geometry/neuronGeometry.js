@@ -99,3 +99,50 @@ function initSynapses() {
     });
   });
 }
+
+function recenterNeuronGeometry() {
+  let xs = [];
+  let ys = [];
+
+  // Collect all dendrite points
+  neuron.dendrites.forEach(branch => {
+    branch.forEach(p => {
+      xs.push(p.x);
+      ys.push(p.y);
+    });
+  });
+
+  // Include synapse positions
+  neuron.synapses.forEach(s => {
+    xs.push(s.x);
+    ys.push(s.y);
+  });
+
+  if (xs.length === 0) return;
+
+  // Compute centroid
+  const cx = xs.reduce((a, b) => a + b, 0) / xs.length;
+  const cy = ys.reduce((a, b) => a + b, 0) / ys.length;
+
+  // Shift dendrites
+  neuron.dendrites.forEach(branch => {
+    branch.forEach(p => {
+      p.x -= cx;
+      p.y -= cy;
+    });
+  });
+
+  // Shift synapses + their paths
+  neuron.synapses.forEach(s => {
+    s.x -= cx;
+    s.y -= cy;
+
+    if (s.path) {
+      s.path.forEach(p => {
+        p.x -= cx;
+        p.y -= cy;
+      });
+    }
+  });
+}
+
