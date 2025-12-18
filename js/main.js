@@ -74,11 +74,13 @@ function setup() {
   frameRate(60);
 
   initSynapses();
+  recenterNeuronGeometry();   // ✅ THIS LINE
 
-  setMode("overview");   // ✅ APPLY CAMERA FRAMING
-  
+  setMode("overview");
+
   document.getElementById("pauseBtn").onclick = togglePause;
 }
+
 
 // =====================================================
 // MAIN LOOP
