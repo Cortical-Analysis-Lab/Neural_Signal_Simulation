@@ -1,6 +1,7 @@
 // =====================================================
 // OVERVIEW VIEW — BIOLOGICAL, CLEAN, POLARIZED
 // =====================================================
+console.log("overview loaded");
 
 function drawOverview(state) {
   push();
