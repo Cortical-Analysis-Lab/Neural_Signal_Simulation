@@ -3,14 +3,11 @@
 // =====================================================
 
 function drawOverview(state) {
-  push();
-  scale(OVERVIEW_SCALE);
   drawNeuron();
   updateSynapseHover();
   updateEPSPs();
   updateSoma();
   drawEPSPs();
-  pop();
 }
 
 // -----------------------------------------------------
@@ -19,29 +16,28 @@ function drawOverview(state) {
 function drawNeuron() {
 
   // =====================
-  // DENDRITES (LEFT)
+  // DENDRITES
   // =====================
   neuron.dendrites.forEach(branch => {
     for (let i = 0; i < branch.length - 1; i++) {
       const p1 = branch[i];
       const p2 = branch[i + 1];
 
-      stroke(235, 220, 160); // pastel yellow
-      strokeWeight(p1.r * 1.6); // ↓ REDUCED thickness
+      stroke(235, 220, 160);
+      strokeWeight(p1.r * 1.6);
       noFill();
       line(p1.x, p1.y, p2.x, p2.y);
     }
   });
 
   // =====================
-  // SOMA (pastel yellow + Vm glow)
+  // SOMA
   // =====================
   push();
 
   const depol = constrain(
     map(soma.Vm, soma.rest, soma.threshold, 0, 1),
-    0,
-    1
+    0, 1
   );
 
   const glow = lerpColor(
@@ -61,7 +57,7 @@ function drawNeuron() {
     neuron.somaRadius * 1.8
   );
 
-  // Vm display
+  // Vm label
   fill(60);
   noStroke();
   textAlign(CENTER, CENTER);
@@ -76,21 +72,20 @@ function drawNeuron() {
   push();
   noStroke();
   fill(235, 220, 160);
-  
+
   const hx = neuron.somaRadius + 8;
-  const hw = 14;
-  const hh = 8;
-  
   rectMode(CENTER);
-  rect(hx, 0, hw, hh, hh / 2); // rounded cylinder
+  rect(hx, 0, 14, 8, 4);
+
   pop();
 
   // =====================
-  // AXON (RIGHT — THICK)
+  // AXON
   // =====================
   stroke(235, 220, 160);
-  strokeWeight(5); // ← MATCH DENDRITES
+  strokeWeight(5);
   noFill();
+
   beginShape();
   vertex(neuron.somaRadius + 10, 0);
   bezierVertex(
@@ -106,56 +101,46 @@ function drawNeuron() {
   if (isFiring) {
     push();
     noStroke();
-    fill(0, 255, 120); // AP green
-    ellipse(
-      neuron.somaRadius + 18,
-      0,
-      14,
-      14
-    );
+    fill(0, 255, 120);
+    ellipse(neuron.somaRadius + 18, 0, 14, 14);
     pop();
   }
 
   // =====================
-  // SYNAPTIC BOUTONS + CONTROLS
+  // SYNAPTIC BOUTONS
   // =====================
   neuron.synapses.forEach(s => {
-  push();
-  noStroke();
+    push();
+    noStroke();
 
-  // Base color by type
-  let c = s.type === "exc"
-    ? color(120, 220, 140)
-    : color(220, 120, 120);
+    let c = s.type === "exc"
+      ? color(120, 220, 140)
+      : color(220, 120, 120);
 
-  // Hover highlight
-  if (s.hovered) {
-    c = lerpColor(c, color(255), 0.25);
-  }
+    if (s.hovered) {
+      c = lerpColor(c, color(255), 0.25);
+    }
 
-  fill(c);
-  ellipse(s.x, s.y, s.radius * 2);
+    fill(c);
+    ellipse(s.x, s.y, s.radius * 2);
 
-  // Selection ring
-  if (s.selected) {
-    stroke(255);
-    strokeWeight(2);
-    noFill();
-    ellipse(s.x, s.y, s.radius * 2.6);
-  }
+    if (s.selected) {
+      stroke(255);
+      strokeWeight(2);
+      noFill();
+      ellipse(s.x, s.y, s.radius * 2.6);
+    }
 
-  pop();
+    pop();
 
-  if (s.hovered) {
-    drawSynapseControls(s);
-  }
-});
-
-
+    if (s.hovered) {
+      drawSynapseControls(s);
+    }
+  });
 }
 
 // -----------------------------------------------------
-// Draw + / − controls and feedback (GLOBAL)
+// Draw + / − controls
 // -----------------------------------------------------
 function drawSynapseControls(s) {
   push();
@@ -176,18 +161,5 @@ function drawSynapseControls(s) {
   fill(0);
   text("–", s.x, s.y + s.radius + 18);
 
-  // Feedback text
-  textSize(10);
-  fill(220);
-
-  if (s.radius >= 30) {
-    text("Maximum size", s.x, s.y - s.radius - 36);
-  }
-
-  if (s.radius <= 6) {
-    text("Minimum size", s.x, s.y + s.radius + 36);
-  }
-
   pop();
 }
-
