@@ -11,11 +11,11 @@ const epsps = [];
  */
 function spawnEPSP(synapse) {
   epsps.push({
-    synapseId: synapse.id,
+    synapse: synapse,
     branch: synapse.branch,
     progress: 0,
     amplitude: synapse.radius,
-    baseAmplitude: synapse.radius, // ← ADD THIS
+    baseAmplitude: synapse.radius,
     speed: 0.012,
     decay: 0.995
   });
