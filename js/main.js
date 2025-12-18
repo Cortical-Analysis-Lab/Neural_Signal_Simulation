@@ -4,7 +4,7 @@ console.log("✅ main.js loaded");
 // GLOBAL VIEW CONSTANTS
 // =====================================================
 window.OVERVIEW_SCALE = 1.5;
-window.NEURON_Y_OFFSET = 60;
+window.NEURON_Y_OFFSET = 80;
 
 // Height reserved for bottom observation panel (px)
 const OBS_PANEL_HEIGHT = 160;   // actual UI panel
