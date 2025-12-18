@@ -4,15 +4,16 @@ console.log("✅ main.js loaded");
 // GLOBAL VIEW CONSTANTS
 // =====================================================
 window.OVERVIEW_SCALE = 1.5;
-window.NEURON_Y_OFFSET = 80;
-
-// Height reserved for bottom observation panel (px)
-const OBS_PANEL_HEIGHT = 160;   // actual UI panel
-const OBS_PANEL_BUFFER = 60;    // safety margin for dendrites + boutons
-
 
 // =====================================================
-// GLOBAL SIMULATION STATE (SINGLE SOURCE OF TRUTH)
+// UI LAYOUT CONSTANTS (SAFE DRAW AREA)
+// =====================================================
+const LEFT_PANEL_WIDTH = 340;
+const BOTTOM_PANEL_HEIGHT = 180;
+const SAFE_MARGIN = 50; // generous buffer for dendrites & controls
+
+// =====================================================
+// GLOBAL SIMULATION STATE
 // =====================================================
 const state = {
   time: 0,          // ms
@@ -20,7 +21,6 @@ const state = {
   paused: false,
   mode: "overview" // overview | ion | synapse
 };
-
 
 // =====================================================
 // CAMERA STATE
@@ -37,7 +37,6 @@ const camera = {
   lerpSpeed: 0.08
 };
 
-
 // =====================================================
 // MODE SWITCHING
 // =====================================================
@@ -50,19 +49,12 @@ function setMode(mode) {
     camera.targetZoom = 1;
   }
 
-  if (mode === "ion") {
-    camera.targetX = 0;
-    camera.targetY = 0;
-    camera.targetZoom = 2.5;
-  }
-
-  if (mode === "synapse") {
+  if (mode === "ion" || mode === "synapse") {
     camera.targetX = 0;
     camera.targetY = 0;
     camera.targetZoom = 2.5;
   }
 }
-
 
 // =====================================================
 // P5 SETUP
@@ -78,7 +70,6 @@ function setup() {
 
   document.getElementById("pauseBtn").onclick = togglePause;
 }
-
 
 // =====================================================
 // MAIN LOOP
@@ -96,16 +87,25 @@ function draw() {
   }
 
   // =====================================================
-  // APPLY CAMERA TRANSFORM
-  // Shift UP to avoid bottom observation panel
+  // SAFE DRAW AREA CALCULATION
+  // =====================================================
+  const safeWidth =
+    width - LEFT_PANEL_WIDTH - SAFE_MARGIN * 2;
+
+  const safeHeight =
+    height - BOTTOM_PANEL_HEIGHT - SAFE_MARGIN * 2;
+
+  const centerX =
+    LEFT_PANEL_WIDTH + SAFE_MARGIN + safeWidth / 2;
+
+  const centerY =
+    SAFE_MARGIN + safeHeight / 2;
+
+  // =====================================================
+  // APPLY CAMERA + SAFE AREA TRANSFORM
   // =====================================================
   push();
-
-  translate(
-  width / 2,
-  height / 2 - (OBS_PANEL_HEIGHT / 2 + OBS_PANEL_BUFFER)
-  );
-
+  translate(centerX, centerY);
   scale(camera.zoom);
   translate(-camera.x, -camera.y);
 
@@ -129,7 +129,6 @@ function draw() {
   drawTimeReadout();
 }
 
-
 // =====================================================
 // UI HELPERS
 // =====================================================
@@ -148,7 +147,6 @@ function togglePause() {
   document.getElementById("pauseBtn").innerText =
     state.paused ? "Resume" : "Pause";
 }
-
 
 // =====================================================
 // RESPONSIVE CANVAS
