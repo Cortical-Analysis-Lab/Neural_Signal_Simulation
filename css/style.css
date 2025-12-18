@@ -92,3 +92,60 @@ button:hover {
   gap: 6px;
   flex-wrap: wrap;
 }
+
+#instructions {
+  position: fixed;
+  top: 80px;
+  left: 16px;
+  width: 260px;
+  padding: 14px 16px;
+
+  background: rgba(20, 22, 28, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+
+  color: #e6e6e6;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+
+  z-index: 10;
+  pointer-events: auto;
+}
+
+#instructions h2 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+#instructions hr {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin: 10px 0;
+}
+
+#instructions ul {
+  padding-left: 16px;
+  margin: 6px 0;
+}
+
+#instructions li {
+  margin-bottom: 4px;
+}
+
+#instructions .exc {
+  color: rgb(120, 255, 180);
+  font-weight: 600;
+}
+
+#instructions .inh {
+  color: rgb(255, 120, 120);
+  font-weight: 600;
+}
+
+#instructions .hint {
+  margin-top: 8px;
+  font-style: italic;
+  color: #cfcfcf;
+}
