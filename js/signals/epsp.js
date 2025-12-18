@@ -55,7 +55,7 @@ function drawEPSPs() {
 
     // Branch is ordered soma → distal
     // EPSP travels distal → soma, so reverse
-    const path = [...syn.branch].reverse();
+    const path = syn.path;
 
     const segments = path.length - 1;
     if (segments <= 0) return;
