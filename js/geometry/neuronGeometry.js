@@ -30,6 +30,22 @@ function polarToCartesian(angleDeg, r) {
   };
 }
 
+
+function buildPathToSoma(branch) {
+  // branch is ordered soma → distal
+  const path = [];
+
+  // Start at synapse (distal)
+  for (let i = branch.length - 1; i >= 0; i--) {
+    path.push({ x: branch[i].x, y: branch[i].y });
+  }
+
+  // Ensure final point is soma center
+  path.push({ x: 0, y: 0 });
+
+  return path;
+}
+
 // -----------------------------------------------------
 // Initialize geometry ONCE
 // -----------------------------------------------------
@@ -98,7 +114,7 @@ function initSynapses() {
       y: branchEnd.y + random(-8, 8),
       radius: 12,
       hovered: false,
-      branch: targetBranch
+      path: buildPathToSoma(targetBranch)
     });
   });
 }
