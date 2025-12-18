@@ -100,18 +100,6 @@ function initSynapses() {
   });
 }
 
-function recenterNeuronGeometry() {
-  let xs = [];
-  let ys = [];
-
-  // Collect all dendrite points
-  neuron.dendrites.forEach(branch => {
-    branch.forEach(p => {
-      xs.push(p.x);
-      ys.push(p.y);
-    });
-  });
-
   // Include synapse positions
   neuron.synapses.forEach(s => {
     xs.push(s.x);
