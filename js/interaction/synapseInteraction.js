@@ -1,6 +1,8 @@
 // =====================================================
 // SYNAPSE INTERACTION (HOVER + +/- CONTROLS)
 // =====================================================
+console.log("interaction loaded");
+
 const VIEW_SCALE = 1.5; // must match Overview.js
 
 let activeSynapse = null;
