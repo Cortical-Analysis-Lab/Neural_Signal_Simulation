@@ -20,7 +20,7 @@ const camera = {
 
   targetX: 0,
   targetY: 0,
-  targetZoom: 1.05,
+  targetZoom: 1,
 
   lerpSpeed: 0.08
 };
@@ -34,7 +34,7 @@ function setMode(mode) {
   if (mode === "overview") {
     camera.targetX = 0;
     camera.targetY = 0;
-    camera.targetZoom = 0.9;   // zoomed out, centered neuron
+    camera.targetZoom = 1.05;   // zoomed out, centered neuron
   }
 
   if (mode === "ion" || mode === "synapse") {
