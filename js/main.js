@@ -1,36 +1,30 @@
 console.log("✅ main.js loaded");
 
 // =====================================================
-// GLOBAL VIEW CONSTANTS
-// =====================================================
-window.OVERVIEW_SCALE = 1.2;
-
-// =====================================================
 // OVERVIEW CAMERA OFFSETS (FINE FRAMING)
 // =====================================================
-const OVERVIEW_CENTER_X = -70;  // move neuron left
-const OVERVIEW_CENTER_Y = 60;   // move neuron down
-
+const OVERVIEW_CENTER_X = -70;  // shift neuron left (away from UI)
+const OVERVIEW_CENTER_Y = 40;   // slight downward bias
 
 // =====================================================
 // UI LAYOUT CONSTANTS (SAFE DRAW AREA)
 // =====================================================
-const LEFT_PANEL_WIDTH = 340;
+const LEFT_PANEL_WIDTH   = 340;
 const BOTTOM_PANEL_HEIGHT = 180;
-const SAFE_MARGIN = 50; // generous buffer for dendrites & controls
+const SAFE_MARGIN        = 50;
 
 // =====================================================
 // GLOBAL SIMULATION STATE
 // =====================================================
 const state = {
-  time: 0,          // ms
-  dt: 16.67,        // ms (60 FPS)
+  time: 0,
+  dt: 16.67,
   paused: false,
-  mode: "overview" // overview | ion | synapse
+  mode: "overview"
 };
 
 // =====================================================
-// CAMERA STATE
+// CAMERA STATE (ZOOM + FOCUS ONLY)
 // =====================================================
 const camera = {
   x: 0,
@@ -53,13 +47,13 @@ function setMode(mode) {
   if (mode === "overview") {
     camera.targetX = OVERVIEW_CENTER_X;
     camera.targetY = OVERVIEW_CENTER_Y;
-    camera.targetZoom = 0.9;
+    camera.targetZoom = 0.9;   // zoomed out for context
   }
 
   if (mode === "ion" || mode === "synapse") {
     camera.targetX = 0;
     camera.targetY = 0;
-    camera.targetZoom = 2.5;
+    camera.targetZoom = 2.5;   // focused inspection
   }
 }
 
@@ -79,7 +73,6 @@ function setup() {
   document.getElementById("pauseBtn").onclick = togglePause;
 }
 
-
 // =====================================================
 // MAIN LOOP
 // =====================================================
@@ -87,8 +80,8 @@ function draw() {
   background(15, 17, 21);
 
   // Smooth camera interpolation
-  camera.x += (camera.targetX - camera.x) * camera.lerpSpeed;
-  camera.y += (camera.targetY - camera.y) * camera.lerpSpeed;
+  camera.x    += (camera.targetX    - camera.x)    * camera.lerpSpeed;
+  camera.y    += (camera.targetY    - camera.y)    * camera.lerpSpeed;
   camera.zoom += (camera.targetZoom - camera.zoom) * camera.lerpSpeed;
 
   if (!state.paused) {
@@ -96,7 +89,7 @@ function draw() {
   }
 
   // =====================================================
-  // SAFE DRAW AREA CALCULATION
+  // SAFE DRAW AREA (SCREEN SPACE)
   // =====================================================
   const safeWidth =
     width - LEFT_PANEL_WIDTH - SAFE_MARGIN * 2;
@@ -104,17 +97,17 @@ function draw() {
   const safeHeight =
     height - BOTTOM_PANEL_HEIGHT - SAFE_MARGIN * 2;
 
-  const centerX =
+  const safeCenterX =
     LEFT_PANEL_WIDTH + SAFE_MARGIN + safeWidth / 2;
 
-  const centerY =
+  const safeCenterY =
     SAFE_MARGIN + safeHeight / 2;
 
   // =====================================================
-  // APPLY CAMERA + SAFE AREA TRANSFORM
+  // APPLY TRANSFORMS
   // =====================================================
   push();
-  translate(centerX, centerY);
+  translate(safeCenterX, safeCenterY);
   scale(camera.zoom);
   translate(-camera.x, -camera.y);
 
@@ -133,7 +126,7 @@ function draw() {
   pop();
 
   // =====================================================
-  // UI (NOT affected by camera)
+  // UI OVERLAY
   // =====================================================
   drawTimeReadout();
 }
