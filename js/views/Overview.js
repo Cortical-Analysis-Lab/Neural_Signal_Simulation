@@ -2,9 +2,6 @@
 // OVERVIEW VIEW — BIOLOGICAL, CLEAN, POLARIZED
 // =====================================================
 
-const OVERVIEW_SCALE = 1.5;
-const NEURON_Y_OFFSET = 60; // ↓ shift neuron down
-
 function drawOverview(state) {
   push();
   translate(0, NEURON_Y_OFFSET);   // ← SHIFT DOWN
