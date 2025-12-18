@@ -73,5 +73,7 @@ function fireActionPotential() {
   refractory = 30;   // ~500 ms at 60 FPS
   soma.Vm = 40;      // overshoot peak
 
+  spawnAxonSpike();
+
   console.log("⚡ ACTION POTENTIAL");
 }
