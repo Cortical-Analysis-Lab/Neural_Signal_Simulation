@@ -1,30 +1,17 @@
 console.log("✅ main.js loaded");
 
 // =====================================================
-// OVERVIEW CAMERA OFFSETS (FINE FRAMING)
-// =====================================================
-const OVERVIEW_CENTER_X = -70;  // shift neuron left (away from UI)
-const OVERVIEW_CENTER_Y = 40;   // slight downward bias
-
-// =====================================================
-// UI LAYOUT CONSTANTS (SAFE DRAW AREA)
-// =====================================================
-const LEFT_PANEL_WIDTH   = 340;
-const BOTTOM_PANEL_HEIGHT = 180;
-const SAFE_MARGIN        = 50;
-
-// =====================================================
 // GLOBAL SIMULATION STATE
 // =====================================================
 const state = {
   time: 0,
   dt: 16.67,
   paused: false,
-  mode: "overview"
+  mode: "overview" // overview | ion | synapse
 };
 
 // =====================================================
-// CAMERA STATE (ZOOM + FOCUS ONLY)
+// CAMERA STATE (WORLD SPACE ONLY)
 // =====================================================
 const camera = {
   x: 0,
@@ -45,15 +32,15 @@ function setMode(mode) {
   state.mode = mode;
 
   if (mode === "overview") {
-    camera.targetX = OVERVIEW_CENTER_X;
-    camera.targetY = OVERVIEW_CENTER_Y;
-    camera.targetZoom = 0.9;   // zoomed out for context
+    camera.targetX = 0;
+    camera.targetY = 0;
+    camera.targetZoom = 0.9;   // zoomed out, centered neuron
   }
 
   if (mode === "ion" || mode === "synapse") {
     camera.targetX = 0;
     camera.targetY = 0;
-    camera.targetZoom = 2.5;   // focused inspection
+    camera.targetZoom = 2.5;   // zoomed-in inspection
   }
 }
 
@@ -89,25 +76,10 @@ function draw() {
   }
 
   // =====================================================
-  // SAFE DRAW AREA (SCREEN SPACE)
-  // =====================================================
-  const safeWidth =
-    width - LEFT_PANEL_WIDTH - SAFE_MARGIN * 2;
-
-  const safeHeight =
-    height - BOTTOM_PANEL_HEIGHT - SAFE_MARGIN * 2;
-
-  const safeCenterX =
-    LEFT_PANEL_WIDTH + SAFE_MARGIN + safeWidth / 2;
-
-  const safeCenterY =
-    SAFE_MARGIN + safeHeight / 2;
-
-  // =====================================================
-  // APPLY TRANSFORMS
+  // APPLY CAMERA TRANSFORM (CENTERED WORLD)
   // =====================================================
   push();
-  translate(safeCenterX, safeCenterY);
+  translate(width / 2, height / 2);
   scale(camera.zoom);
   translate(-camera.x, -camera.y);
 
@@ -126,7 +98,7 @@ function draw() {
   pop();
 
   // =====================================================
-  // UI OVERLAY
+  // UI OVERLAY (SCREEN SPACE)
   // =====================================================
   drawTimeReadout();
 }
