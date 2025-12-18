@@ -46,7 +46,7 @@ function setMode(mode) {
   if (mode === "overview") {
     camera.targetX = 0;
     camera.targetY = 0;
-    camera.targetZoom = 1;
+    camera.targetZoom = 0.9;
   }
 
   if (mode === "ion" || mode === "synapse") {
