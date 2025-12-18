@@ -34,7 +34,7 @@ function setMode(mode) {
   if (mode === "overview") {
     camera.targetX = 0;
     camera.targetY = 0;
-    camera.targetZoom = 1.05;   // zoomed out, centered neuron
+    camera.targetZoom = 1.2;   // zoomed out, centered neuron
   }
 
   if (mode === "ion" || mode === "synapse") {
