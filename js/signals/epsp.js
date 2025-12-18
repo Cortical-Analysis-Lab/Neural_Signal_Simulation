@@ -53,14 +53,14 @@ function updateEPSPs() {
  */
 function drawEPSPs() {
   epsps.forEach(e => {
-    const syn = e.synapse;
+    const syn = neuron.synapses[e.synapseId];
     if (!syn || !syn.branch) return;
 
-    const branch = syn.branch;
+    // Build full path: distal → soma
+    const branchPath = [...syn.branch].reverse();
+    branchPath.push({ x: 0, y: 0 }); // ← ENSURE soma arrival
 
-    // EPSPs travel distal → soma
-    const path = [...branch].reverse();
-    const segments = path.length - 1;
+    const segments = branchPath.length - 1;
     if (segments <= 0) return;
 
     const totalProgress = e.progress * segments;
@@ -70,13 +70,13 @@ function drawEPSPs() {
     const i0 = constrain(segIndex, 0, segments - 1);
     const i1 = constrain(segIndex + 1, 0, segments);
 
-    const p0 = path[i0];
-    const p1 = path[i1];
+    const p0 = branchPath[i0];
+    const p1 = branchPath[i1];
 
     const x = lerp(p0.x, p1.x, localT);
     const y = lerp(p0.y, p1.y, localT);
 
-    const w = map(e.baseAmplitude, 6, 30, 3, 12);
+    const w = map(e.baseAmplitude, 6, 30, 4, 12);
 
     push();
     stroke(80, 150, 255);
@@ -84,6 +84,8 @@ function drawEPSPs() {
     point(x, y);
     pop();
   });
+}
+
 }
 
 
