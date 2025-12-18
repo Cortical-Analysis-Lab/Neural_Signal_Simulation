@@ -121,17 +121,21 @@ function drawNeuron() {
   // SYNAPTIC BOUTONS + CONTROLS
   // =====================
   neuron.synapses.forEach(s => {
+  push();
+  noStroke();
 
-    push();
-    noStroke();
-    fill(s.hovered ? color(255, 200, 200) : color(220));
-    ellipse(s.x, s.y, s.radius * 2);
-    pop();
+  if (s.type === "exc") {
+    fill(s.hovered ? color(160,255,180) : color(80,220,120));
+  } else {
+    fill(s.hovered ? color(255,170,170) : color(220,80,80));
+  }
 
-    if (s.hovered) {
-      drawSynapseControls(s);
-    }
-  });
+  ellipse(s.x, s.y, s.radius * 2);
+  pop();
+
+  if (s.hovered) drawSynapseControls(s);
+});
+
 }
 
 // -----------------------------------------------------
