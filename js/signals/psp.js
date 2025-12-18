@@ -20,7 +20,7 @@ function spawnEPSP(synapse) {
     baseAmplitude: synapse.radius,  // fixed reference
 
     speed: 0.012,
-    decay: 0.992,                   // ← stronger decay = weak PSPs fail
+    decay: 0.995,                   // ← stronger decay = weak PSPs fail
 
     type: synapse.type              // "exc" or "inh"
   });
@@ -44,7 +44,7 @@ function updateEPSPs() {
 
     // Reached soma
     if (e.progress >= 1) {
-      addEPSPToSoma(e.amplitude, e.type);
+      addEPSPToSoma(e.baseAmplitude, e.type);
       epsps.splice(i, 1);
     }
   }
