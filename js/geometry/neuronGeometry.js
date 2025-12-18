@@ -95,8 +95,39 @@ function initSynapses() {
       y: branchEnd.y + random(-8, 8),
       radius: 12,
       hovered: false,
-      type: random() < 0.7 ? "exc" : "inh",
+      selected: false,
+      type: null, // ← assigned below
       path: buildPathToSoma(targetBranch)
     });
   });
+
+  assignSynapseTypes();
+}
+
+// -----------------------------------------------------
+// Enforce 3–4 excitatory, 2–3 inhibitory
+// -----------------------------------------------------
+function assignSynapseTypes() {
+  const syns = neuron.synapses;
+  if (syns.length === 0) return;
+
+  // Decide inhibitory count (2 or 3)
+  const inhCount = random() < 0.5 ? 2 : 3;
+
+  // Shuffle indices
+  const indices = syns.map((_, i) => i);
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = floor(random(i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+
+  // Assign inhibitory
+  for (let i = 0; i < inhCount; i++) {
+    syns[indices[i]].type = "inh";
+  }
+
+  // Assign remaining excitatory
+  for (let i = inhCount; i < indices.length; i++) {
+    syns[indices[i]].type = "exc";
+  }
 }
