@@ -6,6 +6,13 @@ console.log("✅ main.js loaded");
 window.OVERVIEW_SCALE = 1.2;
 
 // =====================================================
+// OVERVIEW CAMERA OFFSETS (FINE FRAMING)
+// =====================================================
+const OVERVIEW_CENTER_X = -40;  // move neuron left
+const OVERVIEW_CENTER_Y = 30;   // move neuron down
+
+
+// =====================================================
 // UI LAYOUT CONSTANTS (SAFE DRAW AREA)
 // =====================================================
 const LEFT_PANEL_WIDTH = 340;
@@ -44,8 +51,8 @@ function setMode(mode) {
   state.mode = mode;
 
   if (mode === "overview") {
-    camera.targetX = 0;
-    camera.targetY = 0;
+    camera.targetX = OVERVIEW_CENTER_X;
+    camera.targetY = OVERVIEW_CENTER_Y;
     camera.targetZoom = 0.9;
   }
 
