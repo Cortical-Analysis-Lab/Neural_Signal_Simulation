@@ -9,7 +9,10 @@ const epsps = [];
 // -----------------------------------------------------
 // Spawn a PSP from a synapse
 // -----------------------------------------------------
-function spawnEPSP(synapse) {
+// Backward compatibility
+const spawnEPSP = spawnPSP;
+
+function spawnPSP(synapse) {
   epsps.push({
     synapseId: synapse.id,
 
