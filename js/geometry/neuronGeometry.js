@@ -19,7 +19,9 @@ function polarToCartesian(angleDeg, r) {
   return { x: cos(a) * r, y: sin(a) * r };
 }
 
+// -----------------------------------------------------
 // Build a continuous path from synapse → soma
+// -----------------------------------------------------
 function buildPathToSoma(branch) {
   const path = [];
 
@@ -85,7 +87,6 @@ function initSynapses() {
       targetBranch = sideBranch;
     }
 
-    // ✅ THIS WAS THE BUG — branchEnd MUST be defined
     const branchEnd = targetBranch[targetBranch.length - 1];
 
     neuron.synapses.push({
@@ -94,43 +95,8 @@ function initSynapses() {
       y: branchEnd.y + random(-8, 8),
       radius: 12,
       hovered: false,
-      type: random() < 0.7 ? "exc" : "inh", // <-- ready for E/I demo
+      type: random() < 0.7 ? "exc" : "inh",
       path: buildPathToSoma(targetBranch)
     });
   });
 }
-
-  // Include synapse positions
-  neuron.synapses.forEach(s => {
-    xs.push(s.x);
-    ys.push(s.y);
-  });
-
-  if (xs.length === 0) return;
-
-  // Compute centroid
-  const cx = xs.reduce((a, b) => a + b, 0) / xs.length;
-  const cy = ys.reduce((a, b) => a + b, 0) / ys.length;
-
-  // Shift dendrites
-  neuron.dendrites.forEach(branch => {
-    branch.forEach(p => {
-      p.x -= cx;
-      p.y -= cy;
-    });
-  });
-
-  // Shift synapses + their paths
-  neuron.synapses.forEach(s => {
-    s.x -= cx;
-    s.y -= cy;
-
-    if (s.path) {
-      s.path.forEach(p => {
-        p.x -= cx;
-        p.y -= cy;
-      });
-    }
-  });
-}
-
