@@ -11,7 +11,6 @@ const soma = {
 };
 
 // Action potential state
-let isFiring = false;
 let refractory = 0;
 
 // -----------------------------------------------------
@@ -56,10 +55,10 @@ function updateSoma() {
   }
 
   // Threshold crossing → fire action potential
-  if (soma.Vm >= soma.threshold && !isFiring) {
-    fireActionPotential();
-    return;
-  }
+if (soma.Vm >= soma.threshold && refractory === 0) {
+  fireActionPotential();
+  return;
+}
 
   // Passive decay back to rest
   soma.Vm = lerp(soma.Vm, soma.rest, 1 - soma.tau);
@@ -69,8 +68,7 @@ function updateSoma() {
 // Action potential trigger
 // -----------------------------------------------------
 function fireActionPotential() {
-  isFiring = true;
-  refractory = 30;
+  refractory = 30;   // frames; sole gating mechanism
   soma.Vm = 40;
 
   spawnAxonSpike(); // 🔥 THIS IS THE LINK
