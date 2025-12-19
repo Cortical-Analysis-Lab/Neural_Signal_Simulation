@@ -1,5 +1,5 @@
 // =====================================================
-// AXON ACTION POTENTIAL PROPAGATION (BRANCHED, CORRECT)
+// AXON ACTION POTENTIAL PROPAGATION (BRANCHED, SINGLE AP)
 // =====================================================
 console.log("axonSpike loaded");
 
@@ -51,52 +51,52 @@ function updateAxonSpikes() {
 }
 
 // -----------------------------------------------------
-// Draw spikes (shared shaft + branches)
+// Draw spikes (ONE AP, bifurcating correctly)
 // -----------------------------------------------------
 function drawAxonSpikes() {
   axonSpikes.forEach(s => {
 
-    // ---- Shared axon shaft ----
-    const shaftT = constrain(s.t, 0, AXON_BRANCH_POINT);
-    const shaftP = getAxonPoint(shaftT);
+    // BEFORE branch: draw only on trunk
+    if (s.t < AXON_BRANCH_POINT) {
+      const p = getAxonPoint(s.t);
+
+      push();
+      noStroke();
+      fill(0, 255, 120);
+      ellipse(p.x, p.y, 10, 10);
+      pop();
+      return;
+    }
+
+    // AFTER branch: draw on BOTH branches, NOT trunk
+    const branchT = map(
+      s.t,
+      AXON_BRANCH_POINT,
+      1,
+      0,
+      1,
+      true
+    );
+
+    // Main axon continuation
+    const pMain = getAxonPoint(
+      lerp(AXON_BRANCH_POINT, 1, branchT)
+    );
 
     push();
     noStroke();
     fill(0, 255, 120);
-    ellipse(shaftP.x, shaftP.y, 10, 10);
+    ellipse(pMain.x, pMain.y, 9, 9);
     pop();
 
-    // ---- Branches only after bifurcation ----
-    if (s.t > AXON_BRANCH_POINT) {
-      const branchT = map(
-        s.t,
-        AXON_BRANCH_POINT,
-        1,
-        0,
-        1,
-        true
-      );
+    // Branch to neuron 2
+    const pN2 = getAxonBranchToNeuron2(branchT);
 
-      // Main continuation
-      const pMain = getAxonPoint(
-        lerp(AXON_BRANCH_POINT, 1, branchT)
-      );
-
-      push();
-      noStroke();
-      fill(0, 255, 120);
-      ellipse(pMain.x, pMain.y, 9, 9);
-      pop();
-
-      // Branch to neuron 2
-      const pN2 = getAxonBranchToNeuron2(branchT);
-
-      push();
-      noStroke();
-      fill(0, 255, 120);
-      ellipse(pN2.x, pN2.y, 9, 9);
-      pop();
-    }
+    push();
+    noStroke();
+    fill(0, 255, 120);
+    ellipse(pN2.x, pN2.y, 9, 9);
+    pop();
   });
 }
 
