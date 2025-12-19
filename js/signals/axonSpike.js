@@ -5,14 +5,21 @@ console.log("axonSpike loaded");
 
 // Active axon spikes
 const axonSpikes = [];
+const AXON_CONDUCTION_SPEED = 0.035;
 
 // -----------------------------------------------------
 // Spawn spike at hillock
 // -----------------------------------------------------
 function spawnAxonSpike() {
+
+  // Prevent visually overlapping spikes
+  if (axonSpikes.length > 0) {
+    const last = axonSpikes[axonSpikes.length - 1];
+    if (last.t < 0.05) return;
+  }
+
   axonSpikes.push({
-    t: 0,          // progress along axon (0 → 1)
-    speed: 0.035   // conduction velocity
+    t: 0
   });
 }
 
@@ -21,7 +28,7 @@ function spawnAxonSpike() {
 // -----------------------------------------------------
 function updateAxonSpikes() {
   for (let i = axonSpikes.length - 1; i >= 0; i--) {
-    axonSpikes[i].t += axonSpikes[i].speed;
+    axonSpikes[i].t += AXON_CONDUCTION_SPEED;
 
     // Spike reached terminal
     if (axonSpikes[i].t >= 1) {
