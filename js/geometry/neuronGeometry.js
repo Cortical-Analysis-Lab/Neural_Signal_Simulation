@@ -1,5 +1,5 @@
 // =====================================================
-// BIOLOGICAL-BUT-CLEAN NEURON GEOMETRY
+// BIOLOGICAL-BUT-CLEAN NEURON GEOMETRY (NEURON 1 ONLY)
 // =====================================================
 console.log("geometry loaded");
 
@@ -37,7 +37,7 @@ function buildPathToSoma(branch) {
 }
 
 // -----------------------------------------------------
-// Initialize geometry ONCE
+// Initialize dendrites + synapses ONCE
 // -----------------------------------------------------
 function initSynapses() {
   neuron.dendrites = [];
@@ -96,7 +96,7 @@ function initSynapses() {
       radius: 12,
       hovered: false,
       selected: false,
-      type: null, // ← assigned below
+      type: null, // assigned below
       path: buildPathToSoma(targetBranch)
     });
   });
@@ -105,7 +105,7 @@ function initSynapses() {
 }
 
 // -----------------------------------------------------
-// Enforce 3–4 excitatory, 2–3 inhibitory
+// Enforce 3–4 excitatory, 2–3 inhibitory synapses
 // -----------------------------------------------------
 function assignSynapseTypes() {
   const syns = neuron.synapses;
@@ -131,34 +131,3 @@ function assignSynapseTypes() {
     syns[indices[i]].type = "exc";
   }
 }
-
-// -----------------------------------------------------
-// Postsynaptic neuron (Neuron 2)
-// -----------------------------------------------------
-const neuron2 = {
-  somaRadius: 36,
-  dendrites: [],
-  synapses: [],
-  axon: { length: 0 }   // no axon needed yet
-};
-
-// Simple dendrite for neuron 2
-neuron2.dendrites = [[
-  { x: 320, y: -40, r: 3 },
-  { x: 260, y: -20, r: 3 },
-  { x: 200, y: 0,   r: 3 }
-]];
-
-// Single synapse receiving axon input
-neuron2.synapses = [{
-  id: 0,
-  x: 200,
-  y: 0,
-  radius: 10,
-  type: "exc",
-  path: [
-    { x: 200, y: 0 },
-    { x: 260, y: 0 },
-    { x: 320, y: 0 }
-  ]
-}];
