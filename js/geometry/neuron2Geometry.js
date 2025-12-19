@@ -1,40 +1,47 @@
 // =====================================================
-// POSTSYNAPTIC NEURON (PARTIAL, VISUAL)
+// POSTSYNAPTIC NEURON GEOMETRY (VISUAL ONLY)
 // =====================================================
 console.log("neuron2 geometry loaded");
 
 const neuron2 = {
   somaRadius: 32,
-  soma: { x: 340, y: 0 },   // downstream from axon
+  soma: { x: 380, y: 0 },
   dendrites: [],
   synapses: []
 };
 
 function initNeuron2() {
+
   neuron2.dendrites = [];
   neuron2.synapses = [];
 
-  const baseAngle = 160;
-  const angles = [140, 180, 220];
+  neuron.axon.terminalBranches.forEach((t, i) => {
 
-  angles.forEach(a => {
-    const base = polarToCartesian(a, neuron2.somaRadius + 4);
-    const mid  = polarToCartesian(a + random(-10, 10), 70);
-    const tip  = polarToCartesian(a + random(-15, 15), 120);
+    const gap = 12;
+    const dx = t.end.x - neuron2.soma.x;
+    const dy = t.end.y - neuron2.soma.y;
+    const mag = sqrt(dx * dx + dy * dy);
 
-    const branch = [
-      { x: neuron2.soma.x + base.x, y: neuron2.soma.y + base.y, r: 3 },
-      { x: neuron2.soma.x + mid.x,  y: neuron2.soma.y + mid.y,  r: 2 },
-      { x: neuron2.soma.x + tip.x,  y: neuron2.soma.y + tip.y,  r: 1.5 }
-    ];
+    const tip = {
+      x: t.end.x + (dx / mag) * gap,
+      y: t.end.y + (dy / mag) * gap
+    };
 
-    neuron2.dendrites.push(branch);
+    const mid = {
+      x: lerp(neuron2.soma.x, tip.x, 0.6),
+      y: lerp(neuron2.soma.y, tip.y, 0.6)
+    };
 
-    // Single postsynaptic synapse target
+    neuron2.dendrites.push([
+      { x: neuron2.soma.x, y: neuron2.soma.y, r: 3 },
+      { x: mid.x,          y: mid.y,          r: 2 },
+      { x: tip.x,          y: tip.y,          r: 1.5 }
+    ]);
+
     neuron2.synapses.push({
-      x: branch[branch.length - 1].x,
-      y: branch[branch.length - 1].y,
-      radius: 10,
+      x: tip.x,
+      y: tip.y,
+      radius: 6,
       type: "exc"
     });
   });
