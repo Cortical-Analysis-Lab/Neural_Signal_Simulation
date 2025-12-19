@@ -1,29 +1,16 @@
 // =====================================================
-// AXON ACTION POTENTIAL PROPAGATION (BRANCHED, STABLE)
+// AXON ACTION POTENTIAL PROPAGATION (BRANCHED, CORRECT)
 // =====================================================
 console.log("axonSpike loaded");
 
 // Shared conduction speed
 const AXON_CONDUCTION_SPEED = 0.035;
 
+// Where axon bifurcates (0–1 along axon)
+const AXON_BRANCH_POINT = 0.55;
+
 // Active spikes
 const axonSpikes = [];
-
-// -----------------------------------------------------
-// Axon branch definitions
-// -----------------------------------------------------
-const axonBranches = [
-  {
-    id: "main",
-    targetsNeuron2: false,
-    getPoint: t => getAxonPoint(t)
-  },
-  {
-    id: "toNeuron2",
-    targetsNeuron2: true,
-    getPoint: t => getAxonBranchToNeuron2(t)
-  }
-];
 
 // -----------------------------------------------------
 // Spawn spike at hillock
@@ -64,19 +51,52 @@ function updateAxonSpikes() {
 }
 
 // -----------------------------------------------------
-// Draw spikes on ALL branches
+// Draw spikes (shared shaft + branches)
 // -----------------------------------------------------
 function drawAxonSpikes() {
   axonSpikes.forEach(s => {
-    axonBranches.forEach(branch => {
-      const p = branch.getPoint(constrain(s.t, 0, 1));
+
+    // ---- Shared axon shaft ----
+    const shaftT = constrain(s.t, 0, AXON_BRANCH_POINT);
+    const shaftP = getAxonPoint(shaftT);
+
+    push();
+    noStroke();
+    fill(0, 255, 120);
+    ellipse(shaftP.x, shaftP.y, 10, 10);
+    pop();
+
+    // ---- Branches only after bifurcation ----
+    if (s.t > AXON_BRANCH_POINT) {
+      const branchT = map(
+        s.t,
+        AXON_BRANCH_POINT,
+        1,
+        0,
+        1,
+        true
+      );
+
+      // Main continuation
+      const pMain = getAxonPoint(
+        lerp(AXON_BRANCH_POINT, 1, branchT)
+      );
 
       push();
       noStroke();
       fill(0, 255, 120);
-      ellipse(p.x, p.y, 10, 10);
+      ellipse(pMain.x, pMain.y, 9, 9);
       pop();
-    });
+
+      // Branch to neuron 2
+      const pN2 = getAxonBranchToNeuron2(branchT);
+
+      push();
+      noStroke();
+      fill(0, 255, 120);
+      ellipse(pN2.x, pN2.y, 9, 9);
+      pop();
+    }
   });
 }
 
@@ -85,19 +105,21 @@ function drawAxonSpikes() {
 // -----------------------------------------------------
 function getAxonBranchToNeuron2(t) {
 
-  // Axon origin (hillock)
-  const x0 = neuron.somaRadius + 10;
-  const y0 = 0;
+  // Branch origin = axon at branch point
+  const branchOrigin = getAxonPoint(AXON_BRANCH_POINT);
+
+  const x0 = branchOrigin.x;
+  const y0 = branchOrigin.y;
 
   // Stable target: neuron 2 soma
   const tx = neuron2.soma.x;
   const ty = neuron2.soma.y;
 
-  // Control points for smooth biological curvature
-  const cx1 = lerp(x0, tx, 0.35);
-  const cy1 = -40;
+  // Smooth biological curvature
+  const cx1 = lerp(x0, tx, 0.4);
+  const cy1 = y0 - 40;
 
-  const cx2 = lerp(x0, tx, 0.65);
+  const cx2 = lerp(x0, tx, 0.7);
   const cy2 = ty + 30;
 
   return {
