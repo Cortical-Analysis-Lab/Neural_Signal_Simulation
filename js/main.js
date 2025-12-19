@@ -57,7 +57,12 @@ function setup() {
   initSynapses();
   setMode("overview");
 
-  document.getElementById("pauseBtn").onclick = togglePause;
+  // Pause button
+  const pauseBtn = document.getElementById("pauseBtn");
+  if (pauseBtn) pauseBtn.onclick = togglePause;
+
+  // UI panels
+  initUIPanels();
 }
 
 // =====================================================
@@ -118,8 +123,50 @@ function drawTimeReadout() {
 
 function togglePause() {
   state.paused = !state.paused;
-  document.getElementById("pauseBtn").innerText =
-    state.paused ? "Resume" : "Pause";
+  const pauseBtn = document.getElementById("pauseBtn");
+  if (pauseBtn) {
+    pauseBtn.innerText = state.paused ? "Resume" : "Pause";
+  }
+}
+
+// =====================================================
+// COLLAPSIBLE UI PANELS
+// =====================================================
+function initUIPanels() {
+
+  // Instructions (left)
+  const instructions = document.getElementById("instructions");
+  if (instructions) {
+    instructions.classList.add("panel", "left", "open");
+
+    const btn = document.createElement("button");
+    btn.className = "panel-toggle";
+    btn.innerText = "☰";
+    btn.title = "Toggle Instructions";
+
+    btn.onclick = () => {
+      instructions.classList.toggle("open");
+    };
+
+    instructions.appendChild(btn);
+  }
+
+  // Observations (bottom)
+  const observations = document.getElementById("observations");
+  if (observations) {
+    observations.classList.add("panel", "bottom", "open");
+
+    const btn = document.createElement("button");
+    btn.className = "panel-toggle";
+    btn.innerText = "▲";
+    btn.title = "Toggle Observations";
+
+    btn.onclick = () => {
+      observations.classList.toggle("open");
+    };
+
+    observations.appendChild(btn);
+  }
 }
 
 // =====================================================
