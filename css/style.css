@@ -1,3 +1,6 @@
+/* =====================================================
+   GLOBAL
+   ===================================================== */
 html, body {
   margin: 0;
   padding: 0;
@@ -7,14 +10,14 @@ html, body {
   overflow: hidden;
 }
 
-/* =========================
-   UI CONTAINER
-   ========================= */
+/* =====================================================
+   TOP UI BAR
+   ===================================================== */
 #ui {
-  position: absolute;
+  position: fixed;
   top: 12px;
   left: 12px;
-  z-index: 10;
+  z-index: 20;
 
   max-width: calc(100vw - 24px);
   background: rgba(20, 24, 32, 0.85);
@@ -27,9 +30,6 @@ html, body {
   margin: 0 0 6px 0;
 }
 
-/* =========================
-   BUTTONS
-   ========================= */
 .buttons {
   display: flex;
   gap: 6px;
@@ -50,68 +50,60 @@ button:hover {
   background: #1f64d8;
 }
 
-/* =========================
-   MOBILE ADJUSTMENTS
-   ========================= */
-@media (max-width: 600px) {
-  #ui {
-    top: calc(8px + env(safe-area-inset-top));
-    left: calc(8px + env(safe-area-inset-left));
-    right: calc(8px + env(safe-area-inset-right));
-  }
+/* =====================================================
+   PANELS (SHARED)
+   ===================================================== */
+.panel {
+  position: fixed;
+  background: rgba(20, 22, 28, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  z-index: 15;
 
-  #ui h1 {
-    font-size: 14px;
-  }
-
-  button {
-    padding: 6px 8px;
-    font-size: 12px;
-  }
-}}
-
-#ui h1 {
-  font-size: 16px;
-  margin: 0 0 6px 0;
+  transition: transform 0.35s ease;
+  backdrop-filter: blur(6px);
 }
 
-button {
-  background: #2e7df6;
-  color: white;
+/* Toggle button */
+.panel-toggle {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.08);
   border: none;
-  border-radius: 4px;
-  padding: 6px 10px;
+  color: #eee;
+  font-size: 14px;
+  padding: 4px 8px;
+  border-radius: 6px;
   cursor: pointer;
 }
 
-button:hover {
-  background: #1f64d8;
-}
-.buttons {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+.panel-toggle:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 
-#instructions {
-  position: fixed;
+/* =====================================================
+   INSTRUCTIONS PANEL (LEFT)
+   ===================================================== */
+.panel.left {
   top: 80px;
-  left: 16px;
+  left: 12px;
   width: 270px;
   padding: 14px 16px;
-
-  background: rgba(20, 22, 28, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-
-  color: #e6e6e6;
-  font-family: system-ui, -apple-system, sans-serif;
   font-size: 13px;
   line-height: 1.45;
-
-  z-index: 10;
 }
 
+/* Collapse left → offscreen */
+.panel.left:not(.open) {
+  transform: translateX(-260px);
+}
+
+/* Toggle button placement */
+.panel.left .panel-toggle {
+  top: 10px;
+  right: -28px;
+}
+
+/* Content styles */
 #instructions h2 {
   margin: 0 0 8px 0;
   font-size: 18px;
@@ -149,8 +141,10 @@ button:hover {
   color: #cfcfcf;
 }
 
-#observations {
-  position: fixed;
+/* =====================================================
+   OBSERVATIONS PANEL (BOTTOM)
+   ===================================================== */
+.panel.bottom {
   bottom: 12px;
   left: 50%;
   transform: translateX(-50%);
@@ -158,18 +152,23 @@ button:hover {
   max-width: 900px;
 
   padding: 10px 16px;
-  background: rgba(20, 22, 28, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-
-  color: #e6e6e6;
-  font-family: system-ui, -apple-system, sans-serif;
   font-size: 13px;
-
-  z-index: 10;
   text-align: center;
 }
 
+/* Collapse bottom → down */
+.panel.bottom:not(.open) {
+  transform: translate(-50%, 120%);
+}
+
+/* Toggle button placement */
+.panel.bottom .panel-toggle {
+  top: -26px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Content */
 #observations ul {
   list-style: none;
   padding: 0;
@@ -183,4 +182,37 @@ button:hover {
 #observations li {
   margin: 4px 8px;
   white-space: nowrap;
+}
+
+/* =====================================================
+   MOBILE ADJUSTMENTS
+   ===================================================== */
+@media (max-width: 600px) {
+
+  #ui {
+    top: calc(8px + env(safe-area-inset-top));
+    left: calc(8px + env(safe-area-inset-left));
+    right: calc(8px + env(safe-area-inset-right));
+  }
+
+  #ui h1 {
+    font-size: 14px;
+  }
+
+  button {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+
+  .panel.left {
+    width: 240px;
+  }
+
+  .panel.left:not(.open) {
+    transform: translateX(-230px);
+  }
+
+  .panel.bottom {
+    width: 90%;
+  }
 }
