@@ -1,76 +1,87 @@
 // =====================================================
-// AXON ACTION POTENTIAL PROPAGATION (BRANCHED, SINGLE AP)
+// AXON ACTION POTENTIAL PROPAGATION
+// SINGLE WAVEFRONT + DISTAL BRANCHING (FINAL)
 // =====================================================
 console.log("axonSpike loaded");
 
-// Shared conduction speed
+// -----------------------------------------------------
+// Parameters
+// -----------------------------------------------------
 const AXON_CONDUCTION_SPEED = 0.035;
 
-// Where axon bifurcates (0–1 along axon)
+// Location along trunk where branching occurs (0–1)
 const AXON_BRANCH_POINT = 0.55;
 
-// Active spikes
+// Active action potentials (each = ONE wavefront)
 const axonSpikes = [];
 
 // -----------------------------------------------------
-// Spawn spike at hillock
+// Spawn spike at axon hillock
 // -----------------------------------------------------
 function spawnAxonSpike() {
 
-  // Visual spacing guard
+  // Prevent visual overlap at hillock
   if (axonSpikes.length > 0) {
     const last = axonSpikes[axonSpikes.length - 1];
-    if (last.t < 0.05) return;
+    if (last.phase < 0.05) return;
   }
 
   axonSpikes.push({
-    t: 0,
+    phase: 0,        // global propagation phase (0 → 1)
     delivered: false
   });
 }
 
 // -----------------------------------------------------
-// Update spike motion
+// Update spike propagation
 // -----------------------------------------------------
 function updateAxonSpikes() {
   for (let i = axonSpikes.length - 1; i >= 0; i--) {
     const s = axonSpikes[i];
-    s.t += AXON_CONDUCTION_SPEED;
 
-    // Terminal arrival (single delivery)
-    if (s.t >= 1 && !s.delivered) {
+    s.phase += AXON_CONDUCTION_SPEED;
+
+    // Terminal arrival → notify ONCE
+    if (s.phase >= 1 && !s.delivered) {
       s.delivered = true;
       notifyAxonTerminalArrival();
     }
 
-    // Remove after passing terminal
-    if (s.t >= 1.1) {
+    // Remove after fully past terminals
+    if (s.phase > 1.15) {
       axonSpikes.splice(i, 1);
     }
   }
 }
 
 // -----------------------------------------------------
-// Draw spikes (ONE AP, bifurcating correctly)
+// Draw spikes — SINGLE wavefront, projected geometrically
 // -----------------------------------------------------
 function drawAxonSpikes() {
   axonSpikes.forEach(s => {
 
-    // BEFORE branch: draw only on trunk
-    if (s.t < AXON_BRANCH_POINT) {
-      const p = getAxonPoint(s.t);
+    // -------------------------------------------------
+    // BEFORE BRANCH: draw ONLY on axon trunk
+    // -------------------------------------------------
+    if (s.phase < AXON_BRANCH_POINT) {
+      const p = getAxonPoint(s.phase);
 
       push();
       noStroke();
       fill(0, 255, 120);
       ellipse(p.x, p.y, 10, 10);
       pop();
+
       return;
     }
 
-    // AFTER branch: draw on BOTH branches, NOT trunk
-    const branchT = map(
-      s.t,
+    // -------------------------------------------------
+    // AFTER BRANCH: SAME wavefront projected onto branches
+    // -------------------------------------------------
+
+    // Normalize phase AFTER branch
+    const branchPhase = map(
+      s.phase,
       AXON_BRANCH_POINT,
       1,
       0,
@@ -78,9 +89,9 @@ function drawAxonSpikes() {
       true
     );
 
-    // Main axon continuation
+    // ---- Main axon continuation ----
     const pMain = getAxonPoint(
-      lerp(AXON_BRANCH_POINT, 1, branchT)
+      lerp(AXON_BRANCH_POINT, 1, branchPhase)
     );
 
     push();
@@ -89,8 +100,8 @@ function drawAxonSpikes() {
     ellipse(pMain.x, pMain.y, 9, 9);
     pop();
 
-    // Branch to neuron 2
-    const pN2 = getAxonBranchToNeuron2(branchT);
+    // ---- Branch to neuron 2 (projection of SAME wavefront) ----
+    const pN2 = getAxonBranchToNeuron2(branchPhase);
 
     push();
     noStroke();
@@ -101,17 +112,17 @@ function drawAxonSpikes() {
 }
 
 // -----------------------------------------------------
-// Axon branch geometry → neuron 2 SOMA FIELD
+// Geometry: branch toward neuron 2 soma field
 // -----------------------------------------------------
 function getAxonBranchToNeuron2(t) {
 
-  // Branch origin = axon at branch point
-  const branchOrigin = getAxonPoint(AXON_BRANCH_POINT);
+  // Branch origin = trunk at branch point
+  const origin = getAxonPoint(AXON_BRANCH_POINT);
 
-  const x0 = branchOrigin.x;
-  const y0 = branchOrigin.y;
+  const x0 = origin.x;
+  const y0 = origin.y;
 
-  // Stable target: neuron 2 soma
+  // Stable anatomical target
   const tx = neuron2.soma.x;
   const ty = neuron2.soma.y;
 
@@ -129,7 +140,7 @@ function getAxonBranchToNeuron2(t) {
 }
 
 // -----------------------------------------------------
-// Terminal arrival hook (wired in Overview)
+// Terminal arrival hook (wired externally)
 // -----------------------------------------------------
 let axonTerminalCallback = null;
 
