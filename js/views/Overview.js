@@ -3,7 +3,8 @@
 // =====================================================
 
 function drawOverview(state) {
-  drawNeuron();
+  drawNeuron1();
+  drawNeuron2();
 
   // --- Synapse + dendrite signals ---
   updateSynapseHover();
@@ -16,10 +17,10 @@ function drawOverview(state) {
   drawAxonSpikes();
 }
 
-// -----------------------------------------------------
-// Draw full neuron
-// -----------------------------------------------------
-function drawNeuron() {
+// =====================================================
+// NEURON 1 (PRESYNAPTIC)
+// =====================================================
+function drawNeuron1() {
 
   // =====================
   // DENDRITES
@@ -63,7 +64,6 @@ function drawNeuron() {
     neuron.somaRadius * 1.8
   );
 
-  // Vm label
   fill(60);
   noStroke();
   textAlign(CENTER, CENTER);
@@ -78,11 +78,8 @@ function drawNeuron() {
   push();
   noStroke();
   fill(235, 220, 160);
-
-  const hx = neuron.somaRadius + 8;
   rectMode(CENTER);
-  rect(hx, 0, 14, 8, 4);
-
+  rect(neuron.somaRadius + 8, 0, 14, 8, 4);
   pop();
 
   // =====================
@@ -133,40 +130,47 @@ function drawNeuron() {
 
     pop();
 
-    if (s.hovered) {
-      drawSynapseControls(s);
-    }
+    if (s.hovered) drawSynapseControls(s);
   });
 }
 
-// -----------------------------------------------------
-// Draw + / − controls
-// -----------------------------------------------------
-function drawSynapseControls(s) {
+// =====================================================
+// NEURON 2 (POSTSYNAPTIC — VISUAL ONLY FOR NOW)
+// =====================================================
+function drawNeuron2() {
+
+  // dendrite
+  neuron2.dendrites.forEach(branch => {
+    for (let i = 0; i < branch.length - 1; i++) {
+      stroke(200);
+      strokeWeight(branch[i].r * 1.4);
+      line(
+        branch[i].x,
+        branch[i].y,
+        branch[i + 1].x,
+        branch[i + 1].y
+      );
+    }
+  });
+
+  // soma
   push();
-
-  textAlign(CENTER, CENTER);
-  textSize(18);
   noStroke();
+  fill(200);
+  ellipse(340, 0, neuron2.somaRadius * 2);
+  pop();
 
-  // PLUS
-  fill(80, 200, 120);
-  ellipse(s.x, s.y - s.radius - 18, 18, 18);
-  fill(0);
-  text("+", s.x, s.y - s.radius - 19);
-
-  // MINUS
-  fill(200, 100, 100);
-  ellipse(s.x, s.y + s.radius + 18, 18, 18);
-  fill(0);
-  text("–", s.x, s.y + s.radius + 18);
-
+  // synapse target
+  push();
+  noStroke();
+  fill(120, 220, 140);
+  ellipse(200, 0, 16);
   pop();
 }
 
-// -----------------------------------------------------
-// AXON TERMINAL (visual only)
-// -----------------------------------------------------
+// =====================================================
+// AXON TERMINAL
+// =====================================================
 function drawAxonTerminal() {
   const p = getAxonPoint(1);
 
@@ -177,9 +181,9 @@ function drawAxonTerminal() {
   pop();
 }
 
-// -----------------------------------------------------
-// Axon geometry helper (USED BY VIEW + SPIKES)
-// -----------------------------------------------------
+// =====================================================
+// AXON GEOMETRY HELPER
+// =====================================================
 function getAxonPoint(t) {
   const x0 = neuron.somaRadius + 10;
 
@@ -200,4 +204,3 @@ function getAxonPoint(t) {
     )
   };
 }
-
