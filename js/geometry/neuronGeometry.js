@@ -131,3 +131,34 @@ function assignSynapseTypes() {
     syns[indices[i]].type = "exc";
   }
 }
+
+// -----------------------------------------------------
+// Postsynaptic neuron (Neuron 2)
+// -----------------------------------------------------
+const neuron2 = {
+  somaRadius: 36,
+  dendrites: [],
+  synapses: [],
+  axon: { length: 0 }   // no axon needed yet
+};
+
+// Simple dendrite for neuron 2
+neuron2.dendrites = [[
+  { x: 320, y: -40, r: 3 },
+  { x: 260, y: -20, r: 3 },
+  { x: 200, y: 0,   r: 3 }
+]];
+
+// Single synapse receiving axon input
+neuron2.synapses = [{
+  id: 0,
+  x: 200,
+  y: 0,
+  radius: 10,
+  type: "exc",
+  path: [
+    { x: 200, y: 0 },
+    { x: 260, y: 0 },
+    { x: 320, y: 0 }
+  ]
+}];
