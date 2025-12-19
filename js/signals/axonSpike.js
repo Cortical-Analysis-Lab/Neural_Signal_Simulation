@@ -1,6 +1,5 @@
 // =====================================================
-// AXON ACTION POTENTIAL PROPAGATION
-// SINGLE WAVEFRONT + DISTAL BRANCHING (FINAL)
+// AXON ACTION POTENTIAL → TERMINAL DEPOLARIZATION (FINAL)
 // =====================================================
 console.log("axonSpike loaded");
 
@@ -9,147 +8,121 @@ console.log("axonSpike loaded");
 // -----------------------------------------------------
 const AXON_CONDUCTION_SPEED = 0.035;
 
-// Location along trunk where branching occurs (0–1)
-const AXON_BRANCH_POINT = 0.55;
+// Where terminal region begins (0–1 along axon)
+const AXON_TERMINAL_START = 0.75;
 
-// Active action potentials (each = ONE wavefront)
+// Terminal depolarization lifetime (frames)
+const TERMINAL_LIFETIME = 25;
+
+// -----------------------------------------------------
+// Active AP wavefronts (ONE = ONE AP)
+// -----------------------------------------------------
 const axonSpikes = [];
 
 // -----------------------------------------------------
-// Spawn spike at axon hillock
+// Active terminal depolarizations
+// -----------------------------------------------------
+const terminalDots = [];
+
+// -----------------------------------------------------
+// Spawn AP at axon hillock
 // -----------------------------------------------------
 function spawnAxonSpike() {
 
-  // Prevent visual overlap at hillock
+  // Prevent overlap at hillock
   if (axonSpikes.length > 0) {
     const last = axonSpikes[axonSpikes.length - 1];
     if (last.phase < 0.05) return;
   }
 
   axonSpikes.push({
-    phase: 0,        // global propagation phase (0 → 1)
-    delivered: false
+    phase: 0
   });
 }
 
 // -----------------------------------------------------
-// Update spike propagation
+// Update AP propagation
 // -----------------------------------------------------
 function updateAxonSpikes() {
   for (let i = axonSpikes.length - 1; i >= 0; i--) {
     const s = axonSpikes[i];
-
     s.phase += AXON_CONDUCTION_SPEED;
 
-    // Terminal arrival → notify ONCE
-    if (s.phase >= 1 && !s.delivered) {
-      s.delivered = true;
-      notifyAxonTerminalArrival();
-    }
-
-    // Remove after fully past terminals
-    if (s.phase > 1.15) {
+    // Reached terminal region → spawn terminal activity
+    if (s.phase >= AXON_TERMINAL_START) {
+      spawnTerminalDepolarizations();
       axonSpikes.splice(i, 1);
     }
   }
 }
 
 // -----------------------------------------------------
-// Draw spikes — SINGLE wavefront, projected geometrically
+// Spawn terminal depolarizations (one per branch)
+// -----------------------------------------------------
+function spawnTerminalDepolarizations() {
+
+  const terminals = getAxonTerminalEndpoints();
+
+  terminals.forEach(p => {
+    terminalDots.push({
+      x: p.x,
+      y: p.y,
+      life: TERMINAL_LIFETIME
+    });
+  });
+}
+
+// -----------------------------------------------------
+// Update terminal depolarizations
+// -----------------------------------------------------
+function updateTerminalDots() {
+  for (let i = terminalDots.length - 1; i >= 0; i--) {
+    terminalDots[i].life--;
+    if (terminalDots[i].life <= 0) {
+      terminalDots.splice(i, 1);
+    }
+  }
+}
+
+// -----------------------------------------------------
+// Draw AP wavefront + terminal depolarizations
 // -----------------------------------------------------
 function drawAxonSpikes() {
+
+  // ---- AP wavefront ----
   axonSpikes.forEach(s => {
-
-    // -------------------------------------------------
-    // BEFORE BRANCH: draw ONLY on axon trunk
-    // -------------------------------------------------
-    if (s.phase < AXON_BRANCH_POINT) {
-      const p = getAxonPoint(s.phase);
-
-      push();
-      noStroke();
-      fill(0, 255, 120);
-      ellipse(p.x, p.y, 10, 10);
-      pop();
-
-      return;
-    }
-
-    // -------------------------------------------------
-    // AFTER BRANCH: SAME wavefront projected onto branches
-    // -------------------------------------------------
-
-    // Normalize phase AFTER branch
-    const branchPhase = map(
-      s.phase,
-      AXON_BRANCH_POINT,
-      1,
-      0,
-      1,
-      true
-    );
-
-    // ---- Main axon continuation ----
-    const pMain = getAxonPoint(
-      lerp(AXON_BRANCH_POINT, 1, branchPhase)
-    );
+    const p = getAxonPoint(s.phase);
 
     push();
     noStroke();
     fill(0, 255, 120);
-    ellipse(pMain.x, pMain.y, 9, 9);
+    ellipse(p.x, p.y, 10, 10);
     pop();
+  });
 
-    // ---- Branch to neuron 2 (projection of SAME wavefront) ----
-    const pN2 = getAxonBranchToNeuron2(branchPhase);
+  // ---- Terminal depolarizations ----
+  terminalDots.forEach(t => {
+    const alpha = map(t.life, 0, TERMINAL_LIFETIME, 40, 180);
 
     push();
     noStroke();
-    fill(0, 255, 120);
-    ellipse(pN2.x, pN2.y, 9, 9);
+    fill(0, 255, 120, alpha);
+    ellipse(t.x, t.y, 6, 6);
     pop();
   });
 }
 
 // -----------------------------------------------------
-// Geometry: branch toward neuron 2 soma field
+// Axon terminal branch geometry (STATIC)
 // -----------------------------------------------------
-function getAxonBranchToNeuron2(t) {
+function getAxonTerminalEndpoints() {
 
-  // Branch origin = trunk at branch point
-  const origin = getAxonPoint(AXON_BRANCH_POINT);
+  const base = getAxonPoint(AXON_TERMINAL_START);
 
-  const x0 = origin.x;
-  const y0 = origin.y;
-
-  // Stable anatomical target
-  const tx = neuron2.soma.x;
-  const ty = neuron2.soma.y;
-
-  // Smooth biological curvature
-  const cx1 = lerp(x0, tx, 0.4);
-  const cy1 = y0 - 40;
-
-  const cx2 = lerp(x0, tx, 0.7);
-  const cy2 = ty + 30;
-
-  return {
-    x: bezierPoint(x0, cx1, cx2, tx, t),
-    y: bezierPoint(y0, cy1, cy2, ty, t)
-  };
-}
-
-// -----------------------------------------------------
-// Terminal arrival hook (wired externally)
-// -----------------------------------------------------
-let axonTerminalCallback = null;
-
-function onAxonTerminalArrival(cb) {
-  axonTerminalCallback = cb;
-}
-
-function notifyAxonTerminalArrival() {
-  if (axonTerminalCallback) {
-    axonTerminalCallback();
-  }
+  // Three terminal branches (biological but clean)
+  return [
+    { x: base.x + 14, y: base.y - 8 },
+    { x: base.x + 18, y: base.y + 4 },
+    { x: base.x + 12, y: base.y + 12 }
+  ];
 }
