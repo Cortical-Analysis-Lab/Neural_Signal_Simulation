@@ -8,7 +8,13 @@ const neuron = {
   dendrites: [],
   synapses: [],
   hillock: { length: 14, width: 8 },
-  axon: { length: 160 }
+
+  // Axon geometry
+  axon: {
+    length: 160,
+    branchStart: 0.75,        // normalized (0–1)
+    terminalBranches: []      // populated below
+  }
 };
 
 // -----------------------------------------------------
@@ -42,6 +48,7 @@ function buildPathToSoma(branch) {
 function initSynapses() {
   neuron.dendrites = [];
   neuron.synapses = [];
+  neuron.axon.terminalBranches = [];
 
   const primaryAngles = [150, 170, 200, 220, 250, 270];
   let synapseId = 0;
@@ -96,12 +103,13 @@ function initSynapses() {
       radius: 12,
       hovered: false,
       selected: false,
-      type: null, // assigned below
+      type: null,
       path: buildPathToSoma(targetBranch)
     });
   });
 
   assignSynapseTypes();
+  initAxonTerminalBranches();
 }
 
 // -----------------------------------------------------
@@ -111,23 +119,43 @@ function assignSynapseTypes() {
   const syns = neuron.synapses;
   if (syns.length === 0) return;
 
-  // Decide inhibitory count (2 or 3)
   const inhCount = random() < 0.5 ? 2 : 3;
 
-  // Shuffle indices
   const indices = syns.map((_, i) => i);
   for (let i = indices.length - 1; i > 0; i--) {
     const j = floor(random(i + 1));
     [indices[i], indices[j]] = [indices[j], indices[i]];
   }
 
-  // Assign inhibitory
   for (let i = 0; i < inhCount; i++) {
     syns[indices[i]].type = "inh";
   }
 
-  // Assign remaining excitatory
   for (let i = inhCount; i < indices.length; i++) {
     syns[indices[i]].type = "exc";
   }
+}
+
+// -----------------------------------------------------
+// Initialize axon terminal branching geometry
+// -----------------------------------------------------
+function initAxonTerminalBranches() {
+
+  const base = getAxonPoint(neuron.axon.branchStart);
+
+  // Fixed, clean terminal arbor
+  neuron.axon.terminalBranches = [
+    {
+      start: { x: base.x, y: base.y },
+      end:   { x: base.x + 14, y: base.y - 10 }
+    },
+    {
+      start: { x: base.x, y: base.y },
+      end:   { x: base.x + 18, y: base.y + 2 }
+    },
+    {
+      start: { x: base.x, y: base.y },
+      end:   { x: base.x + 12, y: base.y + 12 }
+    }
+  ];
 }
