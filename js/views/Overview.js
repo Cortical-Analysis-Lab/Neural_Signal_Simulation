@@ -4,10 +4,16 @@
 
 function drawOverview(state) {
   drawNeuron();
+
+  // --- Synapse + dendrite signals ---
   updateSynapseHover();
   updateEPSPs();
   updateSoma();
   drawEPSPs();
+
+  // --- Axon signals ---
+  updateAxonSpikes();
+  drawAxonSpikes();
 }
 
 // -----------------------------------------------------
@@ -96,15 +102,9 @@ function drawNeuron() {
   endShape();
 
   // =====================
-  // ACTION POTENTIAL FLASH
+  // AXON TERMINAL
   // =====================
-  if (isFiring) {
-    push();
-    noStroke();
-    fill(0, 255, 120);
-    ellipse(neuron.somaRadius + 18, 0, 14, 14);
-    pop();
-  }
+  drawAxonTerminal();
 
   // =====================
   // SYNAPTIC BOUTONS
@@ -164,6 +164,9 @@ function drawSynapseControls(s) {
   pop();
 }
 
+// -----------------------------------------------------
+// Axon geometry helpers
+// -----------------------------------------------------
 function getAxonPoint(t) {
   const x0 = neuron.somaRadius + 10;
 
@@ -185,3 +188,12 @@ function getAxonPoint(t) {
   };
 }
 
+function drawAxonTerminal() {
+  const p = getAxonPoint(1);
+
+  push();
+  noStroke();
+  fill(200);
+  ellipse(p.x, p.y, 14, 14);
+  pop();
+}
