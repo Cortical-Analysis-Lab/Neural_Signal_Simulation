@@ -10,8 +10,15 @@
 
   <link rel="stylesheet" href="css/style.css" />
 </head>
+
 <body>
-  <div id="instructions">
+
+<!-- ===============================
+     INSTRUCTIONS PANEL (LEFT)
+================================ -->
+<div id="instructions" class="panel left open">
+  <button class="panel-toggle" onclick="togglePanel('instructions')">◀</button>
+
   <h2>Neuron Simulator</h2>
 
   <p><strong>Synapse types</strong></p>
@@ -43,7 +50,12 @@
   </p>
 </div>
 
-  <div id="observations">
+<!-- ===============================
+     OBSERVATIONS PANEL (BOTTOM)
+================================ -->
+<div id="observations" class="panel bottom open">
+  <button class="panel-toggle" onclick="togglePanel('observations')">▼</button>
+
   <p><b>What to observe</b></p>
   <ul>
     <li>Small PSPs may decay before reaching the soma</li>
@@ -53,33 +65,42 @@
   </ul>
 </div>
 
-
-  <div id="ui">
+<!-- ===============================
+     TOP UI BAR
+================================ -->
+<div id="ui">
   <h1>Neural Signal Simulation</h1>
+
   <div class="buttons">
     <button onclick="setMode('overview')">Neuron</button>
     <button onclick="setMode('ion')">Ion</button>
     <button onclick="setMode('synapse')">Synapse</button>
     <button id="pauseBtn">Pause</button>
   </div>
-  </div>
-    <script src="js/geometry/neuronGeometry.js"></script>
-  
-    <!-- Signal models -->
-    <script src="js/signals/psp.js"></script>
-    <script src="js/signals/soma.js"></script>
-    <script src="js/signals/axonSpike.js"></script>
-    
-    <!-- Views -->
-    <script src="js/views/Overview.js"></script>
-    <script src="js/views/IonView.js"></script>
-    <script src="js/views/SynapseView.js"></script>
-    
-    <!-- Interaction -->
-    <script src="js/interaction/synapseInteraction.js"></script>
-    
-    <!-- Main loop LAST -->
-    <script src="js/main.js"></script>
+</div>
+
+<!-- ===============================
+     SCRIPTS
+================================ -->
+
+<!-- Geometry -->
+<script src="js/geometry/neuronGeometry.js"></script>
+
+<!-- Signal models -->
+<script src="js/signals/psp.js"></script>
+<script src="js/signals/soma.js"></script>
+<script src="js/signals/axonSpike.js"></script>
+
+<!-- Views -->
+<script src="js/views/Overview.js"></script>
+<script src="js/views/IonView.js"></script>
+<script src="js/views/SynapseView.js"></script>
+
+<!-- Interaction -->
+<script src="js/interaction/synapseInteraction.js"></script>
+
+<!-- Main loop (LAST) -->
+<script src="js/main.js"></script>
 
 </body>
 </html>
