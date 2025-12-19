@@ -31,14 +31,11 @@ function polarToCartesian(angleDeg, r) {
 function buildPathToSoma(branch) {
   const path = [];
 
-  // distal → proximal
   for (let i = branch.length - 1; i >= 0; i--) {
     path.push({ x: branch[i].x, y: branch[i].y });
   }
 
-  // final soma target
   path.push({ x: 0, y: 0 });
-
   return path;
 }
 
@@ -55,7 +52,6 @@ function initSynapses() {
 
   primaryAngles.forEach(angle => {
 
-    // ---------- Primary dendrite ----------
     const base   = polarToCartesian(angle, neuron.somaRadius + 6);
     const mid    = polarToCartesian(angle + random(-12, 12), 110);
     const distal = polarToCartesian(angle + random(-18, 18), 190);
@@ -68,7 +64,6 @@ function initSynapses() {
 
     neuron.dendrites.push(primaryBranch);
 
-    // ---------- Optional side branch ----------
     let sideBranch = null;
 
     if (random() < 1.0) {
@@ -88,7 +83,6 @@ function initSynapses() {
       neuron.dendrites.push(sideBranch);
     }
 
-    // ---------- Choose synapse location ----------
     let targetBranch = primaryBranch;
     if (sideBranch && random() < 0.5) {
       targetBranch = sideBranch;
@@ -137,25 +131,25 @@ function assignSynapseTypes() {
 }
 
 // -----------------------------------------------------
-// Initialize axon terminal branching geometry
+// Initialize axon terminal branching geometry (LONGER)
 // -----------------------------------------------------
 function initAxonTerminalBranches() {
 
   const base = getAxonPoint(neuron.axon.branchStart);
 
-  // Fixed, clean terminal arbor
+  // Longer, more legible terminal arbor
   neuron.axon.terminalBranches = [
     {
       start: { x: base.x, y: base.y },
-      end:   { x: base.x + 14, y: base.y - 10 }
+      end:   { x: base.x + 36, y: base.y - 18 }
     },
     {
       start: { x: base.x, y: base.y },
-      end:   { x: base.x + 18, y: base.y + 2 }
+      end:   { x: base.x + 44, y: base.y + 4 }
     },
     {
       start: { x: base.x, y: base.y },
-      end:   { x: base.x + 12, y: base.y + 12 }
+      end:   { x: base.x + 32, y: base.y + 22 }
     }
   ];
 }
