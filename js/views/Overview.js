@@ -11,39 +11,11 @@ function drawOverview(state) {
   updateSoma();
 
   updateAxonSpikes();
+  updateTerminalDots();
 
   drawEPSPs();
   drawAxonSpikes();
 }
-
-// -----------------------------------------------------
-// Wire axon terminal → neuron 2 synapse ONCE
-// -----------------------------------------------------
-let neuron2Wired = false;
-
-function wireAxonToNeuron2() {
-  if (neuron2Wired) return;
-
-  onAxonTerminalArrival(() => {
-    if (neuron2.synapses.length > 0) {
-      spawnEPSP({
-        id: "axon_to_neuron2",
-        path: [
-          { x: neuron2.synapses[0].x, y: neuron2.synapses[0].y },
-          { x: neuron2.soma.x, y: neuron2.soma.y }
-        ],
-        radius: 18,
-        type: "exc"
-      });
-    }
-  });
-
-  neuron2Wired = true;
-}
-
-// -----------------------------------------------------
-wireAxonToNeuron2();
-// -----------------------------------------------------
 
 // =====================================================
 // NEURON 1 (PRESYNAPTIC)
@@ -92,7 +64,6 @@ function drawNeuron1() {
     neuron.somaRadius * 1.8
   );
 
-  // Vm label
   fill(60);
   noStroke();
   textAlign(CENTER, CENTER);
@@ -128,9 +99,14 @@ function drawNeuron1() {
   endShape();
 
   // =====================
-  // AXON TERMINAL (VISUAL ONLY)
+  // AXON TERMINAL BRANCHES
   // =====================
-  drawAxonTerminal();
+  stroke(235, 220, 160);
+  strokeWeight(3);
+
+  neuron.axon.terminalBranches.forEach(b => {
+    line(b.start.x, b.start.y, b.end.x, b.end.y);
+  });
 
   // =====================
   // SYNAPTIC BOUTONS (ONTO NEURON 1 DENDRITES)
@@ -168,9 +144,6 @@ function drawNeuron1() {
 // =====================================================
 function drawNeuron2() {
 
-  // ---------------------
-  // POSTSYNAPTIC DENDRITES
-  // ---------------------
   neuron2.dendrites.forEach(branch => {
     for (let i = 0; i < branch.length - 1; i++) {
       const p1 = branch[i];
@@ -183,9 +156,6 @@ function drawNeuron2() {
     }
   });
 
-  // ---------------------
-  // POSTSYNAPTIC SOMA
-  // ---------------------
   push();
   noStroke();
   fill(200);
@@ -196,9 +166,6 @@ function drawNeuron2() {
   );
   pop();
 
-  // ---------------------
-  // POSTSYNAPTIC SYNAPSES (VISUAL TARGETS ONLY)
-  // ---------------------
   neuron2.synapses.forEach(s => {
     push();
     noStroke();
@@ -209,20 +176,7 @@ function drawNeuron2() {
 }
 
 // =====================================================
-// AXON TERMINAL (VISUAL)
-// =====================================================
-function drawAxonTerminal() {
-  const p = getAxonPoint(1);
-
-  push();
-  noStroke();
-  fill(200);
-  ellipse(p.x, p.y, 14, 14);
-  pop();
-}
-
-// =====================================================
-// AXON GEOMETRY HELPER (SHARED WITH AXON SPIKES)
+// AXON GEOMETRY HELPER (SHARED)
 // =====================================================
 function getAxonPoint(t) {
   const x0 = neuron.somaRadius + 10;
@@ -255,13 +209,11 @@ function drawSynapseControls(s) {
   textSize(18);
   noStroke();
 
-  // PLUS
   fill(80, 200, 120);
   ellipse(s.x, s.y - s.radius - 18, 18, 18);
   fill(0);
   text("+", s.x, s.y - s.radius - 19);
 
-  // MINUS
   fill(200, 100, 100);
   ellipse(s.x, s.y + s.radius + 18, 18, 18);
   fill(0);
