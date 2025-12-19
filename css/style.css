@@ -92,9 +92,9 @@ button:hover {
   line-height: 1.45;
 }
 
-/* Collapse left → offscreen */
+/* ✅ FULLY collapse left panel offscreen */
 .panel.left:not(.open) {
-  transform: translateX(-260px);
+  transform: translateX(-100%);
 }
 
 /* Toggle button placement */
@@ -156,9 +156,9 @@ button:hover {
   text-align: center;
 }
 
-/* Collapse bottom → down */
+/* Collapse bottom → fully offscreen */
 .panel.bottom:not(.open) {
-  transform: translate(-50%, 120%);
+  transform: translate(-50%, 100%);
 }
 
 /* Toggle button placement */
@@ -206,10 +206,6 @@ button:hover {
 
   .panel.left {
     width: 240px;
-  }
-
-  .panel.left:not(.open) {
-    transform: translateX(-230px);
   }
 
   .panel.bottom {
