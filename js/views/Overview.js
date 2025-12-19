@@ -6,16 +6,44 @@ function drawOverview(state) {
   drawNeuron1();
   drawNeuron2();
 
-  // --- Synapse + dendrite signals (Neuron 1) ---
   updateSynapseHover();
   updateEPSPs();
   updateSoma();
-  drawEPSPs();
 
-  // --- Axon signals ---
   updateAxonSpikes();
+
+  drawEPSPs();
   drawAxonSpikes();
 }
+
+// -----------------------------------------------------
+// Wire axon terminal → neuron 2 synapse ONCE
+// -----------------------------------------------------
+let neuron2Wired = false;
+
+function wireAxonToNeuron2() {
+  if (neuron2Wired) return;
+
+  onAxonTerminalArrival(() => {
+    if (neuron2.synapses.length > 0) {
+      spawnEPSP({
+        id: "axon_to_neuron2",
+        path: [
+          { x: neuron2.synapses[0].x, y: neuron2.synapses[0].y },
+          { x: neuron2.soma.x, y: neuron2.soma.y }
+        ],
+        radius: 18,
+        type: "exc"
+      });
+    }
+  });
+
+  neuron2Wired = true;
+}
+
+// -----------------------------------------------------
+wireAxonToNeuron2();
+// -----------------------------------------------------
 
 // =====================================================
 // NEURON 1 (PRESYNAPTIC)
