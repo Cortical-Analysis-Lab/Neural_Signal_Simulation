@@ -11,7 +11,7 @@ const neuron = {
 
   axon: {
     length: 160,
-    terminalBranches: []   // populated below
+    terminalBranches: []
   }
 };
 
@@ -21,6 +21,30 @@ const neuron = {
 function polarToCartesian(angleDeg, r) {
   const a = radians(angleDeg);
   return { x: cos(a) * r, y: sin(a) * r };
+}
+
+// -----------------------------------------------------
+// LOCAL axon endpoint helper (GEOMETRY-ONLY)
+// -----------------------------------------------------
+function getAxonEndPoint() {
+  const x0 = neuron.somaRadius + 10;
+
+  return {
+    x: bezierPoint(
+      x0,
+      neuron.somaRadius + 70,
+      neuron.somaRadius + 120,
+      neuron.somaRadius + neuron.axon.length,
+      1
+    ),
+    y: bezierPoint(
+      0,
+      14,
+      -14,
+      0,
+      1
+    )
+  };
 }
 
 // -----------------------------------------------------
@@ -60,8 +84,7 @@ function initSynapses() {
 
     neuron.dendrites.push(primaryBranch);
 
-    let targetBranch = primaryBranch;
-    const branchEnd = targetBranch[targetBranch.length - 1];
+    const branchEnd = primaryBranch[primaryBranch.length - 1];
 
     neuron.synapses.push({
       id: synapseId++,
@@ -71,7 +94,7 @@ function initSynapses() {
       hovered: false,
       selected: false,
       type: null,
-      path: buildPathToSoma(targetBranch)
+      path: buildPathToSoma(primaryBranch)
     });
   });
 
@@ -99,11 +122,11 @@ function assignSynapseTypes() {
 }
 
 // -----------------------------------------------------
-// Curved axon terminal branching + boutons
+// Curved axon terminal branching + boutons (DISTAL)
 // -----------------------------------------------------
 function initAxonTerminalBranches() {
 
-  const base = getAxonPoint(1);
+  const base = getAxonEndPoint();
 
   neuron.axon.terminalBranches = [
     createTerminalBranch(base, 40, -22),
@@ -115,18 +138,19 @@ function initAxonTerminalBranches() {
 // -----------------------------------------------------
 function createTerminalBranch(base, dx, dy) {
 
-  const end = { x: base.x + dx, y: base.y + dy };
-
   return {
     start: { x: base.x, y: base.y },
 
-    // Control point gives curvature
     ctrl: {
       x: base.x + dx * 0.6,
       y: base.y + dy * 0.6 + random(-6, 6)
     },
 
-    end,
+    end: {
+      x: base.x + dx,
+      y: base.y + dy
+    },
+
     boutonRadius: 6
   };
 }
