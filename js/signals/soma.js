@@ -70,10 +70,11 @@ function updateSoma() {
 // -----------------------------------------------------
 function fireActionPotential() {
   isFiring = true;
-  refractory = 30;   // ~500 ms at 60 FPS
-  soma.Vm = 40;      // overshoot peak
+  refractory = 30;
+  soma.Vm = 40;
 
-  spawnAxonSpike();
+  spawnAxonSpike(); // 🔥 THIS IS THE LINK
 
   console.log("⚡ ACTION POTENTIAL");
 }
+
