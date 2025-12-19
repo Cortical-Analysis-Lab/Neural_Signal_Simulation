@@ -204,3 +204,29 @@ function getAxonPoint(t) {
     )
   };
 }
+
+// -----------------------------------------------------
+// Draw + / − synapse controls
+// -----------------------------------------------------
+function drawSynapseControls(s) {
+  push();
+
+  textAlign(CENTER, CENTER);
+  textSize(18);
+  noStroke();
+
+  // PLUS
+  fill(80, 200, 120);
+  ellipse(s.x, s.y - s.radius - 18, 18, 18);
+  fill(0);
+  text("+", s.x, s.y - s.radius - 19);
+
+  // MINUS
+  fill(200, 100, 100);
+  ellipse(s.x, s.y + s.radius + 18, 18, 18);
+  fill(0);
+  text("–", s.x, s.y + s.radius + 18);
+
+  pop();
+}
+
