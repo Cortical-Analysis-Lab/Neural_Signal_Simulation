@@ -12,8 +12,8 @@ const neuron = {
   // Axon geometry
   axon: {
     length: 160,
-    branchStart: 0.75,        // normalized (0–1)
-    terminalBranches: []      // populated below
+    branchStart: 1.0,          // ← TERMINALS AT AXON END
+    terminalBranches: []
   }
 };
 
@@ -131,13 +131,13 @@ function assignSynapseTypes() {
 }
 
 // -----------------------------------------------------
-// Initialize axon terminal branching geometry (LONGER)
+// Initialize axon terminal branching geometry (DISTAL)
 // -----------------------------------------------------
 function initAxonTerminalBranches() {
 
-  const base = getAxonPoint(neuron.axon.branchStart);
+  // EXACT end of axon
+  const base = getAxonPoint(1);
 
-  // Longer, more legible terminal arbor
   neuron.axon.terminalBranches = [
     {
       start: { x: base.x, y: base.y },
