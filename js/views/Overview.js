@@ -100,7 +100,7 @@ function drawNeuron1() {
   endShape();
 
   // =====================
-  // AXON TERMINAL
+  // AXON TERMINAL (VISUAL ONLY)
   // =====================
   drawAxonTerminal();
 
@@ -136,12 +136,12 @@ function drawNeuron1() {
 }
 
 // =====================================================
-// NEURON 2 (POSTSYNAPTIC — VISUAL ONLY FOR NOW)
+// NEURON 2 (POSTSYNAPTIC — VISUAL ONLY)
 // =====================================================
 function drawNeuron2() {
 
   // ---------------------
-  // POSTSYNAPTIC DENDRITE
+  // POSTSYNAPTIC DENDRITES
   // ---------------------
   neuron2.dendrites.forEach(branch => {
     for (let i = 0; i < branch.length - 1; i++) {
@@ -156,31 +156,28 @@ function drawNeuron2() {
   });
 
   // ---------------------
-  // POSTSYNAPTIC SOMA (PARTIAL VIEW)
+  // POSTSYNAPTIC SOMA
   // ---------------------
   push();
   noStroke();
   fill(200);
   ellipse(
-    neuron2.somaCenter.x,
-    neuron2.somaCenter.y,
+    neuron2.soma.x,
+    neuron2.soma.y,
     neuron2.somaRadius * 2
   );
   pop();
 
   // ---------------------
-  // POSTSYNAPTIC TARGET SYNAPSE
+  // POSTSYNAPTIC SYNAPSES (VISUAL TARGETS ONLY)
   // ---------------------
-  push();
-  noStroke();
-  fill(120, 220, 140);
-  ellipse(
-    neuron2.synapseTarget.x,
-    neuron2.synapseTarget.y,
-    14,
-    14
-  );
-  pop();
+  neuron2.synapses.forEach(s => {
+    push();
+    noStroke();
+    fill(120, 220, 140);
+    ellipse(s.x, s.y, s.radius * 2);
+    pop();
+  });
 }
 
 // =====================================================
