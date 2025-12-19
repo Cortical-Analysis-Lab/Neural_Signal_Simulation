@@ -1,5 +1,5 @@
 // =====================================================
-// AXON ACTION POTENTIAL PROPAGATION (BRANCHED, BIOLOGICAL)
+// AXON ACTION POTENTIAL PROPAGATION (BRANCHED, STABLE)
 // =====================================================
 console.log("axonSpike loaded");
 
@@ -81,7 +81,7 @@ function drawAxonSpikes() {
 }
 
 // -----------------------------------------------------
-// Axon branch geometry → neuron 2 dendrite
+// Axon branch geometry → neuron 2 SOMA FIELD
 // -----------------------------------------------------
 function getAxonBranchToNeuron2(t) {
 
@@ -89,20 +89,20 @@ function getAxonBranchToNeuron2(t) {
   const x0 = neuron.somaRadius + 10;
   const y0 = 0;
 
-  // Target: distal end of first neuron2 dendrite
-  const dendrite = neuron2.dendrites[0];
-  const distal = dendrite[dendrite.length - 1];
+  // Stable target: neuron 2 soma
+  const tx = neuron2.soma.x;
+  const ty = neuron2.soma.y;
 
   // Control points for smooth biological curvature
-  const cx1 = lerp(x0, distal.x, 0.35);
+  const cx1 = lerp(x0, tx, 0.35);
   const cy1 = -40;
 
-  const cx2 = lerp(x0, distal.x, 0.65);
-  const cy2 = distal.y + 30;
+  const cx2 = lerp(x0, tx, 0.65);
+  const cy2 = ty + 30;
 
   return {
-    x: bezierPoint(x0, cx1, cx2, distal.x, t),
-    y: bezierPoint(y0, cy1, cy2, distal.y, t)
+    x: bezierPoint(x0, cx1, cx2, tx, t),
+    y: bezierPoint(y0, cy1, cy2, ty, t)
   };
 }
 
