@@ -1,5 +1,5 @@
 // =====================================================
-// AXON ACTION POTENTIAL PROPAGATION (BRANCHED)
+// AXON ACTION POTENTIAL PROPAGATION (BRANCHED, BIOLOGICAL)
 // =====================================================
 console.log("axonSpike loaded");
 
@@ -38,7 +38,7 @@ function spawnAxonSpike() {
 
   axonSpikes.push({
     t: 0,
-    delivered: false   // ensures single terminal event
+    delivered: false
   });
 }
 
@@ -50,7 +50,7 @@ function updateAxonSpikes() {
     const s = axonSpikes[i];
     s.t += AXON_CONDUCTION_SPEED;
 
-    // Terminal arrival (only once)
+    // Terminal arrival (single delivery)
     if (s.t >= 1 && !s.delivered) {
       s.delivered = true;
       notifyAxonTerminalArrival();
@@ -81,27 +81,28 @@ function drawAxonSpikes() {
 }
 
 // -----------------------------------------------------
-// Axon branch geometry → neuron 2
+// Axon branch geometry → neuron 2 dendrite
 // -----------------------------------------------------
 function getAxonBranchToNeuron2(t) {
 
-  // Axon start (hillock)
+  // Axon origin (hillock)
   const x0 = neuron.somaRadius + 10;
   const y0 = 0;
 
-  // Target: first postsynaptic synapse on neuron 2
-  const target = neuron2.synapses[0];
+  // Target: distal end of first neuron2 dendrite
+  const dendrite = neuron2.dendrites[0];
+  const distal = dendrite[dendrite.length - 1];
 
   // Control points for smooth biological curvature
-  const cx1 = lerp(x0, target.x, 0.35);
+  const cx1 = lerp(x0, distal.x, 0.35);
   const cy1 = -40;
 
-  const cx2 = lerp(x0, target.x, 0.65);
-  const cy2 = target.y + 30;
+  const cx2 = lerp(x0, distal.x, 0.65);
+  const cy2 = distal.y + 30;
 
   return {
-    x: bezierPoint(x0, cx1, cx2, target.x, t),
-    y: bezierPoint(y0, cy1, cy2, target.y, t)
+    x: bezierPoint(x0, cx1, cx2, distal.x, t),
+    y: bezierPoint(y0, cy1, cy2, distal.y, t)
   };
 }
 
