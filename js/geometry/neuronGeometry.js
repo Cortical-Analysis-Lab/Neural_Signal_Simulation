@@ -9,11 +9,9 @@ const neuron = {
   synapses: [],
   hillock: { length: 14, width: 8 },
 
-  // Axon geometry
   axon: {
     length: 160,
-    branchStart: 1.0,          // ← TERMINALS AT AXON END
-    terminalBranches: []
+    terminalBranches: []   // populated below
   }
 };
 
@@ -30,11 +28,9 @@ function polarToCartesian(angleDeg, r) {
 // -----------------------------------------------------
 function buildPathToSoma(branch) {
   const path = [];
-
   for (let i = branch.length - 1; i >= 0; i--) {
     path.push({ x: branch[i].x, y: branch[i].y });
   }
-
   path.push({ x: 0, y: 0 });
   return path;
 }
@@ -64,30 +60,7 @@ function initSynapses() {
 
     neuron.dendrites.push(primaryBranch);
 
-    let sideBranch = null;
-
-    if (random() < 1.0) {
-      const sideAngle = angle + random(-40, -20);
-      const side1 = polarToCartesian(sideAngle, 140);
-      const side2 = {
-        x: side1.x + random(-15, -25),
-        y: side1.y + random(-10, 10)
-      };
-
-      sideBranch = [
-        { x: mid.x,   y: mid.y,   r: 2.5 },
-        { x: side1.x, y: side1.y, r: 1.8 },
-        { x: side2.x, y: side2.y, r: 1.2 }
-      ];
-
-      neuron.dendrites.push(sideBranch);
-    }
-
     let targetBranch = primaryBranch;
-    if (sideBranch && random() < 0.5) {
-      targetBranch = sideBranch;
-    }
-
     const branchEnd = targetBranch[targetBranch.length - 1];
 
     neuron.synapses.push({
@@ -114,42 +87,46 @@ function assignSynapseTypes() {
   if (syns.length === 0) return;
 
   const inhCount = random() < 0.5 ? 2 : 3;
-
   const indices = syns.map((_, i) => i);
+
   for (let i = indices.length - 1; i > 0; i--) {
     const j = floor(random(i + 1));
     [indices[i], indices[j]] = [indices[j], indices[i]];
   }
 
-  for (let i = 0; i < inhCount; i++) {
-    syns[indices[i]].type = "inh";
-  }
-
-  for (let i = inhCount; i < indices.length; i++) {
-    syns[indices[i]].type = "exc";
-  }
+  for (let i = 0; i < inhCount; i++) syns[indices[i]].type = "inh";
+  for (let i = inhCount; i < indices.length; i++) syns[indices[i]].type = "exc";
 }
 
 // -----------------------------------------------------
-// Initialize axon terminal branching geometry (DISTAL)
+// Curved axon terminal branching + boutons
 // -----------------------------------------------------
 function initAxonTerminalBranches() {
 
-  // EXACT end of axon
   const base = getAxonPoint(1);
 
   neuron.axon.terminalBranches = [
-    {
-      start: { x: base.x, y: base.y },
-      end:   { x: base.x + 36, y: base.y - 18 }
-    },
-    {
-      start: { x: base.x, y: base.y },
-      end:   { x: base.x + 44, y: base.y + 4 }
-    },
-    {
-      start: { x: base.x, y: base.y },
-      end:   { x: base.x + 32, y: base.y + 22 }
-    }
+    createTerminalBranch(base, 40, -22),
+    createTerminalBranch(base, 48, 4),
+    createTerminalBranch(base, 36, 24)
   ];
+}
+
+// -----------------------------------------------------
+function createTerminalBranch(base, dx, dy) {
+
+  const end = { x: base.x + dx, y: base.y + dy };
+
+  return {
+    start: { x: base.x, y: base.y },
+
+    // Control point gives curvature
+    ctrl: {
+      x: base.x + dx * 0.6,
+      y: base.y + dy * 0.6 + random(-6, 6)
+    },
+
+    end,
+    boutonRadius: 6
+  };
 }
