@@ -7,8 +7,11 @@ console.log("axonSpike loaded");
 // Parameters
 // -----------------------------------------------------
 const AXON_CONDUCTION_SPEED = 0.035;
-const AXON_TERMINAL_START   = 0.95;   // must reach true axon end
-const TERMINAL_LIFETIME     = 25;
+const AXON_TERMINAL_START   = 0.95;
+
+// Terminal dot behavior
+const TERMINAL_LIFETIME     = 30;
+const TERMINAL_SPEED       = 0.035;
 
 // -----------------------------------------------------
 // Active axon AP wavefronts
@@ -16,7 +19,7 @@ const TERMINAL_LIFETIME     = 25;
 const axonSpikes = [];
 
 // -----------------------------------------------------
-// Active terminal depolarizations (vesicle-like dots)
+// Active terminal depolarizations
 // -----------------------------------------------------
 const terminalDots = [];
 
@@ -25,7 +28,7 @@ const terminalDots = [];
 // -----------------------------------------------------
 function spawnAxonSpike() {
 
-  // Prevent overlap at hillock
+  // Prevent overlapping APs at hillock
   if (axonSpikes.length > 0) {
     const last = axonSpikes[axonSpikes.length - 1];
     if (last.phase < 0.05) return;
@@ -44,7 +47,7 @@ function updateAxonSpikes() {
     const s = axonSpikes[i];
     s.phase += AXON_CONDUCTION_SPEED;
 
-    // Reached terminal → trigger terminal depolarization
+    // Reached true axon end
     if (s.phase >= AXON_TERMINAL_START) {
       spawnTerminalDepolarizations();
       axonSpikes.splice(i, 1);
@@ -53,15 +56,15 @@ function updateAxonSpikes() {
 }
 
 // -----------------------------------------------------
-// Spawn depolarization at each terminal branch
+// Spawn depolarization down each terminal branch
 // -----------------------------------------------------
 function spawnTerminalDepolarizations() {
-  if (!neuron || !neuron.axon || !neuron.axon.terminalBranches) return;
+  if (!neuron?.axon?.terminalBranches) return;
 
   neuron.axon.terminalBranches.forEach(branch => {
     terminalDots.push({
       branch: branch,
-      t: 0,                 // progress down branch (0 → 1)
+      t: -0.15,                  // 👈 start BEFORE branch
       life: TERMINAL_LIFETIME
     });
   });
@@ -74,10 +77,10 @@ function updateTerminalDots() {
   for (let i = terminalDots.length - 1; i >= 0; i--) {
     const d = terminalDots[i];
 
-    d.t += 0.06;            // propagation speed down branch
+    d.t += TERMINAL_SPEED;
     d.life--;
 
-    if (d.life <= 0 || d.t >= 1) {
+    if (d.life <= 0 || d.t >= 1.05) {
       terminalDots.splice(i, 1);
     }
   }
@@ -101,10 +104,12 @@ function drawAxonSpikes() {
 
   // ---- Terminal depolarizations ----
   terminalDots.forEach(d => {
-
     const b = d.branch;
-    const x = lerp(b.start.x, b.end.x, d.t);
-    const y = lerp(b.start.y, b.end.y, d.t);
+
+    const tt = constrain(d.t, 0, 1);
+    const x = lerp(b.start.x, b.end.x, tt);
+    const y = lerp(b.start.y, b.end.y, tt);
+
     const alpha = map(d.life, 0, TERMINAL_LIFETIME, 40, 180);
 
     push();
