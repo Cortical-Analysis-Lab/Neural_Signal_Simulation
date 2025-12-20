@@ -1,5 +1,5 @@
 // =====================================================
-// AXON ACTION POTENTIAL → TERMINAL DEPOLARIZATION (FINAL)
+// AXON ACTION POTENTIAL → TERMINAL DEPOLARIZATION
 // =====================================================
 console.log("axonSpike loaded");
 
@@ -7,20 +7,16 @@ console.log("axonSpike loaded");
 // Parameters
 // -----------------------------------------------------
 const AXON_CONDUCTION_SPEED = 0.035;
-
-// Where terminal region begins (0–1 along axon)
-const AXON_TERMINAL_START = 0.75;
-
-// Terminal depolarization lifetime (frames)
-const TERMINAL_LIFETIME = 25;
+const AXON_TERMINAL_START   = 0.95;   // must reach true axon end
+const TERMINAL_LIFETIME     = 25;
 
 // -----------------------------------------------------
-// Active AP wavefronts (ONE = ONE AP)
+// Active axon AP wavefronts
 // -----------------------------------------------------
 const axonSpikes = [];
 
 // -----------------------------------------------------
-// Active terminal depolarizations
+// Active terminal depolarizations (vesicle-like dots)
 // -----------------------------------------------------
 const terminalDots = [];
 
@@ -48,7 +44,7 @@ function updateAxonSpikes() {
     const s = axonSpikes[i];
     s.phase += AXON_CONDUCTION_SPEED;
 
-    // Reached terminal region → spawn terminal activity
+    // Reached terminal → trigger terminal depolarization
     if (s.phase >= AXON_TERMINAL_START) {
       spawnTerminalDepolarizations();
       axonSpikes.splice(i, 1);
@@ -57,16 +53,15 @@ function updateAxonSpikes() {
 }
 
 // -----------------------------------------------------
-// Spawn terminal depolarizations (one per branch)
+// Spawn depolarization at each terminal branch
 // -----------------------------------------------------
 function spawnTerminalDepolarizations() {
+  if (!neuron || !neuron.axon || !neuron.axon.terminalBranches) return;
 
-  const terminals = getAxonTerminalEndpoints();
-
-  terminals.forEach(p => {
+  neuron.axon.terminalBranches.forEach(branch => {
     terminalDots.push({
-      x: p.x,
-      y: p.y,
+      branch: branch,
+      t: 0,                 // progress down branch (0 → 1)
       life: TERMINAL_LIFETIME
     });
   });
@@ -77,19 +72,23 @@ function spawnTerminalDepolarizations() {
 // -----------------------------------------------------
 function updateTerminalDots() {
   for (let i = terminalDots.length - 1; i >= 0; i--) {
-    terminalDots[i].life--;
-    if (terminalDots[i].life <= 0) {
+    const d = terminalDots[i];
+
+    d.t += 0.06;            // propagation speed down branch
+    d.life--;
+
+    if (d.life <= 0 || d.t >= 1) {
       terminalDots.splice(i, 1);
     }
   }
 }
 
 // -----------------------------------------------------
-// Draw AP wavefront + terminal depolarizations
+// Draw AP + terminal depolarizations
 // -----------------------------------------------------
 function drawAxonSpikes() {
 
-  // ---- AP wavefront ----
+  // ---- Axon AP wavefront ----
   axonSpikes.forEach(s => {
     const p = getAxonPoint(s.phase);
 
@@ -101,28 +100,17 @@ function drawAxonSpikes() {
   });
 
   // ---- Terminal depolarizations ----
-  terminalDots.forEach(t => {
-    const alpha = map(t.life, 0, TERMINAL_LIFETIME, 40, 180);
+  terminalDots.forEach(d => {
+
+    const b = d.branch;
+    const x = lerp(b.start.x, b.end.x, d.t);
+    const y = lerp(b.start.y, b.end.y, d.t);
+    const alpha = map(d.life, 0, TERMINAL_LIFETIME, 40, 180);
 
     push();
     noStroke();
     fill(0, 255, 120, alpha);
-    ellipse(t.x, t.y, 6, 6);
+    ellipse(x, y, 6, 6);
     pop();
   });
-}
-
-// -----------------------------------------------------
-// Axon terminal branch geometry (STATIC)
-// -----------------------------------------------------
-function getAxonTerminalEndpoints() {
-
-  const base = getAxonPoint(AXON_TERMINAL_START);
-
-  // Three terminal branches (biological but clean)
-  return [
-    { x: base.x + 14, y: base.y - 8 },
-    { x: base.x + 18, y: base.y + 4 },
-    { x: base.x + 12, y: base.y + 12 }
-  ];
 }
