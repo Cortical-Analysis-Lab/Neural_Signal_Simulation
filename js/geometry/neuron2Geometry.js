@@ -3,85 +3,106 @@
 // =====================================================
 console.log("neuron2 geometry loaded");
 
-const SYNAPTIC_CLEFT = 10;
+const SYNAPTIC_CLEFT = 14;   // visible gap
+const SOMA_OFFSET    = 90;   // keep soma well away from synapse
 
 const neuron2 = {
   somaRadius: 34,
-  soma: { x: 260, y: 0 },
+  soma: { x: 0, y: 0 },
   dendrites: [],
   synapses: []
 };
 
 // -----------------------------------------------------
-// Initialize neuron 2 geometry
+// Initialize neuron 2 geometry (STRUCTURAL ONLY)
 // -----------------------------------------------------
 function initNeuron2() {
 
   neuron2.dendrites = [];
-  neuron2.synapses = [];
+  neuron2.synapses  = [];
 
   // ---------------------------------------------------
-  // 1️⃣ Choose ONE presynaptic terminal branch
+  // 1) Choose ONE presynaptic terminal branch (stable)
   // ---------------------------------------------------
-  const presynapticBranch = neuron.axon.terminalBranches[1]; // stable index
+  const preBranch = neuron.axon.terminalBranches[1];
 
-  const target = {
-    x: presynapticBranch.end.x + SYNAPTIC_CLEFT,
-    y: presynapticBranch.end.y
+  const presynapticBouton = {
+    x: preBranch.end.x,
+    y: preBranch.end.y
   };
 
   // ---------------------------------------------------
-  // 2️⃣ Position soma downstream of synapse
+  // 2) Define postsynaptic contact point (on dendrite)
   // ---------------------------------------------------
-  neuron2.soma.x = target.x + 60;
-  neuron2.soma.y = target.y + random(-20, 20);
+  const dendriteContact = {
+    x: presynapticBouton.x + SYNAPTIC_CLEFT,
+    y: presynapticBouton.y
+  };
 
   // ---------------------------------------------------
-  // 3️⃣ Primary dendrite toward presynaptic terminal
+  // 3) Place soma FARTHER DOWNSTREAM
   // ---------------------------------------------------
-  const primary = [
+  neuron2.soma.x = dendriteContact.x + SOMA_OFFSET;
+  neuron2.soma.y = dendriteContact.y + random(-25, 25);
+
+  // ---------------------------------------------------
+  // 4) PRIMARY DENDRITE (CONNECTED TO TERMINAL)
+  // ---------------------------------------------------
+  const primaryDendrite = [
     {
       x: neuron2.soma.x,
       y: neuron2.soma.y,
       r: 4
     },
     {
-      x: lerp(neuron2.soma.x, target.x, 0.5),
-      y: lerp(neuron2.soma.y, target.y, 0.5),
+      x: lerp(neuron2.soma.x, dendriteContact.x, 0.55),
+      y: lerp(neuron2.soma.y, dendriteContact.y, 0.55),
       r: 3
     },
     {
-      x: target.x,
-      y: target.y,
+      x: dendriteContact.x,
+      y: dendriteContact.y,
       r: 2
     }
   ];
 
-  neuron2.dendrites.push(primary);
+  neuron2.dendrites.push(primaryDendrite);
 
   // ---------------------------------------------------
-  // 4️⃣ Additional dendritic branches
+  // 5) SECONDARY DENDRITES (FREE BRANCHING)
   // ---------------------------------------------------
-  const angles = [140, 200, 240];
+  const branchAngles = [150, 210, 245];
 
-  angles.forEach(a => {
+  branchAngles.forEach(a => {
     const base = polarToCartesian(a, neuron2.somaRadius + 6);
-    const mid  = polarToCartesian(a + random(-10, 10), 90);
-    const tip  = polarToCartesian(a + random(-15, 15), 140);
+    const mid  = polarToCartesian(a + random(-12, 12), 80);
+    const tip  = polarToCartesian(a + random(-18, 18), 130);
 
     neuron2.dendrites.push([
-      { x: neuron2.soma.x + base.x, y: neuron2.soma.y + base.y, r: 3 },
-      { x: neuron2.soma.x + mid.x,  y: neuron2.soma.y + mid.y,  r: 2 },
-      { x: neuron2.soma.x + tip.x,  y: neuron2.soma.y + tip.y,  r: 1.5 }
+      {
+        x: neuron2.soma.x + base.x,
+        y: neuron2.soma.y + base.y,
+        r: 3
+      },
+      {
+        x: neuron2.soma.x + mid.x,
+        y: neuron2.soma.y + mid.y,
+        r: 2
+      },
+      {
+        x: neuron2.soma.x + tip.x,
+        y: neuron2.soma.y + tip.y,
+        r: 1.5
+      }
     ]);
   });
 
   // ---------------------------------------------------
-  // 5️⃣ Postsynaptic site (visual only for now)
+  // 6) POSTSYNAPTIC DENSITY (VISUAL ONLY)
   // ---------------------------------------------------
   neuron2.synapses.push({
-    x: target.x,
-    y: target.y,
+    x: dendriteContact.x,
+    y: dendriteContact.y,
     radius: 7
   });
 }
