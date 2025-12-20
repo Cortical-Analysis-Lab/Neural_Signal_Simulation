@@ -7,13 +7,12 @@ console.log("axonSpike loaded");
 // Parameters
 // -----------------------------------------------------
 const AXON_CONDUCTION_SPEED = 0.035;
-const TERMINAL_CONDUCTION_SPEED = 0.08;
-
-// Where terminal region begins (0–1 along axon)
+const TERMINAL_CONDUCTION_SPEED = 0.06;
+const TERMINAL_GLOW_LIFETIME = 18;
 const AXON_TERMINAL_START = 0.75;
 
 // -----------------------------------------------------
-// Active axonal APs (ONE = ONE AP)
+// Active axonal APs
 // -----------------------------------------------------
 const axonSpikes = [];
 
@@ -23,19 +22,21 @@ const axonSpikes = [];
 const terminalSpikes = [];
 
 // -----------------------------------------------------
+// Bouton glow states
+// -----------------------------------------------------
+const terminalGlows = [];
+
+// -----------------------------------------------------
 // Spawn AP at axon hillock
 // -----------------------------------------------------
 function spawnAxonSpike() {
 
-  // Prevent overlap at hillock
   if (axonSpikes.length > 0) {
     const last = axonSpikes[axonSpikes.length - 1];
-    if (last.phase < 0.08) return;
+    if (last.phase < 0.1) return;
   }
 
-  axonSpikes.push({
-    phase: 0
-  });
+  axonSpikes.push({ phase: 0 });
 }
 
 // -----------------------------------------------------
@@ -46,7 +47,6 @@ function updateAxonSpikes() {
     const s = axonSpikes[i];
     s.phase += AXON_CONDUCTION_SPEED;
 
-    // Enter terminal arbor → split AP
     if (s.phase >= AXON_TERMINAL_START) {
       spawnTerminalSpikes();
       axonSpikes.splice(i, 1);
@@ -58,11 +58,10 @@ function updateAxonSpikes() {
 // Spawn AP fragments into terminal branches
 // -----------------------------------------------------
 function spawnTerminalSpikes() {
-
   neuron.axon.terminalBranches.forEach(branch => {
     terminalSpikes.push({
       branch,
-      t: 0     // progress along branch (0 → 1)
+      t: 0
     });
   });
 }
@@ -71,15 +70,29 @@ function spawnTerminalSpikes() {
 // Update terminal branch AP propagation
 // -----------------------------------------------------
 function updateTerminalDots() {
+
+  // ---- Branch APs ----
   for (let i = terminalSpikes.length - 1; i >= 0; i--) {
-    terminalSpikes[i].t += TERMINAL_CONDUCTION_SPEED;
+    const ts = terminalSpikes[i];
+    ts.t += TERMINAL_CONDUCTION_SPEED;
 
-    // Reached bouton
-    if (terminalSpikes[i].t >= 1) {
+    if (ts.t >= 1) {
+      // Trigger bouton glow
+      terminalGlows.push({
+        x: ts.branch.end.x,
+        y: ts.branch.end.y,
+        life: TERMINAL_GLOW_LIFETIME
+      });
+
       terminalSpikes.splice(i, 1);
+    }
+  }
 
-      // 🔮 FUTURE HOOK:
-      // release neurotransmitter here
+  // ---- Bouton glows ----
+  for (let i = terminalGlows.length - 1; i >= 0; i--) {
+    terminalGlows[i].life--;
+    if (terminalGlows[i].life <= 0) {
+      terminalGlows.splice(i, 1);
     }
   }
 }
@@ -92,7 +105,6 @@ function drawAxonSpikes() {
   // ---- Axon AP wavefront ----
   axonSpikes.forEach(s => {
     const p = getAxonPoint(s.phase);
-
     push();
     noStroke();
     fill(0, 255, 120);
@@ -100,13 +112,13 @@ function drawAxonSpikes() {
     pop();
   });
 
-  // ---- Terminal branch APs ----
+  // ---- Terminal branch APs (SMALLER DOTS) ----
   terminalSpikes.forEach(ts => {
     const b = ts.branch;
 
-    // Quadratic Bézier along branch
     const x = bezierPoint(
       b.start.x,
+      b.ctrl.x,
       b.ctrl.x,
       b.end.x,
       ts.t
@@ -115,6 +127,7 @@ function drawAxonSpikes() {
     const y = bezierPoint(
       b.start.y,
       b.ctrl.y,
+      b.ctrl.y,
       b.end.y,
       ts.t
     );
@@ -122,7 +135,17 @@ function drawAxonSpikes() {
     push();
     noStroke();
     fill(0, 255, 120);
-    ellipse(x, y, 6, 6);
+    ellipse(x, y, 5, 5);
+    pop();
+  });
+
+  // ---- Bouton glow ----
+  terminalGlows.forEach(g => {
+    const a = map(g.life, 0, TERMINAL_GLOW_LIFETIME, 40, 160);
+    push();
+    noStroke();
+    fill(120, 255, 180, a);
+    ellipse(g.x, g.y, 10, 10);
     pop();
   });
 }
