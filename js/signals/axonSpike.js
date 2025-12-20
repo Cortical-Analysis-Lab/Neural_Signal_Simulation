@@ -62,11 +62,22 @@ function spawnTerminalDepolarizations() {
   if (!neuron?.axon?.terminalBranches) return;
 
   neuron.axon.terminalBranches.forEach(branch => {
+  
+    const bouton = {
+      x: branch.end.x,
+      y: branch.end.y
+    };
+  
     terminalDots.push({
       branch: branch,
-      t: -0.15,                  // 👈 start BEFORE branch
+      t: -0.15,
       life: TERMINAL_LIFETIME
     });
+  
+    // 🔥 NEW: trigger synaptic release
+    triggerSynapticRelease(bouton);
+  });
+
   });
 }
 
