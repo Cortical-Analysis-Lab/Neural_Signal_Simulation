@@ -215,34 +215,80 @@ function drawNeuron1() {
 // =====================================================
 // NEURON 2 (POSTSYNAPTIC — VISUAL ONLY)
 // =====================================================
+// =====================================================
+// NEURON 2 (POSTSYNAPTIC — 3D VISUAL ONLY)
+// =====================================================
 function drawNeuron2() {
 
+  // ---------------------
+  // DENDRITES (MATCH NEURON 1 STYLE)
+  // ---------------------
   neuron2.dendrites.forEach(branch => {
     for (let i = 0; i < branch.length - 1; i++) {
-      stroke(180);
-      strokeWeight(branch[i].r * 1.4);
+      const p1 = branch[i];
+      const p2 = branch[i + 1];
+
+      // Base
+      stroke(200, 185, 120);
+      strokeWeight(p1.r * 1.6);
+      line(p1.x, p1.y, p2.x, p2.y);
+
+      // Highlight
+      stroke(255, 245, 190);
+      strokeWeight(p1.r * 0.8);
       line(
-        branch[i].x,
-        branch[i].y,
-        branch[i + 1].x,
-        branch[i + 1].y
+        p1.x + LIGHT_DIR.x,
+        p1.y + LIGHT_DIR.y,
+        p2.x + LIGHT_DIR.x,
+        p2.y + LIGHT_DIR.y
       );
     }
   });
 
+  // ---------------------
+  // SOMA (3D SHADING)
+  // ---------------------
+  push();
   noStroke();
-  fill(180);
+
+  // Shadow
+  fill(180, 155, 90);
+  ellipse(
+    neuron2.soma.x + 2,
+    neuron2.soma.y + 3,
+    neuron2.somaRadius * 2.1
+  );
+
+  // Body
+  fill(220, 205, 140);
   ellipse(
     neuron2.soma.x,
     neuron2.soma.y,
     neuron2.somaRadius * 2
   );
 
+  // Highlight
+  fill(255, 255, 230, 120);
+  ellipse(
+    neuron2.soma.x + neuron2.somaRadius * LIGHT_DIR.x * 0.6,
+    neuron2.soma.y + neuron2.somaRadius * LIGHT_DIR.y * 0.6,
+    neuron2.somaRadius * 1.2
+  );
+
+  pop();
+
+  // ---------------------
+  // POSTSYNAPTIC DENSITY (PSD)
+  // ---------------------
   neuron2.synapses.forEach(s => {
-    fill(120, 220, 140);
+    push();
+    noStroke();
+    fill(90, 180, 120);
     ellipse(s.x, s.y, s.radius * 2);
+    pop();
   });
 }
+
 
 // =====================================================
 // SYNAPSE SIZE CONTROLS
