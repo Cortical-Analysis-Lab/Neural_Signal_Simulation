@@ -1,8 +1,7 @@
-console.log("overview view loaded");
-
 // =====================================================
 // OVERVIEW VIEW — BIOLOGICAL, CLEAN, POLARIZED (3D)
 // =====================================================
+console.log("overview view loaded");
 
 const LIGHT_DIR = { x: -0.6, y: -0.8 };
 
@@ -26,16 +25,18 @@ function drawOverview(state) {
 // =====================================================
 function drawNeuron1() {
 
-  // ---------------- DENDRITES ----------------
+  // ---------------- DENDRITES (CYLINDRICAL) ----------------
   neuron.dendrites.forEach(branch => {
     for (let i = 0; i < branch.length - 1; i++) {
       const p1 = branch[i];
       const p2 = branch[i + 1];
 
+      // Body
       stroke(200, 185, 120);
       strokeWeight(p1.r * 1.8);
       line(p1.x, p1.y, p2.x, p2.y);
 
+      // Highlight
       stroke(255, 245, 190);
       strokeWeight(p1.r * 0.9);
       line(
@@ -47,7 +48,7 @@ function drawNeuron1() {
     }
   });
 
-  // ---------------- SOMA ----------------
+  // ---------------- SOMA (SPHERICAL) ----------------
   push();
 
   const depol = constrain(
@@ -62,19 +63,27 @@ function drawNeuron1() {
   );
 
   noStroke();
+
+  // Shadow
   fill(190, 165, 90);
   ellipse(2, 3, neuron.somaRadius * 2.2);
 
+  // Body
   fill(body);
   ellipse(0, 0, neuron.somaRadius * 2.05);
 
+  // Highlight (clipped)
+  push();
+  clip(() => ellipse(0, 0, neuron.somaRadius * 2.05));
   fill(255, 255, 230, 120);
   ellipse(
     neuron.somaRadius * -0.3,
     neuron.somaRadius * -0.4,
     neuron.somaRadius * 1.2
   );
+  pop();
 
+  // Vm label
   fill(60);
   textAlign(CENTER, CENTER);
   textSize(14);
@@ -96,24 +105,27 @@ function drawNeuron1() {
   );
   endShape();
 
-  // ---------------- TERMINALS ----------------
+  // ---------------- AXON TERMINALS ----------------
   neuron.axon.terminalBranches.forEach(b => {
-    strokeWeight(3);
+
     stroke(210, 195, 130);
+    strokeWeight(3);
+    noFill();
 
     bezier(
       b.start.x, b.start.y,
-      b.ctrl.x, b.ctrl.y,
-      b.ctrl.x, b.ctrl.y,
-      b.end.x, b.end.y
+      b.ctrl.x,  b.ctrl.y,
+      b.ctrl.x,  b.ctrl.y,
+      b.end.x,   b.end.y
     );
 
+    // Structural bouton (quiet)
     noStroke();
     fill(90, 140, 110);
     ellipse(b.end.x, b.end.y, b.boutonRadius * 2);
   });
 
-  // ---------------- SYNAPTIC INPUTS ----------------
+  // ---------------- DENDRITIC SYNAPTIC INPUTS ----------------
   neuron.synapses.forEach(s => {
     const base = s.type === "exc"
       ? color(120, 220, 140)
@@ -135,42 +147,87 @@ function drawNeuron1() {
 }
 
 // =====================================================
-// NEURON 2 (POSTSYNAPTIC)
+// NEURON 2 (POSTSYNAPTIC — MATCHED 3D STYLE)
 // =====================================================
 function drawNeuron2() {
 
+  // ---------------- DENDRITES (CONTINUOUS CYLINDERS) ----------------
   neuron2.dendrites.forEach(branch => {
     for (let i = 0; i < branch.length - 1; i++) {
+      const p1 = branch[i];
+      const p2 = branch[i + 1];
+
+      // Body
       stroke(200, 185, 120);
-      strokeWeight(branch[i].r * 1.6);
+      strokeWeight(p1.r * 1.8);
+      line(p1.x, p1.y, p2.x, p2.y);
+
+      // Highlight
+      stroke(255, 245, 190);
+      strokeWeight(p1.r * 0.9);
       line(
-        branch[i].x,
-        branch[i].y,
-        branch[i + 1].x,
-        branch[i + 1].y
+        p1.x + LIGHT_DIR.x,
+        p1.y + LIGHT_DIR.y,
+        p2.x + LIGHT_DIR.x,
+        p2.y + LIGHT_DIR.y
       );
     }
   });
 
+  // ---------------- SOMA (SPHERICAL, MATCHED) ----------------
+  push();
   noStroke();
-  fill(225, 210, 140);
+
+  // Shadow
+  fill(190, 165, 90);
+  ellipse(
+    neuron2.soma.x + 2,
+    neuron2.soma.y + 3,
+    neuron2.somaRadius * 2.2
+  );
+
+  // Body
+  fill(240, 220, 150);
   ellipse(
     neuron2.soma.x,
     neuron2.soma.y,
-    neuron2.somaRadius * 2
+    neuron2.somaRadius * 2.05
   );
 
+  // Highlight (clipped)
+  push();
+  clip(() =>
+    ellipse(
+      neuron2.soma.x,
+      neuron2.soma.y,
+      neuron2.somaRadius * 2.05
+    )
+  );
+
+  fill(255, 255, 230, 120);
+  ellipse(
+    neuron2.soma.x + neuron2.somaRadius * -0.3,
+    neuron2.soma.y + neuron2.somaRadius * -0.4,
+    neuron2.somaRadius * 1.2
+  );
+  pop();
+
+  pop();
+
+  // ---------------- POSTSYNAPTIC DENSITY ----------------
   neuron2.synapses.forEach(s => {
+    noStroke();
     fill(120, 220, 140);
     ellipse(s.x, s.y, s.radius * 2);
   });
 }
 
 // =====================================================
-// SYNAPSE CONTROLS
+// SYNAPSE SIZE CONTROLS
 // =====================================================
 function drawSynapseControls(s) {
   noStroke();
+
   fill(80, 200, 120);
   ellipse(s.x, s.y - s.radius - 18, 18, 18);
   fill(0);
