@@ -62,16 +62,11 @@ function setup() {
 
   setMode("overview");
 
-  const pauseBtn = document.getElementById("pauseBtn");
-  if (pauseBtn) pauseBtn.onclick = togglePause;
-
-  initUIPanels();
-}
-
   // Pause button
   const pauseBtn = document.getElementById("pauseBtn");
   if (pauseBtn) pauseBtn.onclick = togglePause;
 
+  // UI panels
   initUIPanels();
 }
 
@@ -100,7 +95,7 @@ function draw() {
 
   if (!state.paused) {
 
-    // ---- CORE UPDATES (safe hooks) ----
+    // ---- CORE UPDATES ----
     if (typeof updateAxonSpikes === "function") updateAxonSpikes();
     if (typeof updateTerminalDots === "function") updateTerminalDots();
     if (typeof updateEPSPs === "function") updateEPSPs();
