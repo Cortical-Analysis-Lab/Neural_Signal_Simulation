@@ -54,8 +54,19 @@ function setup() {
   canvas.parent(document.body);
   frameRate(60);
 
-  initSynapses();       // neuron 1 geometry + boutons
+  // 1️⃣ Build neuron 1 first
+  initSynapses();
+
+  // 2️⃣ THEN build neuron 2 (depends on axon terminals)
+  initNeuron2();
+
   setMode("overview");
+
+  const pauseBtn = document.getElementById("pauseBtn");
+  if (pauseBtn) pauseBtn.onclick = togglePause;
+
+  initUIPanels();
+}
 
   // Pause button
   const pauseBtn = document.getElementById("pauseBtn");
