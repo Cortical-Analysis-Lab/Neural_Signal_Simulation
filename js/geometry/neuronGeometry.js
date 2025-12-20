@@ -52,9 +52,11 @@ function getAxonEndPoint() {
 // -----------------------------------------------------
 function buildPathToSoma(branch) {
   const path = [];
+
   for (let i = branch.length - 1; i >= 0; i--) {
     path.push({ x: branch[i].x, y: branch[i].y });
   }
+
   path.push({ x: 0, y: 0 });
   return path;
 }
@@ -72,6 +74,9 @@ function initSynapses() {
 
   primaryAngles.forEach(angle => {
 
+    // -----------------------------
+    // Primary dendrite
+    // -----------------------------
     const base   = polarToCartesian(angle, neuron.somaRadius + 6);
     const mid    = polarToCartesian(angle + random(-12, 12), 110);
     const distal = polarToCartesian(angle + random(-18, 18), 190);
@@ -84,6 +89,9 @@ function initSynapses() {
 
     neuron.dendrites.push(primaryBranch);
 
+    // -----------------------------
+    // Synapse at distal end
+    // -----------------------------
     const branchEnd = primaryBranch[primaryBranch.length - 1];
 
     neuron.synapses.push({
@@ -117,8 +125,13 @@ function assignSynapseTypes() {
     [indices[i], indices[j]] = [indices[j], indices[i]];
   }
 
-  for (let i = 0; i < inhCount; i++) syns[indices[i]].type = "inh";
-  for (let i = inhCount; i < indices.length; i++) syns[indices[i]].type = "exc";
+  for (let i = 0; i < inhCount; i++) {
+    syns[indices[i]].type = "inh";
+  }
+
+  for (let i = inhCount; i < indices.length; i++) {
+    syns[indices[i]].type = "exc";
+  }
 }
 
 // -----------------------------------------------------
@@ -129,12 +142,14 @@ function initAxonTerminalBranches() {
   const base = getAxonEndPoint();
 
   neuron.axon.terminalBranches = [
-    createTerminalBranch(base, 40, -22),
-    createTerminalBranch(base, 48, 4),
-    createTerminalBranch(base, 36, 24)
+    createTerminalBranch(base, 42, -24),
+    createTerminalBranch(base, 52,  0),
+    createTerminalBranch(base, 42,  26)
   ];
 }
 
+// -----------------------------------------------------
+// Individual terminal branch generator
 // -----------------------------------------------------
 function createTerminalBranch(base, dx, dy) {
 
