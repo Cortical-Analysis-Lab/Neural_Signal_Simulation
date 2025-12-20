@@ -169,3 +169,28 @@ function createTerminalBranch(base, dx, dy) {
     boutonRadius: 6
   };
 }
+
+// =====================================================
+// GLOBAL AXON GEOMETRY HELPER (USED BY SIGNALS)
+// =====================================================
+function getAxonPoint(t) {
+  const x0 = neuron.somaRadius + 10;
+
+  return {
+    x: bezierPoint(
+      x0,
+      neuron.somaRadius + 70,
+      neuron.somaRadius + 120,
+      neuron.somaRadius + neuron.axon.length,
+      t
+    ),
+    y: bezierPoint(
+      0,
+      14,
+      -14,
+      0,
+      t
+    )
+  };
+}
+
