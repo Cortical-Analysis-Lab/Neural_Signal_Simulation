@@ -2,22 +2,42 @@
 // OVERVIEW VIEW — BIOLOGICAL, CLEAN, POLARIZED (3D)
 // =====================================================
 
+console.log("overview view loaded");
+
 const LIGHT_DIR = { x: -0.6, y: -0.8 };
 
+// =====================================================
+// MAIN OVERVIEW LOOP
+// =====================================================
 function drawOverview(state) {
+
   drawNeuron1();
   drawNeuron2();
 
+  // ---- Interaction & signals ----
   updateSynapseHover();
   updateEPSPs();
   updateSoma();
 
-  updateAxonSpikes();
-  updateTerminalDots();
-  updateSynapticCoupling();
+  if (typeof updateAxonSpikes === "function") {
+    updateAxonSpikes();
+  }
 
+  if (typeof updateTerminalDots === "function") {
+    updateTerminalDots();
+  }
+
+  // Safe coupling hook (exists check prevents crashes)
+  if (typeof updateSynapticCoupling === "function") {
+    updateSynapticCoupling();
+  }
+
+  // ---- Drawing ----
   drawEPSPs();
-  drawAxonSpikes();
+
+  if (typeof drawAxonSpikes === "function") {
+    drawAxonSpikes();
+  }
 }
 
 // =====================================================
@@ -33,12 +53,12 @@ function drawNeuron1() {
       const p1 = branch[i];
       const p2 = branch[i + 1];
 
-      // Base
+      // Base cylinder
       stroke(200, 185, 120);
       strokeWeight(p1.r * 1.8);
       line(p1.x, p1.y, p2.x, p2.y);
 
-      // Highlight
+      // Highlight ridge
       stroke(255, 245, 190);
       strokeWeight(p1.r * 0.9);
       line(
@@ -72,11 +92,11 @@ function drawNeuron1() {
   fill(190, 165, 90);
   ellipse(2, 3, neuron.somaRadius * 2.2);
 
-  // Body
+  // Main body
   fill(body);
   ellipse(0, 0, neuron.somaRadius * 2.05);
 
-  // Highlight (clipped inside soma)
+  // Highlight (clipped)
   push();
   clip(() => {
     ellipse(0, 0, neuron.somaRadius * 2.05);
@@ -114,6 +134,7 @@ function drawNeuron1() {
   );
   endShape();
 
+  // Highlight ridge
   stroke(255, 245, 190);
   strokeWeight(2);
   beginShape();
@@ -142,7 +163,7 @@ function drawNeuron1() {
       b.end.x,   b.end.y
     );
 
-    // Structural bouton (always present, muted)
+    // Structural bouton (always present)
     push();
     noStroke();
     fill(90, 140, 110);
@@ -192,7 +213,7 @@ function drawNeuron1() {
 }
 
 // =====================================================
-// NEURON 2 (VISUAL ONLY — NO SIGNAL YET)
+// NEURON 2 (POSTSYNAPTIC — VISUAL ONLY)
 // =====================================================
 function drawNeuron2() {
 
