@@ -34,13 +34,13 @@ function setMode(mode) {
   if (mode === "overview") {
     camera.targetX = 0;
     camera.targetY = 0;
-    camera.targetZoom = 1.2;   // zoomed out, centered neuron
+    camera.targetZoom = 1.2;
   }
 
   if (mode === "ion" || mode === "synapse") {
     camera.targetX = 0;
     camera.targetY = 0;
-    camera.targetZoom = 2.5;   // zoomed-in inspection
+    camera.targetZoom = 2.5;
   }
 }
 
@@ -54,14 +54,13 @@ function setup() {
   canvas.parent(document.body);
   frameRate(60);
 
-  initSynapses();
+  initSynapses();       // neuron 1 geometry + boutons
   setMode("overview");
 
   // Pause button
   const pauseBtn = document.getElementById("pauseBtn");
   if (pauseBtn) pauseBtn.onclick = togglePause;
 
-  // UI panels
   initUIPanels();
 }
 
@@ -88,6 +87,20 @@ function draw() {
   scale(camera.zoom);
   translate(-camera.x, -camera.y);
 
+  if (!state.paused) {
+
+    // ---- CORE UPDATES (safe hooks) ----
+    if (typeof updateAxonSpikes === "function") updateAxonSpikes();
+    if (typeof updateTerminalDots === "function") updateTerminalDots();
+    if (typeof updateEPSPs === "function") updateEPSPs();
+    if (typeof updateSoma === "function") updateSoma();
+
+    // ---- NEURON 2 (future-safe hooks) ----
+    if (typeof updateNeuron2EPSPs === "function") updateNeuron2EPSPs();
+    if (typeof updateNeuron2Soma === "function") updateNeuron2Soma();
+  }
+
+  // ---- RENDER ----
   switch (state.mode) {
     case "overview":
       drawOverview(state);
@@ -134,7 +147,6 @@ function togglePause() {
 // =====================================================
 function initUIPanels() {
 
-  // Instructions (left)
   const instructions = document.getElementById("instructions");
   if (instructions) {
     instructions.classList.add("panel", "left", "open");
@@ -142,16 +154,11 @@ function initUIPanels() {
     const btn = document.createElement("button");
     btn.className = "panel-toggle";
     btn.innerText = "☰";
-    btn.title = "Toggle Instructions";
-
-    btn.onclick = () => {
-      instructions.classList.toggle("open");
-    };
+    btn.onclick = () => instructions.classList.toggle("open");
 
     instructions.appendChild(btn);
   }
 
-  // Observations (bottom)
   const observations = document.getElementById("observations");
   if (observations) {
     observations.classList.add("panel", "bottom", "open");
@@ -159,11 +166,7 @@ function initUIPanels() {
     const btn = document.createElement("button");
     btn.className = "panel-toggle";
     btn.innerText = "▲";
-    btn.title = "Toggle Observations";
-
-    btn.onclick = () => {
-      observations.classList.toggle("open");
-    };
+    btn.onclick = () => observations.classList.toggle("open");
 
     observations.appendChild(btn);
   }
