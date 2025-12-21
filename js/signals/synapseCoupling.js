@@ -54,20 +54,27 @@ function updateSynapticCoupling() {
     const e = pendingReleases[i];
     e.timer--;
 
-    if (e.timer <= 0) {
+    // ---- Vesicle release ----
+    if (e.timer <= 0 && e.phase === "release") {
 
-      // 🫧 Neurotransmitter vesicle burst (visual only)
       if (typeof spawnVesicleBurst === "function") {
         spawnVesicleBurst(e.bouton, e.synapse);
       }
 
-      // ⚡ Postsynaptic electrical response (NEURON 2 ONLY)
-      spawnPostsynapticPSP(e.synapse);
+      // Move to diffusion → receptor phase
+      e.phase = "psp";
+      e.timer = CLEFT_DIFFUSION_DELAY;
+    }
 
+    // ---- Postsynaptic receptor activation ----
+    else if (e.timer <= 0 && e.phase === "psp") {
+
+      spawnPostsynapticPSP(e.synapse);
       pendingReleases.splice(i, 1);
     }
   }
 }
+
 
 // -----------------------------------------------------
 // Spawn EPSP on neuron 2 dendrite → soma ONLY
