@@ -6,7 +6,7 @@ const COLORS = {
   // Electrical signals
   epsp:      [80, 150, 255],
   ipsp:      [220, 120, 120],
-  ap:        [60, 220, 120],
+  ap:        [80, 150, 255],
 
   // Synaptic structure
   terminalBouton: [120, 220, 140],  // presynaptic
