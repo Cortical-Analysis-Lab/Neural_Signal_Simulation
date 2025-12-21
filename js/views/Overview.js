@@ -32,29 +32,50 @@ function drawOverview(state) {
 // =====================================================
 function drawOrganicBranch(branch, baseColor) {
 
-  // ---- MAIN BODY (smooth taper) ----
+  if (!branch || branch.length < 2) return;
+
+  // ---- MAIN BODY ----
   noFill();
   stroke(baseColor);
 
   beginShape();
+
+  // 🔑 REQUIRED: duplicate first point
+  curveVertex(branch[0].x, branch[0].y);
+
   branch.forEach((p, i) => {
     const t = i / (branch.length - 1);
-    strokeWeight(lerp(p.r * 2.4, p.r * 0.9, t));
+    strokeWeight(lerp(p.r * 2.6, p.r * 1.0, t));
     curveVertex(p.x, p.y);
   });
+
+  // 🔑 REQUIRED: duplicate last point
+  const last = branch[branch.length - 1];
+  curveVertex(last.x, last.y);
+
   endShape();
 
-  // ---- LIGHTING HIGHLIGHT ----
-  stroke(255, 245, 190, 150);
+  // ---- HIGHLIGHT ----
+  stroke(255, 245, 190, 140);
   beginShape();
-  branch.forEach((p, i) => {
-    const t = i / (branch.length - 1);
-    strokeWeight(lerp(p.r * 1.2, p.r * 0.4, t));
+
+  curveVertex(
+    branch[0].x + LIGHT_DIR.x,
+    branch[0].y + LIGHT_DIR.y
+  );
+
+  branch.forEach(p => {
     curveVertex(
       p.x + LIGHT_DIR.x,
       p.y + LIGHT_DIR.y
     );
   });
+
+  curveVertex(
+    last.x + LIGHT_DIR.x,
+    last.y + LIGHT_DIR.y
+  );
+
   endShape();
 }
 
