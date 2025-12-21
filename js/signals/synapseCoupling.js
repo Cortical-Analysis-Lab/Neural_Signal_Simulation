@@ -6,8 +6,8 @@ console.log("synapseCoupling loaded");
 // -----------------------------------------------------
 // Parameters
 // -----------------------------------------------------
-const SYNAPTIC_DELAY = 20;     // frames (~150 ms visual)
-const RELEASE_PROB   = 0.9;    // probability of vesicle release
+const SYNAPTIC_DELAY = 20;   // frames (visual chemical delay)
+const RELEASE_PROB   = 0.9;  // probability of vesicle release
 
 // -----------------------------------------------------
 // Pending delayed synaptic events
@@ -15,14 +15,16 @@ const RELEASE_PROB   = 0.9;    // probability of vesicle release
 const pendingReleases = [];
 
 // -----------------------------------------------------
-// Called by axonSpike.js when terminal AP reaches bouton
+// Called by axonSpike.js when AP reaches bouton
 // -----------------------------------------------------
 function triggerSynapticRelease(bouton) {
+
+  if (!bouton) return;
 
   // Probabilistic release
   if (random() > RELEASE_PROB) return;
 
-  // Find nearest postsynaptic contact
+  // Find nearest postsynaptic density
   let target = null;
   let minDist = Infinity;
 
@@ -47,12 +49,21 @@ function triggerSynapticRelease(bouton) {
 // Update delayed chemical transmission
 // -----------------------------------------------------
 function updateSynapticCoupling() {
+
   for (let i = pendingReleases.length - 1; i >= 0; i--) {
     const e = pendingReleases[i];
     e.timer--;
 
     if (e.timer <= 0) {
+
+      // 🫧 Neurotransmitter vesicle burst
+      if (typeof spawnVesicleBurst === "function") {
+        spawnVesicleBurst(e.bouton, e.synapse);
+      }
+
+      // ⚡ Postsynaptic electrical response
       spawnPostsynapticPSP(e.synapse);
+
       pendingReleases.splice(i, 1);
     }
   }
@@ -63,16 +74,26 @@ function updateSynapticCoupling() {
 // -----------------------------------------------------
 function spawnPostsynapticPSP(synapse) {
 
-  // Build dendrite → soma path
-  const path = [
-    { x: synapse.x, y: synapse.y },            // dendritic spine
-    { x: neuron2.soma.x, y: neuron2.soma.y }   // soma
-  ];
+  // Find dendritic branch closest to synapse
+  let bestBranch = neuron2.dendrites[0];
+  let minDist = Infinity;
+
+  neuron2.dendrites.forEach(branch => {
+    branch.forEach(p => {
+      const d = dist(p.x, p.y, synapse.x, synapse.y);
+      if (d < minDist) {
+        minDist = d;
+        bestBranch = branch;
+      }
+    });
+  });
+
+  // Dendrite → soma propagation
+  const path = [...bestBranch].reverse();
 
   spawnEPSP({
     id: "n2_psp_" + frameCount,
     type: "exc",
-
     radius: 14,
     path
   });
