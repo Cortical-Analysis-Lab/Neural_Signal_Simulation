@@ -7,7 +7,7 @@ console.log("neuron2 geometry loaded");
 // Tunable biological parameters
 // -----------------------------------------------------
 const SYNAPTIC_CLEFT = 30;   // visible synaptic gap (px)
-const SOMA_OFFSET    = 110;  // distance from synapse to soma
+const SOMA_OFFSET    = 140;  // distance from synapse to soma
 
 // -----------------------------------------------------
 const neuron2 = {
@@ -54,25 +54,29 @@ function initNeuron2() {
   // 4) PRIMARY DENDRITE (CONNECTED TO AXON TERMINAL)
   //    Built distal → proximal for smooth rendering
   // ---------------------------------------------------
+  // ---------------------------------------------------
+// 4) PRIMARY DENDRITE (STOPS BEFORE CLEF T)
+// ---------------------------------------------------
   const primaryDendrite = [
-    {
-      x: dendriteContact.x,
-      y: dendriteContact.y,
-      r: 2.2
-    },
-    {
-      x: lerp(dendriteContact.x, neuron2.soma.x, 0.45),
-      y: lerp(dendriteContact.y, neuron2.soma.y, 0.45),
-      r: 3.2
-    },
     {
       x: neuron2.soma.x,
       y: neuron2.soma.y,
-      r: 4.4
+      r: 4
+    },
+    {
+      x: lerp(neuron2.soma.x, dendriteContact.x, 0.6),
+      y: lerp(neuron2.soma.y, dendriteContact.y, 0.6),
+      r: 3
+    },
+    {
+      x: dendriteContact.x,
+      y: dendriteContact.y,
+      r: 2
     }
   ];
-
+  
   neuron2.dendrites.push(primaryDendrite);
+
 
   // ---------------------------------------------------
   // 5) SECONDARY DENDRITES (FREE BRANCHING)
