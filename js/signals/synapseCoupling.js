@@ -6,7 +6,7 @@ console.log("synapseCoupling loaded");
 // -----------------------------------------------------
 // Parameters
 // -----------------------------------------------------
-const SYNAPTIC_DELAY = 40;   // frames (visual chemical delay)
+const SYNAPTIC_DELAY = 15;   // frames (visual chemical delay)
 const RELEASE_PROB   = 0.9;  // probability of vesicle release
 
 // -----------------------------------------------------
