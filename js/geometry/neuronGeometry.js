@@ -34,28 +34,28 @@ function createDendriticTree(baseAngle) {
 
   const branches = [];
 
-  // === TRUNK ===
-  const trunkAngle = baseAngle + random(-6, 6);
+  // === TRUNK (SHORT + THICK) ===
+  const trunkAngle = baseAngle + random(-5, 5);
 
   const trunkBase = polarToCartesian(
     trunkAngle,
-    neuron.somaRadius + 6   // 🔑 START OUTSIDE SOMA
+    neuron.somaRadius + 2   // START AT SOMA SURFACE
   );
 
   const trunkMid = polarToCartesian(
-    trunkAngle + random(-4, 4),
-    neuron.somaRadius + random(55, 70)
+    trunkAngle + random(-3, 3),
+    neuron.somaRadius + random(35, 45)
   );
 
   const trunkEnd = polarToCartesian(
     trunkAngle + random(-6, 6),
-    neuron.somaRadius + random(90, 110)
+    neuron.somaRadius + random(45, 55)
   );
 
   const trunk = [
-    { x: trunkBase.x, y: trunkBase.y, r: 8.0 },
-    { x: trunkMid.x,  y: trunkMid.y,  r: 6.2 },
-    { x: trunkEnd.x,  y: trunkEnd.y,  r: 5.0 }
+    { x: trunkBase.x, y: trunkBase.y, r: 8.5 },
+    { x: trunkMid.x,  y: trunkMid.y,  r: 6.8 },
+    { x: trunkEnd.x,  y: trunkEnd.y,  r: 5.6 }
   ];
 
   // === SECONDARY BRANCHES ===
@@ -63,23 +63,22 @@ function createDendriticTree(baseAngle) {
 
   for (let i = 0; i < branchCount; i++) {
 
-    const branchAngle =
-      trunkAngle + random(-40, 40);
+    const branchAngle = trunkAngle + random(-40, 40);
 
     const branchMid = {
-      x: trunkEnd.x + cos(radians(branchAngle)) * random(35, 45),
-      y: trunkEnd.y + sin(radians(branchAngle)) * random(35, 45)
+      x: trunkEnd.x + cos(radians(branchAngle)) * random(30, 40),
+      y: trunkEnd.y + sin(radians(branchAngle)) * random(30, 40)
     };
 
     const branchEnd = {
-      x: branchMid.x + cos(radians(branchAngle)) * random(35, 50),
-      y: branchMid.y + sin(radians(branchAngle)) * random(35, 50)
+      x: branchMid.x + cos(radians(branchAngle)) * random(30, 45),
+      y: branchMid.y + sin(radians(branchAngle)) * random(30, 45)
     };
 
     const branch = [
       trunk[2],
-      { x: branchMid.x, y: branchMid.y, r: 3.8 },
-      { x: branchEnd.x, y: branchEnd.y, r: 3.0 }
+      { x: branchMid.x, y: branchMid.y, r: 4.2 },
+      { x: branchEnd.x, y: branchEnd.y, r: 3.4 }
     ];
 
     // === TERMINAL TWIGS ===
@@ -87,17 +86,16 @@ function createDendriticTree(baseAngle) {
 
     for (let j = 0; j < twigCount; j++) {
 
-      const twigAngle =
-        branchAngle + random(-25, 25);
+      const twigAngle = branchAngle + random(-25, 25);
 
       const twigEnd = {
-        x: branchEnd.x + cos(radians(twigAngle)) * random(25, 40),
-        y: branchEnd.y + sin(radians(twigAngle)) * random(25, 40)
+        x: branchEnd.x + cos(radians(twigAngle)) * random(22, 34),
+        y: branchEnd.y + sin(radians(twigAngle)) * random(22, 34)
       };
 
       branches.push([
         ...branch,
-        { x: twigEnd.x, y: twigEnd.y, r: 2.0 }
+        { x: twigEnd.x, y: twigEnd.y, r: 2.2 }
       ]);
     }
   }
@@ -128,8 +126,8 @@ function initSynapses() {
 
   let synapseId = 0;
 
-  // 🔥 THREE REAL DENDRITIC TRUNKS
-  const trunkAngles = [150, 225, 300];
+  // 🔥 THREE PRIMARY DENDRITIC TRUNKS
+  const trunkAngles = [145, 225, 305];
 
   trunkAngles.forEach(angle => {
 
