@@ -1,14 +1,14 @@
 // =====================================================
-// SYNAPTIC VESICLE BURST (VISUAL ONLY)
+// SYNAPTIC VESICLE BURST (PRESYNAPTIC)
 // =====================================================
-console.log("vesicleBurst loaded");
+console.log("🫧 vesicleBurst loaded");
 
 // -----------------------------------------------------
 // Parameters
 // -----------------------------------------------------
-const VESICLE_COUNT = 18;
-const VESICLE_LIFETIME = 22;
-const VESICLE_SPREAD = 10;
+const VESICLE_LIFETIME = 40;
+const VESICLE_SPEED = 0.6;
+const VESICLE_SPREAD = 6;
 
 // -----------------------------------------------------
 // Active vesicles
@@ -16,23 +16,17 @@ const VESICLE_SPREAD = 10;
 const vesicles = [];
 
 // -----------------------------------------------------
-// Spawn vesicle burst in synaptic cleft
+// Spawn vesicles at presynaptic bouton
 // -----------------------------------------------------
-function spawnVesicleBurst(bouton, postsynapticPoint) {
+function spawnVesicleBurst(x, y) {
+  const count = floor(random(8, 14));
 
-  for (let i = 0; i < VESICLE_COUNT; i++) {
-
-    const t = random();
-    const x = lerp(bouton.x, postsynapticPoint.x, t)
-              + random(-VESICLE_SPREAD, VESICLE_SPREAD);
-    const y = lerp(bouton.y, postsynapticPoint.y, t)
-              + random(-VESICLE_SPREAD, VESICLE_SPREAD);
-
+  for (let i = 0; i < count; i++) {
     vesicles.push({
       x,
       y,
-      vx: random(-0.2, 0.4),
-      vy: random(-0.4, 0.4),
+      vx: random(-1, 1) * VESICLE_SPEED,
+      vy: random(-0.4, 0.4) * VESICLE_SPEED,
       life: VESICLE_LIFETIME
     });
   }
@@ -49,6 +43,10 @@ function updateVesicles() {
     v.y += v.vy;
     v.life--;
 
+    // Gentle diffusion damping
+    v.vx *= 0.96;
+    v.vy *= 0.96;
+
     if (v.life <= 0) {
       vesicles.splice(i, 1);
     }
@@ -56,16 +54,15 @@ function updateVesicles() {
 }
 
 // -----------------------------------------------------
-// Draw vesicles (soft glowing dots)
+// Draw vesicles (synaptic cleft only)
 // -----------------------------------------------------
 function drawVesicles() {
   vesicles.forEach(v => {
-    const a = map(v.life, 0, VESICLE_LIFETIME, 40, 180);
+    const alpha = map(v.life, 0, VESICLE_LIFETIME, 40, 180);
 
     push();
     noStroke();
-    const [r, g, b, a] = getColor("vesicle", alpha);
-    fill(r, g, b, a);
+    fill(getColor("vesicle", alpha));
     ellipse(v.x, v.y, 4, 4);
     pop();
   });
