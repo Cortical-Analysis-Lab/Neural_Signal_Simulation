@@ -12,7 +12,7 @@ const TERMINAL_GLOW_LIFETIME    = 18;
 const AXON_TERMINAL_START       = 0.75;
 
 // -----------------------------------------------------
-// Active axonal APs (one object = one AP)
+// Active axonal APs
 // -----------------------------------------------------
 const axonSpikes = [];
 
@@ -22,7 +22,7 @@ const axonSpikes = [];
 const terminalSpikes = [];
 
 // -----------------------------------------------------
-// Bouton depolarization glows
+// Bouton depolarization glows (visual only)
 // -----------------------------------------------------
 const terminalGlows = [];
 
@@ -44,6 +44,7 @@ function spawnAxonSpike() {
 // Update axon AP propagation
 // -----------------------------------------------------
 function updateAxonSpikes() {
+
   for (let i = axonSpikes.length - 1; i >= 0; i--) {
     const s = axonSpikes[i];
     s.phase += AXON_CONDUCTION_SPEED;
@@ -60,6 +61,7 @@ function updateAxonSpikes() {
 // Spawn AP fragments into terminal branches
 // -----------------------------------------------------
 function spawnTerminalSpikes() {
+
   neuron.axon.terminalBranches.forEach(branch => {
     terminalSpikes.push({
       branch,
@@ -69,11 +71,10 @@ function spawnTerminalSpikes() {
 }
 
 // -----------------------------------------------------
-// Update terminal branch APs + bouton effects
+// Update terminal branch APs
 // -----------------------------------------------------
 function updateTerminalDots() {
 
-  // ---- Terminal branch propagation ----
   for (let i = terminalSpikes.length - 1; i >= 0; i--) {
     const ts = terminalSpikes[i];
     ts.t += TERMINAL_CONDUCTION_SPEED;
@@ -85,19 +86,14 @@ function updateTerminalDots() {
         y: ts.branch.end.y
       };
 
-      // Bouton depolarization glow
+      // Visual bouton depolarization
       terminalGlows.push({
         x: bouton.x,
         y: bouton.y,
         life: TERMINAL_GLOW_LIFETIME
       });
 
-      // 🔥 Vesicle burst (visual only)
-      if (typeof spawnVesicleBurst === "function") {
-        spawnVesicleBurst(bouton.x, bouton.y);
-      }
-
-      // 🧠 Chemical synapse trigger (DELAYED EPSP)
+      // 🧠 Hand off to chemical synapse ONLY
       if (typeof triggerSynapticRelease === "function") {
         triggerSynapticRelease(bouton);
       }
@@ -106,7 +102,7 @@ function updateTerminalDots() {
     }
   }
 
-  // ---- Bouton depolarization glow decay ----
+  // Glow decay
   for (let i = terminalGlows.length - 1; i >= 0; i--) {
     terminalGlows[i].life--;
     if (terminalGlows[i].life <= 0) {
