@@ -6,10 +6,10 @@ console.log("🫧 vesicleBurst loaded");
 // -----------------------------------------------------
 // Parameters
 // -----------------------------------------------------
-const VESICLE_LIFETIME = 40;
-const VESICLE_SPEED   = 0.8;
-const VESICLE_SPREAD  = 4;
-const DIRECTIONAL_BIAS = 0.75; // 0 = random, 1 = straight to PSD
+const VESICLE_LIFETIME = 36;
+const VESICLE_SPEED   = 0.7;
+const VESICLE_SPREAD  = 0.35;   // angular jitter
+const VESICLE_RADIUS  = 4;
 
 // -----------------------------------------------------
 // Active vesicles
@@ -17,14 +17,15 @@ const DIRECTIONAL_BIAS = 0.75; // 0 = random, 1 = straight to PSD
 const vesicles = [];
 
 // -----------------------------------------------------
-// Spawn vesicles biased toward postsynaptic density
+// Spawn vesicles biased toward postsynapse
 // -----------------------------------------------------
 function spawnVesicleBurst(bouton, postsynaptic) {
+
   if (!bouton || !postsynaptic) return;
 
-  const count = floor(random(8, 14));
+  const count = floor(random(10, 16));
 
-  // Direction vector: bouton → postsynapse
+  // Direction vector toward postsynaptic density
   const dx = postsynaptic.x - bouton.x;
   const dy = postsynaptic.y - bouton.y;
   const mag = sqrt(dx * dx + dy * dy) || 1;
@@ -34,16 +35,16 @@ function spawnVesicleBurst(bouton, postsynaptic) {
 
   for (let i = 0; i < count; i++) {
 
-    // Small angular noise
-    const jitterX = random(-1, 1) * (1 - DIRECTIONAL_BIAS);
-    const jitterY = random(-1, 1) * (1 - DIRECTIONAL_BIAS);
+    // Slight angular spread
+    const jitterX = random(-VESICLE_SPREAD, VESICLE_SPREAD);
+    const jitterY = random(-VESICLE_SPREAD, VESICLE_SPREAD);
 
     vesicles.push({
-      x: bouton.x + random(-VESICLE_SPREAD, VESICLE_SPREAD),
-      y: bouton.y + random(-VESICLE_SPREAD * 0.5, VESICLE_SPREAD * 0.5),
+      x: bouton.x,
+      y: bouton.y,
 
-      vx: (ux * DIRECTIONAL_BIAS + jitterX) * VESICLE_SPEED,
-      vy: (uy * DIRECTIONAL_BIAS + jitterY) * VESICLE_SPEED,
+      vx: (ux + jitterX) * VESICLE_SPEED,
+      vy: (uy + jitterY) * VESICLE_SPEED,
 
       life: VESICLE_LIFETIME
     });
@@ -51,7 +52,7 @@ function spawnVesicleBurst(bouton, postsynaptic) {
 }
 
 // -----------------------------------------------------
-// Update vesicles (directed diffusion)
+// Update vesicles (diffusion + decay)
 // -----------------------------------------------------
 function updateVesicles() {
   for (let i = vesicles.length - 1; i >= 0; i--) {
@@ -61,9 +62,9 @@ function updateVesicles() {
     v.y += v.vy;
     v.life--;
 
-    // Mild damping to simulate extracellular resistance
-    v.vx *= 0.97;
-    v.vy *= 0.97;
+    // Gentle damping
+    v.vx *= 0.95;
+    v.vy *= 0.95;
 
     if (v.life <= 0) {
       vesicles.splice(i, 1);
@@ -76,12 +77,12 @@ function updateVesicles() {
 // -----------------------------------------------------
 function drawVesicles() {
   vesicles.forEach(v => {
-    const alpha = map(v.life, 0, VESICLE_LIFETIME, 40, 180);
+    const alpha = map(v.life, 0, VESICLE_LIFETIME, 40, 200);
 
     push();
     noStroke();
-    fill(getColor("vesicle", alpha)); // 🟣 light purple
-    ellipse(v.x, v.y, 4, 4);
+    fill(getColor("vesicle", alpha));
+    ellipse(v.x, v.y, VESICLE_RADIUS, VESICLE_RADIUS);
     pop();
   });
 }
