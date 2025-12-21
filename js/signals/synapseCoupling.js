@@ -56,12 +56,12 @@ function updateSynapticCoupling() {
 
     if (e.timer <= 0) {
 
-      // 🫧 Neurotransmitter vesicle burst
+      // 🫧 Neurotransmitter vesicle burst (visual only)
       if (typeof spawnVesicleBurst === "function") {
         spawnVesicleBurst(e.bouton, e.synapse);
       }
 
-      // ⚡ Postsynaptic electrical response
+      // ⚡ Postsynaptic electrical response (NEURON 2 ONLY)
       spawnPostsynapticPSP(e.synapse);
 
       pendingReleases.splice(i, 1);
@@ -70,31 +70,12 @@ function updateSynapticCoupling() {
 }
 
 // -----------------------------------------------------
-// Spawn EPSP on neuron 2 dendrite → soma
+// Spawn EPSP on neuron 2 dendrite → soma ONLY
 // -----------------------------------------------------
 function spawnPostsynapticPSP(synapse) {
 
-  // Find dendritic branch closest to synapse
-  let bestBranch = neuron2.dendrites[0];
-  let minDist = Infinity;
+  // Safety: neuron 2 EPSPs must never hit neuron 1 soma
+  if (typeof spawnNeuron2EPSP !== "function") return;
 
-  neuron2.dendrites.forEach(branch => {
-    branch.forEach(p => {
-      const d = dist(p.x, p.y, synapse.x, synapse.y);
-      if (d < minDist) {
-        minDist = d;
-        bestBranch = branch;
-      }
-    });
-  });
-
-  // Dendrite → soma propagation
-  const path = [...bestBranch].reverse();
-
-  spawnEPSP({
-    id: "n2_psp_" + frameCount,
-    type: "exc",
-    radius: 14,
-    path
-  });
+  spawnNeuron2EPSP(synapse);
 }
