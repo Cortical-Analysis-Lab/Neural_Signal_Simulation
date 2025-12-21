@@ -25,18 +25,16 @@ function drawOverview(state) {
 // =====================================================
 function drawNeuron1() {
 
-  // ---------------- DENDRITES (CYLINDRICAL) ----------------
+  // ---------------- DENDRITES ----------------
   neuron.dendrites.forEach(branch => {
     for (let i = 0; i < branch.length - 1; i++) {
       const p1 = branch[i];
       const p2 = branch[i + 1];
 
-      // Body
-      stroke(200, 185, 120);
+      stroke(getColor("dendrite"));
       strokeWeight(p1.r * 1.8);
       line(p1.x, p1.y, p2.x, p2.y);
 
-      // Highlight
       stroke(255, 245, 190);
       strokeWeight(p1.r * 0.9);
       line(
@@ -48,7 +46,7 @@ function drawNeuron1() {
     }
   });
 
-  // ---------------- SOMA (SPHERICAL) ----------------
+  // ---------------- SOMA ----------------
   push();
 
   const depol = constrain(
@@ -57,7 +55,7 @@ function drawNeuron1() {
   );
 
   const body = lerpColor(
-    color(240, 220, 150),
+    getColor("soma"),
     color(255, 245, 200),
     depol
   );
@@ -93,7 +91,7 @@ function drawNeuron1() {
 
   // ---------------- AXON ----------------
   noFill();
-  stroke(210, 195, 130);
+  stroke(getColor("axon"));
   strokeWeight(6);
 
   beginShape();
@@ -108,7 +106,7 @@ function drawNeuron1() {
   // ---------------- AXON TERMINALS ----------------
   neuron.axon.terminalBranches.forEach(b => {
 
-    stroke(210, 195, 130);
+    stroke(getColor("axon"));
     strokeWeight(3);
     noFill();
 
@@ -119,17 +117,19 @@ function drawNeuron1() {
       b.end.x,   b.end.y
     );
 
-    // Structural bouton (quiet)
+    // Structural bouton (quiet, anatomical)
     noStroke();
-    fill(90, 140, 110);
+    fill(getColor("terminalBouton", 180));
     ellipse(b.end.x, b.end.y, b.boutonRadius * 2);
   });
 
   // ---------------- DENDRITIC SYNAPTIC INPUTS ----------------
   neuron.synapses.forEach(s => {
-    const base = s.type === "exc"
-      ? color(120, 220, 140)
-      : color(220, 120, 120);
+
+    const base =
+      s.type === "exc"
+        ? getColor("terminalBouton")
+        : getColor("ipsp");
 
     noStroke();
     fill(base);
@@ -151,18 +151,16 @@ function drawNeuron1() {
 // =====================================================
 function drawNeuron2() {
 
-  // ---------------- DENDRITES (CONTINUOUS CYLINDERS) ----------------
+  // ---------------- DENDRITES ----------------
   neuron2.dendrites.forEach(branch => {
     for (let i = 0; i < branch.length - 1; i++) {
       const p1 = branch[i];
       const p2 = branch[i + 1];
 
-      // Body
-      stroke(200, 185, 120);
+      stroke(getColor("dendrite"));
       strokeWeight(p1.r * 1.8);
       line(p1.x, p1.y, p2.x, p2.y);
 
-      // Highlight
       stroke(255, 245, 190);
       strokeWeight(p1.r * 0.9);
       line(
@@ -174,7 +172,7 @@ function drawNeuron2() {
     }
   });
 
-  // ---------------- SOMA (SPHERICAL, MATCHED) ----------------
+  // ---------------- SOMA ----------------
   push();
   noStroke();
 
@@ -187,7 +185,7 @@ function drawNeuron2() {
   );
 
   // Body
-  fill(240, 220, 150);
+  fill(getColor("soma"));
   ellipse(
     neuron2.soma.x,
     neuron2.soma.y,
@@ -217,7 +215,7 @@ function drawNeuron2() {
   // ---------------- POSTSYNAPTIC DENSITY ----------------
   neuron2.synapses.forEach(s => {
     noStroke();
-    fill(120, 220, 140);
+    fill(getColor("terminalBouton"));
     ellipse(s.x, s.y, s.radius * 2);
   });
 }
