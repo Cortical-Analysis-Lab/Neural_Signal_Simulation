@@ -6,23 +6,23 @@ console.log("axonSpike loaded");
 // -----------------------------------------------------
 // Parameters
 // -----------------------------------------------------
-const AXON_CONDUCTION_SPEED = 0.035;
+const AXON_CONDUCTION_SPEED     = 0.035;
 const TERMINAL_CONDUCTION_SPEED = 0.06;
-const TERMINAL_GLOW_LIFETIME = 18;
-const AXON_TERMINAL_START = 0.75;
+const TERMINAL_GLOW_LIFETIME    = 18;
+const AXON_TERMINAL_START       = 0.75;
 
 // -----------------------------------------------------
-// Active axonal APs
+// Active axonal APs (one object = one AP)
 // -----------------------------------------------------
 const axonSpikes = [];
 
 // -----------------------------------------------------
-// Active terminal branch APs
+// Active terminal branch AP fragments
 // -----------------------------------------------------
 const terminalSpikes = [];
 
 // -----------------------------------------------------
-// Bouton glow states
+// Bouton depolarization glows
 // -----------------------------------------------------
 const terminalGlows = [];
 
@@ -31,6 +31,7 @@ const terminalGlows = [];
 // -----------------------------------------------------
 function spawnAxonSpike() {
 
+  // Prevent overlapping APs at hillock
   if (axonSpikes.length > 0) {
     const last = axonSpikes[axonSpikes.length - 1];
     if (last.phase < 0.1) return;
@@ -47,6 +48,7 @@ function updateAxonSpikes() {
     const s = axonSpikes[i];
     s.phase += AXON_CONDUCTION_SPEED;
 
+    // Enter terminal region → split into branches
     if (s.phase >= AXON_TERMINAL_START) {
       spawnTerminalSpikes();
       axonSpikes.splice(i, 1);
@@ -67,28 +69,26 @@ function spawnTerminalSpikes() {
 }
 
 // -----------------------------------------------------
-// Update terminal branch AP propagation
+// Update terminal branch APs + bouton glow
 // -----------------------------------------------------
 function updateTerminalDots() {
 
-  // ---- Branch APs ----
+  // ---- Terminal branch propagation ----
   for (let i = terminalSpikes.length - 1; i >= 0; i--) {
     const ts = terminalSpikes[i];
     ts.t += TERMINAL_CONDUCTION_SPEED;
 
     if (ts.t >= 1) {
-      // Trigger bouton glow
       terminalGlows.push({
         x: ts.branch.end.x,
         y: ts.branch.end.y,
         life: TERMINAL_GLOW_LIFETIME
       });
-
       terminalSpikes.splice(i, 1);
     }
   }
 
-  // ---- Bouton glows ----
+  // ---- Bouton depolarization glow decay ----
   for (let i = terminalGlows.length - 1; i >= 0; i--) {
     terminalGlows[i].life--;
     if (terminalGlows[i].life <= 0) {
@@ -107,12 +107,12 @@ function drawAxonSpikes() {
     const p = getAxonPoint(s.phase);
     push();
     noStroke();
-    fill(0, 255, 120);
+    fill(getColor("ap"));
     ellipse(p.x, p.y, 10, 10);
     pop();
   });
 
-  // ---- Terminal branch APs (SMALLER DOTS) ----
+  // ---- Terminal branch AP fragments ----
   terminalSpikes.forEach(ts => {
     const b = ts.branch;
 
@@ -134,17 +134,24 @@ function drawAxonSpikes() {
 
     push();
     noStroke();
-    fill(0, 255, 120);
+    fill(getColor("ap"));
     ellipse(x, y, 5, 5);
     pop();
   });
 
-  // ---- Bouton glow ----
+  // ---- Bouton depolarization glow ----
   terminalGlows.forEach(g => {
-    const a = map(g.life, 0, TERMINAL_GLOW_LIFETIME, 40, 160);
+    const a = map(
+      g.life,
+      0,
+      TERMINAL_GLOW_LIFETIME,
+      40,
+      160
+    );
+
     push();
     noStroke();
-    fill(120, 255, 180, a);
+    fill(getColor("terminalBouton", a));
     ellipse(g.x, g.y, 10, 10);
     pop();
   });
