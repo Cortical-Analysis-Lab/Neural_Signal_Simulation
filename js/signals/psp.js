@@ -5,6 +5,9 @@ console.log("psp loaded");
 
 // Active postsynaptic potentials
 const epsps = [];
+// Active postsynaptic potentials for neuron 2
+const epsps2 = [];
+
 
 // -----------------------------------------------------
 // Spawn a PSP from a synapse
@@ -85,3 +88,64 @@ function drawEPSPs() {
     pop();
   });
 }
+
+// -----------------------------------------------------
+// Spawn EPSP on neuron 2 dendrite (from synapse)
+// -----------------------------------------------------
+function spawnNeuron2EPSP(postSynapse) {
+
+  // Use the primary dendrite (index 0 by construction)
+  const path = neuron2.dendrites[0];
+
+  epsps2.push({
+    path,
+    progress: 0,
+    amplitude: 10,
+    baseAmplitude: 10,
+    speed: 0.01,
+    decay: 0.992,
+    type: "exc"
+  });
+}
+function updateNeuron2EPSPs() {
+  for (let i = epsps2.length - 1; i >= 0; i--) {
+    const e = epsps2[i];
+    e.progress += e.speed;
+    e.amplitude *= e.decay;
+
+    if (e.amplitude < 0.6) {
+      epsps2.splice(i, 1);
+      continue;
+    }
+
+    if (e.progress >= 1) {
+      // (future) integrate into neuron2 soma here
+      epsps2.splice(i, 1);
+    }
+  }
+}
+
+function drawNeuron2EPSPs() {
+  epsps2.forEach(e => {
+    const path = e.path;
+    const segments = path.length - 1;
+    const total = e.progress * segments;
+    const idx = floor(total);
+    const t = total - idx;
+
+    const p0 = path[constrain(idx, 0, segments - 1)];
+    const p1 = path[constrain(idx + 1, 0, segments)];
+
+    const x = lerp(p0.x, p1.x, t);
+    const y = lerp(p0.y, p1.y, t);
+
+    const w = map(e.amplitude, 4, 12, 3, 8, true);
+
+    push();
+    stroke(getColor("epsp"));
+    strokeWeight(w);
+    point(x, y);
+    pop();
+  });
+}
+
