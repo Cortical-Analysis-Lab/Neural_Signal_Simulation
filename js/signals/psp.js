@@ -72,9 +72,11 @@ function drawEPSPs() {
     const strength = map(e.amplitude, 6, 30, 0.4, 1.2, true);
     const w = map(e.baseAmplitude, 6, 30, 3, 12) * strength;
 
-    const c = e.type === "exc"
-      ? color(90, 255, 150)   // excitatory green
-      : color(255, 90, 90);   // inhibitory red
+    // Use semantic colors
+    const c =
+      e.type === "exc"
+        ? getColor("epsp")
+        : getColor("ipsp");
 
     push();
     stroke(c);
