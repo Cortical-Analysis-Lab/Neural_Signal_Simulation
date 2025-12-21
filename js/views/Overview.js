@@ -222,6 +222,46 @@ function drawNeuron2() {
     fill(getColor("terminalBouton"));
     ellipse(s.x, s.y, s.radius * 2);
   });
+
+    // ---------------- AXON (POSTSYNAPTIC OUTPUT) ----------------
+  const ax = radians(neuron2.axon.angle);
+  const axStartX = neuron2.soma.x + cos(ax) * neuron2.somaRadius;
+  const axStartY = neuron2.soma.y + sin(ax) * neuron2.somaRadius;
+
+  const axEndX = axStartX + cos(ax) * neuron2.axon.length;
+  const axEndY = axStartY + sin(ax) * neuron2.axon.length;
+
+  // Axon body
+  noFill();
+  stroke(getColor("axon"));
+  strokeWeight(5);
+  beginShape();
+  vertex(axStartX, axStartY);
+  bezierVertex(
+    axStartX + 40, axStartY + 10,
+    axEndX - 40, axEndY - 10,
+    axEndX, axEndY
+  );
+  endShape();
+
+  // Highlight
+  stroke(255, 245, 190);
+  strokeWeight(2);
+  beginShape();
+  vertex(
+    axStartX + LIGHT_DIR.x,
+    axStartY + LIGHT_DIR.y
+  );
+  bezierVertex(
+    axStartX + 40 + LIGHT_DIR.x,
+    axStartY + 10 + LIGHT_DIR.y,
+    axEndX - 40 + LIGHT_DIR.x,
+    axEndY - 10 + LIGHT_DIR.y,
+    axEndX + LIGHT_DIR.x,
+    axEndY + LIGHT_DIR.y
+  );
+  endShape();
+
 }
 
 // =====================================================
