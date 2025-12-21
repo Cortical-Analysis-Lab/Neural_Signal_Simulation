@@ -79,11 +79,24 @@ function updateTerminalDots() {
     ts.t += TERMINAL_CONDUCTION_SPEED;
 
     if (ts.t >= 1) {
-      terminalGlows.push({
+      const bouton = {
         x: ts.branch.end.x,
-        y: ts.branch.end.y,
+        y: ts.branch.end.y
+      };
+      
+      const postsynaptic = neuron2.synapses[0]; // single fixed synapse
+      
+      terminalGlows.push({
+        x: bouton.x,
+        y: bouton.y,
         life: TERMINAL_GLOW_LIFETIME
       });
+      
+      // 🔥 Vesicle burst
+      if (typeof spawnVesicleBurst === "function") {
+        spawnVesicleBurst(bouton, postsynaptic);
+      }
+
       terminalSpikes.splice(i, 1);
     }
   }
