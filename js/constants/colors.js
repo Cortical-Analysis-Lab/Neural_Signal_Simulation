@@ -17,3 +17,9 @@ const COLORS = {
   soma:      [240, 220, 150],
   axon:      [210, 195, 130]
 };
+
+
+function getColor(name, alpha = 255) {
+  const c = COLORS[name] || [255, 255, 255];
+  return color(c[0], c[1], c[2], alpha);
+}
