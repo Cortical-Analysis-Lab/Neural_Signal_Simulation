@@ -69,7 +69,7 @@ function spawnTerminalSpikes() {
 }
 
 // -----------------------------------------------------
-// Update terminal branch APs + bouton glow
+// Update terminal branch APs + bouton effects
 // -----------------------------------------------------
 function updateTerminalDots() {
 
@@ -79,27 +79,28 @@ function updateTerminalDots() {
     ts.t += TERMINAL_CONDUCTION_SPEED;
 
     if (ts.t >= 1) {
+
       const bouton = {
         x: ts.branch.end.x,
         y: ts.branch.end.y
       };
-      
-      const postsynaptic = neuron2.synapses[0]; // single fixed synapse
-      
+
+      // Bouton depolarization glow
       terminalGlows.push({
         x: bouton.x,
         y: bouton.y,
         life: TERMINAL_GLOW_LIFETIME
       });
-      
-      // 🔥 Vesicle burst
+
+      // 🔥 Vesicle burst (visual only)
       if (typeof spawnVesicleBurst === "function") {
-        spawnVesicleBurst(bouton, postsynaptic);
-      }
-      if (typeof spawnNeuron2EPSP === "function") {
-        spawnNeuron2EPSP(postsynaptic);
+        spawnVesicleBurst(bouton.x, bouton.y);
       }
 
+      // 🧠 Chemical synapse trigger (DELAYED EPSP)
+      if (typeof triggerSynapticRelease === "function") {
+        triggerSynapticRelease(bouton);
+      }
 
       terminalSpikes.splice(i, 1);
     }
