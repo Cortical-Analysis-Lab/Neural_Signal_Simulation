@@ -64,7 +64,8 @@ function drawVesicles() {
 
     push();
     noStroke();
-    fill(255, 220, 120, a);
+    const [r, g, b, a] = getColor("vesicle", alpha);
+    fill(r, g, b, a);
     ellipse(v.x, v.y, 4, 4);
     pop();
   });
