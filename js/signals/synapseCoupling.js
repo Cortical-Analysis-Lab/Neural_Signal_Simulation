@@ -4,10 +4,11 @@
 console.log("synapseCoupling loaded");
 
 // -----------------------------------------------------
-// Parameters
+// Parameters (visual timing, not physiological scale)
 // -----------------------------------------------------
-const SYNAPTIC_DELAY = 15;   // frames (visual chemical delay)
-const RELEASE_PROB   = 0.9;  // probability of vesicle release
+const SYNAPTIC_DELAY        = 15;  // AP → vesicle fusion
+const CLEFT_DIFFUSION_DELAY = 10;  // vesicle → receptor binding
+const RELEASE_PROB          = 0.9; // probabilistic release
 
 // -----------------------------------------------------
 // Pending delayed synaptic events
@@ -15,13 +16,13 @@ const RELEASE_PROB   = 0.9;  // probability of vesicle release
 const pendingReleases = [];
 
 // -----------------------------------------------------
-// Called by axonSpike.js when AP reaches bouton
+// Called by axonSpike.js when terminal AP reaches bouton
 // -----------------------------------------------------
 function triggerSynapticRelease(bouton) {
 
   if (!bouton) return;
 
-  // Probabilistic release
+  // Stochastic vesicle release
   if (random() > RELEASE_PROB) return;
 
   // Find nearest postsynaptic density
@@ -38,10 +39,12 @@ function triggerSynapticRelease(bouton) {
 
   if (!target) return;
 
+  // Queue a chemical synapse event
   pendingReleases.push({
     bouton,
     synapse: target,
-    timer: SYNAPTIC_DELAY
+    timer: SYNAPTIC_DELAY,
+    phase: "release"   // release → diffusion → psp
   });
 }
 
@@ -54,19 +57,23 @@ function updateSynapticCoupling() {
     const e = pendingReleases[i];
     e.timer--;
 
-    // ---- Vesicle release ----
+    // ---------------------------------------------
+    // Vesicle fusion & neurotransmitter release
+    // ---------------------------------------------
     if (e.timer <= 0 && e.phase === "release") {
 
       if (typeof spawnVesicleBurst === "function") {
         spawnVesicleBurst(e.bouton, e.synapse);
       }
 
-      // Move to diffusion → receptor phase
+      // Advance to diffusion phase
       e.phase = "psp";
       e.timer = CLEFT_DIFFUSION_DELAY;
     }
 
-    // ---- Postsynaptic receptor activation ----
+    // ---------------------------------------------
+    // Postsynaptic receptor activation (EPSP)
+    // ---------------------------------------------
     else if (e.timer <= 0 && e.phase === "psp") {
 
       spawnPostsynapticPSP(e.synapse);
@@ -75,13 +82,12 @@ function updateSynapticCoupling() {
   }
 }
 
-
 // -----------------------------------------------------
 // Spawn EPSP on neuron 2 dendrite → soma ONLY
 // -----------------------------------------------------
 function spawnPostsynapticPSP(synapse) {
 
-  // Safety: neuron 2 EPSPs must never hit neuron 1 soma
+  // Safety gate — neuron 2 only
   if (typeof spawnNeuron2EPSP !== "function") return;
 
   spawnNeuron2EPSP(synapse);
