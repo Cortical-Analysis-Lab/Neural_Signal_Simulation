@@ -33,7 +33,7 @@ const neuron = {
 };
 
 // -----------------------------------------------------
-// Utility
+// Utilities
 // -----------------------------------------------------
 function polarToCartesian(angleDeg, r) {
   const a = radians(angleDeg);
@@ -41,9 +41,150 @@ function polarToCartesian(angleDeg, r) {
 }
 
 // -----------------------------------------------------
-// LOCAL axon endpoint helper (GEOMETRY-ONLY)
+// Build dendritic trunk → branches → twigs
+// -----------------------------------------------------
+function createDendriticTree(baseAngle) {
+
+  const trees = [];
+
+  // ---- Primary trunk ----
+  const trunkLen = random(70, 90);
+  const trunkAngle = baseAngle + random(-6, 6);
+
+  const trunkEnd = polarToCartesian(
+    trunkAngle,
+    neuron.somaRadius + trunkLen
+  );
+
+  const trunk = [
+    { x: 0, y: 0, r: 5.6 },
+    { x: trunkEnd.x, y: trunkEnd.y, r: 4.6 }
+  ];
+
+  // ---- Secondary branches ----
+  const branchCount = floor(random(2, 4));
+
+  for (let i = 0; i < branchCount; i++) {
+
+    const branchAngle =
+      trunkAngle + random(-45, 45);
+
+    const branchLen = random(50, 70);
+
+    const branchEnd = {
+      x: trunkEnd.x + cos(radians(branchAngle)) * branchLen,
+      y: trunkEnd.y + sin(radians(branchAngle)) * branchLen
+    };
+
+    const branch = [
+      trunk[1],
+      { x: branchEnd.x, y: branchEnd.y, r: 3.2 }
+    ];
+
+    // ---- Terminal twigs ----
+    const twigCount = floor(random(2, 4));
+
+    for (let j = 0; j < twigCount; j++) {
+
+      const twigAngle =
+        branchAngle + random(-30, 30);
+
+      const twigLen = random(35, 55);
+
+      const twigEnd = {
+        x: branchEnd.x + cos(radians(twigAngle)) * twigLen,
+        y: branchEnd.y + sin(radians(twigAngle)) * twigLen
+      };
+
+      trees.push([
+        ...branch,
+        { x: twigEnd.x, y: twigEnd.y, r: 1.8 }
+      ]);
+    }
+  }
+
+  return trees;
+}
+
+// -----------------------------------------------------
+// Build path from dendrite → soma (for EPSPs)
+// -----------------------------------------------------
+function buildPathToSoma(branch) {
+  const path = [];
+  for (let i = branch.length - 1; i >= 0; i--) {
+    path.push({ x: branch[i].x, y: branch[i].y });
+  }
+  path.push({ x: 0, y: 0 });
+  return path;
+}
+
+// -----------------------------------------------------
+// Initialize dendrites + synapses
+// -----------------------------------------------------
+function initSynapses() {
+
+  neuron.dendrites = [];
+  neuron.synapses = [];
+  neuron.axon.terminalBranches = [];
+
+  let synapseId = 0;
+
+  // 🔥 ONLY THREE PRIMARY TRUNKS
+  const trunkAngles = [140, 220, 300];
+
+  trunkAngles.forEach(angle => {
+
+    const trees = createDendriticTree(angle);
+
+    trees.forEach(branch => {
+
+      neuron.dendrites.push(branch);
+
+      const tip = branch[branch.length - 1];
+
+      neuron.synapses.push({
+        id: synapseId++,
+        x: tip.x + random(-6, 6),
+        y: tip.y + random(-6, 6),
+        radius: 12,
+        hovered: false,
+        selected: false,
+        type: null,
+        path: buildPathToSoma(branch)
+      });
+    });
+  });
+
+  assignSynapseTypes();
+  initAxonTerminalBranches();
+}
+
+// -----------------------------------------------------
+// Enforce excitatory / inhibitory balance
+// -----------------------------------------------------
+function assignSynapseTypes() {
+
+  const syns = neuron.synapses;
+  if (!syns.length) return;
+
+  const inhCount = min(3, floor(syns.length / 3));
+  const indices = syns.map((_, i) => i);
+
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = floor(random(i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+
+  for (let i = 0; i < syns.length; i++) {
+    syns[indices[i]].type = i < inhCount ? "inh" : "exc";
+  }
+}
+
+// -----------------------------------------------------
+// Axon terminal branching
 // -----------------------------------------------------
 function getAxonEndPoint() {
+
   const x0 = neuron.somaRadius + neuron.hillock.length;
 
   return {
@@ -54,116 +195,10 @@ function getAxonEndPoint() {
       neuron.somaRadius + neuron.axon.length,
       1
     ),
-    y: bezierPoint(
-      0,
-      14,
-      -14,
-      0,
-      1
-    )
+    y: bezierPoint(0, 14, -14, 0, 1)
   };
 }
 
-// -----------------------------------------------------
-// Build a continuous path from synapse → soma
-// -----------------------------------------------------
-function buildPathToSoma(branch) {
-  const path = [];
-
-  for (let i = branch.length - 1; i >= 0; i--) {
-    path.push({ x: branch[i].x, y: branch[i].y });
-  }
-
-  path.push({ x: 0, y: 0 });
-  return path;
-}
-
-// -----------------------------------------------------
-// Initialize dendrites + synapses ONCE
-// -----------------------------------------------------
-function initSynapses() {
-
-  neuron.dendrites = [];
-  neuron.synapses = [];
-  neuron.axon.terminalBranches = [];
-
-  const primaryAngles = [145, 165, 195, 220, 245, 270];
-  let synapseId = 0;
-
-  primaryAngles.forEach(angle => {
-
-    // -----------------------------
-    // Primary dendrite (organic curve)
-    // -----------------------------
-    const base   = polarToCartesian(angle, neuron.somaRadius + 6);
-
-    const mid    = polarToCartesian(
-      angle + random(-10, 10),
-      110 + random(-6, 6)
-    );
-
-    const distal = polarToCartesian(
-      angle + random(-18, 18),
-      190 + random(-10, 10)
-    );
-
-    const primaryBranch = [
-      { x: base.x,   y: base.y,   r: 4.2 },
-      { x: mid.x,    y: mid.y,    r: 3.2 },
-      { x: distal.x, y: distal.y, r: 2.4 }
-    ];
-
-    neuron.dendrites.push(primaryBranch);
-
-    // -----------------------------
-    // Synapse near distal tip
-    // -----------------------------
-    const branchEnd = primaryBranch[primaryBranch.length - 1];
-
-    neuron.synapses.push({
-      id: synapseId++,
-      x: branchEnd.x + random(-6, 6),
-      y: branchEnd.y + random(-6, 6),
-      radius: 12,
-      hovered: false,
-      selected: false,
-      type: null,
-      path: buildPathToSoma(primaryBranch)
-    });
-  });
-
-  assignSynapseTypes();
-  initAxonTerminalBranches();
-}
-
-// -----------------------------------------------------
-// Enforce 3–4 excitatory, 2–3 inhibitory synapses
-// -----------------------------------------------------
-function assignSynapseTypes() {
-
-  const syns = neuron.synapses;
-  if (syns.length === 0) return;
-
-  const inhCount = random() < 0.5 ? 2 : 3;
-  const indices = syns.map((_, i) => i);
-
-  for (let i = indices.length - 1; i > 0; i--) {
-    const j = floor(random(i + 1));
-    [indices[i], indices[j]] = [indices[j], indices[i]];
-  }
-
-  for (let i = 0; i < inhCount; i++) {
-    syns[indices[i]].type = "inh";
-  }
-
-  for (let i = inhCount; i < indices.length; i++) {
-    syns[indices[i]].type = "exc";
-  }
-}
-
-// -----------------------------------------------------
-// Curved axon terminal branching + boutons (DISTAL)
-// -----------------------------------------------------
 function initAxonTerminalBranches() {
 
   const base = getAxonEndPoint();
@@ -175,31 +210,24 @@ function initAxonTerminalBranches() {
   ];
 }
 
-// -----------------------------------------------------
-// Individual terminal branch generator
-// -----------------------------------------------------
 function createTerminalBranch(base, dx, dy) {
-
   return {
     start: { x: base.x, y: base.y },
-
     ctrl: {
       x: base.x + dx * 0.55,
       y: base.y + dy * 0.55 + random(-8, 8)
     },
-
     end: {
       x: base.x + dx,
       y: base.y + dy
     },
-
     boutonRadius: 6
   };
 }
 
-// =====================================================
-// GLOBAL AXON GEOMETRY HELPER (USED BY SIGNALS)
-// =====================================================
+// -----------------------------------------------------
+// Global axon geometry helper
+// -----------------------------------------------------
 function getAxonPoint(t) {
 
   const x0 = neuron.somaRadius + neuron.hillock.length;
@@ -212,12 +240,6 @@ function getAxonPoint(t) {
       neuron.somaRadius + neuron.axon.length,
       t
     ),
-    y: bezierPoint(
-      0,
-      14,
-      -14,
-      0,
-      t
-    )
+    y: bezierPoint(0, 14, -14, 0, t)
   };
 }
