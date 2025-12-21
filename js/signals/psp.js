@@ -95,7 +95,7 @@ function drawEPSPs() {
 function spawnNeuron2EPSP(postSynapse) {
 
   // Use the primary dendrite (index 0 by construction)
-  const path = neuron2.dendrites[0];
+  const path = [...neuron2.dendrites[0]].reverse();
 
   epsps2.push({
     path,
