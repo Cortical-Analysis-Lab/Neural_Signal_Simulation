@@ -6,20 +6,23 @@ console.log("synapseCoupling loaded");
 // -----------------------------------------------------
 // Parameters
 // -----------------------------------------------------
-const SYNAPTIC_DELAY = 10;     // frames
-const RELEASE_PROB   = 0.9;    // probability of release
+const SYNAPTIC_DELAY = 10;     // frames (~150 ms visual)
+const RELEASE_PROB   = 0.9;    // probability of vesicle release
 
-// Pending synaptic events
+// -----------------------------------------------------
+// Pending delayed synaptic events
+// -----------------------------------------------------
 const pendingReleases = [];
 
 // -----------------------------------------------------
-// Called by axonSpike.js when terminal reaches bouton
+// Called by axonSpike.js when terminal AP reaches bouton
 // -----------------------------------------------------
 function triggerSynapticRelease(bouton) {
 
+  // Probabilistic release
   if (random() > RELEASE_PROB) return;
 
-  // Pick nearest postsynaptic synapse
+  // Find nearest postsynaptic contact
   let target = null;
   let minDist = Infinity;
 
@@ -34,14 +37,14 @@ function triggerSynapticRelease(bouton) {
   if (!target) return;
 
   pendingReleases.push({
-    bouton: bouton,
+    bouton,
     synapse: target,
     timer: SYNAPTIC_DELAY
   });
 }
 
 // -----------------------------------------------------
-// Update delayed synaptic transmission
+// Update delayed chemical transmission
 // -----------------------------------------------------
 function updateSynapticCoupling() {
   for (let i = pendingReleases.length - 1; i >= 0; i--) {
@@ -56,27 +59,21 @@ function updateSynapticCoupling() {
 }
 
 // -----------------------------------------------------
-// Spawn PSP on neuron 2 dendrite
+// Spawn EPSP on neuron 2 dendrite → soma
 // -----------------------------------------------------
 function spawnPostsynapticPSP(synapse) {
 
+  // Build dendrite → soma path
+  const path = [
+    { x: synapse.x, y: synapse.y },            // dendritic spine
+    { x: neuron2.soma.x, y: neuron2.soma.y }   // soma
+  ];
+
   spawnEPSP({
-    id: "n2_" + synapse.id,
+    id: "n2_psp_" + frameCount,
     type: "exc",
 
     radius: 14,
-
-    path: [
-      // start AFTER cleft
-      {
-        x: synapse.x + synapse.cleftOffset.x,
-        y: synapse.y + synapse.cleftOffset.y
-      },
-      // propagate to soma
-      {
-        x: neuron2.soma.x,
-        y: neuron2.soma.y
-      }
-    ]
+    path
   });
 }
