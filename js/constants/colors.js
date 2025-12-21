@@ -1,6 +1,19 @@
 const COLORS = {
-  sodium: [255, 215, 0],    // yellow
-  potassium: [220, 60, 60], // red
-  epsp: [80, 150, 255],     // blue
-  ap: [60, 220, 120]        // green
+  // Ions
+  sodium:    [255, 215, 0],
+  potassium: [220, 60, 60],
+
+  // Electrical signals
+  epsp:      [80, 150, 255],
+  ipsp:      [220, 120, 120],
+  ap:        [60, 220, 120],
+
+  // Synaptic structure
+  terminalBouton: [120, 220, 140],  // presynaptic
+  postSynaptic:   [120, 220, 140],  // matched PSD
+
+  // Neuron anatomy
+  dendrite:  [200, 185, 120],
+  soma:      [240, 220, 150],
+  axon:      [210, 195, 130]
 };
