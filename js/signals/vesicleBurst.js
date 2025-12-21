@@ -21,7 +21,17 @@ const vesicles = [];
 // -----------------------------------------------------
 function spawnVesicleBurst(bouton, postsynaptic) {
 
+  // Backward compatibility
+  if (arguments.length === 2) {
+    // OK
+  } else if (arguments.length === 1 && bouton?.x !== undefined) {
+    postsynaptic = neuron2?.synapses?.[0];
+  } else {
+    return;
+  }
+
   if (!bouton || !postsynaptic) return;
+
 
   const count = floor(random(10, 16));
 
