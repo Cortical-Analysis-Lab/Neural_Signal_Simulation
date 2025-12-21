@@ -12,7 +12,7 @@ const TERMINAL_GLOW_LIFETIME    = 18;
 const AXON_TERMINAL_START       = 0.75;
 
 // -----------------------------------------------------
-// Active axonal APs
+// Active axonal APs (one object = one AP)
 // -----------------------------------------------------
 const axonSpikes = [];
 
@@ -86,14 +86,14 @@ function updateTerminalDots() {
         y: ts.branch.end.y
       };
 
-      // Visual bouton depolarization
+      // Visual bouton depolarization (NO chemistry here)
       terminalGlows.push({
         x: bouton.x,
         y: bouton.y,
         life: TERMINAL_GLOW_LIFETIME
       });
 
-      // 🧠 Hand off to chemical synapse ONLY
+      // 🧠 Hand off to chemical synapse logic ONLY
       if (typeof triggerSynapticRelease === "function") {
         triggerSynapticRelease(bouton);
       }
@@ -102,7 +102,7 @@ function updateTerminalDots() {
     }
   }
 
-  // Glow decay
+  // ---- Glow decay ----
   for (let i = terminalGlows.length - 1; i >= 0; i--) {
     terminalGlows[i].life--;
     if (terminalGlows[i].life <= 0) {
