@@ -6,24 +6,11 @@ console.log("geometry loaded");
 const neuron = {
   somaRadius: 42,
 
-  // Cellular substructure (VISUAL ONLY)
-  nucleus: {
-    radius: 14,
-    offset: { x: 4, y: -3 }
-  },
-
-  nucleolus: {
-    radius: 5,
-    offset: { x: 7, y: -6 }
-  },
-
   dendrites: [],
   synapses: [],
 
   hillock: {
-    length: 16,
-    widthStart: 10,
-    widthEnd: 6
+    length: 16
   },
 
   axon: {
@@ -45,69 +32,81 @@ function polarToCartesian(angleDeg, r) {
 // -----------------------------------------------------
 function createDendriticTree(baseAngle) {
 
-  const trees = [];
+  const branches = [];
 
-  // ---- Primary trunk ----
-  const trunkLen = random(70, 90);
+  // === TRUNK ===
   const trunkAngle = baseAngle + random(-6, 6);
 
-  const trunkEnd = polarToCartesian(
+  const trunkBase = polarToCartesian(
     trunkAngle,
-    neuron.somaRadius + trunkLen
+    neuron.somaRadius + 6   // 🔑 START OUTSIDE SOMA
+  );
+
+  const trunkMid = polarToCartesian(
+    trunkAngle + random(-4, 4),
+    neuron.somaRadius + random(55, 70)
+  );
+
+  const trunkEnd = polarToCartesian(
+    trunkAngle + random(-6, 6),
+    neuron.somaRadius + random(90, 110)
   );
 
   const trunk = [
-    { x: 0, y: 0, r: 5.6 },
-    { x: trunkEnd.x, y: trunkEnd.y, r: 4.6 }
+    { x: trunkBase.x, y: trunkBase.y, r: 8.0 },
+    { x: trunkMid.x,  y: trunkMid.y,  r: 6.2 },
+    { x: trunkEnd.x,  y: trunkEnd.y,  r: 5.0 }
   ];
 
-  // ---- Secondary branches ----
-  const branchCount = floor(random(2, 4));
+  // === SECONDARY BRANCHES ===
+  const branchCount = floor(random(2, 3));
 
   for (let i = 0; i < branchCount; i++) {
 
     const branchAngle =
-      trunkAngle + random(-45, 45);
+      trunkAngle + random(-40, 40);
 
-    const branchLen = random(50, 70);
+    const branchMid = {
+      x: trunkEnd.x + cos(radians(branchAngle)) * random(35, 45),
+      y: trunkEnd.y + sin(radians(branchAngle)) * random(35, 45)
+    };
 
     const branchEnd = {
-      x: trunkEnd.x + cos(radians(branchAngle)) * branchLen,
-      y: trunkEnd.y + sin(radians(branchAngle)) * branchLen
+      x: branchMid.x + cos(radians(branchAngle)) * random(35, 50),
+      y: branchMid.y + sin(radians(branchAngle)) * random(35, 50)
     };
 
     const branch = [
-      trunk[1],
-      { x: branchEnd.x, y: branchEnd.y, r: 3.2 }
+      trunk[2],
+      { x: branchMid.x, y: branchMid.y, r: 3.8 },
+      { x: branchEnd.x, y: branchEnd.y, r: 3.0 }
     ];
 
-    // ---- Terminal twigs ----
+    // === TERMINAL TWIGS ===
     const twigCount = floor(random(2, 4));
 
     for (let j = 0; j < twigCount; j++) {
 
       const twigAngle =
-        branchAngle + random(-30, 30);
-
-      const twigLen = random(35, 55);
+        branchAngle + random(-25, 25);
 
       const twigEnd = {
-        x: branchEnd.x + cos(radians(twigAngle)) * twigLen,
-        y: branchEnd.y + sin(radians(twigAngle)) * twigLen
+        x: branchEnd.x + cos(radians(twigAngle)) * random(25, 40),
+        y: branchEnd.y + sin(radians(twigAngle)) * random(25, 40)
       };
 
-      trees.push([
+      branches.push([
         ...branch,
-        { x: twigEnd.x, y: twigEnd.y, r: 1.8 }
+        { x: twigEnd.x, y: twigEnd.y, r: 2.0 }
       ]);
     }
   }
 
-  return trees;
+  return branches;
 }
 
 // -----------------------------------------------------
-// Build path from dendrite → soma (for EPSPs)
+// Build EPSP path (tip → soma)
 // -----------------------------------------------------
 function buildPathToSoma(branch) {
   const path = [];
@@ -129,8 +128,8 @@ function initSynapses() {
 
   let synapseId = 0;
 
-  // 🔥 ONLY THREE PRIMARY TRUNKS
-  const trunkAngles = [140, 220, 300];
+  // 🔥 THREE REAL DENDRITIC TRUNKS
+  const trunkAngles = [150, 225, 300];
 
   trunkAngles.forEach(angle => {
 
