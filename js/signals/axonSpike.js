@@ -96,6 +96,10 @@ function updateTerminalDots() {
       if (typeof spawnVesicleBurst === "function") {
         spawnVesicleBurst(bouton, postsynaptic);
       }
+      if (typeof spawnNeuron2EPSP === "function") {
+        spawnNeuron2EPSP(postsynaptic);
+      }
+
 
       terminalSpikes.splice(i, 1);
     }
