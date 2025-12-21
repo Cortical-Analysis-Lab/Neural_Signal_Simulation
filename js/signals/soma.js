@@ -10,7 +10,10 @@ const soma = {
   tau: 0.98       // decay factor (temporal summation)
 };
 
+// -----------------------------------------------------
 // Action potential state
+// -----------------------------------------------------
+const REFRACTORY_FRAMES = 30;
 let refractory = 0;
 
 // -----------------------------------------------------
@@ -25,42 +28,41 @@ function addEPSPToSoma(amplitude, type) {
 
   if (type === "exc") {
 
-    // Strong nonlinear boost
+    // Nonlinear EPSP gain
     deltaV = 3 + 28 * normalized * normalized;
 
     // Driver synapse guarantee
     if (normalized > 0.9) {
-      deltaV += 10;   // ensures threshold crossing
+      deltaV += 10;
     }
 
   } else {
-    // Inhibitory PSP
-    deltaV = - (4 + 20 * normalized);
+    // IPSP
+    deltaV = -(4 + 20 * normalized);
   }
 
   soma.Vm += deltaV;
 }
-
 
 // -----------------------------------------------------
 // Soma update (decay, threshold, refractory)
 // -----------------------------------------------------
 function updateSoma() {
 
-  // Refractory period
+  // Absolute refractory period
   if (refractory > 0) {
     refractory--;
     soma.Vm = soma.rest;
     return;
   }
 
-  // Threshold crossing → fire action potential
-if (soma.Vm >= soma.threshold && refractory === 0) {
-  fireActionPotential();
-  return;
-}
+  // Threshold crossing → fire ONE action potential
+  if (soma.Vm >= soma.threshold) {
+    fireActionPotential();
+    return;
+  }
 
-  // Passive decay back to rest
+  // Passive decay back toward rest
   soma.Vm = lerp(soma.Vm, soma.rest, 1 - soma.tau);
 }
 
@@ -68,11 +70,12 @@ if (soma.Vm >= soma.threshold && refractory === 0) {
 // Action potential trigger
 // -----------------------------------------------------
 function fireActionPotential() {
-  refractory = 30;   // frames; sole gating mechanism
-  soma.Vm = 40;
 
-  spawnAxonSpike(); // 🔥 THIS IS THE LINK
+  refractory = REFRACTORY_FRAMES;
+  soma.Vm = 40;   // spike peak
+
+  // 🔥 Critical link to axon
+  spawnAxonSpike();
 
   console.log("⚡ ACTION POTENTIAL");
 }
-
