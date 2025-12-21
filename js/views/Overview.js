@@ -5,6 +5,9 @@ console.log("overview view loaded");
 
 const LIGHT_DIR = { x: -0.6, y: -0.8 };
 
+// =====================================================
+// MAIN OVERVIEW
+// =====================================================
 function drawOverview(state) {
   drawNeuron1();
   drawNeuron2();
@@ -18,14 +21,41 @@ function drawOverview(state) {
   updateNeuron2EPSPs();
   updateSynapticCoupling();
 
-
-
   drawEPSPs();
   drawAxonSpikes();
   drawVesicles();
   drawNeuron2EPSPs();
+}
 
+// =====================================================
+// ORGANIC DENDRITE RENDERER (TRUNK → BRANCH → TWIG)
+// =====================================================
+function drawOrganicBranch(branch, baseColor) {
 
+  // ---- MAIN BODY (smooth taper) ----
+  noFill();
+  stroke(baseColor);
+
+  beginShape();
+  branch.forEach((p, i) => {
+    const t = i / (branch.length - 1);
+    strokeWeight(lerp(p.r * 2.4, p.r * 0.9, t));
+    curveVertex(p.x, p.y);
+  });
+  endShape();
+
+  // ---- LIGHTING HIGHLIGHT ----
+  stroke(255, 245, 190, 150);
+  beginShape();
+  branch.forEach((p, i) => {
+    const t = i / (branch.length - 1);
+    strokeWeight(lerp(p.r * 1.2, p.r * 0.4, t));
+    curveVertex(
+      p.x + LIGHT_DIR.x,
+      p.y + LIGHT_DIR.y
+    );
+  });
+  endShape();
 }
 
 // =====================================================
@@ -33,25 +63,9 @@ function drawOverview(state) {
 // =====================================================
 function drawNeuron1() {
 
-  // ---------------- DENDRITES ----------------
+  // ---------------- DENDRITES (TREE-LIKE) ----------------
   neuron.dendrites.forEach(branch => {
-    for (let i = 0; i < branch.length - 1; i++) {
-      const p1 = branch[i];
-      const p2 = branch[i + 1];
-
-      stroke(getColor("dendrite"));
-      strokeWeight(p1.r * 1.8);
-      line(p1.x, p1.y, p2.x, p2.y);
-
-      stroke(255, 245, 190);
-      strokeWeight(p1.r * 0.9);
-      line(
-        p1.x + LIGHT_DIR.x,
-        p1.y + LIGHT_DIR.y,
-        p2.x + LIGHT_DIR.x,
-        p2.y + LIGHT_DIR.y
-      );
-    }
+    drawOrganicBranch(branch, getColor("dendrite"));
   });
 
   // ---------------- SOMA ----------------
@@ -72,20 +86,20 @@ function drawNeuron1() {
 
   // Shadow
   fill(190, 165, 90);
-  ellipse(2, 3, neuron.somaRadius * 2.2);
+  ellipse(2, 3, neuron.somaRadius * 2.3);
 
   // Body
   fill(body);
-  ellipse(0, 0, neuron.somaRadius * 2.05);
+  ellipse(0, 0, neuron.somaRadius * 2.1);
 
-  // Highlight (clipped)
+  // Highlight
   push();
-  clip(() => ellipse(0, 0, neuron.somaRadius * 2.05));
+  clip(() => ellipse(0, 0, neuron.somaRadius * 2.1));
   fill(255, 255, 230, 120);
   ellipse(
-    neuron.somaRadius * -0.3,
-    neuron.somaRadius * -0.4,
-    neuron.somaRadius * 1.2
+    neuron.somaRadius * -0.35,
+    neuron.somaRadius * -0.45,
+    neuron.somaRadius * 1.3
   );
   pop();
 
@@ -103,7 +117,7 @@ function drawNeuron1() {
   strokeWeight(6);
 
   beginShape();
-  vertex(neuron.somaRadius + 10, 0);
+  vertex(neuron.somaRadius + neuron.hillock.length, 0);
   bezierVertex(
     neuron.somaRadius + 70, 14,
     neuron.somaRadius + 120, -14,
@@ -125,13 +139,12 @@ function drawNeuron1() {
       b.end.x,   b.end.y
     );
 
-    // Structural bouton (quiet, anatomical)
     noStroke();
     fill(getColor("terminalBouton", 180));
     ellipse(b.end.x, b.end.y, b.boutonRadius * 2);
   });
 
-  // ---------------- DENDRITIC SYNAPTIC INPUTS ----------------
+  // ---------------- SYNAPSES ----------------
   neuron.synapses.forEach(s => {
 
     const base =
@@ -155,66 +168,46 @@ function drawNeuron1() {
 }
 
 // =====================================================
-// NEURON 2 (POSTSYNAPTIC — MATCHED 3D STYLE)
+// NEURON 2 (POSTSYNAPTIC)
 // =====================================================
 function drawNeuron2() {
 
   // ---------------- DENDRITES ----------------
   neuron2.dendrites.forEach(branch => {
-    for (let i = 0; i < branch.length - 1; i++) {
-      const p1 = branch[i];
-      const p2 = branch[i + 1];
-
-      stroke(getColor("dendrite"));
-      strokeWeight(p1.r * 1.8);
-      line(p1.x, p1.y, p2.x, p2.y);
-
-      stroke(255, 245, 190);
-      strokeWeight(p1.r * 0.9);
-      line(
-        p1.x + LIGHT_DIR.x,
-        p1.y + LIGHT_DIR.y,
-        p2.x + LIGHT_DIR.x,
-        p2.y + LIGHT_DIR.y
-      );
-    }
+    drawOrganicBranch(branch, getColor("dendrite"));
   });
 
   // ---------------- SOMA ----------------
   push();
   noStroke();
 
-  // Shadow
   fill(190, 165, 90);
   ellipse(
     neuron2.soma.x + 2,
     neuron2.soma.y + 3,
-    neuron2.somaRadius * 2.2
+    neuron2.somaRadius * 2.3
   );
 
-  // Body
   fill(getColor("soma"));
   ellipse(
     neuron2.soma.x,
     neuron2.soma.y,
-    neuron2.somaRadius * 2.05
+    neuron2.somaRadius * 2.1
   );
 
-  // Highlight (clipped)
   push();
   clip(() =>
     ellipse(
       neuron2.soma.x,
       neuron2.soma.y,
-      neuron2.somaRadius * 2.05
+      neuron2.somaRadius * 2.1
     )
   );
-
   fill(255, 255, 230, 120);
   ellipse(
-    neuron2.soma.x + neuron2.somaRadius * -0.3,
-    neuron2.soma.y + neuron2.somaRadius * -0.4,
-    neuron2.somaRadius * 1.2
+    neuron2.soma.x + neuron2.somaRadius * -0.35,
+    neuron2.soma.y + neuron2.somaRadius * -0.45,
+    neuron2.somaRadius * 1.3
   );
   pop();
 
@@ -227,7 +220,7 @@ function drawNeuron2() {
     ellipse(s.x, s.y, s.radius * 2);
   });
 
-    // ---------------- AXON (POSTSYNAPTIC OUTPUT) ----------------
+  // ---------------- AXON OUTPUT ----------------
   const ax = radians(neuron2.axon.angle);
   const axStartX = neuron2.soma.x + cos(ax) * neuron2.somaRadius;
   const axStartY = neuron2.soma.y + sin(ax) * neuron2.somaRadius;
@@ -235,10 +228,10 @@ function drawNeuron2() {
   const axEndX = axStartX + cos(ax) * neuron2.axon.length;
   const axEndY = axStartY + sin(ax) * neuron2.axon.length;
 
-  // Axon body
-  noFill();
   stroke(getColor("axon"));
   strokeWeight(5);
+  noFill();
+
   beginShape();
   vertex(axStartX, axStartY);
   bezierVertex(
@@ -247,25 +240,6 @@ function drawNeuron2() {
     axEndX, axEndY
   );
   endShape();
-
-  // Highlight
-  stroke(255, 245, 190);
-  strokeWeight(2);
-  beginShape();
-  vertex(
-    axStartX + LIGHT_DIR.x,
-    axStartY + LIGHT_DIR.y
-  );
-  bezierVertex(
-    axStartX + 40 + LIGHT_DIR.x,
-    axStartY + 10 + LIGHT_DIR.y,
-    axEndX - 40 + LIGHT_DIR.x,
-    axEndY - 10 + LIGHT_DIR.y,
-    axEndX + LIGHT_DIR.x,
-    axEndY + LIGHT_DIR.y
-  );
-  endShape();
-
 }
 
 // =====================================================
