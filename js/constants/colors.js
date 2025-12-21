@@ -15,7 +15,7 @@ const COLORS = {
   // --------------------
   // Electrical signals
   // --------------------
-  epsp:   [ 80, 150, 255],   // blue
+  epsp:   [ 60, 220, 120],   // blue
   ipsp:   [220, 120, 120],   // red
   ap:     [ 60, 220, 120],   // green
   vesicle:[185, 150, 255],   // 🟣 light synaptic purple
