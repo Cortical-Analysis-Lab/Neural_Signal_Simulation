@@ -14,6 +14,7 @@ function drawOverview(state) {
   updateSoma();
   updateAxonSpikes();
   updateTerminalDots();
+  updateVesicles();
   updateSynapticCoupling();
 
   drawEPSPs();
