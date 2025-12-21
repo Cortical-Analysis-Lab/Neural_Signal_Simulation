@@ -6,7 +6,7 @@ console.log("neuron2 geometry loaded");
 // -----------------------------------------------------
 // Tunable biological parameters
 // -----------------------------------------------------
-const SYNAPTIC_CLEFT = 14;   // visible synaptic gap (px)
+const SYNAPTIC_CLEFT = 30;   // visible synaptic gap (px)
 const SOMA_OFFSET    = 110;  // distance from synapse to soma
 
 // -----------------------------------------------------
