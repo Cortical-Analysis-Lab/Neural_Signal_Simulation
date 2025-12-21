@@ -14,7 +14,13 @@ const neuron2 = {
   somaRadius: 34,
   soma: { x: 0, y: 0 },
   dendrites: [],
-  synapses: []
+  synapses: [],
+
+  // NEW: postsynaptic axon
+  axon: {
+    length: 260,
+    angle: -20
+  }
 };
 
 // -----------------------------------------------------
