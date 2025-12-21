@@ -19,6 +19,8 @@ function drawOverview(state) {
 
   drawEPSPs();
   drawAxonSpikes();
+  drawVesicles();
+
 }
 
 // =====================================================
