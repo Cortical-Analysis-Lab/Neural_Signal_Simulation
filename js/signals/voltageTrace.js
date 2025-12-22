@@ -32,31 +32,27 @@ function updateVoltageTrace() {
 // -----------------------------------------------------
 function drawVoltageTrace() {
 
-  if (!vmTrace.length || !window.neuron) return;
+  if (!vmTrace.length || !window.neuron || !window.soma) return;
 
   push();
 
   // ===================================================
-  // WORLD-SPACE POSITION (RELATIVE TO SOMA)
+  // Anchor directly below soma center
   // ===================================================
-  const x0 = neuron.somaRadius * 0.4;
-  const y0 = neuron.somaRadius * 1.2;
+  const somaBottom = neuron.somaRadius;
 
-  const traceWidth  = 240;
-  const traceHeight = 70;
+  const traceWidth  = 160;   // narrower
+  const traceHeight = 60;
+
+  const x0 = -traceWidth * 0.1;      // shift RIGHT of soma center
+  const y0 = somaBottom + 22;        // directly under soma
 
   // ---------------------------------------------------
-  // Frame
+  // Frame (for debugging – keep for now)
   // ---------------------------------------------------
   noFill();
   stroke(255, 40);
   rect(x0, y0, traceWidth, traceHeight, 6);
-
-  // ---------------------------------------------------
-  // Y-axis
-  // ---------------------------------------------------
-  stroke(255, 80);
-  line(x0, y0, x0, y0 + traceHeight);
 
   // ---------------------------------------------------
   // Threshold line
@@ -69,19 +65,9 @@ function drawVoltageTrace() {
     y0
   );
 
-  stroke(255, 120);
+  stroke(100, 180, 255);
+  strokeWeight(1);
   line(x0, yThresh, x0 + traceWidth, yThresh);
-
-  // Threshold label (vertical)
-  push();
-  translate(x0 - 12, yThresh);
-  rotate(-HALF_PI);
-  noStroke();
-  fill(255, 160);
-  textSize(10);
-  textAlign(CENTER, CENTER);
-  text("Threshold", 0, 0);
-  pop();
 
   // ---------------------------------------------------
   // Voltage trace
@@ -91,15 +77,15 @@ function drawVoltageTrace() {
   strokeWeight(2);
 
   beginShape();
-  vmTrace.forEach((v, i) => {
+  for (let i = 0; i < vmTrace.length; i++) {
     const x = map(i, 0, VM_TRACE_LENGTH - 1, x0, x0 + traceWidth);
-    const y = map(v, VM_MIN, VM_MAX, y0 + traceHeight, y0);
+    const y = map(vmTrace[i], VM_MIN, VM_MAX, y0 + traceHeight, y0);
     vertex(x, y);
-  });
+  }
   endShape();
 
   // ---------------------------------------------------
-  // Label below plot
+  // Label BELOW plot
   // ---------------------------------------------------
   noStroke();
   fill(200);
