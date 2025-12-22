@@ -93,9 +93,10 @@ function drawNeuron1() {
   push();
 
   const depol = constrain(
-    map(soma.Vm, soma.rest, soma.threshold, 0, 1),
+    map(soma.VmDisplay, soma.rest, soma.threshold, 0, 1),
     0, 1
   );
+
 
   const body = lerpColor(
     getColor("soma"),
@@ -128,7 +129,7 @@ function drawNeuron1() {
   fill(60);
   textAlign(CENTER, CENTER);
   textSize(14);
-  text(`${soma.Vm.toFixed(1)} mV`, 0, 2);
+  text(`${soma.VmDisplay.toFixed(1)} mV`, 0, 2);
 
   pop();
 
