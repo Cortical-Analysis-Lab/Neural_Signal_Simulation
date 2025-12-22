@@ -93,21 +93,25 @@ function draw() {
   scale(camera.zoom);
   translate(-camera.x, -camera.y);
 
-  if (!state.paused) {
-
-    // ---- CORE UPDATES ----
-    if (typeof updateAxonSpikes === "function") updateAxonSpikes();
-    if (typeof updateTerminalDots === "function") updateTerminalDots();
-    if (typeof updateEPSPs === "function") updateEPSPs();
-    if (typeof updateSoma === "function") updateSoma();
-
-    // 🔥 VOLTAGE TRACE SAMPLE (DISPLAY ONLY)
-    if (typeof updateVoltageTrace === "function") updateVoltageTrace();
-
-    // ---- NEURON 2 (future-safe hooks) ----
-    if (typeof updateNeuron2EPSPs === "function") updateNeuron2EPSPs();
-    if (typeof updateNeuron2Soma === "function") updateNeuron2Soma();
+    if (!state.paused) {
+  
+    // =====================================================
+    // CORE SIGNAL + STATE UPDATES (AUTHORITATIVE)
+    // =====================================================
+  
+    updateSynapseHover();
+    updateEPSPs();
+    updateSoma();
+    updateVoltageTrace();
+  
+    updateAxonSpikes();
+    updateTerminalDots();
+    updateVesicles();
+  
+    updateNeuron2EPSPs();
+    updateSynapticCoupling();
   }
+
 
   // ---- RENDER ----
   switch (state.mode) {
