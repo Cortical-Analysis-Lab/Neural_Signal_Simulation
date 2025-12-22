@@ -83,12 +83,13 @@ function drawMyelinSheath(neuron) {
   const nodes = neuron.axon.myelinNodes;
 
   // ============================
-  // Tuned visual parameters
+  // Tuned anatomy parameters
   // ============================
-  const AXON_CORE_WIDTH   = 4;
-  const MYELIN_WIDTH     = 14;
-  const SHEATH_LENGTH    = 14; // 👈 ~25% shorter (KEY FIX)
-  const INITIAL_SKIP_NODES = 1; // 👈 bare axon near soma
+  const AXON_CORE_WIDTH     = 4;
+  const MYELIN_WIDTH       = 14;
+  const SHEATH_LENGTH      = 14;  // short capsules (good as-is)
+  const AIS_LENGTH_PX      = 40;  // 👈 long bare initial segment
+  const SHEATH_STRIDE      = 3;   // 👈 draw every 3rd node (KEY FIX)
 
   // ============================
   // 1. Draw exposed axon core
@@ -102,7 +103,7 @@ function drawMyelinSheath(neuron) {
   endShape();
 
   // ============================
-  // 2. Draw short, evenly spaced sheaths
+  // 2. Draw spaced myelin sheaths
   // ============================
   stroke(getColor("myelin"));
   strokeWeight(MYELIN_WIDTH);
@@ -110,8 +111,16 @@ function drawMyelinSheath(neuron) {
   noFill();
 
   nodes.forEach((n, idx) => {
-    // Skip first node(s) to keep soma connected
-    if (idx < INITIAL_SKIP_NODES) return;
+
+    // ---- Skip initial axon segment (AIS) ----
+    const dFromSoma = dist(
+      path[0].x, path[0].y,
+      n.x, n.y
+    );
+    if (dFromSoma < AIS_LENGTH_PX) return;
+
+    // ---- Subsample nodes to space sheaths ----
+    if (idx % SHEATH_STRIDE !== 0) return;
 
     const i = n.pathIndex;
     if (i <= 0 || i >= path.length - 1) return;
@@ -127,7 +136,6 @@ function drawMyelinSheath(neuron) {
     const ux = dx / len;
     const uy = dy / len;
 
-    // Short capsule centered on node
     const half = SHEATH_LENGTH * 0.5;
     const x1 = n.x - ux * half;
     const y1 = n.y - uy * half;
@@ -146,8 +154,6 @@ function drawMyelinSheath(neuron) {
     ellipse(n.x, n.y, 6, 6);
   });
 }
-
-
 
 // =====================================================
 // NEURON 1 (PRESYNAPTIC)
