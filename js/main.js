@@ -137,9 +137,15 @@ function draw() {
     updateSoma();
     updateVoltageTrace();
   
-    updateAxonSpikes();
-    updateTerminalDots();
-    updateVesicles();
+    if (window.myelinEnabled) {
+    updateMyelinAPs();     // saltatory conduction
+    } else {
+    updateAxonSpikes();    // continuous conduction
+    }
+  
+  updateTerminalDots();
+  updateVesicles();
+
   
     updateNeuron2EPSPs();
     updateSynapticCoupling();
