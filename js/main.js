@@ -59,6 +59,8 @@ function setup() {
 
   // 2️⃣ THEN build neuron 2 (depends on axon terminals)
   initNeuron2();
+  initNeuron3();
+
 
   setMode("overview");
 
