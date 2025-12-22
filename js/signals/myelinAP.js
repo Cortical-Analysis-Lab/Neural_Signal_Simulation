@@ -75,13 +75,25 @@ function spawnMyelinAP() {
 function updateMyelinAPs() {
   for (let i = myelinAPs.length - 1; i >= 0; i--) {
     const ap = myelinAPs[i];
+
+    // -------------------------
+    // 1. Node dwell phase
+    // -------------------------
+    if (ap.dwell < 6) {        // ~6 frames visible
+      ap.dwell++;
+      continue;
+    }
+
+    // -------------------------
+    // 2. Jump phase (hidden)
+    // -------------------------
     ap.progress += MYELIN_NODE_SPEED;
 
     if (ap.progress >= 1) {
       ap.progress = 0;
+      ap.dwell = 0;
       ap.index++;
 
-      // reached terminal end
       if (ap.index >= ap.targets.length - 1) {
         myelinAPs.splice(i, 1);
       }
@@ -95,10 +107,7 @@ function updateMyelinAPs() {
 // -----------------------------------------------------
 function drawMyelinAPs() {
   myelinAPs.forEach(ap => {
-
-    // ❌ Hide AP while traveling under myelin
-    // ✔ Only show at nodes (brief flash)
-    if (ap.progress > 0.15) return;
+    if (ap.dwell === 0) return;   // ❌ hidden while jumping
 
     const p = ap.targets[ap.index];
     if (!p) return;
@@ -110,8 +119,6 @@ function drawMyelinAPs() {
     pop();
   });
 }
-
-
 
 // -----------------------------------------------------
 // Public API (for later switching)
