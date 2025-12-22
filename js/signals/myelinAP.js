@@ -12,8 +12,8 @@ console.log("myelinAP loaded");
 // -----------------------------------------------------
 // Parameters (still slow for verification)
 // -----------------------------------------------------
-const MYELIN_SPEED_NODE   = 0.006; // visible
-const MYELIN_SPEED_SHEATH = 0.04;  // invisible + fast
+const MYELIN_SPEED_NODE   = 0.035; // visible
+const MYELIN_SPEED_SHEATH = 0.08;  // invisible + fast
 const AP_RADIUS = 10;
 
 // Must match axonSpike.js
