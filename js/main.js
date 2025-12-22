@@ -47,7 +47,10 @@ function setMode(mode) {
     camera.targetY = 0;
     camera.targetZoom = 2.5;
   }
+
+  updateOverviewUI(); // 👈 ADD THIS LINE
 }
+
 
 // =====================================================
 // P5 SETUP
@@ -75,6 +78,23 @@ function setup() {
 
   // UI panels
   initUIPanels();
+  // =====================================================
+// MYELIN TOGGLE HOOKUP
+// =====================================================
+const myelinToggle = document.getElementById("myelinToggle");
+
+if (myelinToggle) {
+  myelinToggle.checked = window.myelinEnabled;
+
+  myelinToggle.addEventListener("change", () => {
+    window.myelinEnabled = myelinToggle.checked;
+    console.log("Myelin enabled:", window.myelinEnabled);
+  });
+}
+
+// Ensure correct visibility on load
+updateOverviewUI();
+
 }
 
 // =====================================================
@@ -198,3 +218,15 @@ function initUIPanels() {
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
 }
+
+// =====================================================
+// OVERVIEW-ONLY UI VISIBILITY
+// =====================================================
+function updateOverviewUI() {
+  const myelinUI = document.getElementById("myelinToggleContainer");
+  if (!myelinUI) return;
+
+  myelinUI.style.display =
+    state.mode === "overview" ? "flex" : "none";
+}
+
