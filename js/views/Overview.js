@@ -199,17 +199,21 @@ function drawNeuron1() {
 
   pop();
 
-   // ---------------- AXON INITIAL SEGMENT (AIS — short nub) ----------------
+  // ---------------- AXON INITIAL SEGMENT (AIS — thick nub) ----------------
+  push();
   stroke(getColor("axon"));
   strokeCap(ROUND);
-  strokeWeight(8); // thicker than axon
+  strokeWeight(10); // wider than axon
   
-  const AIS_LENGTH = neuron.hillock.length * 0.35;
+  const AIS_LENGTH = neuron.hillock.length * 0.25;
   
-  line(
-    neuron.somaRadius, 0,
-    neuron.somaRadius + AIS_LENGTH, 0
-  );
+  // Shift nub TOWARD axon so it overlaps the curve start
+  const AIS_START = neuron.somaRadius + neuron.hillock.length * 0.55;
+  const AIS_END   = AIS_START + AIS_LENGTH;
+  
+  line(AIS_START, 0, AIS_END, 0);
+  pop();
+
 
 
   // ---------------- AXON ----------------
