@@ -82,38 +82,45 @@ function drawMyelinSheath(neuron) {
   const path = neuron.axon.path;
   const nodes = neuron.axon.myelinNodes;
 
-  // Collect node indices
   const nodeSet = new Set(nodes.map(n => n.pathIndex));
 
-  // Visual parameters
-  const BASE_THICK = 10;
-  const TAPER_THICK = 6;
-
-  stroke(200, 210, 200, 170);
+  // ================================
+  // 1. Draw exposed axon core
+  // ================================
+  stroke(180, 160, 90); // warm axon core
+  strokeWeight(4);
   noFill();
+
+  beginShape();
+  path.forEach(p => vertex(p.x, p.y));
+  endShape();
+
+  // ================================
+  // 2. Draw myelin capsules
+  // ================================
+  stroke(235, 235, 220);   // bright myelin
+  strokeWeight(14);        // MUCH thicker
   strokeCap(ROUND);
+  noFill();
 
   let drawing = false;
 
   for (let i = 0; i < path.length - 1; i++) {
 
-    // Skip node gaps
+    // Node gaps: stop capsule
     if (nodeSet.has(i) || nodeSet.has(i + 1)) {
-      drawing = false;
+      if (drawing) {
+        endShape();
+        drawing = false;
+      }
       continue;
     }
 
-    // Start new internode segment
+    // Start new internode capsule
     if (!drawing) {
       beginShape();
       drawing = true;
     }
-
-    // Taper thickness near nodes
-    const nearNode =
-      nodeSet.has(i - 1) || nodeSet.has(i + 2);
-
-    strokeWeight(nearNode ? TAPER_THICK : BASE_THICK);
 
     vertex(path[i].x, path[i].y);
     vertex(path[i + 1].x, path[i + 1].y);
@@ -121,13 +128,17 @@ function drawMyelinSheath(neuron) {
 
   if (drawing) endShape();
 
-  // Optional subtle node highlight (very faint)
+  // ================================
+  // 3. Node of Ranvier highlights
+  // ================================
   noStroke();
-  fill(255, 255, 255, 40);
+  fill(255, 220, 140); // exposed axon glow
+
   nodes.forEach(n => {
-    ellipse(n.x, n.y, 4, 4);
+    ellipse(n.x, n.y, 6, 6);
   });
 }
+
 
 
 // =====================================================
