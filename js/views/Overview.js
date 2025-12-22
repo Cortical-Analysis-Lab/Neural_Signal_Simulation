@@ -199,13 +199,18 @@ function drawNeuron1() {
 
   pop();
 
-    // ---------------- AXON INITIAL SEGMENT (AIS) ----------------
-  stroke(getColor("axon")); // same color as axon & soma
-  strokeWeight(6);
+   // ---------------- AXON INITIAL SEGMENT (AIS — short nub) ----------------
+  stroke(getColor("axon"));
+  strokeCap(ROUND);
+  strokeWeight(8); // thicker than axon
+  
+  const AIS_LENGTH = neuron.hillock.length * 0.35;
+  
   line(
     neuron.somaRadius, 0,
-    neuron.somaRadius + neuron.hillock.length, 0
+    neuron.somaRadius + AIS_LENGTH, 0
   );
+
 
   // ---------------- AXON ----------------
   noFill();
