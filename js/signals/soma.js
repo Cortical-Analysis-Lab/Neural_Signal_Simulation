@@ -4,12 +4,12 @@
 console.log("soma loaded");
 
 const soma = {
-  Vm: -65,        // membrane potential (mV)
+  Vm: -65,            // TRUE membrane potential (fast)
+  VmDisplay: -65,     // 👁️ DISPLAY membrane potential (slow)
   rest: -65,
   threshold: -50,
   tau: 0.98,
 
-  // 🔑 spike visualization state
   spiking: false,
   spikeFrames: 0
 };
@@ -18,7 +18,7 @@ const soma = {
 // Action potential state
 // -----------------------------------------------------
 const REFRACTORY_FRAMES = 30;
-const SPIKE_DISPLAY_FRAMES = 3; // how long Vm stays high visually
+const SPIKE_DISPLAY_FRAMES = 3; // frames Vm stays at peak
 let refractory = 0;
 
 // -----------------------------------------------------
@@ -26,23 +26,13 @@ let refractory = 0;
 // -----------------------------------------------------
 function addEPSPToSoma(amplitude, type) {
 
-  // Normalize bouton strength (legacy-compatible)
   const normalized = constrain((amplitude - 6) / 24, 0, 1);
-
   let deltaV;
 
   if (type === "exc") {
-
-    // Nonlinear EPSP gain
     deltaV = 3 + 28 * normalized * normalized;
-
-    // Driver synapse
-    if (normalized > 0.9) {
-      deltaV += 10;
-    }
-
+    if (normalized > 0.9) deltaV += 10; // driver synapse
   } else {
-    // IPSP
     deltaV = -(4 + 20 * normalized);
   }
 
@@ -50,13 +40,11 @@ function addEPSPToSoma(amplitude, type) {
 }
 
 // -----------------------------------------------------
-// Soma update (decay, spike handling, refractory)
+// Soma update (physiology + display smoothing)
 // -----------------------------------------------------
 function updateSoma() {
 
-  // -----------------------------------------------
-  // Visible spike phase
-  // -----------------------------------------------
+  // ---------------- Visible spike phase ----------------
   if (soma.spiking) {
     soma.spikeFrames--;
 
@@ -65,31 +53,33 @@ function updateSoma() {
       refractory = REFRACTORY_FRAMES;
       soma.Vm = soma.rest;
     }
-
-    return;
   }
 
-  // -----------------------------------------------
-  // Absolute refractory
-  // -----------------------------------------------
-  if (refractory > 0) {
+  // ---------------- Absolute refractory ----------------
+  else if (refractory > 0) {
     refractory--;
     soma.Vm = soma.rest;
-    return;
   }
 
-  // -----------------------------------------------
-  // Threshold crossing
-  // -----------------------------------------------
-  if (soma.Vm >= soma.threshold) {
+  // ---------------- Threshold crossing ----------------
+  else if (soma.Vm >= soma.threshold) {
     fireActionPotential();
-    return;
   }
 
-  // -----------------------------------------------
-  // Passive decay toward rest
-  // -----------------------------------------------
-  soma.Vm = lerp(soma.Vm, soma.rest, 1 - soma.tau);
+  // ---------------- Passive decay ----------------
+  else {
+    soma.Vm = lerp(soma.Vm, soma.rest, 1 - soma.tau);
+  }
+
+  // =====================================================
+  // 👁️ SLOW DISPLAY FILTER (THIS IS THE KEY CHANGE)
+  // =====================================================
+  const DISPLAY_TAU = 0.88;   // 🔴 LOWER = MUCH SLOWER
+  soma.VmDisplay = lerp(
+    soma.VmDisplay,
+    soma.Vm,
+    1 - DISPLAY_TAU
+  );
 }
 
 // -----------------------------------------------------
@@ -99,10 +89,8 @@ function fireActionPotential() {
 
   soma.spiking = true;
   soma.spikeFrames = SPIKE_DISPLAY_FRAMES;
-  soma.Vm = 40;   // spike peak (visible now)
+  soma.Vm = 40;   // spike peak
 
-  // 🔥 Critical link to axon
   spawnAxonSpike();
-
   console.log("⚡ ACTION POTENTIAL");
 }
