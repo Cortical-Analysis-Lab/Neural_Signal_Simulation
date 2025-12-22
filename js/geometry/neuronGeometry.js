@@ -29,91 +29,89 @@ function polarToCartesian(angleDeg, r) {
 // -----------------------------------------------------
 function createDendriticTree(baseAngle) {
 
-  const branches = [];
+  const segments = [];
 
   // --- Soma attachment ---
-  const attachAngle = baseAngle + random(-3, 3);
+  const attachAngle = baseAngle + random(-2, 2);
   const somaAttach = polarToCartesian(attachAngle, neuron.somaRadius);
 
-  // --- Trunk parameters ---
-  const trunkAngle = attachAngle + random(-5, 5);
-  const trunkLength = random(90, 120);
-  const trunkSegments = 4;
+  // --- Trunk definition ---
+  const trunkAngle = attachAngle + random(-4, 4);
+  const trunkLength = random(120, 150);
+  const trunkSegments = 5;
 
   const trunk = [];
-  trunk.push({ x: somaAttach.x, y: somaAttach.y, r: 9.5 });
+  trunk.push({ x: somaAttach.x, y: somaAttach.y, r: 10.5 });
 
-  // Build a smooth trunk spline
   for (let i = 1; i <= trunkSegments; i++) {
     const t = i / trunkSegments;
 
-    const bend =
-      sin(t * PI) * random(-8, 8); // gentle curvature, not noise
+    const curvature = sin(t * PI) * random(-6, 6);
 
     const p = polarToCartesian(
-      trunkAngle + bend,
+      trunkAngle + curvature,
       neuron.somaRadius + trunkLength * t
     );
 
     trunk.push({
       x: p.x,
       y: p.y,
-      r: lerp(9.5, 4.8, t)
+      r: lerp(10.5, 5.2, t)
     });
   }
 
-  // --- Branches grow FROM the trunk ---
+  // 🔑 PUSH THE TRUNK AS ITS OWN VISIBLE SEGMENT
+  segments.push(trunk);
+
+  // --- Branches grow off trunk ---
   const branchCount = floor(random(3, 4));
 
   for (let i = 0; i < branchCount; i++) {
 
-    // pick a point along the trunk (not the base)
-    const trunkIndex = floor(random(2, trunk.length - 1));
-    const trunkPoint = trunk[trunkIndex];
+    const idx = floor(random(2, trunk.length - 1));
+    const origin = trunk[idx];
 
     const side = random() < 0.5 ? -1 : 1;
-    const branchAngle =
-      trunkAngle + side * random(35, 55);
+    const branchAngle = trunkAngle + side * random(45, 65);
 
-    const branchLength = random(45, 65);
+    const branchLength = random(50, 70);
 
-    const branchMid = {
-      x: trunkPoint.x + cos(radians(branchAngle)) * branchLength * 0.5,
-      y: trunkPoint.y + sin(radians(branchAngle)) * branchLength * 0.5
+    const mid = {
+      x: origin.x + cos(radians(branchAngle)) * branchLength * 0.5,
+      y: origin.y + sin(radians(branchAngle)) * branchLength * 0.5
     };
 
-    const branchEnd = {
-      x: trunkPoint.x + cos(radians(branchAngle)) * branchLength,
-      y: trunkPoint.y + sin(radians(branchAngle)) * branchLength
+    const end = {
+      x: origin.x + cos(radians(branchAngle)) * branchLength,
+      y: origin.y + sin(radians(branchAngle)) * branchLength
     };
 
     const branch = [
-      trunkPoint,
-      { x: branchMid.x, y: branchMid.y, r: 3.8 },
-      { x: branchEnd.x, y: branchEnd.y, r: 3.0 }
+      origin,
+      { x: mid.x, y: mid.y, r: 4.0 },
+      { x: end.x, y: end.y, r: 3.0 }
     ];
 
-    // --- Terminal twigs ---
-    const twigCount = floor(random(2, 4));
+    // --- Twigs ---
+    const twigCount = floor(random(2, 3));
 
     for (let j = 0; j < twigCount; j++) {
 
-      const twigAngle =
-        branchAngle + random(-25, 25);
+      const twigAngle = branchAngle + random(-25, 25);
 
       const twigEnd = {
-        x: branchEnd.x + cos(radians(twigAngle)) * random(22, 36),
-        y: branchEnd.y + sin(radians(twigAngle)) * random(22, 36)
+        x: end.x + cos(radians(twigAngle)) * random(22, 36),
+        y: end.y + sin(radians(twigAngle)) * random(22, 36)
       };
 
-      branches.push([
+      segments.push([
         ...branch,
         { x: twigEnd.x, y: twigEnd.y, r: 2.0 }
       ]);
     }
   }
 
-  return branches;
+  return segments;
 }
 
 
