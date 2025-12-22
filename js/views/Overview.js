@@ -12,7 +12,7 @@ function drawOverview(state) {
   drawNeuron1();
   drawNeuron2();
 
-
+  drawVoltageTrace();
   drawEPSPs();
   drawAxonSpikes();
   drawVesicles();
