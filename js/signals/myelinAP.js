@@ -20,21 +20,52 @@ const NODE_GLOW_RADIUS = 10;
 // -----------------------------------------------------
 const myelinAPs = [];
 
+function getSaltatoryTargets(neuron, sheathCount = 3) {
+  const path = neuron.axon.path;
+  if (!path || path.length < 2) return [];
+
+  const cum = [0];
+  for (let i = 1; i < path.length; i++) {
+    cum[i] = cum[i - 1] +
+      dist(path[i - 1].x, path[i - 1].y, path[i].x, path[i].y);
+  }
+  const L = cum[cum.length - 1];
+
+  const gapCount = sheathCount + 1;
+  const targets = [];
+
+  for (let g = 0; g <= gapCount; g++) {
+    const d = (g / gapCount) * L;
+
+    let idx = 0;
+    while (idx < cum.length && cum[idx] < d) idx++;
+    if (idx >= path.length) idx = path.length - 1;
+
+    targets.push(path[idx]);
+  }
+
+  return targets;
+}
+
 // -----------------------------------------------------
 // Spawn myelinated AP at first node
 // -----------------------------------------------------
 function spawnMyelinAP() {
-  if (!neuron || !neuron.axon || !neuron.axon.myelinNodes) return;
+  if (!window.myelinEnabled) return;
+  if (!neuron?.axon?.path) return;
 
-  // prevent overlapping APs at first node
+  const targets = getSaltatoryTargets(neuron);
+
+  // prevent overlap at first gap
   if (myelinAPs.length > 0) {
     const last = myelinAPs[myelinAPs.length - 1];
-    if (last.nodeIndex === 0 && last.progress < 0.3) return;
+    if (last.index === 0 && last.progress < 0.4) return;
   }
 
   myelinAPs.push({
-    nodeIndex: 0,
-    progress: 0
+    index: 0,
+    progress: 0,
+    targets
   });
 }
 
@@ -48,33 +79,33 @@ function updateMyelinAPs() {
 
     if (ap.progress >= 1) {
       ap.progress = 0;
-      ap.nodeIndex++;
+      ap.index++;
 
-      // reached end of axon (terminal logic later)
-      if (ap.nodeIndex >= neuron.axon.myelinNodes.length) {
+      // reached terminal end
+      if (ap.index >= ap.targets.length - 1) {
         myelinAPs.splice(i, 1);
       }
     }
   }
 }
 
+
 // -----------------------------------------------------
 // Draw saltatory AP (node-locked)
 // -----------------------------------------------------
 function drawMyelinAPs() {
-  if (!neuron || !neuron.axon || !neuron.axon.myelinNodes) return;
-
   myelinAPs.forEach(ap => {
-    const node = neuron.axon.myelinNodes[ap.nodeIndex];
-    if (!node) return;
+    const p = ap.targets[ap.index];
+    if (!p) return;
 
     push();
     noStroke();
     fill(getColor("ap"));
-    ellipse(node.x, node.y, NODE_GLOW_RADIUS, NODE_GLOW_RADIUS);
+    ellipse(p.x, p.y, NODE_GLOW_RADIUS, NODE_GLOW_RADIUS);
     pop();
   });
 }
+
 
 // -----------------------------------------------------
 // Public API (for later switching)
