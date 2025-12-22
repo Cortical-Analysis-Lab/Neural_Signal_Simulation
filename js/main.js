@@ -125,13 +125,13 @@ function draw() {
       drawSynapseView(state);
       break;
   }
-
+  drawVoltageTrace();
   pop();
 
   // =====================================================
   // UI OVERLAY (SCREEN SPACE)
   // =====================================================
-  drawVoltageTrace();
+
   drawTimeReadout();
 }
 
