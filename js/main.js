@@ -131,6 +131,7 @@ function draw() {
   // =====================================================
   // UI OVERLAY (SCREEN SPACE)
   // =====================================================
+  drawVoltageTrace();
   drawTimeReadout();
 }
 
