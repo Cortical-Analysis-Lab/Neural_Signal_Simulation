@@ -1,20 +1,19 @@
 // =====================================================
 // MYELINATED AXON ACTION POTENTIAL (SALTATORY-LIKE)
 // =====================================================
-// Continuous propagation like axonSpike.js
-// ✔ Faster conduction
-// ✔ Invisible through myelin sheaths
-// ✔ Visible in gaps / AIS / terminal region
-// ❌ No terminal branching yet
+// Continuous axon propagation
+// ✔ Faster than unmyelinated
+// ✔ Invisible ONLY under myelin
+// ✔ Clearly visible in gaps
 // =====================================================
 
 console.log("myelinAP loaded");
 
 // -----------------------------------------------------
-// Speed parameters
+// Speed tuning (CRITICAL)
 // -----------------------------------------------------
-const MYELIN_SPEED_VISIBLE = 0.045; // slightly faster than unmyelinated
-const MYELIN_SPEED_HIDDEN  = 0.22;  // very fast under myelin
+const MYELIN_SPEED_VISIBLE = 0.035; // visible & smooth
+const MYELIN_SPEED_HIDDEN  = 0.12; // fast but not teleporting
 
 // -----------------------------------------------------
 // Active myelinated APs
@@ -22,19 +21,19 @@ const MYELIN_SPEED_HIDDEN  = 0.22;  // very fast under myelin
 const myelinAPs = [];
 
 // -----------------------------------------------------
-// Compute myelin sheath PHASE intervals
-// (must match visual sheath placement)
+// Myelin sheath PHASE intervals (tight!)
 // -----------------------------------------------------
-function getMyelinPhaseIntervals(neuron, sheathCount = 4, sheathFrac = 0.06) {
+function getMyelinPhaseIntervals(neuron) {
+  const SHEATH_COUNT = 4;
+  const SHEATH_WIDTH = 0.02; // 👈 VERY IMPORTANT (small!)
+
   const intervals = [];
 
-  for (let s = 1; s <= sheathCount; s++) {
-    const center = s / (sheathCount + 1);
-    const half   = sheathFrac * 0.5;
-
+  for (let s = 1; s <= SHEATH_COUNT; s++) {
+    const center = s / (SHEATH_COUNT + 1);
     intervals.push({
-      start: center - half,
-      end:   center + half
+      start: center - SHEATH_WIDTH * 0.5,
+      end:   center + SHEATH_WIDTH * 0.5
     });
   }
 
@@ -42,11 +41,10 @@ function getMyelinPhaseIntervals(neuron, sheathCount = 4, sheathFrac = 0.06) {
 }
 
 // -----------------------------------------------------
-// Spawn myelinated AP at AIS
+// Spawn AP at AIS
 // -----------------------------------------------------
 function spawnMyelinAP() {
   if (!window.myelinEnabled) return;
-  if (!neuron) return;
 
   // Prevent overlap near AIS
   if (myelinAPs.length > 0) {
@@ -67,11 +65,11 @@ function updateMyelinAPs() {
   for (let i = myelinAPs.length - 1; i >= 0; i--) {
     const ap = myelinAPs[i];
 
-    const inSheath = ap.intervals.some(
+    const hidden = ap.intervals.some(
       seg => ap.phase >= seg.start && ap.phase <= seg.end
     );
 
-    ap.phase += inSheath
+    ap.phase += hidden
       ? MYELIN_SPEED_HIDDEN
       : MYELIN_SPEED_VISIBLE;
 
@@ -82,7 +80,7 @@ function updateMyelinAPs() {
 }
 
 // -----------------------------------------------------
-// Draw AP (ONLY when not under myelin)
+// Draw AP (ONLY in gaps)
 // -----------------------------------------------------
 function drawMyelinAPs() {
   myelinAPs.forEach(ap => {
