@@ -79,27 +79,40 @@ function drawMyelinSheath(neuron) {
   if (!window.myelinEnabled) return;
   if (!neuron?.axon?.path || !neuron?.axon?.myelinNodes) return;
 
-  const path = neuron.axon.path;
+  const path  = neuron.axon.path;
   const nodes = neuron.axon.myelinNodes;
 
-  const nodeSet = new Set(nodes.map(n => n.pathIndex));
+  // ----------------------------
+  // Parameters (TUNE THESE)
+  // ----------------------------
+  const AXON_CORE_WIDTH = 4;
+  const MYELIN_WIDTH   = 14;
+  const NODE_GAP       = 3;   // 👈 WIDENS NODES (KEY FIX)
 
-  // ================================
+  // Build node gap index set
+  const gapSet = new Set();
+  nodes.forEach(n => {
+    for (let k = -NODE_GAP; k <= NODE_GAP; k++) {
+      gapSet.add(n.pathIndex + k);
+    }
+  });
+
+  // ============================
   // 1. Draw exposed axon core
-  // ================================
-  stroke(180, 160, 90); // warm axon core
-  strokeWeight(4);
+  // ============================
+  stroke(getColor("axon"));
+  strokeWeight(AXON_CORE_WIDTH);
   noFill();
 
   beginShape();
   path.forEach(p => vertex(p.x, p.y));
   endShape();
 
-  // ================================
+  // ============================
   // 2. Draw myelin capsules
-  // ================================
-  stroke(235, 235, 220);   // bright myelin
-  strokeWeight(14);        // MUCH thicker
+  // ============================
+  stroke(getColor("myelin"));
+  strokeWeight(MYELIN_WIDTH);
   strokeCap(ROUND);
   noFill();
 
@@ -107,8 +120,8 @@ function drawMyelinSheath(neuron) {
 
   for (let i = 0; i < path.length - 1; i++) {
 
-    // Node gaps: stop capsule
-    if (nodeSet.has(i) || nodeSet.has(i + 1)) {
+    // Skip widened node gaps
+    if (gapSet.has(i) || gapSet.has(i + 1)) {
       if (drawing) {
         endShape();
         drawing = false;
@@ -116,7 +129,7 @@ function drawMyelinSheath(neuron) {
       continue;
     }
 
-    // Start new internode capsule
+    // Start new internode
     if (!drawing) {
       beginShape();
       drawing = true;
@@ -128,16 +141,16 @@ function drawMyelinSheath(neuron) {
 
   if (drawing) endShape();
 
-  // ================================
-  // 3. Node of Ranvier highlights
-  // ================================
+  // ============================
+  // 3. Node highlights (optional)
+  // ============================
   noStroke();
-  fill(255, 220, 140); // exposed axon glow
-
+  fill(getColor("nodeAxon"));
   nodes.forEach(n => {
     ellipse(n.x, n.y, 6, 6);
   });
 }
+
 
 
 
