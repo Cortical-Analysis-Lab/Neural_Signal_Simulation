@@ -269,13 +269,19 @@ function drawNeuron2() {
 function drawSynapseControls(s) {
   noStroke();
 
-  fill(80, 200, 120);
+  // -------- PLUS --------
+  fill(255); // white button
   ellipse(s.x, s.y - s.radius - 18, 18, 18);
-  fill(0);
+
+  fill(0);   // black "+"
+  textAlign(CENTER, CENTER);
   text("+", s.x, s.y - s.radius - 18);
 
-  fill(200, 100, 100);
+  // -------- MINUS --------
+  fill(255); // white button
   ellipse(s.x, s.y + s.radius + 18, 18, 18);
-  fill(0);
+
+  fill(0);   // black "-"
   text("–", s.x, s.y + s.radius + 18);
 }
+
