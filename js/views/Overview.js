@@ -259,6 +259,9 @@ function drawNeuron2() {
 // =====================================================
 // NEURON 3 (INHIBITORY POSTSYNAPTIC)
 // =====================================================
+// =====================================================
+// NEURON 3 (INHIBITORY INTERNEURON)
+// =====================================================
 function drawNeuron3() {
 
   // ---------------- DENDRITES ----------------
@@ -266,55 +269,49 @@ function drawNeuron3() {
     drawOrganicBranch(branch, getColor("dendrite"));
   });
 
-  // ---------------- SOMA (match style, keep inhibitory color) ----------------
+  // ---------------- SOMA ----------------
   push();
   noStroke();
 
-  // Shadow (same style as neuron 1/2)
-  fill(140, 105, 80);
+  // Shadow (same as other neurons)
+  fill(190, 165, 90);
   ellipse(
     neuron3.soma.x + 2,
     neuron3.soma.y + 3,
-    neuron3.somaRadius * 2.2
+    neuron3.somaRadius * 2.3
   );
 
-  // Body (inhibitory soma color)
-  const inhibitoryBody = lerpColor(
-    getColor("ipsp"),
-    color(255, 210, 210),
-    0.25
-  );
-
-  fill(inhibitoryBody);
+  // Body (🔑 SAME SOMA COLOR AS OTHERS)
+  fill(getColor("soma"));
   ellipse(
     neuron3.soma.x,
     neuron3.soma.y,
-    neuron3.somaRadius * 2.0
+    neuron3.somaRadius * 2.1
   );
 
-  // Highlight (same look as others)
+  // Highlight
   push();
   clip(() =>
     ellipse(
       neuron3.soma.x,
       neuron3.soma.y,
-      neuron3.somaRadius * 2.0
+      neuron3.somaRadius * 2.1
     )
   );
-  fill(255, 255, 230, 95);
+  fill(255, 255, 230, 120);
   ellipse(
     neuron3.soma.x - neuron3.somaRadius * 0.35,
     neuron3.soma.y - neuron3.somaRadius * 0.45,
-    neuron3.somaRadius * 1.2
+    neuron3.somaRadius * 1.3
   );
   pop();
 
   pop();
 
-  // ---------------- INHIBITORY SYNAPSE MARKERS ----------------
+  // ---------------- POSTSYNAPTIC DENSITY ----------------
   neuron3.synapses.forEach(s => {
     noStroke();
-    fill(getColor("ipsp"));
+    fill(getColor("ipsp")); // red synapse, not red neuron
     ellipse(s.x, s.y, s.radius * 2);
   });
 }
