@@ -1,5 +1,6 @@
 // =====================================================
 // POSTSYNAPTIC NEURON GEOMETRY (NEURON 2)
+// MATCHES NEURON 1 STYLE (TRUNK → BRANCH → TWIG)
 // =====================================================
 console.log("neuron2 geometry loaded");
 
@@ -16,7 +17,6 @@ const neuron2 = {
   dendrites: [],
   synapses: [],
 
-  // NEW: postsynaptic axon
   axon: {
     length: 260,
     angle: -20
@@ -33,7 +33,7 @@ function initNeuron2() {
   neuron2.synapses  = [];
 
   // ---------------------------------------------------
-  // 1) Choose ONE presynaptic terminal branch (LOCKED)
+  // 1) Lock to one presynaptic terminal bouton
   // ---------------------------------------------------
   const preBranch = neuron.axon.terminalBranches[1];
 
@@ -43,7 +43,7 @@ function initNeuron2() {
   };
 
   // ---------------------------------------------------
-  // 2) Postsynaptic contact point (dendritic tip)
+  // 2) Postsynaptic dendritic contact
   // ---------------------------------------------------
   const dendriteContact = {
     x: presynapticBouton.x + SYNAPTIC_CLEFT,
@@ -51,71 +51,109 @@ function initNeuron2() {
   };
 
   // ---------------------------------------------------
-  // 3) Soma placement (well separated)
+  // 3) Soma placement
   // ---------------------------------------------------
   neuron2.soma.x = dendriteContact.x + SOMA_OFFSET;
   neuron2.soma.y = dendriteContact.y + random(-20, 20);
 
   // ---------------------------------------------------
-  // 4) PRIMARY DENDRITE (CONNECTED TO AXON TERMINAL)
-  //    Built distal → proximal for smooth rendering
+  // 4) PRIMARY DENDRITIC TRUNK (dominant)
   // ---------------------------------------------------
-  // ---------------------------------------------------
-// 4) PRIMARY DENDRITE (STOPS BEFORE CLEF T)
-// ---------------------------------------------------
-  const primaryDendrite = [
-    {
-      x: neuron2.soma.x,
-      y: neuron2.soma.y,
-      r: 4
-    },
-    {
-      x: lerp(neuron2.soma.x, dendriteContact.x, 0.6),
-      y: lerp(neuron2.soma.y, dendriteContact.y, 0.6),
-      r: 3
-    },
-    {
-      x: dendriteContact.x,
-      y: dendriteContact.y,
-      r: 2
-    }
-  ];
-  
-  neuron2.dendrites.push(primaryDendrite);
+  const trunkAngle = degrees(
+    atan2(
+      dendriteContact.y - neuron2.soma.y,
+      dendriteContact.x - neuron2.soma.x
+    )
+  );
 
+  const trunkLength   = dist(
+    neuron2.soma.x,
+    neuron2.soma.y,
+    dendriteContact.x,
+    dendriteContact.y
+  );
 
-  // ---------------------------------------------------
-  // 5) SECONDARY DENDRITES (FREE BRANCHING)
-  // ---------------------------------------------------
-  const branchAngles = [140, 200, 250];
+  const trunkSegments = 4;
+  const trunk = [];
 
-  branchAngles.forEach(angle => {
-
-    const base = polarToCartesian(angle, neuron2.somaRadius + 8);
-    const mid  = polarToCartesian(angle + random(-10, 10), 90);
-    const tip  = polarToCartesian(angle + random(-18, 18), 150);
-
-    neuron2.dendrites.push([
-      {
-        x: neuron2.soma.x + tip.x,
-        y: neuron2.soma.y + tip.y,
-        r: 1.6
-      },
-      {
-        x: neuron2.soma.x + mid.x,
-        y: neuron2.soma.y + mid.y,
-        r: 2.4
-      },
-      {
-        x: neuron2.soma.x + base.x,
-        y: neuron2.soma.y + base.y,
-        r: 3.6
-      }
-    ]);
+  trunk.push({
+    x: neuron2.soma.x,
+    y: neuron2.soma.y,
+    r: 6.0
   });
 
+  for (let i = 1; i <= trunkSegments; i++) {
+
+    const t = i / trunkSegments;
+    const bend = sin(t * PI) * random(-4, 4);
+
+    const p = polarToCartesian(
+      trunkAngle + bend,
+      trunkLength * t
+    );
+
+    trunk.push({
+      x: neuron2.soma.x + p.x,
+      y: neuron2.soma.y + p.y,
+      r: lerp(6.0, 2.6, t)
+    });
+  }
+
+  neuron2.dendrites.push(trunk);
+
   // ---------------------------------------------------
-  // 6) POSTSYNAPTIC DENSITY (VISUAL MARKER ONLY)
+  // 5) SECONDARY BRANCHES OFF TRUNK
+  // ---------------------------------------------------
+  const branchCount = 3;
+
+  for (let i = 0; i < branchCount; i++) {
+
+    const idx = floor(random(1, trunk.length - 1));
+    const origin = trunk[idx];
+
+    const side = random() < 0.5 ? -1 : 1;
+    const branchAngle = trunkAngle + side * random(40, 65);
+    const branchLength = random(55, 75);
+
+    const mid = {
+      x: origin.x + cos(radians(branchAngle)) * branchLength * 0.5,
+      y: origin.y + sin(radians(branchAngle)) * branchLength * 0.5
+    };
+
+    const end = {
+      x: origin.x + cos(radians(branchAngle)) * branchLength,
+      y: origin.y + sin(radians(branchAngle)) * branchLength
+    };
+
+    const branch = [
+      origin,
+      { x: mid.x, y: mid.y, r: 2.8 },
+      { x: end.x, y: end.y, r: 2.2 }
+    ];
+
+    // -------------------------------------------------
+    // 6) TERMINAL TWIGS
+    // -------------------------------------------------
+    const twigCount = floor(random(1, 3));
+
+    for (let j = 0; j < twigCount; j++) {
+
+      const twigAngle = branchAngle + random(-25, 25);
+
+      const twigEnd = {
+        x: end.x + cos(radians(twigAngle)) * random(20, 34),
+        y: end.y + sin(radians(twigAngle)) * random(20, 34)
+      };
+
+      neuron2.dendrites.push([
+        ...branch,
+        { x: twigEnd.x, y: twigEnd.y, r: 1.8 }
+      ]);
+    }
+  }
+
+  // ---------------------------------------------------
+  // 7) POSTSYNAPTIC DENSITY (VISUAL MARKER ONLY)
   // ---------------------------------------------------
   neuron2.synapses.push({
     x: dendriteContact.x,
