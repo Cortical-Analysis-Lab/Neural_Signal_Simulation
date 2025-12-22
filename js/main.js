@@ -125,7 +125,6 @@ function draw() {
       drawSynapseView(state);
       break;
   }
-  drawVoltageTrace();
   pop();
 
   // =====================================================
