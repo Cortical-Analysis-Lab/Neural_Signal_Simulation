@@ -92,18 +92,7 @@ function drawMyelinSheath(neuron) {
   const SHEATH_LENGTH  = 8;
   const SHEATH_COUNT   = 4;
 
-  // ============================
-  // 1. Draw axon core (continuous)
-  // ============================
-  stroke(getColor("axon"));
-  strokeWeight(AXON_CORE_WIDTH);
-  noFill();
-
-  beginShape();
-  path.forEach(p => vertex(p.x, p.y));
-  endShape();
-
-  // ============================
+    // ============================
   // 2. Precompute cumulative distance
   // ============================
   const cumDist = [0];
