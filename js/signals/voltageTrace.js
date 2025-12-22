@@ -6,17 +6,17 @@ console.log("voltageTrace loaded");
 // -----------------------------------------------------
 // Configuration
 // -----------------------------------------------------
-const VM_TRACE_LENGTH = 240;   // samples (~4 sec @ 60 fps)
+const VM_TRACE_LENGTH = 240;   // ~4 sec @ 60 fps
 const VM_MIN = -75;
 const VM_MAX = 45;
 
 // -----------------------------------------------------
-// Internal buffer (live soma VmDisplay)
+// Internal buffer
 // -----------------------------------------------------
 const vmTrace = [];
 
 // -----------------------------------------------------
-// Update trace buffer (called every frame)
+// Update trace buffer
 // -----------------------------------------------------
 function updateVoltageTrace() {
   if (!window.soma) return;
@@ -29,25 +29,22 @@ function updateVoltageTrace() {
 }
 
 // -----------------------------------------------------
-// Draw voltage trace (WORLD SPACE, follows neuron)
+// Draw voltage trace (WORLD SPACE)
 // -----------------------------------------------------
 function drawVoltageTrace() {
 
   if (vmTrace.length < 2) return;
+  if (!window.neuron) return;
 
   // ---------------------------------------------
-  // Anchor to neuron 1 soma (same frame as soma)
+  // Anchor directly under neuron 1 soma
+  // Soma is at (0,0) in world space
   // ---------------------------------------------
-  const somaX = 0;
-  const somaY = 0;
-
-  // Trace layout (relative to soma)
   const traceWidth  = 120;
-  const traceHeight = 35;
-  const yOffset     = neuron.somaRadius + 22;
+  const traceHeight = 32;
 
-  const x0 = somaX - traceWidth / 2;
-  const y0 = somaY + yOffset;
+  const x0 = -traceWidth / 2;
+  const y0 = neuron.somaRadius + 26;
 
   // ---------------------------------------------
   // Threshold line
@@ -69,7 +66,7 @@ function drawVoltageTrace() {
   // ---------------------------------------------
   noFill();
   stroke(255);
-  strokeWeight(1.6);
+  strokeWeight(1.5);
 
   beginShape();
   for (let i = 0; i < vmTrace.length; i++) {
