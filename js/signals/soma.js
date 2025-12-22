@@ -8,7 +8,7 @@ const soma = {
   VmDisplay: -65,     // 👁️ DISPLAY membrane potential (slow)
   rest: -65,
   threshold: -50,
-  tau: 0.88,
+  tau: 0.98,
 
   spiking: false,
   spikeFrames: 0
@@ -74,7 +74,7 @@ function updateSoma() {
   // =====================================================
   // 👁️ SLOW DISPLAY FILTER (THIS IS THE KEY CHANGE)
   // =====================================================
-  const DISPLAY_TAU = 0.88;   // 🔴 LOWER = MUCH SLOWER
+  const DISPLAY_TAU = 0.80;   // 🔴 LOWER = MUCH SLOWER
   soma.VmDisplay = lerp(
     soma.VmDisplay,
     soma.Vm,
