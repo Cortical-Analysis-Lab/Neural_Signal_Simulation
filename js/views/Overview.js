@@ -40,7 +40,7 @@ function drawOrganicBranch(branch, baseColor) {
 
   beginShape();
 
-  // 🔑 REQUIRED: duplicate first point
+  // Duplicate first point (required for curveVertex)
   curveVertex(branch[0].x, branch[0].y);
 
   branch.forEach((p, i) => {
@@ -49,7 +49,7 @@ function drawOrganicBranch(branch, baseColor) {
     curveVertex(p.x, p.y);
   });
 
-  // 🔑 REQUIRED: duplicate last point
+  // Duplicate last point
   const last = branch[branch.length - 1];
   curveVertex(last.x, last.y);
 
