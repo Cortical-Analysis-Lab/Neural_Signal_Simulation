@@ -97,63 +97,63 @@ function drawMyelinSheath(neuron) {
     }
   });
 
-  // ============================
-  // 1. Draw exposed axon core
-  // ============================
-  stroke(getColor("axon"));
-  strokeWeight(AXON_CORE_WIDTH);
-  noFill();
-
-  beginShape();
-  path.forEach(p => vertex(p.x, p.y));
-  endShape();
-
-// ============================
-// 2. Draw myelin capsules
-// ============================
-stroke(getColor("myelin"));
-strokeWeight(MYELIN_WIDTH);
-strokeCap(ROUND);
-noFill();
-
-const NODE_GAP_PX = 14; // 👈 THIS is the real control knob
-
-let drawing = false;
-
-for (let i = 0; i < path.length - 1; i++) {
-
-  const p0 = path[i];
-  const p1 = path[i + 1];
-
-  // Check distance to nearest node
-  let nearNode = false;
-  for (const n of nodes) {
-    const d0 = dist(p0.x, p0.y, n.x, n.y);
-    const d1 = dist(p1.x, p1.y, n.x, n.y);
-    if (d0 < NODE_GAP_PX || d1 < NODE_GAP_PX) {
-      nearNode = true;
-      break;
-    }
-  }
-
-  if (nearNode) {
-    if (drawing) {
-      endShape();
-      drawing = false;
-    }
-    continue;
-  }
-
-  if (!drawing) {
+    // ============================
+    // 1. Draw exposed axon core
+    // ============================
+    stroke(getColor("axon"));
+    strokeWeight(AXON_CORE_WIDTH);
+    noFill();
+  
     beginShape();
-    drawing = true;
+    path.forEach(p => vertex(p.x, p.y));
+    endShape();
+  
+  // ============================
+  // 2. Draw myelin capsules
+  // ============================
+  stroke(getColor("myelin"));
+  strokeWeight(MYELIN_WIDTH);
+  strokeCap(ROUND);
+  noFill();
+  
+  const NODE_GAP_PX = 14; // 👈 THIS is the real control knob
+  
+  let drawing = false;
+  
+  for (let i = 0; i < path.length - 1; i++) {
+  
+    const p0 = path[i];
+    const p1 = path[i + 1];
+  
+    // Check distance to nearest node
+    let nearNode = false;
+    for (const n of nodes) {
+      const d0 = dist(p0.x, p0.y, n.x, n.y);
+      const d1 = dist(p1.x, p1.y, n.x, n.y);
+      if (d0 < NODE_GAP_PX || d1 < NODE_GAP_PX) {
+        nearNode = true;
+        break;
+      }
+    }
+  
+    if (nearNode) {
+      if (drawing) {
+        endShape();
+        drawing = false;
+      }
+      continue;
+    }
+  
+    if (!drawing) {
+      beginShape();
+      drawing = true;
+    }
+  
+    vertex(p0.x, p0.y);
+    vertex(p1.x, p1.y);
   }
-
-  vertex(p0.x, p0.y);
-  vertex(p1.x, p1.y);
-}
-
-if (drawing) endShape();
+  
+  if (drawing) endShape();
 
 
 
