@@ -147,6 +147,22 @@ function drawMyelinSheath(neuron) {
   }
 }
 
+  // =====================================================
+  // AXON CORE (BACKGROUND LAYER)
+  // =====================================================
+  function drawAxonCore(neuron) {
+    if (!neuron?.axon?.path) return;
+  
+    const path = neuron.axon.path;
+  
+    stroke(getColor("axon"));
+    strokeWeight(6);
+    noFill();
+  
+    beginShape();
+    path.forEach(p => vertex(p.x, p.y));
+    endShape();
+  }
 
 // =====================================================
 // NEURON 1 (PRESYNAPTIC)
