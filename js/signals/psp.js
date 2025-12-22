@@ -3,15 +3,14 @@
 // =====================================================
 console.log("psp loaded");
 
-// Active postsynaptic potentials
-const epsps = [];
-// Active postsynaptic potentials for neuron 2
-const epsps2 = [];
-
+// -----------------------------------------------------
+// Active postsynaptic potentials (global PSP engine)
+// -----------------------------------------------------
+const epsps = [];   // neuron 1 + neuron 3 PSPs
+const epsps2 = [];  // neuron 2 EPSPs (visual only for now)
 
 // -----------------------------------------------------
-// Spawn a PSP from a synapse
-// (Backward-compatible name kept intentionally)
+// Spawn a PSP from a synapse (generic, neuron 1 legacy)
 // -----------------------------------------------------
 function spawnEPSP(synapse) {
   epsps.push({
@@ -19,18 +18,61 @@ function spawnEPSP(synapse) {
     path: synapse.path,
 
     progress: 0,                    // 0 → synapse, 1 → soma
-    amplitude: synapse.radius,      // decays over time
-    baseAmplitude: synapse.radius,  // fixed reference
+    amplitude: synapse.radius,
+    baseAmplitude: synapse.radius,
 
     speed: 0.012,
-    decay: 0.995,                   // ← stronger decay = weak PSPs fail
-
+    decay: 0.995,
     type: synapse.type              // "exc" or "inh"
   });
 }
 
 // -----------------------------------------------------
-// Update PSP propagation + decay
+// Spawn EPSP on neuron 2 dendrite
+// -----------------------------------------------------
+function spawnNeuron2EPSP(postSynapse) {
+
+  if (!neuron2 || !neuron2.dendrites.length) return;
+
+  const path = [...neuron2.dendrites[0]].reverse();
+
+  epsps2.push({
+    path,
+    progress: 0,
+    amplitude: 10,
+    baseAmplitude: 10,
+    speed: 0.01,
+    decay: 0.992,
+    type: "exc"
+  });
+}
+
+// -----------------------------------------------------
+// Spawn IPSP on neuron 3 dendrite (NEW)
+// -----------------------------------------------------
+function spawnNeuron3IPSP(postSynapse) {
+
+  if (!neuron3 || !neuron3.dendrites.length) return;
+
+  // Primary synaptic trunk is index 0 by construction
+  const path = [...neuron3.dendrites[0]].reverse();
+
+  epsps.push({
+    synapseId: "neuron3",
+    path,
+
+    progress: 0,
+    amplitude: 12,
+    baseAmplitude: 12,
+
+    speed: 0.010,      // IPSPs slightly slower
+    decay: 0.994,      // longer-lasting
+    type: "inh"
+  });
+}
+
+// -----------------------------------------------------
+// Update PSP propagation + decay (GLOBAL)
 // -----------------------------------------------------
 function updateEPSPs() {
   for (let i = epsps.length - 1; i >= 0; i--) {
@@ -39,13 +81,13 @@ function updateEPSPs() {
     e.progress += e.speed;
     e.amplitude *= e.decay;
 
-    // PSP faded out before reaching soma
+    // PSP fades out before reaching soma
     if (e.amplitude < 0.6) {
       epsps.splice(i, 1);
       continue;
     }
 
-    // Reached soma
+    // PSP reaches soma
     if (e.progress >= 1) {
       addEPSPToSoma(e.baseAmplitude, e.type);
       epsps.splice(i, 1);
@@ -54,7 +96,29 @@ function updateEPSPs() {
 }
 
 // -----------------------------------------------------
-// Draw PSPs along dendritic paths
+// Update neuron 2 EPSPs (visual only)
+// -----------------------------------------------------
+function updateNeuron2EPSPs() {
+  for (let i = epsps2.length - 1; i >= 0; i--) {
+    const e = epsps2[i];
+
+    e.progress += e.speed;
+    e.amplitude *= e.decay;
+
+    if (e.amplitude < 0.6) {
+      epsps2.splice(i, 1);
+      continue;
+    }
+
+    if (e.progress >= 1) {
+      // (future) integrate into neuron2 soma
+      epsps2.splice(i, 1);
+    }
+  }
+}
+
+// -----------------------------------------------------
+// Draw PSPs along dendritic paths (GLOBAL)
 // -----------------------------------------------------
 function drawEPSPs() {
   epsps.forEach(e => {
@@ -71,11 +135,10 @@ function drawEPSPs() {
     const x = lerp(p0.x, p1.x, t);
     const y = lerp(p0.y, p1.y, t);
 
-    // PSP shrinks visually as it decays
+    // Visual tapering
     const strength = map(e.amplitude, 6, 30, 0.4, 1.2, true);
     const w = map(e.baseAmplitude, 6, 30, 3, 12) * strength;
 
-    // Use semantic colors
     const c =
       e.type === "exc"
         ? getColor("epsp")
@@ -90,41 +153,8 @@ function drawEPSPs() {
 }
 
 // -----------------------------------------------------
-// Spawn EPSP on neuron 2 dendrite (from synapse)
+// Draw neuron 2 EPSPs
 // -----------------------------------------------------
-function spawnNeuron2EPSP(postSynapse) {
-
-  // Use the primary dendrite (index 0 by construction)
-  const path = [...neuron2.dendrites[0]].reverse();
-
-  epsps2.push({
-    path,
-    progress: 0,
-    amplitude: 10,
-    baseAmplitude: 10,
-    speed: 0.01,
-    decay: 0.992,
-    type: "exc"
-  });
-}
-function updateNeuron2EPSPs() {
-  for (let i = epsps2.length - 1; i >= 0; i--) {
-    const e = epsps2[i];
-    e.progress += e.speed;
-    e.amplitude *= e.decay;
-
-    if (e.amplitude < 0.6) {
-      epsps2.splice(i, 1);
-      continue;
-    }
-
-    if (e.progress >= 1) {
-      // (future) integrate into neuron2 soma here
-      epsps2.splice(i, 1);
-    }
-  }
-}
-
 function drawNeuron2EPSPs() {
   epsps2.forEach(e => {
     const path = e.path;
@@ -148,4 +178,3 @@ function drawNeuron2EPSPs() {
     pop();
   });
 }
-
