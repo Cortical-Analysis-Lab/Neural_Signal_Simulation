@@ -67,7 +67,7 @@ function createDendriticTree(baseAngle) {
     });
   }
 
-  // 🔑 Explicitly store trunk as visible geometry
+  // 🔑 Trunk is explicit geometry (NO synapses)
   segments.push(trunk);
 
   // --- Branches grow off trunk ---
@@ -98,7 +98,7 @@ function createDendriticTree(baseAngle) {
       { x: end.x, y: end.y, r: 3.0 }
     ];
 
-    // --- Terminal twigs ---
+    // --- Terminal twigs (ONLY these host synapses) ---
     const twigCount = floor(random(2, 3));
 
     for (let j = 0; j < twigCount; j++) {
@@ -124,11 +124,20 @@ function createDendriticTree(baseAngle) {
 // Build EPSP path (tip → soma)
 // -----------------------------------------------------
 function buildPathToSoma(branch) {
+
   const path = [];
+
+  // Walk from distal → proximal
   for (let i = branch.length - 1; i >= 0; i--) {
-    path.push({ x: branch[i].x, y: branch[i].y });
+    path.push({
+      x: branch[i].x,
+      y: branch[i].y
+    });
   }
+
+  // Explicit soma termination
   path.push({ x: 0, y: 0 });
+
   return path;
 }
 
@@ -167,13 +176,14 @@ function initSynapses() {
 
     trees.forEach(branch => {
 
-      // ONLY terminal twigs generate synapses
-      if (branch.length < 4) return;
-    
+      // Always render dendrites
       neuron.dendrites.push(branch);
-    
+
+      // ❌ No synapses on trunks or mid-branches
+      if (branch.length < 4) return;
+
       const tip = branch[branch.length - 1];
-    
+
       neuron.synapses.push({
         id: synapseId++,
         x: tip.x + random(-6, 6),
@@ -185,7 +195,6 @@ function initSynapses() {
         path: buildPathToSoma(branch)
       });
     });
-
   });
 
   // 🔑 Reduce bouton count BEFORE type assignment
