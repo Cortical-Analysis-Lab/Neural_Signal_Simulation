@@ -12,6 +12,17 @@ function drawOverview(state) {
   drawNeuron1();
   drawNeuron2();
 
+updateSynapseHover();
+updateEPSPs();
+updateSoma();
+updateVoltageTrace();
+updateAxonSpikes();
+updateTerminalDots();
+updateVesicles();
+updateNeuron2EPSPs();
+updateSynapticCoupling();
+
+  
   drawVoltageTrace();
   drawEPSPs();
   drawAxonSpikes();
