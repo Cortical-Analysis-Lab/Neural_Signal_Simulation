@@ -11,6 +11,7 @@ const LIGHT_DIR = { x: -0.6, y: -0.8 };
 function drawOverview(state) {
   drawNeuron1();
   drawNeuron2();
+  drawNeuron3();
 
   drawVoltageTrace();
   drawEPSPs();
