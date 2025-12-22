@@ -255,6 +255,40 @@ function drawNeuron2() {
   );
   endShape();
 }
+// =====================================================
+// NEURON 3 (INHIBITORY POSTSYNAPTIC)
+// =====================================================
+function drawNeuron3() {
+
+  neuron3.dendrites.forEach(branch => {
+    drawOrganicBranch(branch, getColor("dendrite"));
+  });
+
+  push();
+  noStroke();
+
+  fill(170, 120, 120);
+  ellipse(
+    neuron3.soma.x + 2,
+    neuron3.soma.y + 3,
+    neuron3.somaRadius * 2.2
+  );
+
+  fill(getColor("ipsp"));
+  ellipse(
+    neuron3.soma.x,
+    neuron3.soma.y,
+    neuron3.somaRadius * 2
+  );
+
+  pop();
+
+  neuron3.synapses.forEach(s => {
+    noStroke();
+    fill(getColor("ipsp"));
+    ellipse(s.x, s.y, s.radius * 2);
+  });
+}
 
 // =====================================================
 // SYNAPSE SIZE CONTROLS
