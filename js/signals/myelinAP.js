@@ -12,8 +12,8 @@ console.log("myelinAP loaded");
 // -----------------------------------------------------
 // Parameters (INTENTIONALLY SLOW FOR DEBUGGING)
 // -----------------------------------------------------
-const MYELIN_SPEED_NODE   = 0.006; // slow + visible
-const MYELIN_SPEED_SHEATH = 0.04;  // fast + invisible
+const MYELIN_SPEED_NODE   = 0.035; // slow + visible
+const MYELIN_SPEED_SHEATH = 0.08;  // fast + invisible
 const AP_RADIUS = 10;
 
 // -----------------------------------------------------
