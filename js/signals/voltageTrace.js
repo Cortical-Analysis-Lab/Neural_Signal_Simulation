@@ -1,5 +1,5 @@
 // =====================================================
-// VOLTAGE TRACE (WORLD-ANCHORED, SCIENTIFIC)
+// VOLTAGE TRACE (WORLD-SPACE, SOMA-ANCHORED)
 // =====================================================
 console.log("🧪 voltageTrace loaded");
 
@@ -28,7 +28,7 @@ function updateVoltageTrace() {
 }
 
 // -----------------------------------------------------
-// Draw voltage trace (anchored to soma + axon)
+// Draw voltage trace (follows soma)
 // -----------------------------------------------------
 function drawVoltageTrace() {
 
@@ -37,51 +37,29 @@ function drawVoltageTrace() {
   push();
 
   // ===================================================
-  // WORLD SPACE (follows neuron)
+  // WORLD-SPACE POSITION (RELATIVE TO SOMA)
   // ===================================================
+  const x0 = neuron.somaRadius * 0.4;
+  const y0 = neuron.somaRadius * 1.2;
 
-  // Anchor: soma center
-  const somaX = 0;
-  const somaY = 0;
-
-  // Plot geometry (narrow & right-shifted)
-  const traceWidth  = 260;
-  const traceHeight = 80;
-
-  const x0 = somaX + neuron.somaRadius * 0.4;
-  const y0 = somaY + neuron.somaRadius * 1.15;
+  const traceWidth  = 240;
+  const traceHeight = 70;
 
   // ---------------------------------------------------
-  // Frame (subtle)
+  // Frame
   // ---------------------------------------------------
   noFill();
   stroke(255, 40);
   rect(x0, y0, traceWidth, traceHeight, 6);
 
   // ---------------------------------------------------
-  // Y-axis (mV)
+  // Y-axis
   // ---------------------------------------------------
   stroke(255, 80);
   line(x0, y0, x0, y0 + traceHeight);
 
-  fill(200);
-  noStroke();
-  textSize(10);
-  textAlign(RIGHT, CENTER);
-  text("mV", x0 - 6, y0 + traceHeight / 2);
-
   // ---------------------------------------------------
-  // Y-axis ticks
-  // ---------------------------------------------------
-  const ticks = [-70, -50, 0, 40];
-  ticks.forEach(v => {
-    const y = map(v, VM_MIN, VM_MAX, y0 + traceHeight, y0);
-    stroke(255, 60);
-    line(x0 - 4, y, x0, y);
-  });
-
-  // ---------------------------------------------------
-  // Threshold line + label
+  // Threshold line
   // ---------------------------------------------------
   const yThresh = map(
     soma.threshold,
@@ -94,8 +72,9 @@ function drawVoltageTrace() {
   stroke(255, 120);
   line(x0, yThresh, x0 + traceWidth, yThresh);
 
+  // Threshold label (vertical)
   push();
-  translate(x0 - 14, yThresh);
+  translate(x0 - 12, yThresh);
   rotate(-HALF_PI);
   noStroke();
   fill(255, 160);
@@ -120,13 +99,15 @@ function drawVoltageTrace() {
   endShape();
 
   // ---------------------------------------------------
-  // Trace label (below plot)
+  // Label below plot
   // ---------------------------------------------------
   noStroke();
   fill(200);
   textSize(11);
   textAlign(CENTER, TOP);
-  text("Membrane potential (Vm)", x0 + traceWidth / 2, y0 + traceHeight + 6);
+  text("Membrane potential (Vm)",
+       x0 + traceWidth / 2,
+       y0 + traceHeight + 6);
 
   pop();
 }
