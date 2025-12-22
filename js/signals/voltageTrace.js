@@ -1,12 +1,12 @@
 // =====================================================
-// VOLTAGE TRACE (DISPLAY-ONLY, STANDALONE)
+// VOLTAGE TRACE (DISPLAY-ONLY, STANDALONE MODULE)
 // =====================================================
-console.log("voltage trace loaded");
+console.log("voltageTrace loaded");
 
 // -----------------------------------------------------
 // Trace configuration
 // -----------------------------------------------------
-const VM_TRACE_LENGTH = 240;   // samples (~4 sec at 60 fps)
+const VM_TRACE_LENGTH = 240;   // samples (~4 sec @ 60 fps)
 const VM_MIN = -75;
 const VM_MAX = 45;
 
@@ -19,7 +19,7 @@ const vmTrace = [];
 // Update trace buffer (call once per frame)
 // -----------------------------------------------------
 function updateVoltageTrace() {
-  if (!soma) return;
+  if (!window.soma || typeof soma.VmDisplay !== "number") return;
 
   vmTrace.push(soma.VmDisplay);
 
@@ -29,22 +29,24 @@ function updateVoltageTrace() {
 }
 
 // -----------------------------------------------------
-// Draw trace below neuron 1
+// Draw voltage trace below neuron 1
 // -----------------------------------------------------
 function drawVoltageTrace() {
 
-  if (vmTrace.length < 2) return;
+  if (!window.neuron || vmTrace.length < 2) return;
 
-  // ---- Layout (relative to neuron 1 soma) ----
-  const traceWidth = 360;
+  // ---------------------------------------------------
+  // Layout (relative to neuron 1 soma)
+  // ---------------------------------------------------
+  const traceWidth  = 360;
   const traceHeight = 90;
 
   const x0 = -traceWidth / 2;
   const y0 = neuron.somaRadius + 90;
 
-  // -------------------------------------------------
+  // ---------------------------------------------------
   // Threshold line
-  // -------------------------------------------------
+  // ---------------------------------------------------
   const yThresh = map(
     soma.threshold,
     VM_MIN,
@@ -57,9 +59,9 @@ function drawVoltageTrace() {
   strokeWeight(1);
   line(x0, yThresh, x0 + traceWidth, yThresh);
 
-  // -------------------------------------------------
+  // ---------------------------------------------------
   // Voltage trace
-  // -------------------------------------------------
+  // ---------------------------------------------------
   noFill();
   stroke(255);
   strokeWeight(2);
