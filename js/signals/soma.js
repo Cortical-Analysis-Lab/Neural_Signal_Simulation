@@ -8,7 +8,7 @@ const soma = {
   VmDisplay: -65,     // 👁️ DISPLAY membrane potential (slow)
   rest: -65,
   threshold: -50,
-  tau: 0.98,
+  tau: 0.88,
 
   spiking: false,
   spikeFrames: 0
