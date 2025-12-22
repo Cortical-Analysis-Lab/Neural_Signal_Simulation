@@ -33,16 +33,22 @@ function updateVoltageTrace() {
 // -----------------------------------------------------
 function drawVoltageTrace() {
 
-  if (!window.neuron || vmTrace.length < 2) return;
+  if (!window.neuron || !window.soma || vmTrace.length < 2) return;
 
   // ---------------------------------------------------
-  // Layout (relative to neuron 1 soma)
+  // Anchor trace to soma position (world space)
   // ---------------------------------------------------
+  const somaX = 0;
+  const somaY = 0;
+
   const traceWidth  = 360;
   const traceHeight = 90;
 
-  const x0 = -traceWidth / 2;
-  const y0 = neuron.somaRadius + 90;
+  const x0 = somaX - traceWidth / 2;
+  const y0 = somaY + neuron.somaRadius + 40; // 🔑 MUCH CLOSER
+
+  const VM_MIN = -75;
+  const VM_MAX = 45;
 
   // ---------------------------------------------------
   // Threshold line
@@ -55,7 +61,7 @@ function drawVoltageTrace() {
     y0
   );
 
-  stroke(255, 100);
+  stroke(255, 120);
   strokeWeight(1);
   line(x0, yThresh, x0 + traceWidth, yThresh);
 
@@ -89,3 +95,4 @@ function drawVoltageTrace() {
   }
   endShape();
 }
+
