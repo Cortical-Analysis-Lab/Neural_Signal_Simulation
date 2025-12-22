@@ -7,8 +7,8 @@ console.log("neuron2 geometry loaded");
 // -----------------------------------------------------
 // Tunable biological parameters
 // -----------------------------------------------------
-const SYNAPTIC_CLEFT = 30;   // visible synaptic gap (px)
-const SOMA_OFFSET    = 140;  // distance from synapse to soma
+const SYNAPTIC_CLEFT = 30;
+const SOMA_OFFSET    = 140;
 
 // -----------------------------------------------------
 const neuron2 = {
@@ -51,35 +51,39 @@ function initNeuron2() {
   };
 
   // ---------------------------------------------------
-  // 3) Soma placement
+  // 3) Soma placement (pulled away from neuron 1)
   // ---------------------------------------------------
   neuron2.soma.x = dendriteContact.x + SOMA_OFFSET;
   neuron2.soma.y = dendriteContact.y + random(-20, 20);
 
   // ---------------------------------------------------
-  // 4) THREE PRIMARY DENDRITIC TRUNKS
+  // 4) PRIMARY DENDRITIC TRUNKS (SECTOR-LOCKED)
   // ---------------------------------------------------
-  const baseAngles = [
-    degrees(
-      atan2(
-        dendriteContact.y - neuron2.soma.y,
-        dendriteContact.x - neuron2.soma.x
-      )
-    ),   // trunk aligned to synapse
-    140, // secondary trunk
-    250  // secondary trunk
+  const synapseAngle = degrees(
+    atan2(
+      dendriteContact.y - neuron2.soma.y,
+      dendriteContact.x - neuron2.soma.x
+    )
+  );
+
+  // Fixed angular sectors → no self-overlap
+  const trunkAngles = [
+    synapseAngle,   // aligned trunk
+    synapseAngle + 110,
+    synapseAngle - 110
   ];
 
-  baseAngles.forEach((baseAngle, trunkIndex) => {
+  trunkAngles.forEach((baseAngle, trunkIndex) => {
 
-    const trunkLength = trunkIndex === 0
-      ? dist(
-          neuron2.soma.x,
-          neuron2.soma.y,
-          dendriteContact.x,
-          dendriteContact.y
-        )
-      : random(120, 160);
+    const trunkLength =
+      trunkIndex === 0
+        ? dist(
+            neuron2.soma.x,
+            neuron2.soma.y,
+            dendriteContact.x,
+            dendriteContact.y
+          )
+        : random(120, 160);
 
     const trunkSegments = 4;
     const trunk = [];
@@ -90,10 +94,13 @@ function initNeuron2() {
       r: 6.2
     });
 
+    // Curvature bias prevents backtracking
+    const curvatureBias = trunkIndex === 0 ? 0 : (trunkIndex === 1 ? 6 : -6);
+
     for (let i = 1; i <= trunkSegments; i++) {
 
       const t = i / trunkSegments;
-      const bend = sin(t * PI) * random(-4, 4);
+      const bend = sin(t * PI) * curvatureBias;
 
       const p = polarToCartesian(
         baseAngle + bend,
@@ -107,11 +114,10 @@ function initNeuron2() {
       });
     }
 
-    // Push trunk as visible geometry
     neuron2.dendrites.push(trunk);
 
     // -------------------------------------------------
-    // 5) SECONDARY BRANCHES OFF EACH TRUNK
+    // 5) SECONDARY BRANCHES (OUTWARD ONLY)
     // -------------------------------------------------
     const branchCount = trunkIndex === 0 ? 2 : 3;
 
@@ -120,7 +126,8 @@ function initNeuron2() {
       const idx = floor(random(1, trunk.length - 1));
       const origin = trunk[idx];
 
-      const side = random() < 0.5 ? -1 : 1;
+      // Enforce outward branching (away from neuron 1)
+      const side = trunkIndex === 2 ? -1 : 1;
       const branchAngle = baseAngle + side * random(40, 65);
       const branchLength = random(55, 75);
 
@@ -141,7 +148,7 @@ function initNeuron2() {
       ];
 
       // -----------------------------------------------
-      // 6) TERMINAL TWIGS
+      // 6) TERMINAL TWIGS (SHORT, DIVERGENT)
       // -----------------------------------------------
       const twigCount = floor(random(1, 3));
 
@@ -163,7 +170,7 @@ function initNeuron2() {
   });
 
   // ---------------------------------------------------
-  // 7) POSTSYNAPTIC DENSITY (VISUAL MARKER ONLY)
+  // 7) POSTSYNAPTIC DENSITY (VISUAL MARKER)
   // ---------------------------------------------------
   neuron2.synapses.push({
     x: dendriteContact.x,
