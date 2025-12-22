@@ -53,8 +53,8 @@ function drawVoltageTrace() {
     y0
   );
 
-  stroke(255, 180);      // soft white
-  strokeWeight(1);
+  stroke(255, 0, 0);
+  strokeWeight(5);
   line(x0, yThresh, x0 + traceWidth, yThresh);
 
   // ---------------- Voltage trace ----------------
