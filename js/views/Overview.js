@@ -83,7 +83,7 @@ function drawMyelinSheath(neuron) {
   const nodes = neuron.axon.myelinNodes;
 
   // Build node index set for quick lookup
-  const nodeSet = new Set(nodes.map(n => n.index));
+  const nodeSet = new Set(nodes.map(n => n.pathIndex));
 
   // ---- Draw internodes (myelin) ----
   stroke(190, 200, 190, 160); // soft green-gray
