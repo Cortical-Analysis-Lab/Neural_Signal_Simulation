@@ -72,12 +72,21 @@
   <h1>Neural Signal Simulation</h1>
 
   <div class="buttons">
-    <button onclick="setMode('overview')">Neuron</button>
-    <button onclick="setMode('ion')">Ion</button>
-    <button onclick="setMode('synapse')">Synapse</button>
-    <button id="pauseBtn">Pause</button>
-  </div>
+  <button onclick="setMode('overview')">Neuron</button>
+  <button onclick="setMode('ion')">Ion</button>
+  <button onclick="setMode('synapse')">Synapse</button>
+  <button id="pauseBtn">Pause</button>
+
+  <!-- Myelin toggle -->
+  <label class="toggle" id="myelinToggleContainer">
+  <input type="checkbox" id="myelinToggle" />
+  <span>Myelin</span>
+</label>
+
 </div>
+
+</div>
+  
 
 <!-- ===============================
      SCRIPTS
