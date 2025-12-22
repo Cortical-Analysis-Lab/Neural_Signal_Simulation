@@ -60,12 +60,14 @@ function initNeuron2() {
   // 4) THREE PRIMARY DENDRITIC TRUNKS
   // ---------------------------------------------------
   const baseAngles = [
-    degrees(atan2(
-      dendriteContact.y - neuron2.soma.y,
-      dendriteContact.x - neuron2.soma.x
-    )),          // trunk aligned to synapse
-    140,         // secondary trunk
-    250          // secondary trunk
+    degrees(
+      atan2(
+        dendriteContact.y - neuron2.soma.y,
+        dendriteContact.x - neuron2.soma.x
+      )
+    ),   // trunk aligned to synapse
+    140, // secondary trunk
+    250  // secondary trunk
   ];
 
   baseAngles.forEach((baseAngle, trunkIndex) => {
@@ -159,17 +161,6 @@ function initNeuron2() {
       }
     }
   });
-
-  // ---------------------------------------------------
-  // 7) POSTSYNAPTIC DENSITY (VISUAL MARKER ONLY)
-  // ---------------------------------------------------
-  neuron2.synapses.push({
-    x: dendriteContact.x,
-    y: dendriteContact.y,
-    radius: 7
-  });
-}
-  }
 
   // ---------------------------------------------------
   // 7) POSTSYNAPTIC DENSITY (VISUAL MARKER ONLY)
