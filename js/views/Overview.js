@@ -109,37 +109,52 @@ function drawMyelinSheath(neuron) {
   endShape();
 
   // ============================
-  // 2. Draw myelin capsules
-  // ============================
-  stroke(getColor("myelin"));
-  strokeWeight(MYELIN_WIDTH);
-  strokeCap(ROUND);
-  noFill();
+// 2. Draw myelin capsules
+// ============================
+stroke(getColor("myelin"));
+strokeWeight(MYELIN_WIDTH);
+strokeCap(ROUND);
+noFill();
 
-  let drawing = false;
+const NODE_GAP_PX = 14; // 👈 THIS is the real control knob
 
-  for (let i = 0; i < path.length - 1; i++) {
+let drawing = false;
 
-    // Skip widened node gaps
-    if (gapSet.has(i) || gapSet.has(i + 1)) {
-      if (drawing) {
-        endShape();
-        drawing = false;
-      }
-      continue;
+for (let i = 0; i < path.length - 1; i++) {
+
+  const p0 = path[i];
+  const p1 = path[i + 1];
+
+  // Check distance to nearest node
+  let nearNode = false;
+  for (const n of nodes) {
+    const d0 = dist(p0.x, p0.y, n.x, n.y);
+    const d1 = dist(p1.x, p1.y, n.x, n.y);
+    if (d0 < NODE_GAP_PX || d1 < NODE_GAP_PX) {
+      nearNode = true;
+      break;
     }
-
-    // Start new internode
-    if (!drawing) {
-      beginShape();
-      drawing = true;
-    }
-
-    vertex(path[i].x, path[i].y);
-    vertex(path[i + 1].x, path[i + 1].y);
   }
 
-  if (drawing) endShape();
+  if (nearNode) {
+    if (drawing) {
+      endShape();
+      drawing = false;
+    }
+    continue;
+  }
+
+  if (!drawing) {
+    beginShape();
+    drawing = true;
+  }
+
+  vertex(p0.x, p0.y);
+  vertex(p1.x, p1.y);
+}
+
+if (drawing) endShape();
+
 
   // ============================
   // 3. Node highlights (optional)
