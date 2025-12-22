@@ -95,20 +95,19 @@ function draw() {
 
   if (!state.paused) {
 
-  // ---- CORE UPDATES ----
-  if (typeof updateAxonSpikes === "function") updateAxonSpikes();
-  if (typeof updateTerminalDots === "function") updateTerminalDots();
-  if (typeof updateEPSPs === "function") updateEPSPs();
-  if (typeof updateSoma === "function") updateSoma();
+    // ---- CORE UPDATES ----
+    if (typeof updateAxonSpikes === "function") updateAxonSpikes();
+    if (typeof updateTerminalDots === "function") updateTerminalDots();
+    if (typeof updateEPSPs === "function") updateEPSPs();
+    if (typeof updateSoma === "function") updateSoma();
 
-  // 🔥 ADD THIS LINE
-  if (typeof updateVoltageTrace === "function") updateVoltageTrace();
+    // 🔥 VOLTAGE TRACE SAMPLE (DISPLAY ONLY)
+    if (typeof updateVoltageTrace === "function") updateVoltageTrace();
 
-  // ---- NEURON 2 (future-safe hooks) ----
-  if (typeof updateNeuron2EPSPs === "function") updateNeuron2EPSPs();
-  if (typeof updateNeuron2Soma === "function") updateNeuron2Soma();
-}
-
+    // ---- NEURON 2 (future-safe hooks) ----
+    if (typeof updateNeuron2EPSPs === "function") updateNeuron2EPSPs();
+    if (typeof updateNeuron2Soma === "function") updateNeuron2Soma();
+  }
 
   // ---- RENDER ----
   switch (state.mode) {
