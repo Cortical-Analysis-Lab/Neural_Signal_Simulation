@@ -124,14 +124,12 @@ function spawnPostsynapticPSP(synapse, targetNeuron, bouton) {
     return;
   }
 
-  // ------------------------------------------------
-  // Neuron 3: interneuron → IPSP onto neuron 1 soma
-  // ------------------------------------------------
-  if (targetNeuron === "neuron3") {
+ // Neuron 3: interneuron receives IPSP first
+if (targetNeuron === "neuron3") {
 
-    if (typeof addEPSPToSoma === "function") {
-      const amp = getBoutonAmplitude(bouton);
-      addEPSPToSoma(amp, "inh");
-    }
+  if (typeof spawnNeuron3IPSP === "function") {
+    spawnNeuron3IPSP(synapse);
   }
+}
+
 }
