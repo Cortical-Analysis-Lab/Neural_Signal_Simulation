@@ -83,16 +83,15 @@ function drawMyelinSheath(neuron) {
   const nodes = neuron.axon.myelinNodes;
 
   // ============================
-  // Tuned anatomy parameters
+  // Tuned visual parameters
   // ============================
-  const AXON_CORE_WIDTH     = 4;
-  const MYELIN_WIDTH       = 14;
-  const SHEATH_LENGTH      = 14;  // short capsules (good as-is)
-  const AIS_LENGTH_PX      = 40;  // 👈 long bare initial segment
-  const SHEATH_STRIDE      = 3;   // 👈 draw every 3rd node (KEY FIX)
+  const AXON_CORE_WIDTH   = 4;
+  const MYELIN_WIDTH     = 14;
+  const SHEATH_LENGTH    = 14;
+  const SHEATH_SPACING_PX = 35; // 👈 closer spacing → +2 sheaths
 
   // ============================
-  // 1. Draw exposed axon core
+  // 1. Draw axon core (continuous)
   // ============================
   stroke(getColor("axon"));
   strokeWeight(AXON_CORE_WIDTH);
@@ -103,24 +102,25 @@ function drawMyelinSheath(neuron) {
   endShape();
 
   // ============================
-  // 2. Draw spaced myelin sheaths
+  // 2. Draw evenly spaced myelin sheaths
   // ============================
   stroke(getColor("myelin"));
   strokeWeight(MYELIN_WIDTH);
   strokeCap(ROUND);
   noFill();
 
-  nodes.forEach((n, idx) => {
+  let lastSheathDist = -Infinity;
 
-    // ---- Skip initial axon segment (AIS) ----
-    const dFromSoma = dist(
+  nodes.forEach(n => {
+
+    const d = dist(
       path[0].x, path[0].y,
       n.x, n.y
     );
-    if (dFromSoma < AIS_LENGTH_PX) return;
 
-    // ---- Subsample nodes to space sheaths ----
-    if (idx % SHEATH_STRIDE !== 0) return;
+    // Enforce even spacing only
+    if (d - lastSheathDist < SHEATH_SPACING_PX) return;
+    lastSheathDist = d;
 
     const i = n.pathIndex;
     if (i <= 0 || i >= path.length - 1) return;
@@ -143,15 +143,6 @@ function drawMyelinSheath(neuron) {
     const y2 = n.y + uy * half;
 
     line(x1, y1, x2, y2);
-  });
-
-  // ============================
-  // 3. Node markers (optional)
-  // ============================
-  noStroke();
-  fill(getColor("nodeAxon"));
-  nodes.forEach(n => {
-    ellipse(n.x, n.y, 6, 6);
   });
 }
 
