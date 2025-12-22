@@ -39,10 +39,11 @@ function generateMyelinNodes(axonPath, spacing = 28) {
 
     if (accumulated >= spacing) {
       nodes.push({
-        x: b.x,
-        y: b.y,
-        index: nodeIndex++
-      });
+      x: b.x,
+      y: b.y,
+      pathIndex: i  
+    });
+
 
       accumulated = 0;
     }
