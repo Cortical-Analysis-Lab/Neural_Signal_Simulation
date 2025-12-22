@@ -31,61 +31,75 @@ function createDendriticTree(baseAngle) {
 
   const branches = [];
 
-  // === SOMA ATTACHMENT ===
-  const attachAngle = baseAngle + random(-4, 4);
-  const somaAttach = polarToCartesian(
-    attachAngle,
-    neuron.somaRadius
-  );
+  // --- Soma attachment ---
+  const attachAngle = baseAngle + random(-3, 3);
+  const somaAttach = polarToCartesian(attachAngle, neuron.somaRadius);
 
-  // === PRIMARY TRUNK ===
-  const trunkAngle = attachAngle + random(-6, 6);
+  // --- Trunk parameters ---
+  const trunkAngle = attachAngle + random(-5, 5);
+  const trunkLength = random(90, 120);
+  const trunkSegments = 4;
 
-  const trunkMid = polarToCartesian(
-    trunkAngle + random(-4, 4),
-    neuron.somaRadius + random(35, 50)
-  );
+  const trunk = [];
+  trunk.push({ x: somaAttach.x, y: somaAttach.y, r: 9.5 });
 
-  const trunkEnd = polarToCartesian(
-    trunkAngle + random(-6, 6),
-    neuron.somaRadius + random(70, 90)
-  );
+  // Build a smooth trunk spline
+  for (let i = 1; i <= trunkSegments; i++) {
+    const t = i / trunkSegments;
 
-  const trunk = [
-    { x: somaAttach.x, y: somaAttach.y, r: 9.0 },
-    { x: trunkMid.x,  y: trunkMid.y,  r: 6.5 },
-    { x: trunkEnd.x,  y: trunkEnd.y,  r: 5.2 }
-  ];
+    const bend =
+      sin(t * PI) * random(-8, 8); // gentle curvature, not noise
 
-  // === SECONDARY BRANCHES ===
-  const branchCount = floor(random(2, 3));
+    const p = polarToCartesian(
+      trunkAngle + bend,
+      neuron.somaRadius + trunkLength * t
+    );
+
+    trunk.push({
+      x: p.x,
+      y: p.y,
+      r: lerp(9.5, 4.8, t)
+    });
+  }
+
+  // --- Branches grow FROM the trunk ---
+  const branchCount = floor(random(3, 4));
 
   for (let i = 0; i < branchCount; i++) {
 
-    const branchAngle = trunkAngle + random(-45, 45);
+    // pick a point along the trunk (not the base)
+    const trunkIndex = floor(random(2, trunk.length - 1));
+    const trunkPoint = trunk[trunkIndex];
+
+    const side = random() < 0.5 ? -1 : 1;
+    const branchAngle =
+      trunkAngle + side * random(35, 55);
+
+    const branchLength = random(45, 65);
 
     const branchMid = {
-      x: trunkEnd.x + cos(radians(branchAngle)) * random(30, 45),
-      y: trunkEnd.y + sin(radians(branchAngle)) * random(30, 45)
+      x: trunkPoint.x + cos(radians(branchAngle)) * branchLength * 0.5,
+      y: trunkPoint.y + sin(radians(branchAngle)) * branchLength * 0.5
     };
 
     const branchEnd = {
-      x: branchMid.x + cos(radians(branchAngle)) * random(30, 45),
-      y: branchMid.y + sin(radians(branchAngle)) * random(30, 45)
+      x: trunkPoint.x + cos(radians(branchAngle)) * branchLength,
+      y: trunkPoint.y + sin(radians(branchAngle)) * branchLength
     };
 
     const branch = [
-      trunk[2],
+      trunkPoint,
       { x: branchMid.x, y: branchMid.y, r: 3.8 },
       { x: branchEnd.x, y: branchEnd.y, r: 3.0 }
     ];
 
-    // === TERMINAL TWIGS ===
+    // --- Terminal twigs ---
     const twigCount = floor(random(2, 4));
 
     for (let j = 0; j < twigCount; j++) {
 
-      const twigAngle = branchAngle + random(-30, 30);
+      const twigAngle =
+        branchAngle + random(-25, 25);
 
       const twigEnd = {
         x: branchEnd.x + cos(radians(twigAngle)) * random(22, 36),
@@ -101,6 +115,7 @@ function createDendriticTree(baseAngle) {
 
   return branches;
 }
+
 
 // -----------------------------------------------------
 // Build EPSP path (tip → soma)
