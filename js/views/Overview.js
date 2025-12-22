@@ -16,10 +16,7 @@ function drawOverview(state) {
   drawVoltageTrace();
   drawEPSPs();
 
-  drawAxonSpikes();          // unmyelinated or terminal fragments
-  if (window.myelinEnabled) {
-    drawMyelinAPs();         // 👈 ADD THIS
-  }
+  drawAxonSpikes(); 
 
   drawVesicles();
   drawNeuron2EPSPs();
@@ -236,6 +233,9 @@ function drawNeuron1() {
   );
   endShape();
 
+  if (window.myelinEnabled) {
+    drawMyelinAPs();
+  }
   // ---------------- MYELIN (OVERVIEW ONLY) ----------------
   drawMyelinSheath(neuron);
 
