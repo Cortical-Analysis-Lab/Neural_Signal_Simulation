@@ -83,82 +83,58 @@ function drawMyelinSheath(neuron) {
   const nodes = neuron.axon.myelinNodes;
 
   // ----------------------------
-  // Parameters (TUNE THESE)
+  // Parameters (tune visually)
   // ----------------------------
   const AXON_CORE_WIDTH = 4;
   const MYELIN_WIDTH   = 14;
-  const NODE_GAP       = 3;   // 👈 WIDENS NODES (KEY FIX)
+  const SHEATH_LENGTH  = 18; // 👈 SHORT capsule length
 
-  // Build node gap index set
-  const gapSet = new Set();
-  nodes.forEach(n => {
-    for (let k = -NODE_GAP; k <= NODE_GAP; k++) {
-      gapSet.add(n.pathIndex + k);
-    }
-  });
-
-    // ============================
-    // 1. Draw exposed axon core
-    // ============================
-    stroke(getColor("axon"));
-    strokeWeight(AXON_CORE_WIDTH);
-    noFill();
-  
-    beginShape();
-    path.forEach(p => vertex(p.x, p.y));
-    endShape();
-  
   // ============================
-  // 2. Draw myelin capsules
+  // 1. Draw exposed axon core
+  // ============================
+  stroke(getColor("axon"));
+  strokeWeight(AXON_CORE_WIDTH);
+  noFill();
+
+  beginShape();
+  path.forEach(p => vertex(p.x, p.y));
+  endShape();
+
+  // ============================
+  // 2. Draw SHORT myelin capsules
   // ============================
   stroke(getColor("myelin"));
   strokeWeight(MYELIN_WIDTH);
   strokeCap(ROUND);
   noFill();
-  
-  const NODE_GAP_PX = 14; // 👈 THIS is the real control knob
-  
-  let drawing = false;
-  
-  for (let i = 0; i < path.length - 1; i++) {
-  
-    const p0 = path[i];
-    const p1 = path[i + 1];
-  
-    // Check distance to nearest node
-    let nearNode = false;
-    for (const n of nodes) {
-      const d0 = dist(p0.x, p0.y, n.x, n.y);
-      const d1 = dist(p1.x, p1.y, n.x, n.y);
-      if (d0 < NODE_GAP_PX || d1 < NODE_GAP_PX) {
-        nearNode = true;
-        break;
-      }
-    }
-  
-    if (nearNode) {
-      if (drawing) {
-        endShape();
-        drawing = false;
-      }
-      continue;
-    }
-  
-    if (!drawing) {
-      beginShape();
-      drawing = true;
-    }
-  
-    vertex(p0.x, p0.y);
-    vertex(p1.x, p1.y);
-  }
-  
-  if (drawing) endShape();
 
+  nodes.forEach(n => {
+    const i = n.pathIndex;
 
+    if (i <= 0 || i >= path.length - 1) return;
+
+    const prev = path[i - 1];
+    const next = path[i + 1];
+
+    // Direction vector
+    const dx = next.x - prev.x;
+    const dy = next.y - prev.y;
+    const len = Math.hypot(dx, dy) || 1;
+
+    const ux = dx / len;
+    const uy = dy / len;
+
+    // Capsule endpoints
+    const x1 = n.x - ux * SHEATH_LENGTH * 0.5;
+    const y1 = n.y - uy * SHEATH_LENGTH * 0.5;
+    const x2 = n.x + ux * SHEATH_LENGTH * 0.5;
+    const y2 = n.y + uy * SHEATH_LENGTH * 0.5;
+
+    line(x1, y1, x2, y2);
+  });
 
   // ============================
-  // 3. Node highlights (optional)
+  // 3. Node markers (optional)
   // ============================
   noStroke();
   fill(getColor("nodeAxon"));
@@ -166,8 +142,6 @@ function drawMyelinSheath(neuron) {
     ellipse(n.x, n.y, 6, 6);
   });
 }
-
-
 
 
 // =====================================================
