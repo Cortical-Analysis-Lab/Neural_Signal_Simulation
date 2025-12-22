@@ -153,7 +153,7 @@ function drawMyelinSheath(neuron) {
 // =====================================================
 function drawNeuron1() {
 
-  // ---------------- DENDRITES (TREE-LIKE) ----------------
+  // ---------------- DENDRITES ----------------
   neuron.dendrites.forEach(branch => {
     drawOrganicBranch(branch, getColor("dendrite"));
   });
@@ -165,7 +165,6 @@ function drawNeuron1() {
     map(soma.VmDisplay, soma.rest, soma.threshold, 0, 1),
     0, 1
   );
-
 
   const body = lerpColor(
     getColor("soma"),
@@ -202,41 +201,34 @@ function drawNeuron1() {
 
   pop();
 
-  // ---------------- AXON INITIAL SEGMENT (AIS — thick nub) ----------------
+  // ---------------- AIS (THICK NUB) ----------------
   push();
   stroke(getColor("axon"));
   strokeCap(ROUND);
-  strokeWeight(10); // wider than axon
-  
+  strokeWeight(10);
+
   const AIS_LENGTH = neuron.hillock.length * 0.25;
-  
-  // Shift nub TOWARD axon so it overlaps the curve start
-  const AIS_START = neuron.somaRadius + neuron.hillock.length * 0.55;
-  const AIS_END   = AIS_START + AIS_LENGTH;
-  
+  const AIS_START  = neuron.somaRadius + neuron.hillock.length * 0.55;
+  const AIS_END    = AIS_START + AIS_LENGTH;
+
   line(AIS_START, 0, AIS_END, 0);
   pop();
 
+  // =====================================================
+  // AXON LAYERING (CRITICAL ORDER)
+  // =====================================================
 
+  // 1️⃣ Axon core FIRST (background)
+  drawAxonCore(neuron);
 
-  // ---------------- AXON ----------------
-  noFill();
-  stroke(getColor("axon"));
-  strokeWeight(6);
-
-  beginShape();
-  vertex(neuron.somaRadius + neuron.hillock.length, 0);
-  bezierVertex(
-    neuron.somaRadius + 70, 14,
-    neuron.somaRadius + 120, -14,
-    neuron.somaRadius + neuron.axon.length, 0
-  );
-  endShape();
-
+  // 2️⃣ Action potential ABOVE axon
   if (window.myelinEnabled) {
     drawMyelinAPs();
+  } else {
+    drawAxonSpikes();
   }
-  // ---------------- MYELIN (OVERVIEW ONLY) ----------------
+
+  // 3️⃣ Myelin LAST (hides AP under sheath)
   drawMyelinSheath(neuron);
 
   // ---------------- AXON TERMINALS ----------------
