@@ -167,10 +167,13 @@ function initSynapses() {
 
     trees.forEach(branch => {
 
+      // ONLY terminal twigs generate synapses
+      if (branch.length < 4) return;
+    
       neuron.dendrites.push(branch);
-
+    
       const tip = branch[branch.length - 1];
-
+    
       neuron.synapses.push({
         id: synapseId++,
         x: tip.x + random(-6, 6),
@@ -182,6 +185,7 @@ function initSynapses() {
         path: buildPathToSoma(branch)
       });
     });
+
   });
 
   // 🔑 Reduce bouton count BEFORE type assignment
