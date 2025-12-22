@@ -15,10 +15,16 @@ function drawOverview(state) {
 
   drawVoltageTrace();
   drawEPSPs();
-  drawAxonSpikes();
+
+  drawAxonSpikes();          // unmyelinated or terminal fragments
+  if (window.myelinEnabled) {
+    drawMyelinAPs();         // 👈 ADD THIS
+  }
+
   drawVesicles();
   drawNeuron2EPSPs();
 }
+
 
 // =====================================================
 // ORGANIC DENDRITE RENDERER (TRUNK → BRANCH → TWIG)
