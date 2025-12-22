@@ -77,18 +77,17 @@ function drawOrganicBranch(branch, baseColor) {
 // =====================================================
 function drawMyelinSheath(neuron) {
   if (!window.myelinEnabled) return;
-  if (!neuron?.axon?.path || !neuron?.axon?.myelinNodes) return;
+  if (!neuron?.axon?.path) return;
 
-  const path  = neuron.axon.path;
-  const nodes = neuron.axon.myelinNodes;
+  const path = neuron.axon.path;
 
   // ============================
   // Tuned visual parameters
   // ============================
-  const AXON_CORE_WIDTH   = 4;
-  const MYELIN_WIDTH     = 14;
-  const SHEATH_LENGTH    = 14;
-  const SHEATH_SPACING_PX = 35; // 👈 closer spacing → +2 sheaths
+  const AXON_CORE_WIDTH = 4;
+  const MYELIN_WIDTH   = 14;
+  const SHEATH_LENGTH  = 12;
+  const SHEATH_COUNT   = 5;
 
   // ============================
   // 1. Draw axon core (continuous)
@@ -102,33 +101,34 @@ function drawMyelinSheath(neuron) {
   endShape();
 
   // ============================
-  // 2. Draw evenly spaced myelin sheaths
+  // 2. Precompute cumulative distance
+  // ============================
+  const cumDist = [0];
+  for (let i = 1; i < path.length; i++) {
+    cumDist[i] = cumDist[i - 1] +
+      dist(path[i - 1].x, path[i - 1].y, path[i].x, path[i].y);
+  }
+  const totalLength = cumDist[cumDist.length - 1];
+
+  // ============================
+  // 3. Draw evenly spaced sheaths
   // ============================
   stroke(getColor("myelin"));
   strokeWeight(MYELIN_WIDTH);
   strokeCap(ROUND);
   noFill();
 
-  let lastSheathDist = -Infinity;
+  for (let s = 1; s <= SHEATH_COUNT; s++) {
+    const targetDist = (s / (SHEATH_COUNT + 1)) * totalLength;
 
-  nodes.forEach(n => {
+    let idx = 0;
+    while (idx < cumDist.length && cumDist[idx] < targetDist) idx++;
+    if (idx <= 0 || idx >= path.length - 1) continue;
 
-    const d = dist(
-      path[0].x, path[0].y,
-      n.x, n.y
-    );
+    const p    = path[idx];
+    const prev = path[idx - 1];
+    const next = path[idx + 1];
 
-    // Enforce even spacing only
-    if (d - lastSheathDist < SHEATH_SPACING_PX) return;
-    lastSheathDist = d;
-
-    const i = n.pathIndex;
-    if (i <= 0 || i >= path.length - 1) return;
-
-    const prev = path[i - 1];
-    const next = path[i + 1];
-
-    // Local tangent
     const dx = next.x - prev.x;
     const dy = next.y - prev.y;
     const len = Math.hypot(dx, dy) || 1;
@@ -137,14 +137,13 @@ function drawMyelinSheath(neuron) {
     const uy = dy / len;
 
     const half = SHEATH_LENGTH * 0.5;
-    const x1 = n.x - ux * half;
-    const y1 = n.y - uy * half;
-    const x2 = n.x + ux * half;
-    const y2 = n.y + uy * half;
-
-    line(x1, y1, x2, y2);
-  });
+    line(
+      p.x - ux * half, p.y - uy * half,
+      p.x + ux * half, p.y + uy * half
+    );
+  }
 }
+
 
 // =====================================================
 // NEURON 1 (PRESYNAPTIC)
