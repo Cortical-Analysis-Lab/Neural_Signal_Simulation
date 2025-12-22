@@ -3,6 +3,14 @@
 // =====================================================
 console.log("geometry loaded");
 
+// -----------------------------------------------------
+// Bouton density control (Neuron 1 only)
+// -----------------------------------------------------
+const BOUTON_DENSITY_SCALE = 0.6; // 60% of original boutons
+
+// -----------------------------------------------------
+// Neuron definition
+// -----------------------------------------------------
 const neuron = {
   somaRadius: 42,
   dendrites: [],
@@ -45,7 +53,6 @@ function createDendriticTree(baseAngle) {
 
   for (let i = 1; i <= trunkSegments; i++) {
     const t = i / trunkSegments;
-
     const curvature = sin(t * PI) * random(-6, 6);
 
     const p = polarToCartesian(
@@ -60,7 +67,7 @@ function createDendriticTree(baseAngle) {
     });
   }
 
-  // 🔑 PUSH THE TRUNK AS ITS OWN VISIBLE SEGMENT
+  // 🔑 Explicitly store trunk as visible geometry
   segments.push(trunk);
 
   // --- Branches grow off trunk ---
@@ -73,7 +80,6 @@ function createDendriticTree(baseAngle) {
 
     const side = random() < 0.5 ? -1 : 1;
     const branchAngle = trunkAngle + side * random(45, 65);
-
     const branchLength = random(50, 70);
 
     const mid = {
@@ -92,7 +98,7 @@ function createDendriticTree(baseAngle) {
       { x: end.x, y: end.y, r: 3.0 }
     ];
 
-    // --- Twigs ---
+    // --- Terminal twigs ---
     const twigCount = floor(random(2, 3));
 
     for (let j = 0; j < twigCount; j++) {
@@ -114,7 +120,6 @@ function createDendriticTree(baseAngle) {
   return segments;
 }
 
-
 // -----------------------------------------------------
 // Build EPSP path (tip → soma)
 // -----------------------------------------------------
@@ -125,6 +130,21 @@ function buildPathToSoma(branch) {
   }
   path.push({ x: 0, y: 0 });
   return path;
+}
+
+// -----------------------------------------------------
+// Reduce bouton count while preserving E/I ratio
+// -----------------------------------------------------
+function reduceBoutonCountPreserveRatio() {
+
+  if (!neuron.synapses.length) return;
+
+  const targetCount = floor(
+    neuron.synapses.length * BOUTON_DENSITY_SCALE
+  );
+
+  shuffle(neuron.synapses, true);
+  neuron.synapses = neuron.synapses.slice(0, targetCount);
 }
 
 // -----------------------------------------------------
@@ -164,7 +184,12 @@ function initSynapses() {
     });
   });
 
+  // 🔑 Reduce bouton count BEFORE type assignment
+  reduceBoutonCountPreserveRatio();
+
+  // Preserve original E/I ratio logic
   assignSynapseTypes();
+
   initAxonTerminalBranches();
 }
 
