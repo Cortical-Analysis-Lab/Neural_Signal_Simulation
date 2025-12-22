@@ -57,99 +57,118 @@ function initNeuron2() {
   neuron2.soma.y = dendriteContact.y + random(-20, 20);
 
   // ---------------------------------------------------
-  // 4) PRIMARY DENDRITIC TRUNK (dominant)
+  // 4) THREE PRIMARY DENDRITIC TRUNKS
   // ---------------------------------------------------
-  const trunkAngle = degrees(
-    atan2(
+  const baseAngles = [
+    degrees(atan2(
       dendriteContact.y - neuron2.soma.y,
       dendriteContact.x - neuron2.soma.x
-    )
-  );
+    )),          // trunk aligned to synapse
+    140,         // secondary trunk
+    250          // secondary trunk
+  ];
 
-  const trunkLength   = dist(
-    neuron2.soma.x,
-    neuron2.soma.y,
-    dendriteContact.x,
-    dendriteContact.y
-  );
+  baseAngles.forEach((baseAngle, trunkIndex) => {
 
-  const trunkSegments = 4;
-  const trunk = [];
+    const trunkLength = trunkIndex === 0
+      ? dist(
+          neuron2.soma.x,
+          neuron2.soma.y,
+          dendriteContact.x,
+          dendriteContact.y
+        )
+      : random(120, 160);
 
-  trunk.push({
-    x: neuron2.soma.x,
-    y: neuron2.soma.y,
-    r: 6.0
-  });
-
-  for (let i = 1; i <= trunkSegments; i++) {
-
-    const t = i / trunkSegments;
-    const bend = sin(t * PI) * random(-4, 4);
-
-    const p = polarToCartesian(
-      trunkAngle + bend,
-      trunkLength * t
-    );
+    const trunkSegments = 4;
+    const trunk = [];
 
     trunk.push({
-      x: neuron2.soma.x + p.x,
-      y: neuron2.soma.y + p.y,
-      r: lerp(6.0, 2.6, t)
+      x: neuron2.soma.x,
+      y: neuron2.soma.y,
+      r: 6.2
     });
-  }
 
-  neuron2.dendrites.push(trunk);
+    for (let i = 1; i <= trunkSegments; i++) {
 
-  // ---------------------------------------------------
-  // 5) SECONDARY BRANCHES OFF TRUNK
-  // ---------------------------------------------------
-  const branchCount = 3;
+      const t = i / trunkSegments;
+      const bend = sin(t * PI) * random(-4, 4);
 
-  for (let i = 0; i < branchCount; i++) {
+      const p = polarToCartesian(
+        baseAngle + bend,
+        trunkLength * t
+      );
 
-    const idx = floor(random(1, trunk.length - 1));
-    const origin = trunk[idx];
+      trunk.push({
+        x: neuron2.soma.x + p.x,
+        y: neuron2.soma.y + p.y,
+        r: lerp(6.2, 2.6, t)
+      });
+    }
 
-    const side = random() < 0.5 ? -1 : 1;
-    const branchAngle = trunkAngle + side * random(40, 65);
-    const branchLength = random(55, 75);
-
-    const mid = {
-      x: origin.x + cos(radians(branchAngle)) * branchLength * 0.5,
-      y: origin.y + sin(radians(branchAngle)) * branchLength * 0.5
-    };
-
-    const end = {
-      x: origin.x + cos(radians(branchAngle)) * branchLength,
-      y: origin.y + sin(radians(branchAngle)) * branchLength
-    };
-
-    const branch = [
-      origin,
-      { x: mid.x, y: mid.y, r: 2.8 },
-      { x: end.x, y: end.y, r: 2.2 }
-    ];
+    // Push trunk as visible geometry
+    neuron2.dendrites.push(trunk);
 
     // -------------------------------------------------
-    // 6) TERMINAL TWIGS
+    // 5) SECONDARY BRANCHES OFF EACH TRUNK
     // -------------------------------------------------
-    const twigCount = floor(random(1, 3));
+    const branchCount = trunkIndex === 0 ? 2 : 3;
 
-    for (let j = 0; j < twigCount; j++) {
+    for (let i = 0; i < branchCount; i++) {
 
-      const twigAngle = branchAngle + random(-25, 25);
+      const idx = floor(random(1, trunk.length - 1));
+      const origin = trunk[idx];
 
-      const twigEnd = {
-        x: end.x + cos(radians(twigAngle)) * random(20, 34),
-        y: end.y + sin(radians(twigAngle)) * random(20, 34)
+      const side = random() < 0.5 ? -1 : 1;
+      const branchAngle = baseAngle + side * random(40, 65);
+      const branchLength = random(55, 75);
+
+      const mid = {
+        x: origin.x + cos(radians(branchAngle)) * branchLength * 0.5,
+        y: origin.y + sin(radians(branchAngle)) * branchLength * 0.5
       };
 
-      neuron2.dendrites.push([
-        ...branch,
-        { x: twigEnd.x, y: twigEnd.y, r: 1.8 }
-      ]);
+      const end = {
+        x: origin.x + cos(radians(branchAngle)) * branchLength,
+        y: origin.y + sin(radians(branchAngle)) * branchLength
+      };
+
+      const branch = [
+        origin,
+        { x: mid.x, y: mid.y, r: 2.8 },
+        { x: end.x, y: end.y, r: 2.2 }
+      ];
+
+      // -----------------------------------------------
+      // 6) TERMINAL TWIGS
+      // -----------------------------------------------
+      const twigCount = floor(random(1, 3));
+
+      for (let j = 0; j < twigCount; j++) {
+
+        const twigAngle = branchAngle + random(-25, 25);
+
+        const twigEnd = {
+          x: end.x + cos(radians(twigAngle)) * random(20, 34),
+          y: end.y + sin(radians(twigAngle)) * random(20, 34)
+        };
+
+        neuron2.dendrites.push([
+          ...branch,
+          { x: twigEnd.x, y: twigEnd.y, r: 1.8 }
+        ]);
+      }
     }
+  });
+
+  // ---------------------------------------------------
+  // 7) POSTSYNAPTIC DENSITY (VISUAL MARKER ONLY)
+  // ---------------------------------------------------
+  neuron2.synapses.push({
+    x: dendriteContact.x,
+    y: dendriteContact.y,
+    radius: 7
+  });
+}
   }
 
   // ---------------------------------------------------
