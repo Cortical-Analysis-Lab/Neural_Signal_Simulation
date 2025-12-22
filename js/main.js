@@ -64,6 +64,8 @@ function setup() {
 
   // 1️⃣ Build neuron 1 first
   initSynapses();
+  initAxonPath(neuron);
+
 
   // 2️⃣ THEN build neuron 2 (depends on axon terminals)
   initNeuron2();
