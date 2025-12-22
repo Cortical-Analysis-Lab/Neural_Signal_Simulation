@@ -39,8 +39,8 @@ function spawnNeuron2EPSP(postSynapse) {
   epsps2.push({
     path,
     progress: 0,
-    amplitude: 10,
-    baseAmplitude: 10,
+    amplitude: 40,
+    baseAmplitude: 40,
     speed: 0.01,
     decay: 0.992,
     type: "exc"
@@ -62,8 +62,8 @@ function spawnNeuron3IPSP(postSynapse) {
     path,
 
     progress: 0,
-    amplitude: 12,
-    baseAmplitude: 12,
+    amplitude: 40,
+    baseAmplitude: 40,
 
     speed: 0.010,      // IPSPs slightly slower
     decay: 0.994,      // longer-lasting
