@@ -261,29 +261,57 @@ function drawNeuron2() {
 // =====================================================
 function drawNeuron3() {
 
+  // ---------------- DENDRITES ----------------
   neuron3.dendrites.forEach(branch => {
     drawOrganicBranch(branch, getColor("dendrite"));
   });
 
+  // ---------------- SOMA (match style, keep inhibitory color) ----------------
   push();
   noStroke();
 
-  fill(170, 120, 120);
+  // Shadow (same style as neuron 1/2)
+  fill(140, 105, 80);
   ellipse(
     neuron3.soma.x + 2,
     neuron3.soma.y + 3,
     neuron3.somaRadius * 2.2
   );
 
-  fill(getColor("ipsp"));
+  // Body (inhibitory soma color)
+  const inhibitoryBody = lerpColor(
+    getColor("ipsp"),
+    color(255, 210, 210),
+    0.25
+  );
+
+  fill(inhibitoryBody);
   ellipse(
     neuron3.soma.x,
     neuron3.soma.y,
-    neuron3.somaRadius * 2
+    neuron3.somaRadius * 2.0
   );
+
+  // Highlight (same look as others)
+  push();
+  clip(() =>
+    ellipse(
+      neuron3.soma.x,
+      neuron3.soma.y,
+      neuron3.somaRadius * 2.0
+    )
+  );
+  fill(255, 255, 230, 95);
+  ellipse(
+    neuron3.soma.x - neuron3.somaRadius * 0.35,
+    neuron3.soma.y - neuron3.somaRadius * 0.45,
+    neuron3.somaRadius * 1.2
+  );
+  pop();
 
   pop();
 
+  // ---------------- INHIBITORY SYNAPSE MARKERS ----------------
   neuron3.synapses.forEach(s => {
     noStroke();
     fill(getColor("ipsp"));
