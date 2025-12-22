@@ -74,7 +74,7 @@ function updateSoma() {
   // =====================================================
   // 👁️ SLOW DISPLAY FILTER (THIS IS THE KEY CHANGE)
   // =====================================================
-  const DISPLAY_TAU = 0.80;   // 🔴 LOWER = MUCH SLOWER
+  const DISPLAY_TAU = 0.60;   // 🔴 LOWER = MUCH SLOWER
   soma.VmDisplay = lerp(
     soma.VmDisplay,
     soma.Vm,
