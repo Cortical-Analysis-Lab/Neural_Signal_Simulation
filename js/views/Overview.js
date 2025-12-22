@@ -82,33 +82,53 @@ function drawMyelinSheath(neuron) {
   const path = neuron.axon.path;
   const nodes = neuron.axon.myelinNodes;
 
-  // Build node index set for quick lookup
+  // Collect node indices
   const nodeSet = new Set(nodes.map(n => n.pathIndex));
 
-  // ---- Draw internodes (myelin) ----
-  stroke(190, 200, 190, 160); // soft green-gray
-  strokeWeight(8);
-  noFill();
+  // Visual parameters
+  const BASE_THICK = 10;
+  const TAPER_THICK = 6;
 
-  beginShape();
-  for (let i = 0; i < path.length; i++) {
-    // Skip tiny gaps around nodes to create visible nodes
-    if (nodeSet.has(i)) {
-      endShape();
-      beginShape();
+  stroke(200, 210, 200, 170);
+  noFill();
+  strokeCap(ROUND);
+
+  let drawing = false;
+
+  for (let i = 0; i < path.length - 1; i++) {
+
+    // Skip node gaps
+    if (nodeSet.has(i) || nodeSet.has(i + 1)) {
+      drawing = false;
       continue;
     }
-    vertex(path[i].x, path[i].y);
-  }
-  endShape();
 
-  // ---- Draw nodes of Ranvier ----
+    // Start new internode segment
+    if (!drawing) {
+      beginShape();
+      drawing = true;
+    }
+
+    // Taper thickness near nodes
+    const nearNode =
+      nodeSet.has(i - 1) || nodeSet.has(i + 2);
+
+    strokeWeight(nearNode ? TAPER_THICK : BASE_THICK);
+
+    vertex(path[i].x, path[i].y);
+    vertex(path[i + 1].x, path[i + 1].y);
+  }
+
+  if (drawing) endShape();
+
+  // Optional subtle node highlight (very faint)
   noStroke();
-  fill(235); // light node color
+  fill(255, 255, 255, 40);
   nodes.forEach(n => {
-    ellipse(n.x, n.y, 6, 6);
+    ellipse(n.x, n.y, 4, 4);
   });
 }
+
 
 // =====================================================
 // NEURON 1 (PRESYNAPTIC)
