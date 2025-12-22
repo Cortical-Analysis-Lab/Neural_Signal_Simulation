@@ -2,8 +2,9 @@
 // MYELINATED AXON ACTION POTENTIAL (CONTINUOUS + OCCLUDED)
 // =====================================================
 // ✔ Continuous conduction along axon
-// ✔ Faster than unmyelinated (configurable)
-// ✔ Invisible ONLY under myelin sheaths
+// ✔ Faster under myelin
+// ✔ Slower and visible at gaps (nodes)
+// ✔ Same axon geometry as unmyelinated AP
 // =====================================================
 
 console.log("myelinAP loaded");
@@ -11,7 +12,8 @@ console.log("myelinAP loaded");
 // -----------------------------------------------------
 // Parameters (INTENTIONALLY SLOW FOR DEBUGGING)
 // -----------------------------------------------------
-const MYELIN_CONDUCTION_SPEED = 0.01; // 🔥 slow on purpose
+const MYELIN_SPEED_NODE   = 0.006; // slow + visible
+const MYELIN_SPEED_SHEATH = 0.04;  // fast + invisible
 const AP_RADIUS = 10;
 
 // -----------------------------------------------------
@@ -25,7 +27,7 @@ const myelinAPs = [];
 function spawnMyelinAP() {
   if (!window.myelinEnabled) return;
 
-  // prevent overlap at hillock
+  // Prevent overlapping APs at hillock
   if (myelinAPs.length > 0) {
     const last = myelinAPs[myelinAPs.length - 1];
     if (last.phase < 0.08) return;
@@ -37,28 +39,12 @@ function spawnMyelinAP() {
 }
 
 // -----------------------------------------------------
-// Update AP propagation
-// -----------------------------------------------------
-function updateMyelinAPs() {
-  for (let i = myelinAPs.length - 1; i >= 0; i--) {
-    const ap = myelinAPs[i];
-    ap.phase += MYELIN_CONDUCTION_SPEED;
-
-    if (ap.phase >= 1) {
-      myelinAPs.splice(i, 1);
-    }
-  }
-}
-
-// -----------------------------------------------------
 // Helper — is this phase under a myelin sheath?
 // -----------------------------------------------------
 function isPhaseUnderMyelin(phase, sheathCount = 4) {
-  const gapCount = sheathCount + 1;
-
   for (let s = 1; s <= sheathCount; s++) {
     const center = s / (sheathCount + 1);
-    const halfWidth = 0.02; // 👈 controls sheath length (DEBUG FRIENDLY)
+    const halfWidth = 0.03; // 👈 sheath length (DEBUG FRIENDLY)
 
     if (phase > center - halfWidth && phase < center + halfWidth) {
       return true;
@@ -68,15 +54,35 @@ function isPhaseUnderMyelin(phase, sheathCount = 4) {
 }
 
 // -----------------------------------------------------
-// Draw AP (visible only in gaps)
+// Update AP propagation (variable speed)
+// -----------------------------------------------------
+function updateMyelinAPs() {
+  for (let i = myelinAPs.length - 1; i >= 0; i--) {
+    const ap = myelinAPs[i];
+
+    const underMyelin = isPhaseUnderMyelin(ap.phase);
+
+    ap.phase += underMyelin
+      ? MYELIN_SPEED_SHEATH   // fast + hidden
+      : MYELIN_SPEED_NODE;    // slow + visible
+
+    if (ap.phase >= 1) {
+      myelinAPs.splice(i, 1);
+    }
+  }
+}
+
+// -----------------------------------------------------
+// Draw AP (VISIBLE ONLY AT GAPS)
 // -----------------------------------------------------
 function drawMyelinAPs() {
   myelinAPs.forEach(ap => {
 
-    // ❌ hide AP only when under myelin
+    // ❌ Hidden while under myelin
     if (isPhaseUnderMyelin(ap.phase)) return;
 
     const p = getAxonPoint(ap.phase);
+    if (!p) return;
 
     push();
     noStroke();
