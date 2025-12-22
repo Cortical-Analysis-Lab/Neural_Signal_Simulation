@@ -1,129 +1,111 @@
 // =====================================================
-// MYELINATED AXON ACTION POTENTIAL (SALTATORY)
+// MYELINATED AXON ACTION POTENTIAL (SALTATORY-LIKE)
 // =====================================================
-// Parallel conduction engine to axonSpike.js
-// ❌ No terminal logic yet
-// ❌ No synaptic release yet
-// ✔ Node-to-node AP propagation
+// Continuous propagation like axonSpike.js
+// ✔ Faster conduction
+// ✔ Invisible through myelin sheaths
+// ✔ Visible in gaps / AIS / terminal region
+// ❌ No terminal branching yet
 // =====================================================
 
 console.log("myelinAP loaded");
 
 // -----------------------------------------------------
-// Parameters (visual + temporal)
+// Speed parameters
 // -----------------------------------------------------
-const MYELIN_NODE_SPEED = 0.18;   // how fast AP jumps between nodes
-const NODE_GLOW_RADIUS = 10;
+const MYELIN_SPEED_VISIBLE = 0.045; // slightly faster than unmyelinated
+const MYELIN_SPEED_HIDDEN  = 0.22;  // very fast under myelin
 
 // -----------------------------------------------------
 // Active myelinated APs
 // -----------------------------------------------------
 const myelinAPs = [];
 
-function getSaltatoryTargets(neuron, sheathCount = 3) {
-  const path = neuron.axon.path;
-  if (!path || path.length < 2) return [];
+// -----------------------------------------------------
+// Compute myelin sheath PHASE intervals
+// (must match visual sheath placement)
+// -----------------------------------------------------
+function getMyelinPhaseIntervals(neuron, sheathCount = 4, sheathFrac = 0.06) {
+  const intervals = [];
 
-  const cum = [0];
-  for (let i = 1; i < path.length; i++) {
-    cum[i] = cum[i - 1] +
-      dist(path[i - 1].x, path[i - 1].y, path[i].x, path[i].y);
-  }
-  const L = cum[cum.length - 1];
+  for (let s = 1; s <= sheathCount; s++) {
+    const center = s / (sheathCount + 1);
+    const half   = sheathFrac * 0.5;
 
-  const gapCount = sheathCount + 1;
-  const targets = [];
-
-  for (let g = 0; g <= gapCount; g++) {
-    const d = (g / gapCount) * L;
-
-    let idx = 0;
-    while (idx < cum.length && cum[idx] < d) idx++;
-    if (idx >= path.length) idx = path.length - 1;
-
-    targets.push(path[idx]);
+    intervals.push({
+      start: center - half,
+      end:   center + half
+    });
   }
 
-  return targets;
+  return intervals;
 }
 
 // -----------------------------------------------------
-// Spawn myelinated AP at first node
+// Spawn myelinated AP at AIS
 // -----------------------------------------------------
 function spawnMyelinAP() {
   if (!window.myelinEnabled) return;
-  if (!neuron?.axon?.path) return;
+  if (!neuron) return;
 
-  const targets = getSaltatoryTargets(neuron);
-
-  // prevent overlap at first gap
+  // Prevent overlap near AIS
   if (myelinAPs.length > 0) {
     const last = myelinAPs[myelinAPs.length - 1];
-    if (last.index === 0 && last.progress < 0.4) return;
+    if (last.phase < 0.1) return;
   }
 
   myelinAPs.push({
-    index: 0,
-    progress: 0,
-    targets
+    phase: 0,
+    intervals: getMyelinPhaseIntervals(neuron)
   });
 }
 
 // -----------------------------------------------------
-// Update saltatory propagation
+// Update propagation
 // -----------------------------------------------------
 function updateMyelinAPs() {
   for (let i = myelinAPs.length - 1; i >= 0; i--) {
     const ap = myelinAPs[i];
 
-    // -------------------------
-    // 1. Node dwell phase
-    // -------------------------
-    if (ap.dwell < 6) {        // ~6 frames visible
-      ap.dwell++;
-      continue;
-    }
+    const inSheath = ap.intervals.some(
+      seg => ap.phase >= seg.start && ap.phase <= seg.end
+    );
 
-    // -------------------------
-    // 2. Jump phase (hidden)
-    // -------------------------
-    ap.progress += MYELIN_NODE_SPEED;
+    ap.phase += inSheath
+      ? MYELIN_SPEED_HIDDEN
+      : MYELIN_SPEED_VISIBLE;
 
-    if (ap.progress >= 1) {
-      ap.progress = 0;
-      ap.dwell = 0;
-      ap.index++;
-
-      if (ap.index >= ap.targets.length - 1) {
-        myelinAPs.splice(i, 1);
-      }
+    if (ap.phase >= 1) {
+      myelinAPs.splice(i, 1);
     }
   }
 }
 
-
 // -----------------------------------------------------
-// Draw saltatory AP (node-locked)
+// Draw AP (ONLY when not under myelin)
 // -----------------------------------------------------
 function drawMyelinAPs() {
   myelinAPs.forEach(ap => {
-    if (ap.dwell === 0) return;   // ❌ hidden while jumping
 
-    const p = ap.targets[ap.index];
-    if (!p) return;
+    const hidden = ap.intervals.some(
+      seg => ap.phase >= seg.start && ap.phase <= seg.end
+    );
+
+    if (hidden) return;
+
+    const p = getAxonPoint(ap.phase);
 
     push();
     noStroke();
     fill(getColor("ap"));
-    ellipse(p.x, p.y, NODE_GLOW_RADIUS, NODE_GLOW_RADIUS);
+    ellipse(p.x, p.y, 10, 10);
     pop();
   });
 }
 
 // -----------------------------------------------------
-// Public API (for later switching)
+// Public API
 // -----------------------------------------------------
 window.spawnMyelinAP   = spawnMyelinAP;
 window.updateMyelinAPs = updateMyelinAPs;
 window.drawMyelinAPs   = drawMyelinAPs;
-
