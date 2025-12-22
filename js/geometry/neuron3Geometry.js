@@ -1,31 +1,22 @@
 // =====================================================
-// INHIBITORY POSTSYNAPTIC NEURON GEOMETRY (NEURON 3)
-// MATCHES NEURON 2 STYLE (TRUNK → BRANCH → TWIG)
+// INHIBITORY INTERNEURON GEOMETRY (NEURON 3)
 // =====================================================
 console.log("neuron3 geometry loaded");
 
 // -----------------------------------------------------
-// Tunable biological parameters
-// -----------------------------------------------------
-const SYNAPTIC_CLEFT_3 = 30;
-const SOMA_OFFSET_3    = 160;
+const NEURON3_SOMA_OFFSET = { x: -160, y: -180 }; // ⬅️ up + left
+const NEURON3_DENDRITE_SECTOR = [210, 330];       // degrees (exclusive)
 
 // -----------------------------------------------------
 const neuron3 = {
-  somaRadius: 32,
+  somaRadius: 30,
   soma: { x: 0, y: 0 },
   dendrites: [],
-  synapses: [],
-
-  axon: {
-    length: 220,
-    angle: -140   // points away (not functionally used yet)
-  }
+  synapses: []
 };
 
 // -----------------------------------------------------
-// Initialize neuron 3 geometry
-// MUST be called AFTER neuron 1 axon terminals exist
+// Initialize neuron 3
 // -----------------------------------------------------
 function initNeuron3() {
 
@@ -33,143 +24,81 @@ function initNeuron3() {
   neuron3.synapses  = [];
 
   // ---------------------------------------------------
-  // 1) Lock to a DIFFERENT presynaptic terminal branch
-  //    (avoid neuron 2 overlap)
+  // 1) Find TOPMOST axon terminal from neuron 1
   // ---------------------------------------------------
-  const preBranch = neuron.axon.terminalBranches[2];
+  let topBranch = null;
+  let minY = Infinity;
 
-  const presynapticBouton = {
-    x: preBranch.end.x,
-    y: preBranch.end.y
+  neuron.axon.terminalBranches.forEach(b => {
+    if (b.end.y < minY) {
+      minY = b.end.y;
+      topBranch = b;
+    }
+  });
+
+  if (!topBranch) return;
+
+  const bouton = {
+    x: topBranch.end.x,
+    y: topBranch.end.y
   };
 
   // ---------------------------------------------------
-  // 2) Postsynaptic dendritic contact
+  // 2) Postsynaptic contact
   // ---------------------------------------------------
   const dendriteContact = {
-    x: presynapticBouton.x + SYNAPTIC_CLEFT_3,
-    y: presynapticBouton.y + random(-4, 4)
+    x: bouton.x - 28,
+    y: bouton.y - 6
   };
 
-  // ---------------------------------------------------
-  // 3) Soma placement (TOP-RIGHT OFFSET)
-  // ---------------------------------------------------
-  neuron3.soma.x = dendriteContact.x + SOMA_OFFSET_3;
-  neuron3.soma.y = dendriteContact.y - 140; // lift upward to avoid neuron 2
+  neuron3.synapses.push({
+    x: dendriteContact.x,
+    y: dendriteContact.y,
+    radius: 7
+  });
 
   // ---------------------------------------------------
-  // 4) THREE PRIMARY DENDRITIC TRUNKS
+  // 3) Soma position (FORCED up + left)
   // ---------------------------------------------------
-  const baseAngles = [
-    degrees(
-      atan2(
-        dendriteContact.y - neuron3.soma.y,
-        dendriteContact.x - neuron3.soma.x
-      )
-    ),   // trunk aligned to synapse
-    110,
-    240
-  ];
+  neuron3.soma.x = dendriteContact.x + NEURON3_SOMA_OFFSET.x;
+  neuron3.soma.y = dendriteContact.y + NEURON3_SOMA_OFFSET.y;
 
-  baseAngles.forEach((baseAngle, trunkIndex) => {
+  // ---------------------------------------------------
+  // 4) Dendrites (sector-limited, no overlap possible)
+  // ---------------------------------------------------
+  const trunkCount = 3;
 
-    const trunkLength = trunkIndex === 0
-      ? dist(
-          neuron3.soma.x,
-          neuron3.soma.y,
-          dendriteContact.x,
-          dendriteContact.y
-        )
-      : random(110, 150);
+  for (let i = 0; i < trunkCount; i++) {
 
-    const trunkSegments = 4;
+    const baseAngle = random(
+      NEURON3_DENDRITE_SECTOR[0],
+      NEURON3_DENDRITE_SECTOR[1]
+    );
+
+    const trunkLength = random(110, 150);
     const trunk = [];
 
     trunk.push({
       x: neuron3.soma.x,
       y: neuron3.soma.y,
-      r: 5.8
+      r: 5.4
     });
 
-    for (let i = 1; i <= trunkSegments; i++) {
+    const segments = 4;
+    for (let s = 1; s <= segments; s++) {
 
-      const t = i / trunkSegments;
+      const t = s / segments;
       const bend = sin(t * PI) * random(-4, 4);
 
-      const p = polarToCartesian(
-        baseAngle + bend,
-        trunkLength * t
-      );
+      const p = polarToCartesian(baseAngle + bend, trunkLength * t);
 
       trunk.push({
         x: neuron3.soma.x + p.x,
         y: neuron3.soma.y + p.y,
-        r: lerp(5.8, 2.4, t)
+        r: lerp(5.4, 2.2, t)
       });
     }
 
-    // Store trunk
     neuron3.dendrites.push(trunk);
-
-    // -------------------------------------------------
-    // 5) SECONDARY BRANCHES
-    // -------------------------------------------------
-    const branchCount = trunkIndex === 0 ? 2 : 3;
-
-    for (let i = 0; i < branchCount; i++) {
-
-      const idx = floor(random(1, trunk.length - 1));
-      const origin = trunk[idx];
-
-      const side = random() < 0.5 ? -1 : 1;
-      const branchAngle = baseAngle + side * random(40, 65);
-      const branchLength = random(50, 70);
-
-      const mid = {
-        x: origin.x + cos(radians(branchAngle)) * branchLength * 0.5,
-        y: origin.y + sin(radians(branchAngle)) * branchLength * 0.5
-      };
-
-      const end = {
-        x: origin.x + cos(radians(branchAngle)) * branchLength,
-        y: origin.y + sin(radians(branchAngle)) * branchLength
-      };
-
-      const branch = [
-        origin,
-        { x: mid.x, y: mid.y, r: 2.6 },
-        { x: end.x, y: end.y, r: 2.1 }
-      ];
-
-      // -----------------------------------------------
-      // 6) TERMINAL TWIGS
-      // -----------------------------------------------
-      const twigCount = floor(random(1, 3));
-
-      for (let j = 0; j < twigCount; j++) {
-
-        const twigAngle = branchAngle + random(-25, 25);
-
-        const twigEnd = {
-          x: end.x + cos(radians(twigAngle)) * random(18, 32),
-          y: end.y + sin(radians(twigAngle)) * random(18, 32)
-        };
-
-        neuron3.dendrites.push([
-          ...branch,
-          { x: twigEnd.x, y: twigEnd.y, r: 1.7 }
-        ]);
-      }
-    }
-  });
-
-  // ---------------------------------------------------
-  // 7) POSTSYNAPTIC DENSITY (INHIBITORY)
-  // ---------------------------------------------------
-  neuron3.synapses.push({
-    x: dendriteContact.x,
-    y: dendriteContact.y,
-    radius: 7,
-    type: "inh"   // 🔴 critical for IPSP
-  });
+  }
 }
