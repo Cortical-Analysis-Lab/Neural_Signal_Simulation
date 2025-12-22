@@ -9,6 +9,11 @@ const state = {
   paused: false,
   mode: "overview" // overview | ion | synapse
 };
+// -----------------------------------------------------
+// Global Toggles
+// -----------------------------------------------------
+window.myelinEnabled = false;
+
 
 // =====================================================
 // CAMERA STATE (WORLD SPACE ONLY)
