@@ -95,23 +95,22 @@ function updateMyelinAPs() {
 // -----------------------------------------------------
 function drawMyelinAPs() {
   myelinAPs.forEach(ap => {
-    const a = ap.targets[ap.index];
-    const b = ap.targets[ap.index + 1];
-    if (!a || !b) return;
 
-    // Fast jump interpolation
-    const t = constrain(ap.progress * 1.6, 0, 1);
+    // ❌ Hide AP while traveling under myelin
+    // ✔ Only show at nodes (brief flash)
+    if (ap.progress > 0.15) return;
 
-    const x = lerp(a.x, b.x, t);
-    const y = lerp(a.y, b.y, t);
+    const p = ap.targets[ap.index];
+    if (!p) return;
 
     push();
     noStroke();
     fill(getColor("ap"));
-    ellipse(x, y, NODE_GLOW_RADIUS, NODE_GLOW_RADIUS);
+    ellipse(p.x, p.y, NODE_GLOW_RADIUS, NODE_GLOW_RADIUS);
     pop();
   });
 }
+
 
 
 // -----------------------------------------------------
