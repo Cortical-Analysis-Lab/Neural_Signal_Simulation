@@ -4,12 +4,10 @@
 console.log("neuron3 geometry loaded");
 
 // -----------------------------------------------------
-// Placement tuning (small, controlled shift)
+// Placement tuning (used explicitly)
 // -----------------------------------------------------
-const NEURON3_OFFSET = { x: 110, y: -150 }; // ⬅️ open upper-right space
-
-// Secondary dendrites restricted upward only
-const NEURON3_DENDRITE_SECTOR = [-120, -40]; // degrees
+const NEURON3_OFFSET = { x: 110, y: -150 }; // open space above + right
+const NEURON3_DENDRITE_SECTOR = [-120, -40]; // upward-facing only
 
 // -----------------------------------------------------
 const neuron3 = {
@@ -22,11 +20,6 @@ const neuron3 = {
 // -----------------------------------------------------
 // Initialize neuron 3
 // -----------------------------------------------------
-// =====================================================
-// INHIBITORY INTERNEURON GEOMETRY (NEURON 3)
-// =====================================================
-console.log("neuron3 geometry loaded");
-
 function initNeuron3() {
 
   neuron3.dendrites = [];
@@ -53,11 +46,11 @@ function initNeuron3() {
   };
 
   // ---------------------------------------------------
-  // 2) Synaptic contact (slightly offset from bouton)
+  // 2) Postsynaptic contact (fixed to bouton)
   // ---------------------------------------------------
   const dendriteContact = {
-    x: bouton.x - 26,
-    y: bouton.y - 10
+    x: bouton.x - 24,
+    y: bouton.y - 8
   };
 
   neuron3.synapses.push({
@@ -67,56 +60,57 @@ function initNeuron3() {
   });
 
   // ---------------------------------------------------
-  // 3) Soma placement ABOVE the bouton (diagonal open space)
+  // 3) Soma placement — EXPLICIT OFFSET (no angles)
   // ---------------------------------------------------
-  const SOMA_DISTANCE = 170;
-
-  const somaAngle = radians(-70); // upward-left
-  neuron3.soma.x = dendriteContact.x + cos(somaAngle) * SOMA_DISTANCE;
-  neuron3.soma.y = dendriteContact.y + sin(somaAngle) * SOMA_DISTANCE;
+  neuron3.soma.x = dendriteContact.x + NEURON3_OFFSET.x;
+  neuron3.soma.y = dendriteContact.y + NEURON3_OFFSET.y;
 
   // ---------------------------------------------------
-  // 4) PRIMARY DENDRITIC TRUNK (CONNECTS TO SYNAPSE)
+  // 4) PRIMARY DENDRITIC TRUNK (connects to synapse)
   // ---------------------------------------------------
   const trunk = [];
-
   const trunkSegments = 5;
 
   trunk.push({
     x: neuron3.soma.x,
     y: neuron3.soma.y,
-    r: 5.8
+    r: 5.6
   });
 
-  for (let i = 1; i <= trunkSegments; i++) {
+  const trunkAngle = degrees(
+    atan2(
+      dendriteContact.y - neuron3.soma.y,
+      dendriteContact.x - neuron3.soma.x
+    )
+  );
 
+  const trunkLength = dist(
+    neuron3.soma.x,
+    neuron3.soma.y,
+    dendriteContact.x,
+    dendriteContact.y
+  );
+
+  for (let i = 1; i <= trunkSegments; i++) {
     const t = i / trunkSegments;
     const bend = sin(t * PI) * 4;
 
     const p = polarToCartesian(
-      degrees(atan2(
-        dendriteContact.y - neuron3.soma.y,
-        dendriteContact.x - neuron3.soma.x
-      )) + bend,
-      dist(
-        neuron3.soma.x,
-        neuron3.soma.y,
-        dendriteContact.x,
-        dendriteContact.y
-      ) * t
+      trunkAngle + bend,
+      trunkLength * t
     );
 
     trunk.push({
       x: neuron3.soma.x + p.x,
       y: neuron3.soma.y + p.y,
-      r: lerp(5.8, 2.6, t)
+      r: lerp(5.6, 2.6, t)
     });
   }
 
   neuron3.dendrites.push(trunk);
 
   // ---------------------------------------------------
-  // 5) SECONDARY BRANCHES (FAN AWAY FROM NEURON 2)
+  // 5) SECONDARY DENDRITES (UPWARD ONLY, NO OVERLAP)
   // ---------------------------------------------------
   const secondaryCount = 3;
 
@@ -125,8 +119,12 @@ function initNeuron3() {
     const originIdx = floor(random(1, trunk.length - 2));
     const origin = trunk[originIdx];
 
-    const branchAngle = random(200, 310); // down-left sector
-    const branchLength = random(60, 90);
+    const branchAngle = random(
+      NEURON3_DENDRITE_SECTOR[0],
+      NEURON3_DENDRITE_SECTOR[1]
+    );
+
+    const branchLength = random(55, 80);
 
     const mid = {
       x: origin.x + cos(radians(branchAngle)) * branchLength * 0.5,
@@ -140,7 +138,7 @@ function initNeuron3() {
 
     const branch = [
       origin,
-      { x: mid.x, y: mid.y, r: 2.8 },
+      { x: mid.x, y: mid.y, r: 2.6 },
       { x: end.x, y: end.y, r: 2.2 }
     ];
 
@@ -153,11 +151,11 @@ function initNeuron3() {
 
     for (let j = 0; j < twigCount; j++) {
 
-      const twigAngle = branchAngle + random(-30, 30);
+      const twigAngle = branchAngle + random(-25, 25);
 
       const twigEnd = {
-        x: end.x + cos(radians(twigAngle)) * random(18, 32),
-        y: end.y + sin(radians(twigAngle)) * random(18, 32)
+        x: end.x + cos(radians(twigAngle)) * random(16, 30),
+        y: end.y + sin(radians(twigAngle)) * random(16, 30)
       };
 
       neuron3.dendrites.push([
