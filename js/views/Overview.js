@@ -73,6 +73,44 @@ function drawOrganicBranch(branch, baseColor) {
 }
 
 // =====================================================
+// MYELIN RENDERING (OVERVIEW ONLY)
+// =====================================================
+function drawMyelinSheath(neuron) {
+  if (!window.myelinEnabled) return;
+  if (!neuron?.axon?.path || !neuron?.axon?.myelinNodes) return;
+
+  const path = neuron.axon.path;
+  const nodes = neuron.axon.myelinNodes;
+
+  // Build node index set for quick lookup
+  const nodeSet = new Set(nodes.map(n => n.index));
+
+  // ---- Draw internodes (myelin) ----
+  stroke(190, 200, 190, 160); // soft green-gray
+  strokeWeight(8);
+  noFill();
+
+  beginShape();
+  for (let i = 0; i < path.length; i++) {
+    // Skip tiny gaps around nodes to create visible nodes
+    if (nodeSet.has(i)) {
+      endShape();
+      beginShape();
+      continue;
+    }
+    vertex(path[i].x, path[i].y);
+  }
+  endShape();
+
+  // ---- Draw nodes of Ranvier ----
+  noStroke();
+  fill(235); // light node color
+  nodes.forEach(n => {
+    ellipse(n.x, n.y, 6, 6);
+  });
+}
+
+// =====================================================
 // NEURON 1 (PRESYNAPTIC)
 // =====================================================
 function drawNeuron1() {
@@ -139,6 +177,9 @@ function drawNeuron1() {
     neuron.somaRadius + neuron.axon.length, 0
   );
   endShape();
+
+  // ---------------- MYELIN (OVERVIEW ONLY) ----------------
+  drawMyelinSheath(neuron);
 
   // ---------------- AXON TERMINALS ----------------
   neuron.axon.terminalBranches.forEach(b => {
