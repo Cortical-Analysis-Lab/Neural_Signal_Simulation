@@ -82,12 +82,13 @@ function drawMyelinSheath(neuron) {
   const path  = neuron.axon.path;
   const nodes = neuron.axon.myelinNodes;
 
-  // ----------------------------
-  // Parameters (tune visually)
-  // ----------------------------
-  const AXON_CORE_WIDTH = 4;
-  const MYELIN_WIDTH   = 14;
-  const SHEATH_LENGTH  = 18; // 👈 SHORT capsule length
+  // ============================
+  // Tuned visual parameters
+  // ============================
+  const AXON_CORE_WIDTH   = 4;
+  const MYELIN_WIDTH     = 14;
+  const SHEATH_LENGTH    = 14; // 👈 ~25% shorter (KEY FIX)
+  const INITIAL_SKIP_NODES = 1; // 👈 bare axon near soma
 
   // ============================
   // 1. Draw exposed axon core
@@ -101,22 +102,24 @@ function drawMyelinSheath(neuron) {
   endShape();
 
   // ============================
-  // 2. Draw SHORT myelin capsules
+  // 2. Draw short, evenly spaced sheaths
   // ============================
   stroke(getColor("myelin"));
   strokeWeight(MYELIN_WIDTH);
   strokeCap(ROUND);
   noFill();
 
-  nodes.forEach(n => {
-    const i = n.pathIndex;
+  nodes.forEach((n, idx) => {
+    // Skip first node(s) to keep soma connected
+    if (idx < INITIAL_SKIP_NODES) return;
 
+    const i = n.pathIndex;
     if (i <= 0 || i >= path.length - 1) return;
 
     const prev = path[i - 1];
     const next = path[i + 1];
 
-    // Direction vector
+    // Local tangent
     const dx = next.x - prev.x;
     const dy = next.y - prev.y;
     const len = Math.hypot(dx, dy) || 1;
@@ -124,11 +127,12 @@ function drawMyelinSheath(neuron) {
     const ux = dx / len;
     const uy = dy / len;
 
-    // Capsule endpoints
-    const x1 = n.x - ux * SHEATH_LENGTH * 0.5;
-    const y1 = n.y - uy * SHEATH_LENGTH * 0.5;
-    const x2 = n.x + ux * SHEATH_LENGTH * 0.5;
-    const y2 = n.y + uy * SHEATH_LENGTH * 0.5;
+    // Short capsule centered on node
+    const half = SHEATH_LENGTH * 0.5;
+    const x1 = n.x - ux * half;
+    const y1 = n.y - uy * half;
+    const x2 = n.x + ux * half;
+    const y2 = n.y + uy * half;
 
     line(x1, y1, x2, y2);
   });
@@ -142,6 +146,7 @@ function drawMyelinSheath(neuron) {
     ellipse(n.x, n.y, 6, 6);
   });
 }
+
 
 
 // =====================================================
