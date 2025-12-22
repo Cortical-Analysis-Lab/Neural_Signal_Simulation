@@ -37,8 +37,26 @@ function spawnAxonSpike() {
     if (last.phase < 0.1) return;
   }
 
+// -----------------------------------------------------
+// Spawn AP at axon hillock
+// -----------------------------------------------------
+function spawnAxonSpike() {
+
+  // If myelinated, hand off to saltatory engine
+  if (window.myelinEnabled && typeof spawnMyelinAP === "function") {
+    spawnMyelinAP();
+    return;
+  }
+
+  // Prevent overlapping APs at hillock
+  if (axonSpikes.length > 0) {
+    const last = axonSpikes[axonSpikes.length - 1];
+    if (last.phase < 0.1) return;
+  }
+
   axonSpikes.push({ phase: 0 });
 }
+
 
 // -----------------------------------------------------
 // Update axon AP propagation
