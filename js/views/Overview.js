@@ -15,12 +15,14 @@ function drawOverview(state) {
   updateSynapseHover();
   updateEPSPs();
   updateSoma();
+  updateVoltageTrace();
   updateAxonSpikes();
   updateTerminalDots();
   updateVesicles();
   updateNeuron2EPSPs();
   updateSynapticCoupling();
 
+  drawVoltageTrace();
   drawEPSPs();
   drawAxonSpikes();
   drawVesicles();
