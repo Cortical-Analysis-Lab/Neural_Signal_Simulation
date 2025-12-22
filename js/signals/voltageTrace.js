@@ -20,7 +20,7 @@ const vmTrace = [];
 // Update trace buffer (called from main.js)
 // -----------------------------------------------------
 function updateVoltageTrace() {
-  if (!window.soma) return;
+if (typeof soma === "undefined") return;
 
   vmTrace.push(soma.VmDisplay);
   if (vmTrace.length > VM_TRACE_LENGTH) {
