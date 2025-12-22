@@ -1,14 +1,13 @@
 // =====================================================
-// VOLTAGE TRACE (WORLD-SPACE, FOLLOWS NEURON)
-// DEBUG / TROUBLESHOOTING ENABLED
+// VOLTAGE TRACE — LIVE SOMA Vm (WORLD-SPACE, CLEAN)
 // =====================================================
-console.log("🧪 voltageTrace loaded");
+console.log("voltageTrace loaded");
 
 // -----------------------------------------------------
 // Configuration
 // -----------------------------------------------------
-const VM_TRACE_LENGTH = 240;   // samples (~4 sec @ 60 fps)
-const VM_MIN = -75;
+const VM_TRACE_LENGTH = 240;   // ~4 seconds at 60 fps
+const VM_MIN = -80;
 const VM_MAX = 45;
 
 // -----------------------------------------------------
@@ -17,85 +16,59 @@ const VM_MAX = 45;
 const vmTrace = [];
 
 // -----------------------------------------------------
-// Update trace buffer (called from main.js)
+// Update trace buffer (called every frame)
 // -----------------------------------------------------
 function updateVoltageTrace() {
-if (typeof soma === "undefined") return;
+  if (typeof soma === "undefined") return;
 
   vmTrace.push(soma.VmDisplay);
+
   if (vmTrace.length > VM_TRACE_LENGTH) {
     vmTrace.shift();
-  }
-
-  // 🔍 DEBUG: confirm values changing
-  if (frameCount % 60 === 0) {
-    console.log("🧪 updateVoltageTrace()", soma.VmDisplay.toFixed(1));
   }
 }
 
 // -----------------------------------------------------
-// Draw voltage trace (WORLD SPACE — follows soma)
+// Draw voltage trace (anchored under neuron 1 soma)
 // -----------------------------------------------------
 function drawVoltageTrace() {
 
-  // 🔴 DEBUG 1 — prove function is executing
-  if (frameCount % 60 === 0) {
-    console.log("🧪 drawVoltageTrace()", vmTrace.length);
-  }
+  if (vmTrace.length < 2) return;
 
-  // Even with no data, draw a marker
   push();
 
   // ---------------------------------------------------
-  // Anchor directly under NEURON 1 soma (world coords)
+  // Anchor trace to neuron 1 soma (WORLD SPACE)
   // ---------------------------------------------------
-  const x0 = 0;
-  const y0 = neuron.somaRadius + 40;
+  const x0 = 0 - 180;
+  const y0 = neuron.somaRadius + 55;
+
+  const traceWidth  = 360;
+  const traceHeight = 90;
 
   // ---------------------------------------------------
-  // 🔴 DEBUG 2 — GIANT RED BOX (must be visible)
-  // ---------------------------------------------------
-  stroke(255, 0, 0);
-  strokeWeight(3);
-  noFill();
-  rect(x0 - 180, y0 - 40, 360, 120);
-
-  // ---------------------------------------------------
-  // 🔴 DEBUG 3 — CENTER MARKER
-  // ---------------------------------------------------
-  noStroke();
-  fill(255, 0, 0);
-  ellipse(x0, y0, 8);
-
-  // ---------------------------------------------------
-  // If not enough samples, stop here
-  // ---------------------------------------------------
-  if (vmTrace.length < 2) {
-    pop();
-    return;
-  }
-
-  // ---------------------------------------------------
-  // Threshold line (CYAN, VERY VISIBLE)
+  // Threshold line
   // ---------------------------------------------------
   const yThresh = map(
     soma.threshold,
     VM_MIN,
     VM_MAX,
-    y0 + 60,
+    y0 + traceHeight,
     y0
   );
 
-  stroke(0, 255, 255);
-  strokeWeight(2);
-  line(x0 - 180, yThresh, x0 + 180, yThresh);
+  stroke(80, 200, 255, 160); // cyan
+  strokeWeight(1);
+  line(x0, yThresh, x0 + traceWidth, yThresh);
 
   // ---------------------------------------------------
-  // Voltage trace (BRIGHT GREEN, THICK)
+  // Voltage trace
   // ---------------------------------------------------
   noFill();
-  stroke(0, 255, 0);
-  strokeWeight(3);
+  stroke(100, 255, 100); // green
+  strokeWeight(2);
+  strokeJoin(ROUND);
+  strokeCap(ROUND);
 
   beginShape();
   for (let i = 0; i < vmTrace.length; i++) {
@@ -104,15 +77,15 @@ function drawVoltageTrace() {
       i,
       0,
       VM_TRACE_LENGTH - 1,
-      x0 - 180,
-      x0 + 180
+      x0,
+      x0 + traceWidth
     );
 
     const y = map(
       vmTrace[i],
       VM_MIN,
       VM_MAX,
-      y0 + 60,
+      y0 + traceHeight,
       y0
     );
 
@@ -121,17 +94,13 @@ function drawVoltageTrace() {
   endShape();
 
   // ---------------------------------------------------
-  // Current Vm text (white, obvious)
+  // Label
   // ---------------------------------------------------
   noStroke();
-  fill(255);
+  fill(200);
   textSize(12);
   textAlign(LEFT, BOTTOM);
-  text(
-    `Vm = ${soma.VmDisplay.toFixed(1)} mV`,
-    x0 - 175,
-    y0 - 45
-  );
+  text("Membrane potential (Vm)", x0, y0 - 6);
 
   pop();
 }
