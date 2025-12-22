@@ -199,6 +199,14 @@ function drawNeuron1() {
 
   pop();
 
+    // ---------------- AXON INITIAL SEGMENT (AIS) ----------------
+  stroke(getColor("axon")); // same color as axon & soma
+  strokeWeight(6);
+  line(
+    neuron.somaRadius, 0,
+    neuron.somaRadius + neuron.hillock.length, 0
+  );
+
   // ---------------- AXON ----------------
   noFill();
   stroke(getColor("axon"));
