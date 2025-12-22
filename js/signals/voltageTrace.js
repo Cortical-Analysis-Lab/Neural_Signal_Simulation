@@ -1,54 +1,53 @@
 // =====================================================
-// VOLTAGE TRACE (DISPLAY-ONLY, STANDALONE MODULE)
+// VOLTAGE TRACE (SCREEN-SPACE HUD, LIVE)
 // =====================================================
 console.log("voltageTrace loaded");
 
 // -----------------------------------------------------
-// Trace configuration
+// Configuration
 // -----------------------------------------------------
-const VM_TRACE_LENGTH = 240;   // samples (~4 sec @ 60 fps)
+const VM_TRACE_LENGTH = 240; // samples (~4 sec @ 60 fps)
 const VM_MIN = -75;
 const VM_MAX = 45;
 
 // -----------------------------------------------------
-// Internal trace buffer (display only)
+// Internal buffer (live soma VmDisplay)
 // -----------------------------------------------------
 const vmTrace = [];
 
 // -----------------------------------------------------
-// Update trace buffer (call once per frame)
+// Update trace buffer (called from main.js)
 // -----------------------------------------------------
 function updateVoltageTrace() {
-  if (!window.soma || typeof soma.VmDisplay !== "number") return;
+  if (!window.soma) return;
 
   vmTrace.push(soma.VmDisplay);
-
   if (vmTrace.length > VM_TRACE_LENGTH) {
     vmTrace.shift();
   }
 }
 
 // -----------------------------------------------------
-// Draw voltage trace below neuron 1
+// Draw voltage trace (SCREEN SPACE, NO CAMERA)
 // -----------------------------------------------------
 function drawVoltageTrace() {
 
-  if (!window.neuron || !window.soma || vmTrace.length < 2) return;
+  if (vmTrace.length < 2) return;
 
   // ---------------------------------------------------
-  // Anchor trace to soma position (world space)
+  // RESET camera transform → screen space
   // ---------------------------------------------------
-  const somaX = 0;
-  const somaY = 0;
+  push();
+  resetMatrix();
 
-  const traceWidth  = 360;
+  // ---------------------------------------------------
+  // Layout (bottom-center of screen)
+  // ---------------------------------------------------
+  const traceWidth = 360;
   const traceHeight = 90;
 
-  const x0 = somaX - traceWidth / 2;
-  const y0 = somaY + neuron.somaRadius + 40; // 🔑 MUCH CLOSER
-
-  const VM_MIN = -75;
-  const VM_MAX = 45;
+  const x0 = width / 2 - traceWidth / 2;
+  const y0 = height - traceHeight - 40;
 
   // ---------------------------------------------------
   // Threshold line
@@ -94,5 +93,6 @@ function drawVoltageTrace() {
     vertex(x, y);
   }
   endShape();
-}
 
+  pop();
+}
