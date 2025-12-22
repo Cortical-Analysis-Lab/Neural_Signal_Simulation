@@ -1,0 +1,89 @@
+// =====================================================
+// VOLTAGE TRACE (DISPLAY-ONLY, STANDALONE)
+// =====================================================
+console.log("voltage trace loaded");
+
+// -----------------------------------------------------
+// Trace configuration
+// -----------------------------------------------------
+const VM_TRACE_LENGTH = 240;   // samples (~4 sec at 60 fps)
+const VM_MIN = -75;
+const VM_MAX = 45;
+
+// -----------------------------------------------------
+// Internal trace buffer (display only)
+// -----------------------------------------------------
+const vmTrace = [];
+
+// -----------------------------------------------------
+// Update trace buffer (call once per frame)
+// -----------------------------------------------------
+function updateVoltageTrace() {
+  if (!soma) return;
+
+  vmTrace.push(soma.VmDisplay);
+
+  if (vmTrace.length > VM_TRACE_LENGTH) {
+    vmTrace.shift();
+  }
+}
+
+// -----------------------------------------------------
+// Draw trace below neuron 1
+// -----------------------------------------------------
+function drawVoltageTrace() {
+
+  if (vmTrace.length < 2) return;
+
+  // ---- Layout (relative to neuron 1 soma) ----
+  const traceWidth = 360;
+  const traceHeight = 90;
+
+  const x0 = -traceWidth / 2;
+  const y0 = neuron.somaRadius + 90;
+
+  // -------------------------------------------------
+  // Threshold line
+  // -------------------------------------------------
+  const yThresh = map(
+    soma.threshold,
+    VM_MIN,
+    VM_MAX,
+    y0 + traceHeight,
+    y0
+  );
+
+  stroke(255, 100);
+  strokeWeight(1);
+  line(x0, yThresh, x0 + traceWidth, yThresh);
+
+  // -------------------------------------------------
+  // Voltage trace
+  // -------------------------------------------------
+  noFill();
+  stroke(255);
+  strokeWeight(2);
+
+  beginShape();
+  for (let i = 0; i < vmTrace.length; i++) {
+
+    const x = map(
+      i,
+      0,
+      VM_TRACE_LENGTH - 1,
+      x0,
+      x0 + traceWidth
+    );
+
+    const y = map(
+      vmTrace[i],
+      VM_MIN,
+      VM_MAX,
+      y0 + traceHeight,
+      y0
+    );
+
+    vertex(x, y);
+  }
+  endShape();
+}
