@@ -62,8 +62,8 @@ function spawnNeuron3IPSP(postSynapse) {
     path,
 
     progress: 0,
-    amplitude: 30,
-    baseAmplitude: 30,
+    amplitude: 25,
+    baseAmplitude: 25,
 
     speed: 0.010,      // IPSPs slightly slower
     decay: 0.994,      // longer-lasting
