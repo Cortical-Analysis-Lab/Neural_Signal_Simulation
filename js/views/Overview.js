@@ -84,10 +84,10 @@ function drawMyelinSheath(neuron) {
   // ============================
   // Tuned visual parameters
   // ============================
-  const AXON_CORE_WIDTH = 4;
+  const AXON_CORE_WIDTH = 6;
   const MYELIN_WIDTH   = 14;
-  const SHEATH_LENGTH  = 12;
-  const SHEATH_COUNT   = 3;
+  const SHEATH_LENGTH  = 8;
+  const SHEATH_COUNT   = 4;
 
   // ============================
   // 1. Draw axon core (continuous)
