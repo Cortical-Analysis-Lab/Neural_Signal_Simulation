@@ -4,8 +4,12 @@
 console.log("neuron3 geometry loaded");
 
 // -----------------------------------------------------
-const NEURON3_SOMA_OFFSET = { x: -160, y: -180 }; // ⬅️ up + left
-const NEURON3_DENDRITE_SECTOR = [210, 330];       // degrees (exclusive)
+// Placement tuning (small, controlled shift)
+// -----------------------------------------------------
+const NEURON3_OFFSET = { x: 110, y: -150 }; // ⬅️ open upper-right space
+
+// Secondary dendrites restricted upward only
+const NEURON3_DENDRITE_SECTOR = [-120, -40]; // degrees
 
 // -----------------------------------------------------
 const neuron3 = {
@@ -38,16 +42,13 @@ function initNeuron3() {
 
   if (!topBranch) return;
 
-  const bouton = {
-    x: topBranch.end.x,
-    y: topBranch.end.y
-  };
+  const bouton = { x: topBranch.end.x, y: topBranch.end.y };
 
   // ---------------------------------------------------
-  // 2) Postsynaptic contact
+  // 2) Postsynaptic contact point
   // ---------------------------------------------------
   const dendriteContact = {
-    x: bouton.x - 28,
+    x: bouton.x + 26,
     y: bouton.y - 6
   };
 
@@ -58,44 +59,50 @@ function initNeuron3() {
   });
 
   // ---------------------------------------------------
-  // 3) Soma position (FORCED up + left)
+  // 3) Soma placement (diagonal open space)
   // ---------------------------------------------------
-  neuron3.soma.x = dendriteContact.x + NEURON3_SOMA_OFFSET.x;
-  neuron3.soma.y = dendriteContact.y + NEURON3_SOMA_OFFSET.y;
+  neuron3.soma.x = dendriteContact.x + NEURON3_OFFSET.x;
+  neuron3.soma.y = dendriteContact.y + NEURON3_OFFSET.y;
 
   // ---------------------------------------------------
-  // 4) Dendrites (sector-limited, no overlap possible)
+  // 4) PRIMARY CONNECTING DENDRITE (EXPLICIT)
   // ---------------------------------------------------
-  const trunkCount = 3;
+  neuron3.dendrites.push([
+    { x: neuron3.soma.x, y: neuron3.soma.y, r: 5.2 },
+    { x: dendriteContact.x, y: dendriteContact.y, r: 2.4 }
+  ]);
 
-  for (let i = 0; i < trunkCount; i++) {
+  // ---------------------------------------------------
+  // 5) SHORT SECONDARY DENDRITES (NON-OVERLAPPING)
+  // ---------------------------------------------------
+  const extraTrunks = 2;
 
-    const baseAngle = random(
+  for (let i = 0; i < extraTrunks; i++) {
+
+    const angle = random(
       NEURON3_DENDRITE_SECTOR[0],
       NEURON3_DENDRITE_SECTOR[1]
     );
 
-    const trunkLength = random(110, 150);
+    const length = random(55, 75);
     const trunk = [];
 
     trunk.push({
       x: neuron3.soma.x,
       y: neuron3.soma.y,
-      r: 5.4
+      r: 4.8
     });
 
-    const segments = 4;
+    const segments = 3;
     for (let s = 1; s <= segments; s++) {
 
       const t = s / segments;
-      const bend = sin(t * PI) * random(-4, 4);
-
-      const p = polarToCartesian(baseAngle + bend, trunkLength * t);
+      const p = polarToCartesian(angle, length * t);
 
       trunk.push({
         x: neuron3.soma.x + p.x,
         y: neuron3.soma.y + p.y,
-        r: lerp(5.4, 2.2, t)
+        r: lerp(4.8, 2.0, t)
       });
     }
 
