@@ -1,12 +1,12 @@
 // =====================================================
-// VOLTAGE TRACE (SCREEN-SPACE HUD, LIVE)
+// VOLTAGE TRACE (WORLD-SPACE, NEURON-ANCHORED)
 // =====================================================
 console.log("voltageTrace loaded");
 
 // -----------------------------------------------------
 // Configuration
 // -----------------------------------------------------
-const VM_TRACE_LENGTH = 300;   // ~5 seconds @ 60 fps
+const VM_TRACE_LENGTH = 240;   // samples (~4 sec @ 60 fps)
 const VM_MIN = -75;
 const VM_MAX = 45;
 
@@ -16,35 +16,42 @@ const VM_MAX = 45;
 const vmTrace = [];
 
 // -----------------------------------------------------
-// Update trace buffer
+// Update trace buffer (called every frame)
 // -----------------------------------------------------
 function updateVoltageTrace() {
   if (!window.soma) return;
 
   vmTrace.push(soma.VmDisplay);
+
   if (vmTrace.length > VM_TRACE_LENGTH) {
     vmTrace.shift();
   }
 }
 
 // -----------------------------------------------------
-// Draw voltage trace (screen space)
+// Draw voltage trace (WORLD SPACE, follows neuron)
 // -----------------------------------------------------
 function drawVoltageTrace() {
 
   if (vmTrace.length < 2) return;
 
-  push();
-  resetMatrix();
+  // ---------------------------------------------
+  // Anchor to neuron 1 soma (same frame as soma)
+  // ---------------------------------------------
+  const somaX = 0;
+  const somaY = 0;
 
-  // ---------------- Layout ----------------
-  const traceWidth  = 420;
-  const traceHeight = 110;
+  // Trace layout (relative to soma)
+  const traceWidth  = 120;
+  const traceHeight = 35;
+  const yOffset     = neuron.somaRadius + 22;
 
-  const x0 = width / 2 - traceWidth / 2;
-  const y0 = height - traceHeight - 30;
+  const x0 = somaX - traceWidth / 2;
+  const y0 = somaY + yOffset;
 
-  // ---------------- Threshold line ----------------
+  // ---------------------------------------------
+  // Threshold line
+  // ---------------------------------------------
   const yThresh = map(
     soma.threshold,
     VM_MIN,
@@ -53,14 +60,16 @@ function drawVoltageTrace() {
     y0
   );
 
-  stroke(255, 0, 0);
-  strokeWeight(5);
+  stroke(255, 120);
+  strokeWeight(0.8);
   line(x0, yThresh, x0 + traceWidth, yThresh);
 
-  // ---------------- Voltage trace ----------------
+  // ---------------------------------------------
+  // Voltage trace
+  // ---------------------------------------------
   noFill();
-  stroke(255);           // bright white
-  strokeWeight(2);
+  stroke(255);
+  strokeWeight(1.6);
 
   beginShape();
   for (let i = 0; i < vmTrace.length; i++) {
@@ -84,13 +93,4 @@ function drawVoltageTrace() {
     vertex(x, y);
   }
   endShape();
-
-  // ---------------- Spike highlight ----------------
-  if (soma.VmDisplay > soma.threshold) {
-    stroke(255, 220, 120);   // spike glow
-    strokeWeight(3);
-    point(x0 + traceWidth, yThresh - 10);
-  }
-
-  pop();
 }
