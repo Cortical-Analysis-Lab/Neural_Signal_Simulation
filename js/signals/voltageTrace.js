@@ -32,67 +32,20 @@ function updateVoltageTrace() {
 // -----------------------------------------------------
 function drawVoltageTrace() {
 
-  if (vmTrace.length < 2) return;
-
-  // ---------------------------------------------------
-  // RESET camera transform → screen space
-  // ---------------------------------------------------
+  // 🔥 HARD VISUAL TEST (NO CONDITIONS)
   push();
   resetMatrix();
 
-  // ---------------------------------------------------
-  // Layout (bottom-center of screen)
-  // ---------------------------------------------------
-  const traceWidth = 360;
-  const traceHeight = 90;
+  // Giant red rectangle
+  noStroke();
+  fill(255, 0, 0);
+  rect(50, height - 150, width - 100, 100);
 
-  const x0 = width / 2 - traceWidth / 2;
-  const y0 = height - traceHeight - 40;
-
-  // ---------------------------------------------------
-  // Threshold line
-  // ---------------------------------------------------
-  const yThresh = map(
-    soma.threshold,
-    VM_MIN,
-    VM_MAX,
-    y0 + traceHeight,
-    y0
-  );
-
-  stroke(255, 120);
-  strokeWeight(1);
-  line(x0, yThresh, x0 + traceWidth, yThresh);
-
-  // ---------------------------------------------------
-  // Voltage trace
-  // ---------------------------------------------------
-  noFill();
-  stroke(255);
-  strokeWeight(2);
-
-  beginShape();
-  for (let i = 0; i < vmTrace.length; i++) {
-
-    const x = map(
-      i,
-      0,
-      VM_TRACE_LENGTH - 1,
-      x0,
-      x0 + traceWidth
-    );
-
-    const y = map(
-      vmTrace[i],
-      VM_MIN,
-      VM_MAX,
-      y0 + traceHeight,
-      y0
-    );
-
-    vertex(x, y);
-  }
-  endShape();
+  // Big text
+  fill(255);
+  textSize(32);
+  textAlign(CENTER, CENTER);
+  text("VOLTAGE TRACE HERE", width / 2, height - 100);
 
   pop();
 }
