@@ -27,41 +27,13 @@ const neuron2 = {
 // Initialize neuron 2 geometry
 // MUST be called AFTER neuron 1 axon terminals exist
 // -----------------------------------------------------
-// =====================================================
-// POSTSYNAPTIC NEURON GEOMETRY (NEURON 2)
-// MATCHES NEURON 1 STYLE (TRUNK → BRANCH → TWIG)
-// =====================================================
-console.log("neuron2 geometry loaded");
-
-// -----------------------------------------------------
-// Tunable biological parameters
-// -----------------------------------------------------
-const SYNAPTIC_CLEFT = 30;
-const SOMA_OFFSET    = 140;
-
-// -----------------------------------------------------
-const neuron2 = {
-  somaRadius: 34,
-  soma: { x: 0, y: 0 },
-  dendrites: [],
-  synapses: [],
-
-  axon: {
-    length: 260,
-    angle: -20
-  }
-};
-
-// -----------------------------------------------------
-// Initialize neuron 2 geometry
-// -----------------------------------------------------
 function initNeuron2() {
 
   neuron2.dendrites = [];
   neuron2.synapses  = [];
 
   // ---------------------------------------------------
-  // 1) Lock to presynaptic bouton
+  // 1) Lock to presynaptic bouton (neuron 1)
   // ---------------------------------------------------
   const preBranch = neuron.axon.terminalBranches[1];
 
@@ -79,7 +51,7 @@ function initNeuron2() {
   };
 
   // ---------------------------------------------------
-  // 3) Soma placement
+  // 3) Soma placement (pulled away from neuron 1)
   // ---------------------------------------------------
   neuron2.soma.x = dendriteContact.x + SOMA_OFFSET;
   neuron2.soma.y = dendriteContact.y + random(-20, 20);
@@ -102,7 +74,7 @@ function initNeuron2() {
 
   trunkAngles.forEach((baseAngle, trunkIndex) => {
 
-    // 🔹 SHORTEN NON-SYNAPTIC TRUNKS
+    // 🔹 Preserve synaptic trunk, shorten others
     const trunkLength =
       trunkIndex === 0
         ? dist(
@@ -111,7 +83,7 @@ function initNeuron2() {
             dendriteContact.x,
             dendriteContact.y
           )
-        : random(80, 105);   // ⬅️ shortened from 120–160
+        : random(80, 105);
 
     const trunkSegments = 4;
     const trunk = [];
@@ -144,7 +116,7 @@ function initNeuron2() {
     neuron2.dendrites.push(trunk);
 
     // -------------------------------------------------
-    // 5) SECONDARY BRANCHES (SHORTER)
+    // 5) SECONDARY BRANCHES (SHORTER + SPARSER)
     // -------------------------------------------------
     const branchCount = trunkIndex === 0 ? 2 : 2;
 
@@ -155,7 +127,7 @@ function initNeuron2() {
 
       const side = trunkIndex === 2 ? -1 : 1;
       const branchAngle = baseAngle + side * random(35, 55);
-      const branchLength = random(38, 52); // ⬅️ shortened
+      const branchLength = random(38, 52);
 
       const mid = {
         x: origin.x + cos(radians(branchAngle)) * branchLength * 0.5,
@@ -198,7 +170,7 @@ function initNeuron2() {
   });
 
   // ---------------------------------------------------
-  // 7) POSTSYNAPTIC DENSITY
+  // 7) POSTSYNAPTIC DENSITY (VISUAL MARKER)
   // ---------------------------------------------------
   neuron2.synapses.push({
     x: dendriteContact.x,
