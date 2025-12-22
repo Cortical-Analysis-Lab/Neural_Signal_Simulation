@@ -4,12 +4,6 @@
 console.log("neuron3 geometry loaded");
 
 // -----------------------------------------------------
-// Placement tuning (used explicitly)
-// -----------------------------------------------------
-const NEURON3_OFFSET = { x: 110, y: -150 }; // open space above + right
-const NEURON3_DENDRITE_SECTOR = [-120, -40]; // upward-facing only
-
-// -----------------------------------------------------
 const neuron3 = {
   somaRadius: 30,
   soma: { x: 0, y: 0 },
@@ -20,11 +14,6 @@ const neuron3 = {
 // -----------------------------------------------------
 // Initialize neuron 3
 // -----------------------------------------------------
-// =====================================================
-// INHIBITORY INTERNEURON GEOMETRY (NEURON 3)
-// =====================================================
-console.log("neuron3 geometry loaded");
-
 function initNeuron3() {
 
   neuron3.dendrites = [];
@@ -51,7 +40,7 @@ function initNeuron3() {
   };
 
   // ---------------------------------------------------
-  // 2) Synaptic contact
+  // 2) Postsynaptic contact (IPSP site)
   // ---------------------------------------------------
   const dendriteContact = {
     x: bouton.x - 26,
@@ -65,16 +54,16 @@ function initNeuron3() {
   });
 
   // ---------------------------------------------------
-  // 3) Soma placement (fixed open-space position)
+  // 3) Soma placement (open upper space)
   // ---------------------------------------------------
   const SOMA_DISTANCE = 170;
-  const somaAngle = radians(-70);
+  const somaAngle = radians(-70); // up-left relative to bouton
 
   neuron3.soma.x = dendriteContact.x + cos(somaAngle) * SOMA_DISTANCE;
   neuron3.soma.y = dendriteContact.y + sin(somaAngle) * SOMA_DISTANCE;
 
   // ---------------------------------------------------
-  // 4) PRIMARY SYNAPTIC TRUNK (must connect)
+  // 4) PRIMARY SYNAPTIC TRUNK (MUST CONNECT)
   // ---------------------------------------------------
   const synTrunk = [];
   const synSegments = 5;
@@ -118,7 +107,7 @@ function initNeuron3() {
   neuron3.dendrites.push(synTrunk);
 
   // ---------------------------------------------------
-  // 5) ADDITIONAL PRIMARY TRUNKS (SHORT, NON-OVERLAPPING)
+  // 5) ADDITIONAL PRIMARY TRUNKS (SHORT, DIVERGENT)
   // ---------------------------------------------------
   const extraTrunkAngles = [
     synAngle + 110,
@@ -127,7 +116,7 @@ function initNeuron3() {
 
   extraTrunkAngles.forEach(baseAngle => {
 
-    const trunkLength = random(70, 95); // ⬅️ shortened
+    const trunkLength = random(70, 95);
     const segments = 4;
     const trunk = [];
 
@@ -146,12 +135,18 @@ function initNeuron3() {
         trunkLength * t
       );
 
-      // 🔒 Radial exclusion — never go back toward soma
-      if (dist(0, 0, p.x, p.y) < neuron3.somaRadius + 12) continue;
+      const px = neuron3.soma.x + p.x;
+      const py = neuron3.soma.y + p.y;
+
+      // Radial exclusion: never re-enter soma zone
+      if (dist(px, py, neuron3.soma.x, neuron3.soma.y) <
+          neuron3.somaRadius + 14) {
+        continue;
+      }
 
       trunk.push({
-        x: neuron3.soma.x + p.x,
-        y: neuron3.soma.y + p.y,
+        x: px,
+        y: py,
         r: lerp(5.2, 2.4, t)
       });
     }
@@ -159,7 +154,7 @@ function initNeuron3() {
     neuron3.dendrites.push(trunk);
 
     // -------------------------------------------------
-    // 6) SECONDARY BRANCHES (SHORT, OUTWARD ONLY)
+    // 6) SECONDARY BRANCHES (VERY SHORT)
     // -------------------------------------------------
     const branchCount = 2;
 
@@ -169,7 +164,7 @@ function initNeuron3() {
       const origin = trunk[idx];
 
       const branchAngle = baseAngle + random(-35, 35);
-      const branchLength = random(32, 48); // ⬅️ shortened
+      const branchLength = random(32, 48);
 
       const mid = {
         x: origin.x + cos(radians(branchAngle)) * branchLength * 0.5,
@@ -181,9 +176,11 @@ function initNeuron3() {
         y: origin.y + sin(radians(branchAngle)) * branchLength
       };
 
-      // Ensure branch grows away from soma
-      if (dist(end.x, end.y, neuron3.soma.x, neuron3.soma.y) <
-          dist(origin.x, origin.y, neuron3.soma.x, neuron3.soma.y)) {
+      // Enforce outward growth
+      if (
+        dist(end.x, end.y, neuron3.soma.x, neuron3.soma.y) <=
+        dist(origin.x, origin.y, neuron3.soma.x, neuron3.soma.y)
+      ) {
         continue;
       }
 
@@ -196,7 +193,7 @@ function initNeuron3() {
       neuron3.dendrites.push(branch);
 
       // -----------------------------------------------
-      // 7) TERMINAL TWIGS (VERY SHORT)
+      // 7) TERMINAL TWIGS (MINIMAL)
       // -----------------------------------------------
       const twigCount = floor(random(1, 2));
 
