@@ -1,5 +1,5 @@
 // =====================================================
-// VOLTAGE TRACE (WORLD-SPACE, SOMA-LOCKED)
+// VOLTAGE TRACE (WORLD-SPACE, SOMA-ANCHORED)
 // =====================================================
 console.log("🧪 voltageTrace loaded");
 
@@ -11,10 +11,9 @@ const VM_MIN = -75;
 const VM_MAX = 45;
 
 // -----------------------------------------------------
-// Shared buffer (singleton-safe)
+// Internal buffer
 // -----------------------------------------------------
-window.vmTrace = window.vmTrace || [];
-const vmTrace = window.vmTrace;
+const vmTrace = [];
 
 // -----------------------------------------------------
 // Update trace buffer
@@ -30,22 +29,22 @@ function updateVoltageTrace() {
 }
 
 // -----------------------------------------------------
-// Draw voltage trace (WORLD SPACE, follows soma)
+// Draw trace BELOW NEURON 1 SOMA (WORLD SPACE)
 // -----------------------------------------------------
 function drawVoltageTrace() {
-  if (!window.soma) return;
-  if (vmTrace.length < 2) return;
+
+  if (!vmTrace.length) return;
+
+  // ---------------------------------------------------
+  // Anchor point: directly under neuron 1 soma
+  // ---------------------------------------------------
+  const x0 = 0;
+  const y0 = neuron.somaRadius + 60;
+
+  const traceWidth = 220;
+  const traceHeight = 60;
 
   push();
-
-  // ---------------------------------------------------
-  // Anchor BELOW soma (world space)
-  // ---------------------------------------------------
-  const traceWidth  = 120;
-  const traceHeight = 40;
-
-  const x0 = neuron.somaRadius * -1;
-  const y0 = neuron.somaRadius + 18;
 
   // ---------------------------------------------------
   // Threshold line
@@ -60,7 +59,12 @@ function drawVoltageTrace() {
 
   stroke(255, 120);
   strokeWeight(1);
-  line(x0, yThresh, x0 + traceWidth, yThresh);
+  line(
+    x0 - traceWidth / 2,
+    yThresh,
+    x0 + traceWidth / 2,
+    yThresh
+  );
 
   // ---------------------------------------------------
   // Voltage trace
@@ -76,8 +80,8 @@ function drawVoltageTrace() {
       i,
       0,
       VM_TRACE_LENGTH - 1,
-      x0,
-      x0 + traceWidth
+      x0 - traceWidth / 2,
+      x0 + traceWidth / 2
     );
 
     const y = map(
