@@ -31,18 +31,7 @@ const terminalGlows = [];
 // -----------------------------------------------------
 function spawnAxonSpike() {
 
-  // Prevent overlapping APs at hillock
-  if (axonSpikes.length > 0) {
-    const last = axonSpikes[axonSpikes.length - 1];
-    if (last.phase < 0.1) return;
-  }
-
-// -----------------------------------------------------
-// Spawn AP at axon hillock
-// -----------------------------------------------------
-function spawnAxonSpike() {
-
-  // If myelinated, hand off to saltatory engine
+  // 🔑 If myelinated, hand off to saltatory engine
   if (window.myelinEnabled && typeof spawnMyelinAP === "function") {
     spawnMyelinAP();
     return;
@@ -57,9 +46,8 @@ function spawnAxonSpike() {
   axonSpikes.push({ phase: 0 });
 }
 
-
 // -----------------------------------------------------
-// Update axon AP propagation
+// Update axon AP propagation (UNMYELINATED)
 // -----------------------------------------------------
 function updateAxonSpikes() {
 
@@ -134,15 +122,17 @@ function updateTerminalDots() {
 // -----------------------------------------------------
 function drawAxonSpikes() {
 
-  // ---- Axon AP wavefront ----
-  axonSpikes.forEach(s => {
-    const p = getAxonPoint(s.phase);
-    push();
-    noStroke();
-    fill(getColor("ap"));
-    ellipse(p.x, p.y, 10, 10);
-    pop();
-  });
+  // ---- Axon AP wavefront (UNMYELINATED ONLY) ----
+  if (!window.myelinEnabled) {
+    axonSpikes.forEach(s => {
+      const p = getAxonPoint(s.phase);
+      push();
+      noStroke();
+      fill(getColor("ap"));
+      ellipse(p.x, p.y, 10, 10);
+      pop();
+    });
+  }
 
   // ---- Terminal branch AP fragments ----
   terminalSpikes.forEach(ts => {
