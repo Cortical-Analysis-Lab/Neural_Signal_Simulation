@@ -108,7 +108,7 @@ function drawMyelinSheath(neuron) {
   path.forEach(p => vertex(p.x, p.y));
   endShape();
 
-  // ============================
+// ============================
 // 2. Draw myelin capsules
 // ============================
 stroke(getColor("myelin"));
@@ -154,6 +154,7 @@ for (let i = 0; i < path.length - 1; i++) {
 }
 
 if (drawing) endShape();
+
 
 
   // ============================
