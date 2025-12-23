@@ -66,6 +66,9 @@ function setup() {
   initSynapses();
   initAxonPath(neuron);
 
+  initArtery();
+
+
   // Generate Nodes of Ranvier (geometry only)
 neuron.axon.myelinNodes = generateMyelinNodes(neuron.axon.path);
 
