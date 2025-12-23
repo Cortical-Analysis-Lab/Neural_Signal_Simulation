@@ -23,20 +23,6 @@ function drawOverview(state) {
   drawNeuron2EPSPs();
 }
 
-  drawNeuron1();
-  drawNeuron2();
-  drawNeuron3();
-
-  drawVoltageTrace();
-  drawEPSPs();
-
-  drawAxonSpikes(); 
-
-  drawVesicles();
-  drawNeuron2EPSPs();
-}
-
-
 // =====================================================
 // ORGANIC DENDRITE RENDERER (TRUNK → BRANCH → TWIG)
 // =====================================================
