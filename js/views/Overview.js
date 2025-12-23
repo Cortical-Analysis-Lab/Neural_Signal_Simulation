@@ -299,7 +299,7 @@ function drawNeuron2() {
   strokeCap(ROUND);
   strokeWeight(11); // 🔑 clearly thicker than dendrites
 
-  const AIS_LEN = neuron2.somaRadius * 0.8;
+  const AIS_LEN = neuron2.somaRadius * 0.25;
 
   line(
     axStartX,
@@ -412,7 +412,7 @@ function drawNeuron3() {
   strokeCap(ROUND);
   strokeWeight(12); // 🔥 clearly thicker than dendrites
 
-  const AIS_LEN = neuron3.somaRadius * 0.9;
+  const AIS_LEN = neuron3.somaRadius * 0.25;
 
   line(
     axStartX,
