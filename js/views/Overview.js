@@ -283,15 +283,68 @@ function drawNeuron1() {
 // =====================================================
 function drawNeuron2() {
 
-  // ---------------- DENDRITES ----------------
+  // ===================================================
+  // AXON OUTPUT (DRAW FIRST — BACKGROUND)
+  // ===================================================
+  const ax = radians(neuron2.axon.angle);
+
+  const axStartX =
+    neuron2.soma.x + cos(ax) * neuron2.somaRadius;
+  const axStartY =
+    neuron2.soma.y + sin(ax) * neuron2.somaRadius;
+
+  // ---------------- AIS ----------------
+  push();
+  stroke(getColor("axon"));
+  strokeCap(ROUND);
+  strokeWeight(11); // 🔑 clearly thicker than dendrites
+
+  const AIS_LEN = neuron2.somaRadius * 0.8;
+
+  line(
+    axStartX,
+    axStartY,
+    axStartX + cos(ax) * AIS_LEN,
+    axStartY + sin(ax) * AIS_LEN
+  );
+  pop();
+
+  // ---------------- AXON SHAFT ----------------
+  push();
+  stroke(getColor("axon"));
+  strokeCap(ROUND);
+  strokeWeight(6); // 🔑 thicker than dendrites (~3–4)
+  noFill();
+
+  beginShape();
+  vertex(
+    axStartX + cos(ax) * AIS_LEN,
+    axStartY + sin(ax) * AIS_LEN
+  );
+
+  bezierVertex(
+    axStartX + 60,  axStartY + 20,
+    axStartX + 140, axStartY - 30,
+    axStartX + cos(ax) * neuron2.axon.length,
+    axStartY + sin(ax) * neuron2.axon.length
+  );
+  endShape();
+  pop();
+
+  // ===================================================
+  // DENDRITES (ABOVE AXON)
+  // ===================================================
   neuron2.dendrites.forEach(branch => {
     drawOrganicBranch(branch, getColor("dendrite"));
   });
 
-  // ---------------- SOMA ----------------
+  // ===================================================
+  // SOMA (TOPMOST STRUCTURE)
+  // ===================================================
   push();
   noStroke();
 
+  // Shadow
   fill(190, 165, 90);
   ellipse(
     neuron2.soma.x + 2,
@@ -299,6 +352,7 @@ function drawNeuron2() {
     neuron2.somaRadius * 2.3
   );
 
+  // Body
   fill(getColor("soma"));
   ellipse(
     neuron2.soma.x,
@@ -306,6 +360,7 @@ function drawNeuron2() {
     neuron2.somaRadius * 2.1
   );
 
+  // Highlight
   push();
   clip(() =>
     ellipse(
@@ -324,52 +379,81 @@ function drawNeuron2() {
 
   pop();
 
-  // ---------------- POSTSYNAPTIC DENSITY ----------------
+  // ===================================================
+  // POSTSYNAPTIC DENSITY (VISIBLE ON TOP)
+  // ===================================================
   neuron2.synapses.forEach(s => {
     noStroke();
     fill(getColor("terminalBouton"));
     ellipse(s.x, s.y, s.radius * 2);
   });
-
-  // ---------------- AXON OUTPUT ----------------
-  const ax = radians(neuron2.axon.angle);
-  const axStartX = neuron2.soma.x + cos(ax) * neuron2.somaRadius;
-  const axStartY = neuron2.soma.y + sin(ax) * neuron2.somaRadius;
-
-  const axEndX = axStartX + cos(ax) * neuron2.axon.length;
-  const axEndY = axStartY + sin(ax) * neuron2.axon.length;
-
-  stroke(getColor("axon"));
-  strokeWeight(5);
-  noFill();
-
-  beginShape();
-  vertex(axStartX, axStartY);
-  bezierVertex(
-    axStartX + 40, axStartY + 10,
-    axEndX - 40, axEndY - 10,
-    axEndX, axEndY
-  );
-  endShape();
 }
-// =====================================================
-// NEURON 3 (INHIBITORY POSTSYNAPTIC)
-// =====================================================
+
 // =====================================================
 // NEURON 3 (INHIBITORY INTERNEURON)
 // =====================================================
 function drawNeuron3() {
 
-  // ---------------- DENDRITES ----------------
+  // ===================================================
+  // AXON (DRAW FIRST — BACKGROUND)
+  // ===================================================
+  const axAngle = radians(-90); // straight up
+
+  const axStartX =
+    neuron3.soma.x + cos(axAngle) * neuron3.somaRadius;
+  const axStartY =
+    neuron3.soma.y + sin(axAngle) * neuron3.somaRadius;
+
+  const AXON_LENGTH = max(width, height) * 1.6;
+
+  // ---------------- AIS ----------------
+  push();
+  stroke(getColor("axon"));
+  strokeCap(ROUND);
+  strokeWeight(12); // 🔥 clearly thicker than dendrites
+
+  const AIS_LEN = neuron3.somaRadius * 0.9;
+
+  line(
+    axStartX,
+    axStartY,
+    axStartX,
+    axStartY - AIS_LEN
+  );
+  pop();
+
+  // ---------------- AXON SHAFT ----------------
+  push();
+  stroke(getColor("axon"));
+  strokeCap(ROUND);
+  strokeWeight(7); // 🔑 thicker than dendrites (~3–4)
+  noFill();
+
+  beginShape();
+  vertex(axStartX, axStartY - AIS_LEN);
+
+  bezierVertex(
+    axStartX - 30, axStartY - 80,
+    axStartX + 20, axStartY - 220,
+    axStartX,      axStartY - AXON_LENGTH
+  );
+  endShape();
+  pop();
+
+  // ===================================================
+  // DENDRITES (ABOVE AXON)
+  // ===================================================
   neuron3.dendrites.forEach(branch => {
     drawOrganicBranch(branch, getColor("dendrite"));
   });
 
-  // ---------------- SOMA ----------------
+  // ===================================================
+  // SOMA (TOPMOST)
+  // ===================================================
   push();
   noStroke();
 
-  // Shadow (same as other neurons)
+  // Shadow
   fill(190, 165, 90);
   ellipse(
     neuron3.soma.x + 2,
@@ -377,7 +461,7 @@ function drawNeuron3() {
     neuron3.somaRadius * 2.3
   );
 
-  // Body (🔑 SAME SOMA COLOR AS OTHERS)
+  // Body
   fill(getColor("soma"));
   ellipse(
     neuron3.soma.x,
@@ -404,57 +488,15 @@ function drawNeuron3() {
 
   pop();
 
-  // ---------------- POSTSYNAPTIC DENSITY ----------------
+  // ===================================================
+  // POSTSYNAPTIC DENSITY (ON TOP)
+  // ===================================================
   neuron3.synapses.forEach(s => {
     noStroke();
     fill(getColor("ipsp")); // red synapse, not red neuron
     ellipse(s.x, s.y, s.radius * 2);
   });
-    // ===================================================
-  // AXON (INHIBITORY — STRUCTURAL ONLY)
-  // ===================================================
-  const axAngle = radians(-90);
-
-  const axStartX =
-    neuron3.soma.x + cos(axAngle) * neuron3.somaRadius;
-  const axStartY =
-    neuron3.soma.y + sin(axAngle) * neuron3.somaRadius;
-
-  const AXON_LENGTH = max(width, height) * 1.6;
-
-  // ---------------- AIS ----------------
-  push();
-  stroke(getColor("axon"));
-  strokeCap(ROUND);
-  strokeWeight(12); // 🔥 AIS clearly thicker than dendrites
-
-  const AIS_LEN = neuron3.somaRadius * 0.9;
-
-  line(
-    axStartX,
-    axStartY,
-    axStartX,
-    axStartY - AIS_LEN
-  );
-  pop();
-
-  // ---------------- AXON SHAFT ----------------
-  push();
-  stroke(getColor("axon"));
-  strokeCap(ROUND);
-  strokeWeight(7); // 🔑 > dendrites (~3–4)
-  noFill();
-
-  beginShape();
-  vertex(axStartX, axStartY - AIS_LEN);
-
-  bezierVertex(
-    axStartX - 30, axStartY - 80,
-    axStartX + 20, axStartY - 220,
-    axStartX,      axStartY - AXON_LENGTH
-  );
-  endShape();
-  pop();
+}
 
 
 // =====================================================
