@@ -44,6 +44,36 @@ function initArtery() {
     initBloodContents();
   }
 }
+// =====================================================
+// MAP NORMALIZED BLOOD POSITION → SCREEN SPACE
+// =====================================================
+function getArteryPoint(t, lane = 0) {
+  if (!arteryPath.length) return null;
+
+  // Clamp t
+  t = constrain(t, 0, 1);
+
+  const idx = floor(t * (arteryPath.length - 1));
+  const p0 = arteryPath[idx];
+  const p1 = arteryPath[min(idx + 1, arteryPath.length - 1)];
+
+  // Direction vector
+  const dx = p1.x - p0.x;
+  const dy = p1.y - p0.y;
+  const len = sqrt(dx * dx + dy * dy) || 1;
+
+  // Normal (perpendicular)
+  const nx = -dy / len;
+  const ny =  dx / len;
+
+  // Lumen half-width (must match drawArtery)
+  const LUMEN_RADIUS = 20;
+
+  return {
+    x: p0.x + nx * lane * LUMEN_RADIUS,
+    y: p0.y + ny * lane * LUMEN_RADIUS
+  };
+}
 
 // =====================================================
 // DRAW ARTERY (STATIC, SCREEN SPACE)
