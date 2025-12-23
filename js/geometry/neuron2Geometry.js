@@ -67,14 +67,13 @@ function initNeuron2() {
   );
 
   const trunkAngles = [
-    synapseAngle,           // synaptic trunk (FULL length)
-    synapseAngle + 110,     // shortened
-    synapseAngle - 110      // shortened
+    synapseAngle,        // synaptic trunk
+    synapseAngle + 110,  // lateral
+    synapseAngle - 110   // lateral
   ];
 
   trunkAngles.forEach((baseAngle, trunkIndex) => {
 
-    // 🔹 Preserve synaptic trunk, shorten others
     const trunkLength =
       trunkIndex === 0
         ? dist(
@@ -83,7 +82,7 @@ function initNeuron2() {
             dendriteContact.x,
             dendriteContact.y
           )
-        : random(80, 105);
+        : random(80, 100); // do NOT exceed neuron 1 scale
 
     const trunkSegments = 4;
     const trunk = [];
@@ -95,7 +94,8 @@ function initNeuron2() {
     });
 
     const curvatureBias =
-      trunkIndex === 0 ? 0 : (trunkIndex === 1 ? 4 : -4);
+      trunkIndex === 0 ? 0 :
+      trunkIndex === 1 ? 4 : -4;
 
     for (let i = 1; i <= trunkSegments; i++) {
       const t = i / trunkSegments;
@@ -116,18 +116,18 @@ function initNeuron2() {
     neuron2.dendrites.push(trunk);
 
     // -------------------------------------------------
-    // 5) SECONDARY BRANCHES (SHORTER + SPARSER)
+    // 5) SECONDARY BRANCHES (SPARSE, BILATERAL)
     // -------------------------------------------------
-    const branchCount = trunkIndex === 0 ? 2 : 2;
+    const branchCount = 2;
 
     for (let i = 0; i < branchCount; i++) {
 
       const idx = floor(random(1, trunk.length - 1));
       const origin = trunk[idx];
 
-      const side = trunkIndex === 2 ? -1 : 1;
+      const side = i % 2 === 0 ? 1 : -1;
       const branchAngle = baseAngle + side * random(35, 55);
-      const branchLength = random(38, 52);
+      const branchLength = random(36, 50);
 
       const mid = {
         x: origin.x + cos(radians(branchAngle)) * branchLength * 0.5,
@@ -148,24 +148,27 @@ function initNeuron2() {
       neuron2.dendrites.push(branch);
 
       // -----------------------------------------------
-      // 6) TERMINAL TWIGS (VERY SHORT)
+      // 6) TERMINAL TWIGS (SHORT, OPPOSING PAIRS)
       // -----------------------------------------------
-      const twigCount = floor(random(1, 2));
+      const twigAngles = [
+        branchAngle + random(-18, -8),
+        branchAngle + random(8, 18)
+      ];
 
-      for (let j = 0; j < twigCount; j++) {
+      twigAngles.forEach(tAngle => {
 
-        const twigAngle = branchAngle + random(-20, 20);
+        const twigLen = random(14, 22);
 
         const twigEnd = {
-          x: end.x + cos(radians(twigAngle)) * random(14, 22),
-          y: end.y + sin(radians(twigAngle)) * random(14, 22)
+          x: end.x + cos(radians(tAngle)) * twigLen,
+          y: end.y + sin(radians(tAngle)) * twigLen
         };
 
         neuron2.dendrites.push([
           ...branch,
           { x: twigEnd.x, y: twigEnd.y, r: 1.6 }
         ]);
-      }
+      });
     }
   });
 
