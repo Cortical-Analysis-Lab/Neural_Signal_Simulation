@@ -137,13 +137,14 @@ function draw() {
     updateSoma();
     updateVoltageTrace();
   
-    if (window.myelinEnabled) {
-    updateMyelinAPs();     // saltatory conduction
-    } else {
-    updateAxonSpikes();    // continuous conduction
-    }
-  
-  updateTerminalDots();
+ if (window.myelinEnabled) {
+    updateMyelinAPs();
+    updateTerminalDots(); // terminals still needed
+  } else {
+    updateAxonSpikes();
+    updateTerminalDots();
+  }
+
   updateVesicles();
 
   
