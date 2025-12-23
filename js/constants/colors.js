@@ -1,7 +1,7 @@
 console.log("🎨 colors loaded");
 
 // =====================================================
-// CENTRAL COLOR PALETTE
+// CENTRAL COLOR PALETTE (DATA ONLY)
 // =====================================================
 const COLORS = {
 
@@ -33,17 +33,30 @@ const COLORS = {
   axon:     [210, 195, 130],
 
   // --------------------
-  // MYELIN SYSTEM (NEW)
+  // Myelin system
   // --------------------
-  myelin:        [240, 240, 225], // main sheath (bright, creamy)
-  myelinShadow: [210, 210, 195], // subtle depth / underside
-  nodeAxon:     [255, 215, 150]  // exposed axon at nodes
+  myelin:        [240, 240, 225],
+  myelinShadow: [210, 210, 195],
+  nodeAxon:     [255, 215, 150],
+
+  // =====================================================
+  // VASCULATURE (ARTERY — CUTAWAY)
+  // =====================================================
+  arteryWall:      [165,  70,  60], // muscular wall
+  arteryHighlight: [220, 120, 100], // specular highlight
+  arteryLumen:     [ 90,  25,  25]  // interior blood space
 };
 
 // =====================================================
 // COLOR ACCESS HELPER
 // =====================================================
 function getColor(name, alpha = 255) {
-  const c = COLORS[name] || [255, 255, 255];
+  const c = COLORS[name];
+
+  if (!c) {
+    console.warn(`⚠️ Color "${name}" not found`);
+    return color(255, 255, 255, alpha);
+  }
+
   return color(c[0], c[1], c[2], alpha);
 }
