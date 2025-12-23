@@ -16,9 +16,6 @@ const MYELIN_SPEED_NODE   = 0.035; // visible
 const MYELIN_SPEED_SHEATH = 0.08;  // invisible + fast
 const AP_RADIUS = 10;
 
-// Must match axonSpike.js
-const AXON_TERMINAL_START = 0.75;
-
 // -----------------------------------------------------
 // Active myelinated APs
 // -----------------------------------------------------
