@@ -38,6 +38,11 @@ function initArtery() {
     const y = lerp(topY, bottomY, t);
     arteryPath.push({ x, y });
   }
+
+  // 🩸 Initialize blood contents AFTER geometry exists
+  if (typeof initBloodContents === "function") {
+    initBloodContents();
+  }
 }
 
 // =====================================================
@@ -58,6 +63,13 @@ function drawArtery() {
   beginShape();
   arteryPath.forEach(p => vertex(p.x, p.y));
   endShape();
+
+  // ============================
+  // 🩸 BLOOD CONTENTS (INSIDE)
+  // ============================
+  if (typeof drawBloodContents === "function") {
+    drawBloodContents();
+  }
 
   // ---- LEFT WALL ----
   stroke(getColor("arteryWall"));
