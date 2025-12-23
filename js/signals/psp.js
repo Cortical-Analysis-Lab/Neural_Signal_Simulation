@@ -88,10 +88,16 @@ function updateEPSPs() {
     }
 
     // PSP reaches soma
-    if (e.progress >= 1) {
-      addEPSPToSoma(e.baseAmplitude, e.type);
+   if (e.progress >= 1) {
+
+      // Determine source neuron
+      const sourceNeuron =
+        e.synapseId === "neuron3" ? 3 : 1;
+    
+      addEPSPToSoma(e.baseAmplitude, e.type, sourceNeuron);
       epsps.splice(i, 1);
     }
+
   }
 }
 
