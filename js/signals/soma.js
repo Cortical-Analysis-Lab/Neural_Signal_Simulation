@@ -43,7 +43,15 @@ const soma = {
 // -----------------------------------------------------
 // PSP arrival at soma (EPSP / IPSP)
 // -----------------------------------------------------
-function addEPSPToSoma(amplitude, type) {
+// -----------------------------------------------------
+// PSP arrival at soma (EPSP / IPSP)
+// -----------------------------------------------------
+function addEPSPToSoma(amplitude, type, sourceNeuron = 1) {
+
+  // 🚫 Ignore IPSPs originating from neuron 3
+  if (type !== "exc" && sourceNeuron === 3) {
+    return;
+  }
 
   const normalized = constrain((amplitude - 6) / 24, 0, 1);
   let deltaV;
