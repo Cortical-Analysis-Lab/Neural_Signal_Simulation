@@ -92,14 +92,26 @@ function updateTerminalDots() {
         y: ts.branch.end.y
       };
 
-      // Visual bouton depolarization (NO chemistry here)
+      // =================================================
+      // 🩸 METABOLIC CONSUMPTION (PRE-BBB, NO SUPPLY)
+      // =================================================
+      if (typeof extractOxygenNearNeuron1 === "function") {
+        extractOxygenNearNeuron1();
+      }
+
+      if (typeof extractGlucoseNearNeuron1 === "function") {
+        extractGlucoseNearNeuron1();
+      }
+      // =================================================
+
+      // ---- Visual bouton depolarization (NO chemistry) ----
       terminalGlows.push({
         x: bouton.x,
         y: bouton.y,
         life: TERMINAL_GLOW_LIFETIME
       });
 
-      // 🧠 Hand off to chemical synapse logic ONLY
+      // ---- Chemical synapse handoff ONLY ----
       if (typeof triggerSynapticRelease === "function") {
         triggerSynapticRelease(bouton);
       }
