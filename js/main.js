@@ -236,7 +236,9 @@ function initUIPanels() {
 // =====================================================
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
+  initArtery(); // 🔑 rebuild static artery geometry
 }
+
 
 // =====================================================
 // OVERVIEW-ONLY UI VISIBILITY
