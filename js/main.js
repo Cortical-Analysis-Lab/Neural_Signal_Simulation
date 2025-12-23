@@ -111,6 +111,9 @@ updateOverviewUI();
 // =====================================================
 function draw() {
   background(15, 17, 21);
+    // 🩸 DRAW ARTERY IN SCREEN SPACE (NO CAMERA)
+  drawArtery();
+
 
   // Smooth camera interpolation
   camera.x    += (camera.targetX    - camera.x)    * camera.lerpSpeed;
