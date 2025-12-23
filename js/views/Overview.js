@@ -410,36 +410,52 @@ function drawNeuron3() {
     fill(getColor("ipsp")); // red synapse, not red neuron
     ellipse(s.x, s.y, s.radius * 2);
   });
-      // ---------------- AXON OUTPUT (INHIBITORY — UPWARD OFFSCREEN) ----------------
-  const axAngle = radians(-90); // straight up
+    // ===================================================
+  // AXON (INHIBITORY — STRUCTURAL ONLY)
+  // ===================================================
+  const axAngle = radians(-90);
 
-  const axStartX = neuron3.soma.x + cos(axAngle) * neuron3.somaRadius;
-  const axStartY = neuron3.soma.y + sin(axAngle) * neuron3.somaRadius;
+  const axStartX =
+    neuron3.soma.x + cos(axAngle) * neuron3.somaRadius;
+  const axStartY =
+    neuron3.soma.y + sin(axAngle) * neuron3.somaRadius;
 
-  // Push far beyond top of screen
-  const AXON_LENGTH = max(width, height) * 1.5;
+  const AXON_LENGTH = max(width, height) * 1.6;
 
-  const axEndX = axStartX;
-  const axEndY = axStartY - AXON_LENGTH;
-
+  // ---------------- AIS ----------------
+  push();
   stroke(getColor("axon"));
-  strokeWeight(3);   // thin interneuron axon
+  strokeCap(ROUND);
+  strokeWeight(12); // 🔥 AIS clearly thicker than dendrites
+
+  const AIS_LEN = neuron3.somaRadius * 0.9;
+
+  line(
+    axStartX,
+    axStartY,
+    axStartX,
+    axStartY - AIS_LEN
+  );
+  pop();
+
+  // ---------------- AXON SHAFT ----------------
+  push();
+  stroke(getColor("axon"));
+  strokeCap(ROUND);
+  strokeWeight(7); // 🔑 > dendrites (~3–4)
   noFill();
 
   beginShape();
-  vertex(axStartX, axStartY);
+  vertex(axStartX, axStartY - AIS_LEN);
 
-  // Gentle organic bend upward
   bezierVertex(
-    axStartX - 20, axStartY - 40,
-    axStartX + 10, axStartY - 120,
-    axEndX,        axEndY
+    axStartX - 30, axStartY - 80,
+    axStartX + 20, axStartY - 220,
+    axStartX,      axStartY - AXON_LENGTH
   );
-
   endShape();
+  pop();
 
-
-}
 
 // =====================================================
 // SYNAPSE SIZE CONTROLS
