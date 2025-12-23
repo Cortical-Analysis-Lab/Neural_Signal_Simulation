@@ -14,7 +14,6 @@ const supplyWaves = [];
 
 // -----------------------------------------------------
 // Visual / teaching-oriented densities (NOT molar)
-// (Reduced to avoid solid-fill appearance)
 // -----------------------------------------------------
 const BLOOD_DENSITY = {
   rbc: 70,
@@ -33,7 +32,7 @@ function initBloodContents() {
   // RBCs (with hemoglobin)
   // =========================
   for (let i = 0; i < BLOOD_DENSITY.rbc; i++) {
-    const sat = random(0.85, 0.98); // arterial baseline
+    const sat = random(0.85, 0.98);
 
     bloodContents.push({
       type: "rbc",
@@ -43,8 +42,11 @@ function initBloodContents() {
 
       sat,
       targetSat: sat,
+      oxyCount: floor(4 + 6 * sat),
 
-      oxyCount: floor(4 + 6 * sat)
+      // 🔑 organic motion
+      jitter: random(TWO_PI),
+      drift: random(-0.3, 0.3)
     });
   }
 
@@ -56,7 +58,10 @@ function initBloodContents() {
       type: "water",
       t: random(),
       lane: random(-1, 1),
-      size: 2
+      size: 2,
+
+      jitter: random(TWO_PI),
+      drift: random(-0.4, 0.4)
     });
   }
 
@@ -71,7 +76,10 @@ function initBloodContents() {
       size: 4,
 
       avail: 1.0,
-      targetAvail: 1.0
+      targetAvail: 1.0,
+
+      jitter: random(TWO_PI),
+      drift: random(-0.4, 0.4)
     });
   }
 }
@@ -88,13 +96,12 @@ function triggerSupplyWave(strength = 1.0) {
 }
 
 // -----------------------------------------------------
-// Update supply wave propagation (slow packet)
+// Update supply wave propagation
 // -----------------------------------------------------
 function updateSupplyWaves() {
   for (let i = supplyWaves.length - 1; i >= 0; i--) {
     const w = supplyWaves[i];
-
-    w.t += 0.004;   // slower than particles
+    w.t += 0.004;
     w.age++;
 
     if (w.t > 1.2 || w.age > 400) {
@@ -104,7 +111,7 @@ function updateSupplyWaves() {
 }
 
 // -----------------------------------------------------
-// Update — pulsed advection + extraction + enrichment
+// Update — smooth advection + extraction + enrichment
 // -----------------------------------------------------
 function updateBloodContents() {
   const pulse = getCardiacPulse();
@@ -112,43 +119,41 @@ function updateBloodContents() {
 
   bloodContents.forEach(p => {
 
-    // -------------------------
-    // Laminar flow profile
-    // (center faster than edges)
-    // -------------------------
-    const laneFactor = 1 - abs(p.lane); // 0 at wall, 1 at center
+    // ---- laminar profile ----
+    const laneFactor = 1 - abs(p.lane);
     const laminar = 0.4 + 0.6 * laneFactor;
 
-    // -------------------------
-    // Much slower base speeds
-    // -------------------------
+    // ---- slow base speeds ----
     const baseSpeed =
       p.type === "rbc"     ? 0.00025 :
       p.type === "water"   ? 0.00035 :
       p.type === "glucose" ? 0.00030 :
       0.00025;
 
-    p.t += baseSpeed * laminar * flow * (0.6 + 0.6 * pulse);
+    // ---- organic noise ----
+    p.jitter += 0.01;
+    const noiseDrift = 0.00004 * sin(p.jitter + p.drift);
+    const pulseMod  = 0.5 + 0.5 * pulse;
+
+    p.t += baseSpeed * laminar * flow * pulseMod + noiseDrift;
     if (p.t > 1) p.t -= 1;
 
-    // -------------------------
-    // Oxygen (hemoglobin)
-    // -------------------------
+    // ---- subtle lateral motion ----
+    p.lane += 0.0005 * sin(p.jitter * 0.7);
+    p.lane = constrain(p.lane, -1, 1);
+
+    // ---- oxygen dynamics ----
     if (p.type === "rbc") {
       p.sat += (p.targetSat - p.sat) * 0.05;
       p.oxyCount = floor(4 + 6 * p.sat);
     }
 
-    // -------------------------
-    // Glucose availability
-    // -------------------------
+    // ---- glucose dynamics ----
     if (p.type === "glucose") {
       p.avail += (p.targetAvail - p.avail) * 0.05;
     }
 
-    // -------------------------
-    // Apply supply waves
-    // -------------------------
+    // ---- supply waves ----
     supplyWaves.forEach(w => {
       const d = abs(p.t - w.t);
       if (d > 0.1) return;
@@ -203,7 +208,7 @@ function extractGlucoseNearNeuron1() {
 }
 
 // -----------------------------------------------------
-// Render blood contents (called from drawArtery)
+// Render blood contents (soft lumen masked)
 // -----------------------------------------------------
 function drawBloodContents() {
   noStroke();
@@ -212,17 +217,20 @@ function drawBloodContents() {
     const pos = getArteryPoint(p.t, p.lane);
     if (!pos) return;
 
+    const alphaMask = getLumenAlpha(p.lane);
+    if (alphaMask <= 0) return;
+
     // =========================
     // RBCs
     // =========================
     if (p.type === "rbc") {
-      const rbcColor = lerpColor(
+      const c = lerpColor(
         getColor("rbcDeoxy"),
         getColor("rbcOxy"),
         p.sat
       );
 
-      fill(rbcColor);
+      fill(red(c), green(c), blue(c), 255 * alphaMask);
       ellipse(
         pos.x,
         pos.y,
@@ -230,11 +238,11 @@ function drawBloodContents() {
       );
 
       if (p.sat > 0.5) {
-        fill(getColor("oxygen"));
+        fill(255, 255, 255, 220 * alphaMask);
         for (let i = 0; i < p.oxyCount; i++) {
           const a = TWO_PI * (i / p.oxyCount);
           const r = p.size * 0.3;
-          ellipse(pos.x + cos(a) * r, pos.y + sin(a) * r, 1.6);
+          ellipse(pos.x + cos(a) * r, pos.y + sin(a) * r, 1.5);
         }
       }
     }
@@ -243,7 +251,7 @@ function drawBloodContents() {
     // Water
     // =========================
     if (p.type === "water") {
-      fill(getColor("water", 90));
+      fill(getColor("water", 60 * alphaMask));
       ellipse(pos.x, pos.y, p.size);
     }
 
@@ -251,7 +259,7 @@ function drawBloodContents() {
     // Glucose
     // =========================
     if (p.type === "glucose") {
-      fill(getColor("glucose", 180 * p.avail));
+      fill(getColor("glucose", 160 * p.avail * alphaMask));
       rectMode(CENTER);
       rect(pos.x, pos.y, p.size, p.size, 2);
     }
