@@ -1,118 +1,83 @@
 // =====================================================
-// ARTERY GEOMETRY — CUTAWAY VASCULATURE (FOUNDATION)
+// ARTERY GEOMETRY (STATIC, LEFT-SIDE, TUBULAR)
 // =====================================================
 console.log("🩸 artery geometry loaded");
 
-// =====================================================
-// CONFIGURATION
-// =====================================================
-const artery = {
+let arteryPath = [];
 
-  // Positioning
-  x: 140,          // left-side placement
-  yTop: -200,
-  yBottom: null,   // auto-set based on canvas
-
-  // Geometry
-  radius: 26,      // lumen radius
-  wallThickness: 8,
-
-  // Curvature
-  bendAmplitude: 18,
-  bendFrequency: 0.002
-};
-
-// =====================================================
-// INITIALIZE (call after canvas size is known)
-// =====================================================
 function initArtery() {
-  artery.yBottom = height + 200;
+  arteryPath = [];
+
+  const marginLeft = 260;        // just right of mode panel
+  const topY = -200;
+  const bottomY = height + 200;
+
+  // Control points for gentle anatomical curve
+  const ctrl1 = {
+    x: marginLeft + 40,
+    y: height * 0.25
+  };
+
+  const ctrl2 = {
+    x: marginLeft + 80,
+    y: height * 0.55
+  };
+
+  // Sample the curve once
+  const steps = 60;
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+
+    const x = bezierPoint(
+      marginLeft,
+      ctrl1.x,
+      ctrl2.x,
+      marginLeft + 20,
+      t
+    );
+
+    const y = lerp(topY, bottomY, t);
+
+    arteryPath.push({ x, y });
+  }
 }
 
 // =====================================================
-// MAIN DRAW FUNCTION
+// DRAW ARTERY (NO MOTION, BACKGROUND)
 // =====================================================
 function drawArtery() {
-  drawArteryLumen();
-  drawArteryWalls();
-  drawArteryHighlight();
-}
+  if (!arteryPath.length) return;
 
-// =====================================================
-// LUMEN (INTERIOR — BLOOD SPACE)
-// =====================================================
-function drawArteryLumen() {
-  noStroke();
-  fill(getColor("arteryLumen"));
+  const WALL_OFFSET = 16;
 
-  beginShape();
-  for (let y = artery.yTop; y <= artery.yBottom; y += 10) {
-    const offset = arteryOffset(y);
-    vertex(artery.x + offset, y);
-  }
-  for (let y = artery.yBottom; y >= artery.yTop; y -= 10) {
-    const offset = arteryOffset(y);
-    vertex(
-      artery.x + offset + artery.radius * 2,
-      y
-    );
-  }
-  endShape(CLOSE);
-}
-
-// =====================================================
-// ARTERY WALLS (LEFT & RIGHT)
-// =====================================================
-function drawArteryWalls() {
-  stroke(getColor("arteryWall"));
   strokeCap(ROUND);
-  strokeWeight(artery.wallThickness);
   noFill();
 
-  // Left wall
+  // ---- LUMEN (inside) ----
+  stroke(getColor("arteryLumen"));
+  strokeWeight(20);
   beginShape();
-  for (let y = artery.yTop; y <= artery.yBottom; y += 10) {
-    vertex(
-      artery.x + arteryOffset(y),
-      y
-    );
-  }
+  arteryPath.forEach(p => vertex(p.x, p.y));
   endShape();
 
-  // Right wall
+  // ---- LEFT WALL ----
+  stroke(getColor("arteryWall"));
+  strokeWeight(6);
   beginShape();
-  for (let y = artery.yTop; y <= artery.yBottom; y += 10) {
-    vertex(
-      artery.x + arteryOffset(y) + artery.radius * 2,
-      y
-    );
-  }
+  arteryPath.forEach(p => vertex(p.x - WALL_OFFSET, p.y));
   endShape();
-}
 
-// =====================================================
-// SUBTLE SPECULAR HIGHLIGHT
-// =====================================================
-function drawArteryHighlight() {
-  stroke(getColor("arteryHighlight", 120));
+  // ---- RIGHT WALL ----
+  beginShape();
+  arteryPath.forEach(p => vertex(p.x + WALL_OFFSET, p.y));
+  endShape();
+
+  // ---- HIGHLIGHT ----
+  stroke(getColor("arteryHighlight", 160));
   strokeWeight(2);
-  noFill();
-
   beginShape();
-  for (let y = artery.yTop; y <= artery.yBottom; y += 14) {
-    vertex(
-      artery.x + arteryOffset(y) + 4,
-      y
-    );
-  }
+  arteryPath.forEach(p =>
+    vertex(p.x - WALL_OFFSET + 2, p.y - 2)
+  );
   endShape();
-}
-
-// =====================================================
-// ORGANIC OFFSET (PULSATION / BEND)
-// =====================================================
-function arteryOffset(y) {
-  return sin(
-    y * artery.bendFrequency + frameCount * 0.01
-  ) * artery.bendAmplitude;
 }
