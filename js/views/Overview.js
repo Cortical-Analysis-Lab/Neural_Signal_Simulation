@@ -9,6 +9,20 @@ const LIGHT_DIR = { x: -0.6, y: -0.8 };
 // MAIN OVERVIEW
 // =====================================================
 function drawOverview(state) {
+
+  drawArtery();   // 🩸 background vascular layer
+
+  drawNeuron1();
+  drawNeuron2();
+  drawNeuron3();
+
+  drawVoltageTrace();
+  drawEPSPs();
+  drawAxonSpikes();
+  drawVesicles();
+  drawNeuron2EPSPs();
+}
+
   drawNeuron1();
   drawNeuron2();
   drawNeuron3();
