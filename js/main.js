@@ -138,6 +138,8 @@ function draw() {
     // CORE SIGNAL + STATE UPDATES (AUTHORITATIVE)
     // =====================================================
     updateHemodynamics();
+    updateBloodContents();
+    applyMetabolicWaves();
 
     updateSynapseHover();
     updateEPSPs();
