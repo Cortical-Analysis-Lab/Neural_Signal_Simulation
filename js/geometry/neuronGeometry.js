@@ -4,6 +4,11 @@
 console.log("geometry loaded");
 
 // -----------------------------------------------------
+// 🔁 HARD ROLLBACK SWITCH
+// -----------------------------------------------------
+const USE_SHOLL_BIAS = true;
+
+// -----------------------------------------------------
 // Bouton density control (Neuron 1 only)
 // -----------------------------------------------------
 const BOUTON_DENSITY_SCALE = 0.6;
@@ -33,13 +38,21 @@ function polarToCartesian(angleDeg, r) {
 }
 
 // -----------------------------------------------------
+// Subtle Sholl-style bias (Gaussian)
+// -----------------------------------------------------
+function shollBias(distance, peak, width) {
+  const x = (distance - peak) / width;
+  return exp(-x * x);
+}
+
+// -----------------------------------------------------
 // Angle generator (prevents twig overlap)
 // -----------------------------------------------------
 function generateNonOverlappingAngles({
   centerAngle,
   count,
   spread,
-  minSeparation = 20,
+  minSeparation = 22,
   maxAttempts = 30
 }) {
   const angles = [];
@@ -105,7 +118,8 @@ function createDendriticTree(baseAngle) {
     });
   }
 
-  segments.push(trunk); // trunk only
+  // Trunk is always included
+  segments.push(trunk);
 
   // --- Branches ---
   const branchCount = floor(random(3, 4));
@@ -135,8 +149,26 @@ function createDendriticTree(baseAngle) {
       { x: end.x, y: end.y, r: 3.0 }
     ];
 
-    // --- Twigs (non-overlapping) ---
-    const twigCount = floor(random(2, 3));
+    // --- Twig decision (ONLY place Sholl bias is applied) ---
+    let twigCount = floor(random(2, 3));
+
+    if (USE_SHOLL_BIAS) {
+      const d = dist(origin.x, origin.y, 0, 0);
+
+      const bias = shollBias(
+        d,
+        neuron.somaRadius + trunkLength * 0.6,
+        trunkLength * 0.35
+      );
+
+      twigCount =
+        bias > 0.65 ? 2 :
+        bias > 0.45 ? 1 :
+        0;
+    }
+
+    if (twigCount === 0) continue;
+
     const twigAngles = generateNonOverlappingAngles({
       centerAngle: branchAngle,
       count: twigCount,
@@ -174,7 +206,7 @@ function buildPathToSoma(branch) {
     path.push({ x: branch[i].x, y: branch[i].y });
   }
 
-  path.push({ x: 0, y: 0 }); // soma
+  path.push({ x: 0, y: 0 });
 
   return path;
 }
@@ -215,7 +247,7 @@ function initSynapses() {
 
       neuron.dendrites.push(branch);
 
-      // ❌ No synapses unless terminal twig
+      // ❌ Only terminal twigs get synapses
       if (branch.length < 4) return;
 
       const tip = branch[branch.length - 1];
