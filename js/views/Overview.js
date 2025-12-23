@@ -410,6 +410,30 @@ function drawNeuron3() {
     fill(getColor("ipsp")); // red synapse, not red neuron
     ellipse(s.x, s.y, s.radius * 2);
   });
+    // ---------------- AXON OUTPUT (INHIBITORY) ----------------
+  const axAngle = radians(-160); // angled slightly upward-left
+  const axStartX = neuron3.soma.x + cos(axAngle) * neuron3.somaRadius;
+  const axStartY = neuron3.soma.y + sin(axAngle) * neuron3.somaRadius;
+
+  // Extend far off-screen
+  const AXON_LENGTH = max(width, height) * 1.2;
+
+  const axEndX = axStartX + cos(axAngle) * AXON_LENGTH;
+  const axEndY = axStartY + sin(axAngle) * AXON_LENGTH;
+
+  stroke(getColor("axon"));
+  strokeWeight(3);       // thinner than neuron 1
+  noFill();
+
+  beginShape();
+  vertex(axStartX, axStartY);
+  bezierVertex(
+    axStartX - 40, axStartY - 10,
+    axEndX + 20,   axEndY + 20,
+    axEndX,        axEndY
+  );
+  endShape();
+
 }
 
 // =====================================================
