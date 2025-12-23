@@ -139,7 +139,6 @@ function draw() {
     // =====================================================
     updateHemodynamics();
     updateBloodContents();
-    applyMetabolicWaves();
     updateSupplyWaves();
 
 
