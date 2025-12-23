@@ -44,17 +44,16 @@ const COLORS = {
   // =====================================================
   arteryWall:      [165,  70,  60], // muscular wall
   arteryHighlight: [220, 120, 100], // specular highlight
-  arteryLumen:     [ 90,  25,  25]  // interior blood space
+  arteryLumen:     [ 90,  25,  25], // interior blood space
 
-  // --------------------
-// Blood contents
-// --------------------
-rbcOxy:    [190,  40,  40],  // HbO2
-rbcDeoxy:  [ 60, 100, 200],  // Hb
-oxygen:    [255, 255, 255],  // O2 cargo
-water:     [160, 210, 255],  // H2O
-glucose:   [120, 220, 120]   // Glucose
-
+  // =====================================================
+  // BLOOD CONTENTS
+  // =====================================================
+  rbcOxy:   [190,  40,  40],  // oxygenated hemoglobin
+  rbcDeoxy: [ 60, 100, 200],  // deoxygenated hemoglobin
+  oxygen:   [255, 255, 255],  // O2 cargo
+  water:    [160, 210, 255],  // H2O
+  glucose:  [120, 220, 120]   // glucose
 };
 
 // =====================================================
