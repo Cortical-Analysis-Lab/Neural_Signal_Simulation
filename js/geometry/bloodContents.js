@@ -66,15 +66,20 @@ function initBloodContents() {
   for (let i = 0; i < BLOOD_DENSITY.glucose; i++) {
     bloodContents.push({
       type: "glucose",
+
       t: random(),
       lane: random(-0.6, 0.6),
-      size: 4
+      size: 4,
+
+      // Availability (0–1)
+      avail: 1.0,
+      targetAvail: 1.0
     });
   }
 }
 
 // -----------------------------------------------------
-// Update — pulsed advection + saturation relaxation
+// Update — pulsed advection + relaxation
 // -----------------------------------------------------
 function updateBloodContents() {
   const pulse = getCardiacPulse();
@@ -92,7 +97,6 @@ function updateBloodContents() {
       0.002;
 
     p.t += baseSpeed * flow * (0.6 + 0.6 * pulse);
-
     if (p.t > 1) p.t -= 1;
 
     // -------------------------
@@ -101,6 +105,13 @@ function updateBloodContents() {
     if (p.type === "rbc") {
       p.sat += (p.targetSat - p.sat) * 0.06;
       p.oxyCount = floor(4 + 6 * p.sat);
+    }
+
+    // -------------------------
+    // Glucose availability dynamics
+    // -------------------------
+    if (p.type === "glucose") {
+      p.avail += (p.targetAvail - p.avail) * 0.05;
     }
   });
 }
@@ -124,25 +135,19 @@ function extractOxygenNearNeuron1() {
 }
 
 // -----------------------------------------------------
-// Apply metabolic supply waves (from hemodynamics logic)
+// Glucose extraction near Neuron 1 (call on firing)
 // -----------------------------------------------------
-function applyMetabolicWaves() {
-  if (!window.metabolicWaves) return;
+function extractGlucoseNearNeuron1() {
+  const RADIUS = 120;
 
   bloodContents.forEach(p => {
-    if (p.type !== "rbc") return;
+    if (p.type !== "glucose") return;
 
-    let boost = 0;
+    const pos = getArteryPoint(p.t, p.lane);
+    if (!pos) return;
 
-    window.metabolicWaves.forEach(w => {
-      const d = abs(p.t - w.t0);
-      if (d < 0.1) {
-        boost += (1 - d / 0.1) * w.strength;
-      }
-    });
-
-    if (boost > 0) {
-      p.targetSat = min(1.0, p.targetSat + 0.3 * boost);
+    if (dist(pos.x, pos.y, neuron.x, neuron.y) < RADIUS) {
+      p.targetAvail = max(0.2, p.targetAvail - 0.2);
     }
   });
 }
@@ -204,7 +209,7 @@ function drawBloodContents() {
     // Glucose (green squares)
     // =========================
     if (p.type === "glucose") {
-      fill(getColor("glucose"));
+      fill(getColor("glucose", 200 * p.avail));
       rectMode(CENTER);
       rect(pos.x, pos.y, p.size, p.size, 2);
     }
