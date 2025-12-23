@@ -5,32 +5,25 @@ console.log("🩸 artery geometry loaded");
 
 let arteryPath = [];
 
-// -----------------------------------------------------
-// BUILD STATIC ARTERY PATH (SCREEN SPACE)
-// -----------------------------------------------------
 function initArtery() {
   arteryPath = [];
 
-  // 🔑 Fixed screen-space placement
-  const marginLeft = 240;          // hugs left UI panel
-  const topY       = -300;
-  const bottomY    = height + 300;
+  const marginLeft = 260;        // just right of mode panel
+  const topY = -300;
+  const bottomY = height + 300;
 
-  // Gentle anatomical bow around neuron 1
-  const bendOut = 90;
-
+  // 🔁 Curve LEFT (toward panel)
   const ctrl1 = {
-    x: marginLeft + bendOut,
+    x: marginLeft - 60,
     y: height * 0.25
   };
 
   const ctrl2 = {
-    x: marginLeft + bendOut,
-    y: height * 0.65
+    x: marginLeft - 120,
+    y: height * 0.6
   };
 
   const steps = 80;
-
   for (let i = 0; i <= steps; i++) {
     const t = i / steps;
 
@@ -38,60 +31,52 @@ function initArtery() {
       marginLeft,
       ctrl1.x,
       ctrl2.x,
-      marginLeft + 20,
+      marginLeft - 40,
       t
     );
 
     const y = lerp(topY, bottomY, t);
-
     arteryPath.push({ x, y });
   }
 }
 
-// -----------------------------------------------------
-// DRAW ARTERY (STATIC, BACKGROUND LAYER)
-// -----------------------------------------------------
+// =====================================================
+// DRAW ARTERY (STATIC, SCREEN SPACE)
+// =====================================================
 function drawArtery() {
   if (!arteryPath.length) return;
 
-  const WALL_OFFSET = 18;
+  // 🔥 Twice as wide
+  const WALL_OFFSET = 32;
 
   strokeCap(ROUND);
   noFill();
 
-  // =============================
-  // LUMEN (inside the vessel)
-  // =============================
+  // ---- LUMEN (inside) ----
   stroke(getColor("arteryLumen"));
-  strokeWeight(22);
+  strokeWeight(40);
   beginShape();
   arteryPath.forEach(p => vertex(p.x, p.y));
   endShape();
 
-  // =============================
-  // LEFT WALL
-  // =============================
+  // ---- LEFT WALL ----
   stroke(getColor("arteryWall"));
-  strokeWeight(6);
+  strokeWeight(8);
   beginShape();
   arteryPath.forEach(p => vertex(p.x - WALL_OFFSET, p.y));
   endShape();
 
-  // =============================
-  // RIGHT WALL
-  // =============================
+  // ---- RIGHT WALL ----
   beginShape();
   arteryPath.forEach(p => vertex(p.x + WALL_OFFSET, p.y));
   endShape();
 
-  // =============================
-  // SPECULAR HIGHLIGHT
-  // =============================
-  stroke(getColor("arteryHighlight", 150));
-  strokeWeight(2);
+  // ---- HIGHLIGHT ----
+  stroke(getColor("arteryHighlight", 160));
+  strokeWeight(3);
   beginShape();
   arteryPath.forEach(p =>
-    vertex(p.x - WALL_OFFSET + 2, p.y - 3)
+    vertex(p.x - WALL_OFFSET + 4, p.y - 4)
   );
   endShape();
 }
