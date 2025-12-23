@@ -8,6 +8,11 @@ console.log("🩸 bloodContents loaded");
 const bloodContents = [];
 
 // -----------------------------------------------------
+// Metabolic supply waves (arterial enrichment)
+// -----------------------------------------------------
+const supplyWaves = [];
+
+// -----------------------------------------------------
 // Visual / teaching-oriented densities (NOT molar)
 // -----------------------------------------------------
 const BLOOD_DENSITY = {
@@ -21,6 +26,7 @@ const BLOOD_DENSITY = {
 // -----------------------------------------------------
 function initBloodContents() {
   bloodContents.length = 0;
+  supplyWaves.length = 0;
 
   // =========================
   // RBCs (with hemoglobin)
@@ -30,20 +36,13 @@ function initBloodContents() {
 
     bloodContents.push({
       type: "rbc",
-
-      // Normalized position along artery (0 → 1)
-      t: random(),
-
-      // Lateral offset within lumen
+      t: random(),                  // 0 → 1 along artery
       lane: random(-0.8, 0.8),
-
       size: 7,
 
-      // Hemoglobin saturation
       sat,
       targetSat: sat,
 
-      // Oxygen cargo (visual only)
       oxyCount: floor(4 + 6 * sat)
     });
   }
@@ -66,12 +65,10 @@ function initBloodContents() {
   for (let i = 0; i < BLOOD_DENSITY.glucose; i++) {
     bloodContents.push({
       type: "glucose",
-
       t: random(),
       lane: random(-0.6, 0.6),
       size: 4,
 
-      // Availability (0–1)
       avail: 1.0,
       targetAvail: 1.0
     });
@@ -79,7 +76,34 @@ function initBloodContents() {
 }
 
 // -----------------------------------------------------
-// Update — pulsed advection + relaxation
+// Trigger upstream metabolic supply wave
+// -----------------------------------------------------
+function triggerSupplyWave(strength = 1.0) {
+  supplyWaves.push({
+    t: 0,            // starts upstream
+    strength,
+    age: 0
+  });
+}
+
+// -----------------------------------------------------
+// Update supply wave propagation
+// -----------------------------------------------------
+function updateSupplyWaves() {
+  for (let i = supplyWaves.length - 1; i >= 0; i--) {
+    const w = supplyWaves[i];
+
+    w.t += 0.01;     // slower than particles → enrichment packet
+    w.age++;
+
+    if (w.t > 1.2 || w.age > 300) {
+      supplyWaves.splice(i, 1);
+    }
+  }
+}
+
+// -----------------------------------------------------
+// Update — pulsed advection + extraction + enrichment
 // -----------------------------------------------------
 function updateBloodContents() {
   const pulse = getCardiacPulse();
@@ -88,7 +112,7 @@ function updateBloodContents() {
   bloodContents.forEach(p => {
 
     // -------------------------
-    // Flow speed by type
+    // Continuous blood flow
     // -------------------------
     const baseSpeed =
       p.type === "rbc"     ? 0.0020 :
@@ -100,7 +124,7 @@ function updateBloodContents() {
     if (p.t > 1) p.t -= 1;
 
     // -------------------------
-    // Hemoglobin saturation dynamics
+    // Oxygen (hemoglobin)
     // -------------------------
     if (p.type === "rbc") {
       p.sat += (p.targetSat - p.sat) * 0.06;
@@ -108,11 +132,29 @@ function updateBloodContents() {
     }
 
     // -------------------------
-    // Glucose availability dynamics
+    // Glucose availability
     // -------------------------
     if (p.type === "glucose") {
       p.avail += (p.targetAvail - p.avail) * 0.05;
     }
+
+    // -------------------------
+    // Apply supply waves
+    // -------------------------
+    supplyWaves.forEach(w => {
+      const d = abs(p.t - w.t);
+      if (d > 0.08) return;
+
+      const boost = (1 - d / 0.08) * w.strength;
+
+      if (p.type === "rbc") {
+        p.targetSat = min(1.0, p.targetSat + 0.25 * boost);
+      }
+
+      if (p.type === "glucose") {
+        p.targetAvail = min(1.0, p.targetAvail + 0.35 * boost);
+      }
+    });
   });
 }
 
@@ -180,7 +222,7 @@ function drawBloodContents() {
         p.size * (1 + 0.1 * getCardiacPulse())
       );
 
-      // ---- Oxygen cargo (white dots) ----
+      // ---- Oxygen cargo ----
       if (p.sat > 0.5) {
         fill(getColor("oxygen"));
 
@@ -198,7 +240,7 @@ function drawBloodContents() {
     }
 
     // =========================
-    // Water (plasma)
+    // Water
     // =========================
     if (p.type === "water") {
       fill(getColor("water", 120));
@@ -206,7 +248,7 @@ function drawBloodContents() {
     }
 
     // =========================
-    // Glucose (green squares)
+    // Glucose
     // =========================
     if (p.type === "glucose") {
       fill(getColor("glucose", 200 * p.avail));
