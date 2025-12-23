@@ -293,21 +293,28 @@ function drawNeuron2() {
   const axStartY =
     neuron2.soma.y + sin(ax) * neuron2.somaRadius;
 
-  // ---------------- AIS ----------------
-  push();
-  stroke(getColor("axon"));
-  strokeCap(ROUND);
-  strokeWeight(11); // 🔑 clearly thicker than dendrites
+ // ---------------- AIS ----------------
+push();
+stroke(getColor("axon"));
+strokeCap(ROUND);
 
-  const AIS_LEN = neuron2.somaRadius * 0.25;
+// Slightly thicker than axon shaft
+strokeWeight(8);
 
-  line(
-    axStartX,
-    axStartY,
-    axStartX + cos(ax) * AIS_LEN,
-    axStartY + sin(ax) * AIS_LEN
-  );
-  pop();
+const AIS_LEN = neuron2.somaRadius * 0.25;
+
+// Explicit direction vector (matches axon)
+const aisDx = cos(ax);
+const aisDy = sin(ax);
+
+line(
+  axStartX,
+  axStartY,
+  axStartX + aisDx * AIS_LEN,
+  axStartY + aisDy * AIS_LEN
+);
+pop();
+
 
   // ---------------- AXON SHAFT ----------------
   push();
@@ -406,21 +413,27 @@ function drawNeuron3() {
 
   const AXON_LENGTH = max(width, height) * 1.6;
 
-  // ---------------- AIS ----------------
-  push();
-  stroke(getColor("axon"));
-  strokeCap(ROUND);
-  strokeWeight(12); // 🔥 clearly thicker than dendrites
+ // ---------------- AIS ----------------
+push();
+stroke(getColor("axon"));
+strokeCap(ROUND);
 
-  const AIS_LEN = neuron3.somaRadius * 0.25;
+// 🔑 Narrower than neuron 2, still thicker than dendrites
+strokeWeight(7);
 
-  line(
-    axStartX,
-    axStartY,
-    axStartX,
-    axStartY - AIS_LEN
-  );
-  pop();
+const AIS_LEN = neuron3.somaRadius * 0.25;
+
+// Explicit axon direction
+const aisDx = cos(axAngle);
+const aisDy = sin(axAngle);
+
+line(
+  axStartX,
+  axStartY,
+  axStartX + aisDx * AIS_LEN,
+  axStartY + aisDy * AIS_LEN
+);
+pop();
 
   // ---------------- AXON SHAFT ----------------
   push();
