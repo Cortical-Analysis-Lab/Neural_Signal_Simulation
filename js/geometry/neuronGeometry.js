@@ -6,7 +6,7 @@ console.log("geometry loaded");
 // -----------------------------------------------------
 // Bouton density control (Neuron 1 only)
 // -----------------------------------------------------
-const BOUTON_DENSITY_SCALE = 0.6; // 60% of original boutons
+const BOUTON_DENSITY_SCALE = 0.6;
 
 // -----------------------------------------------------
 // Neuron definition
@@ -33,6 +33,44 @@ function polarToCartesian(angleDeg, r) {
 }
 
 // -----------------------------------------------------
+// Angle generator (prevents twig overlap)
+// -----------------------------------------------------
+function generateNonOverlappingAngles({
+  centerAngle,
+  count,
+  spread,
+  minSeparation = 20,
+  maxAttempts = 30
+}) {
+  const angles = [];
+
+  for (let i = 0; i < count; i++) {
+    let a, tries = 0;
+
+    do {
+      a = centerAngle + random(-spread, spread);
+      tries++;
+    } while (
+      angles.some(e => abs(e - a) < minSeparation) &&
+      tries < maxAttempts
+    );
+
+    angles.push(a);
+  }
+
+  return angles;
+}
+
+// -----------------------------------------------------
+// Bouton overlap guard
+// -----------------------------------------------------
+function canPlaceBouton(x, y, r, existing) {
+  return !existing.some(b =>
+    dist(x, y, b.x, b.y) < r * 2.2
+  );
+}
+
+// -----------------------------------------------------
 // Build dendritic trunk → branch → twig (ATTACHED)
 // -----------------------------------------------------
 function createDendriticTree(baseAngle) {
@@ -43,7 +81,7 @@ function createDendriticTree(baseAngle) {
   const attachAngle = baseAngle + random(-2, 2);
   const somaAttach = polarToCartesian(attachAngle, neuron.somaRadius);
 
-  // --- Trunk definition ---
+  // --- Trunk ---
   const trunkAngle = attachAngle + random(-4, 4);
   const trunkLength = random(120, 150);
   const trunkSegments = 5;
@@ -67,10 +105,9 @@ function createDendriticTree(baseAngle) {
     });
   }
 
-  // 🔑 Trunk is explicit geometry (NO synapses)
-  segments.push(trunk);
+  segments.push(trunk); // trunk only
 
-  // --- Branches grow off trunk ---
+  // --- Branches ---
   const branchCount = floor(random(3, 4));
 
   for (let i = 0; i < branchCount; i++) {
@@ -98,23 +135,29 @@ function createDendriticTree(baseAngle) {
       { x: end.x, y: end.y, r: 3.0 }
     ];
 
-    // --- Terminal twigs (ONLY these host synapses) ---
+    // --- Twigs (non-overlapping) ---
     const twigCount = floor(random(2, 3));
+    const twigAngles = generateNonOverlappingAngles({
+      centerAngle: branchAngle,
+      count: twigCount,
+      spread: 30,
+      minSeparation: 22
+    });
 
-    for (let j = 0; j < twigCount; j++) {
+    twigAngles.forEach(tAngle => {
 
-      const twigAngle = branchAngle + random(-25, 25);
+      const twigLen = random(22, 36);
 
       const twigEnd = {
-        x: end.x + cos(radians(twigAngle)) * random(22, 36),
-        y: end.y + sin(radians(twigAngle)) * random(22, 36)
+        x: end.x + cos(radians(tAngle)) * twigLen,
+        y: end.y + sin(radians(tAngle)) * twigLen
       };
 
       segments.push([
         ...branch,
         { x: twigEnd.x, y: twigEnd.y, r: 2.0 }
       ]);
-    }
+    });
   }
 
   return segments;
@@ -127,22 +170,17 @@ function buildPathToSoma(branch) {
 
   const path = [];
 
-  // Walk from distal → proximal
   for (let i = branch.length - 1; i >= 0; i--) {
-    path.push({
-      x: branch[i].x,
-      y: branch[i].y
-    });
+    path.push({ x: branch[i].x, y: branch[i].y });
   }
 
-  // Explicit soma termination
-  path.push({ x: 0, y: 0 });
+  path.push({ x: 0, y: 0 }); // soma
 
   return path;
 }
 
 // -----------------------------------------------------
-// Reduce bouton count while preserving E/I ratio
+// Reduce bouton count while preserving ratio
 // -----------------------------------------------------
 function reduceBoutonCountPreserveRatio() {
 
@@ -167,7 +205,6 @@ function initSynapses() {
 
   let synapseId = 0;
 
-  // 🔥 THREE TRUE DENDRITIC TRUNKS
   const trunkAngles = [150, 225, 300];
 
   trunkAngles.forEach(angle => {
@@ -176,19 +213,23 @@ function initSynapses() {
 
     trees.forEach(branch => {
 
-      // Always render dendrites
       neuron.dendrites.push(branch);
 
-      // ❌ No synapses on trunks or mid-branches
+      // ❌ No synapses unless terminal twig
       if (branch.length < 4) return;
 
       const tip = branch[branch.length - 1];
+      const r = 12;
+
+      const x = tip.x + random(-6, 6);
+      const y = tip.y + random(-6, 6);
+
+      if (!canPlaceBouton(x, y, r, neuron.synapses)) return;
 
       neuron.synapses.push({
         id: synapseId++,
-        x: tip.x + random(-6, 6),
-        y: tip.y + random(-6, 6),
-        radius: 12,
+        x, y,
+        radius: r,
         hovered: false,
         selected: false,
         type: null,
@@ -197,12 +238,8 @@ function initSynapses() {
     });
   });
 
-  // 🔑 Reduce bouton count BEFORE type assignment
   reduceBoutonCountPreserveRatio();
-
-  // Preserve original E/I ratio logic
   assignSynapseTypes();
-
   initAxonTerminalBranches();
 }
 
@@ -217,18 +254,15 @@ function assignSynapseTypes() {
   const inhCount = min(3, floor(syns.length / 3));
   const indices = syns.map((_, i) => i);
 
-  for (let i = indices.length - 1; i > 0; i--) {
-    const j = floor(random(i + 1));
-    [indices[i], indices[j]] = [indices[j], indices[i]];
-  }
+  shuffle(indices, true);
 
-  for (let i = 0; i < syns.length; i++) {
-    syns[indices[i]].type = i < inhCount ? "inh" : "exc";
-  }
+  indices.forEach((idx, i) => {
+    syns[idx].type = i < inhCount ? "inh" : "exc";
+  });
 }
 
 // -----------------------------------------------------
-// Axon geometry
+// Axon geometry (unchanged)
 // -----------------------------------------------------
 function getAxonEndPoint() {
 
