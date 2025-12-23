@@ -93,7 +93,7 @@ function updateTerminalDots() {
       };
 
       // =================================================
-      // 🩸 METABOLIC CONSUMPTION (PRE-BBB, NO SUPPLY)
+      // 🩸 METABOLIC CONSUMPTION + SUPPLY SIGNAL
       // =================================================
       if (typeof extractOxygenNearNeuron1 === "function") {
         extractOxygenNearNeuron1();
@@ -101,6 +101,10 @@ function updateTerminalDots() {
 
       if (typeof extractGlucoseNearNeuron1 === "function") {
         extractGlucoseNearNeuron1();
+      }
+
+      if (typeof triggerSupplyWave === "function") {
+        triggerSupplyWave(1.0);
       }
       // =================================================
 
