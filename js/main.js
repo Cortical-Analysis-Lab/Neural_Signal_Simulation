@@ -140,6 +140,8 @@ function draw() {
     updateHemodynamics();
     updateBloodContents();
     applyMetabolicWaves();
+    updateSupplyWaves();
+
 
     updateSynapseHover();
     updateEPSPs();
