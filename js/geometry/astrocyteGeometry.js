@@ -1,7 +1,7 @@
 // =====================================================
-// ASTROCYTE GEOMETRY — TRIPARTITE SYNAPSE (NEURON 2 ↔ 3)
+// ASTROCYTE GEOMETRY — TRIPARTITE SYNAPSE (DEBUGGED)
 // =====================================================
-console.log("astrocyteGeometry loaded թվական");
+console.log("astrocyteGeometry loaded (debugged)");
 
 // -----------------------------------------------------
 // Astrocyte object
@@ -17,11 +17,11 @@ const astrocyte = {
 };
 
 // -----------------------------------------------------
-// Glow timing (frames)
+// Glow timing (SLOWER + PROPAGATING)
 // -----------------------------------------------------
-const ENDFOOT_GLOW_FRAMES = 18;
-const SOMA_GLOW_DELAY    = 10;
-const SOMA_GLOW_FRAMES   = 22;
+const ENDFOOT_GLOW_FRAMES = 36;   // 2× slower
+const SOMA_GLOW_FRAMES   = 44;
+const SOMA_TRIGGER_POINT = 18;   // propagate halfway
 
 // -----------------------------------------------------
 // Initialize astrocyte
@@ -30,56 +30,60 @@ function initAstrocyte() {
 
   if (!neuron2?.soma || !neuron3?.soma) return;
 
-  // =====================================================
-  // PLACE SOMA BETWEEN NEURON 2 & 3
-  // =====================================================
+  // --------------------------------------------------
+  // Place soma between neuron 2 & 3
+  // --------------------------------------------------
   astrocyte.x = (neuron2.soma.x + neuron3.soma.x) * 0.5;
   astrocyte.y = (neuron2.soma.y + neuron3.soma.y) * 0.5 + 10;
 
-  astrocyte.arms.length = 0;
+  astrocyte.arms.length = [];
 
-  // =====================================================
-  // BASE ORGANIC ARMS
-  // =====================================================
-  const baseArmCount = 7;
+  // --------------------------------------------------
+  // Base structural arms
+  // --------------------------------------------------
+  const baseArmCount = 6;
+  astrocyte.arms = [];
 
   for (let i = 0; i < baseArmCount; i++) {
     astrocyte.arms.push({
-      angle: TWO_PI * (i / baseArmCount) + random(-0.3, 0.3),
-      length: random(55, 85),
+      angle: TWO_PI * (i / baseArmCount) + random(-0.25, 0.25),
+      length: random(55, 75),
       wobble: random(TWO_PI),
-      target: null,
-      overshoot: 0
+      target: null
     });
   }
 
-  // =====================================================
-  // TARGETED PERISYNAPTIC ARMS
-  // =====================================================
+  // --------------------------------------------------
+  // Targeted perisynaptic arms (CLEF-BASED)
+  // --------------------------------------------------
   const targets = [];
 
-  if (neuron2?.synapses?.length) {
-    targets.push(neuron2.synapses[0]); // 🔑 first synapse = special
+  if (neuron2?.synapses?.length && neuron?.axon?.terminalBranches?.length) {
+    const s = neuron2.synapses[0];
+    const b = neuron.axon.terminalBranches[0]?.end;
+    if (b) targets.push({ synapse: s, bouton: b });
   }
 
-  if (neuron3?.synapses?.length) {
-    targets.push(neuron3.synapses[0]);
+  if (neuron3?.synapses?.length && neuron?.axon?.terminalBranches?.length) {
+    const s = neuron3.synapses[0];
+    const b = neuron.axon.terminalBranches[0]?.end;
+    if (b) targets.push({ synapse: s, bouton: b });
   }
 
-  targets.forEach((s, i) => {
+  targets.forEach(({ synapse, bouton }) => {
 
-    const dx = s.x - astrocyte.x;
-    const dy = s.y - astrocyte.y;
-    const d  = dist(astrocyte.x, astrocyte.y, s.x, s.y);
+    // -------- compute cleft midpoint --------
+    const cx = (synapse.x + bouton.x) * 0.5;
+    const cy = (synapse.y + bouton.y) * 0.5;
+
+    const dx = cx - astrocyte.x;
+    const dy = cy - astrocyte.y;
 
     astrocyte.arms.push({
       angle: atan2(dy, dx),
-      length: d * 0.65,
+      length: dist(astrocyte.x, astrocyte.y, cx, cy) + 8, // 🔑 pass cleft
       wobble: random(TWO_PI),
-      target: s,
-
-      // 🔑 neuron-2 synapse arm passes PSD
-      overshoot: (i === 0) ? 8 : 0
+      target: synapse
     });
   });
 }
@@ -89,10 +93,6 @@ function initAstrocyte() {
 // -----------------------------------------------------
 function triggerAstrocyteResponse() {
   astrocyte.endfootGlow = ENDFOOT_GLOW_FRAMES;
-
-  setTimeout(() => {
-    astrocyte.somaGlow = SOMA_GLOW_FRAMES;
-  }, SOMA_GLOW_DELAY * 16);
 }
 
 // -----------------------------------------------------
@@ -105,9 +105,9 @@ function drawAstrocyte() {
   push();
   translate(astrocyte.x, astrocyte.y);
 
-  // =====================================================
-  // SOMA (fill stays purple; glow is outline only)
-  // =====================================================
+  // --------------------------------------------------
+  // Soma
+  // --------------------------------------------------
   noStroke();
   fill(getColor("astrocyte"));
   ellipse(0, 0, astrocyte.radius * 2);
@@ -116,17 +116,12 @@ function drawAstrocyte() {
     stroke(255, 230, 120, map(astrocyte.somaGlow, 0, SOMA_GLOW_FRAMES, 40, 160));
     strokeWeight(4);
     noFill();
-    ellipse(0, 0, astrocyte.radius * 2.4);
+    ellipse(0, 0, astrocyte.radius * 2.5);
   }
 
-  // Nucleus
-  noStroke();
-  fill(190, 80, 210);
-  ellipse(0, 0, 10);
-
-  // =====================================================
-  // ARMS + ENDFEET
-  // =====================================================
+  // --------------------------------------------------
+  // Arms + Endfeet
+  // --------------------------------------------------
   stroke(getColor("astrocyte"));
   strokeWeight(5);
   noFill();
@@ -134,37 +129,32 @@ function drawAstrocyte() {
   astrocyte.arms.forEach(a => {
 
     const wob = sin(state.time * 0.001 + a.wobble) * 3;
-    const L   = a.length + a.overshoot;
 
-    const cx = cos(a.angle + 0.25) * (L * 0.5);
-    const cy = sin(a.angle + 0.25) * (L * 0.5);
+    const cx = cos(a.angle + 0.25) * (a.length * 0.5);
+    const cy = sin(a.angle + 0.25) * (a.length * 0.5);
 
-    const ex = cos(a.angle) * (L + wob);
-    const ey = sin(a.angle) * (L + wob);
+    const ex = cos(a.angle) * (a.length + wob);
+    const ey = sin(a.angle) * (a.length + wob);
 
     beginShape();
     vertex(0, 0);
     quadraticVertex(cx, cy, ex, ey);
     endShape();
 
-    // -----------------------------
-    // ENDFOOT (ATTACHED)
-    // -----------------------------
     if (a.target) {
-
-      // Base endfoot
+      // Endfoot body
       noStroke();
       fill(getColor("astrocyte"));
       ellipse(ex, ey, 12, 8);
 
-      // Glow halo ONLY
+      // Endfoot glow halo
       if (astrocyte.endfootGlow > 0) {
         stroke(255, 235, 120,
-          map(astrocyte.endfootGlow, 0, ENDFOOT_GLOW_FRAMES, 40, 180)
+          map(astrocyte.endfootGlow, 0, ENDFOOT_GLOW_FRAMES, 50, 200)
         );
         strokeWeight(3);
         noFill();
-        ellipse(ex, ey, 16, 12);
+        ellipse(ex, ey, 18, 14);
       }
     }
   });
@@ -172,10 +162,21 @@ function drawAstrocyte() {
   pop();
 
   // --------------------------------------------------
-  // Glow decay
+  // Glow propagation + decay
   // --------------------------------------------------
-  astrocyte.endfootGlow = max(0, astrocyte.endfootGlow - 1);
-  astrocyte.somaGlow    = max(0, astrocyte.somaGlow - 1);
+  if (astrocyte.endfootGlow > 0) {
+    astrocyte.endfootGlow--;
+
+    if (
+      astrocyte.endfootGlow === ENDFOOT_GLOW_FRAMES - SOMA_TRIGGER_POINT
+    ) {
+      astrocyte.somaGlow = SOMA_GLOW_FRAMES;
+    }
+  }
+
+  if (astrocyte.somaGlow > 0) {
+    astrocyte.somaGlow--;
+  }
 }
 
 // -----------------------------------------------------
