@@ -79,21 +79,18 @@ function updateSoma() {
       soma.Vm += AP_PARAMS.upstrokeRate;
 
       if (soma.Vm >= 40) {
-        soma.Vm = 40;
-        soma.apState = AP.PEAK;
-        soma.apTimer = AP_PARAMS.peakHold;
+      soma.Vm = 40;
+      soma.apState = AP.PEAK;
+      soma.apTimer = AP_PARAMS.peakHold;
+    
+      // 🔑 METABOLIC DEMAND SIGNAL (Neuron 1 fired)
+      window.neuron1Fired = true;
+      window.lastNeuron1SpikeTime = state.time;
+    
+      spawnAxonSpike();
+      console.log("⚡ ACTION POTENTIAL");
+    }
 
-        // =================================================
-        // 🩸 NEUROVASCULAR / METABOLIC COUPLING TRIGGER
-        // =================================================
-        window.metabolicBoost = 2.0;          // 2× transport
-        window.metabolicBoostTimer = 600;     // ms duration
-        // =================================================
-
-        // Fire axon ONCE at peak
-        spawnAxonSpike();
-        console.log("⚡ ACTION POTENTIAL");
-      }
       break;
 
     // =================================================
