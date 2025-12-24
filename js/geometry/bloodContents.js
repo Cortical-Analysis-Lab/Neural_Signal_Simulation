@@ -1,30 +1,30 @@
-console.log("🩸 bloodContents v1 (clean) loaded");
+console.log("🩸 bloodContents v1 (clean, lumen-safe) loaded");
 
 // =====================================================
 // BLOOD CONTENTS — SYMBOLIC PARTICLES (V1)
 // =====================================================
-// GOALS:
-// ✔ Even distribution
-// ✔ No lumen fill
-// ✔ No accumulation
-// ✔ Smooth flow
-// ✔ Teaching-first visuals
+// DESIGN RULES (HARD):
+// - NO plasma background
+// - NO fill strokes
+// - NO alpha accumulation
+// - NO vasomotion coupling
+// - PARTICLES MUST REMAIN DISCRETE
 // =====================================================
 
 // Public container
 const bloodParticles = [];
 
 // -----------------------------------------------------
-// VISUAL COUNTS (INTENTIONAL, LOW)
+// VISUAL COUNTS (LOW ON PURPOSE)
 // -----------------------------------------------------
 const BLOOD_COUNTS = {
-  rbc: 14,     // dominant visual elements
-  water: 10,   // sparse tracers
-  glucose: 0   // off for now
+  rbc: 12,     // dominant but sparse
+  water: 6,    // tracer only
+  glucose: 0   // disabled for now
 };
 
 // -----------------------------------------------------
-// Initialize particles (even spacing)
+// Initialize particles (EVEN + STAGGERED)
 // -----------------------------------------------------
 function initBloodContents() {
   bloodParticles.length = 0;
@@ -36,77 +36,76 @@ function initBloodContents() {
     bloodParticles.push({
       type: "rbc",
 
-      // Evenly spaced along vessel
+      // evenly staggered
       t: (i + 0.5) / BLOOD_COUNTS.rbc,
 
-      // Small radial spread
-      lane: map(i % 4, 0, 3, -0.6, 0.6),
+      // fixed radial lanes (prevents clustering)
+      lane: map(i % 3, 0, 2, -0.55, 0.55),
 
       size: 7,
 
-      // Oxygenation state (visual only)
-      sat: i % 3 === 0 ? 0.35 : 0.95,
+      // visual oxygenation state ONLY
+      sat: i % 4 === 0 ? 0.35 : 0.95,
 
-      // Motion phase
       phase: random(TWO_PI)
     });
   }
 
   // =========================
-  // Water tracers
+  // Water tracers (SPARSE)
   // =========================
   for (let i = 0; i < BLOOD_COUNTS.water; i++) {
     bloodParticles.push({
       type: "water",
 
       t: (i + 0.5) / BLOOD_COUNTS.water,
-      lane: random(-0.75, 0.75),
-      size: 2,
+      lane: random(-0.7, 0.7),
 
+      size: 2,
       phase: random(TWO_PI)
     });
   }
 }
 
 // -----------------------------------------------------
-// Update particle motion (smooth, continuous)
+// Update motion (STRICTLY LINEAR FLOW)
 // -----------------------------------------------------
 function updateBloodContents() {
-  const speed = 0.00035; // 🔑 global flow speed
+  const speed = 0.0003;
 
   bloodParticles.forEach(p => {
-
-    // Forward motion
     p.t += speed;
     if (p.t > 1) p.t -= 1;
 
-    // Gentle lateral oscillation
-    p.phase += 0.01;
-    p.lane += 0.0003 * sin(p.phase);
+    // minimal lateral freedom (NO diffusion)
+    p.phase += 0.008;
+    p.lane += 0.00025 * sin(p.phase);
 
-    // Soft containment
-    p.lane = constrain(p.lane, -0.85, 0.85);
+    p.lane = constrain(p.lane, -0.7, 0.7);
   });
 }
 
 // -----------------------------------------------------
-// Required no-op hooks (used by main.js)
+// Required no-op hooks (main.js expects these)
 // -----------------------------------------------------
 function updateSupplyWaves() {}
 function updatePressureWaves() {}
 
 // -----------------------------------------------------
-// Draw particles (NO PLASMA, NO FILL)
+// DRAW — DISCRETE PARTICLES ONLY
 // -----------------------------------------------------
 function drawBloodContents() {
   noStroke();
+
+  // 🔑 CRITICAL: prevent additive blending artifacts
+  blendMode(BLEND);
 
   bloodParticles.forEach(p => {
     const pos = getArteryPoint(p.t, p.lane);
     if (!pos) return;
 
     // =========================
-    // RBCs
+    // RBCs (SOLID, NO GLOW)
     // =========================
     if (p.type === "rbc") {
       const c = lerpColor(
@@ -115,15 +114,15 @@ function drawBloodContents() {
         p.sat
       );
 
-      fill(red(c), green(c), blue(c), 200);
+      fill(red(c), green(c), blue(c), 190);
       ellipse(pos.x, pos.y, p.size);
     }
 
     // =========================
-    // Water tracers
+    // Water tracers (FAINT)
     // =========================
     if (p.type === "water") {
-      fill(160, 210, 255, 80);
+      fill(160, 210, 255, 60);
       ellipse(pos.x, pos.y, p.size);
     }
   });
