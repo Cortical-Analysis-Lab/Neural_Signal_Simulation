@@ -1,91 +1,108 @@
-console.log("🩸 bloodContents BASELINE loaded");
+// =====================================================
+// BLOOD CONTENTS — SYMBOLIC PARTICLES (V0 / DIAGNOSTIC)
+// =====================================================
+// GOALS:
+// ✔ Even distribution
+// ✔ Discrete particles only
+// ✔ No lumen fill
+// ✔ No motion
+// ✔ No accumulation
+// ✔ No blending
+// ✔ Geometry-safe
+//
+// This file is intentionally minimal.
+// Do NOT add realism here yet.
+//
+// =====================================================
 
-// =====================================================
-// BLOOD CONTENTS — ABSOLUTE BASELINE
-// =====================================================
-// PURPOSE:
-// • Prove particle drawing is NOT causing lumen fill
-// • No motion
-// • No waves
-// • No plasma
-// • No coupling
-// • Just dots inside artery
-// =====================================================
+console.log("🩸 bloodContents v0 (diagnostic) loaded");
 
 // -----------------------------------------------------
-// Public container
+// PUBLIC API (expected by main.js)
 // -----------------------------------------------------
+
 const bloodParticles = [];
 
 // -----------------------------------------------------
-// Visual counts (LOW, FIXED)
+// CONFIG — VISUAL ONLY
 // -----------------------------------------------------
-const BLOOD_COUNTS = {
-  rbc: 8,
-  water: 4
+
+const BLOOD_CONFIG = {
+  count: 18,            // small on purpose
+  radiusFracMin: 0.20,  // stay well inside walls
+  radiusFracMax: 0.75,
+  size: 2.5
 };
 
 // -----------------------------------------------------
-// Initialize particles (STATIC, EVEN)
+// INITIALIZE — ONE-TIME PARTICLE PLACEMENT
 // -----------------------------------------------------
+
 function initBloodContents() {
   bloodParticles.length = 0;
 
-  // ---- RBCs (circles) ----
-  for (let i = 0; i < BLOOD_COUNTS.rbc; i++) {
-    bloodParticles.push({
-      type: "rbc",
-      t: (i + 0.5) / BLOOD_COUNTS.rbc,
-      lane: map(i % 4, 0, 3, -0.5, 0.5),
-      size: 7,
-      sat: i % 2 === 0 ? 0.9 : 0.3 // mix oxy/deoxy
-    });
-  }
+  const vessel = getActiveArtery(); // from artery.js
+  if (!vessel) return;
 
-  // ---- Water tracers (tiny dots) ----
-  for (let i = 0; i < BLOOD_COUNTS.water; i++) {
+  const cx = vessel.center.x;
+  const cy = vessel.center.y;
+
+  const innerR = vessel.innerRadius;
+
+  const N = BLOOD_CONFIG.count;
+
+  for (let i = 0; i < N; i++) {
+
+    // Even angular spacing (prevents clustering)
+    const theta = (i / N) * TWO_PI;
+
+    // Fixed radial band — no sampling across lumen
+    const rFrac = lerp(
+      BLOOD_CONFIG.radiusFracMin,
+      BLOOD_CONFIG.radiusFracMax,
+      (i % 3) / 2
+    );
+
+    const r = innerR * rFrac;
+
+    const x = cx + cos(theta) * r;
+    const y = cy + sin(theta) * r;
+
     bloodParticles.push({
-      type: "water",
-      t: (i + 0.5) / BLOOD_COUNTS.water,
-      lane: map(i % 2, 0, 1, -0.3, 0.3),
-      size: 2
+      x,
+      y,
+      size: BLOOD_CONFIG.size,
+      color: colors.rbcOxy // from constants/colors.js
     });
   }
 }
 
 // -----------------------------------------------------
-// REQUIRED hooks (NO-OP)
-// main.js / hemodynamics.js expect these
+// UPDATE — NO-OP (INTENTIONAL)
 // -----------------------------------------------------
-function updateBloodContents() {}
-function updateSupplyWaves() {}
-function updatePressureWaves() {}
+
+function updateBloodContents() {
+  // Diagnostic phase: absolutely no motion
+  return;
+}
 
 // -----------------------------------------------------
-// Draw particles ONLY (no fills, no masks)
+// DRAW — DISCRETE PARTICLES ONLY
 // -----------------------------------------------------
+
 function drawBloodContents() {
   noStroke();
 
-  bloodParticles.forEach(p => {
-    const pos = getArteryPoint(p.t, p.lane);
-    if (!pos) return;
-
-    // ---- RBCs ----
-    if (p.type === "rbc") {
-      const c = lerpColor(
-        getColor("rbcDeoxy"),
-        getColor("rbcOxy"),
-        p.sat
-      );
-      fill(red(c), green(c), blue(c), 200);
-      ellipse(pos.x, pos.y, p.size);
-    }
-
-    // ---- Water tracers ----
-    if (p.type === "water") {
-      fill(160, 210, 255, 120);
-      ellipse(pos.x, pos.y, p.size);
-    }
-  });
+  for (const p of bloodParticles) {
+    fill(p.color);
+    circle(p.x, p.y, p.size);
+  }
 }
+
+// -----------------------------------------------------
+// EXPORTS (GLOBAL SCOPE EXPECTED)
+// -----------------------------------------------------
+
+window.initBloodContents   = initBloodContents;
+window.updateBloodContents = updateBloodContents;
+window.drawBloodContents   = drawBloodContents;
