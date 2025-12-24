@@ -206,29 +206,26 @@ function drawArtery() {
   pop();
 
 // =========================
-// ASTROCYTES (TWO ARMS, ENDFEET ALWAYS SPAN PERICYTE GAPS)
+// ASTROCYTES (PLACEMENT-FIXED, SIZE UNCHANGED)
 // =========================
-for (let i = 10; i < arteryPath.length - 14; i += 22) {
+for (let i = 12; i < arteryPath.length - 12; i += 16) {
 
-  if (
-    !arteryPath[i] ||
-    !arteryPath[i - 11] ||
-    !arteryPath[i + 11]
-  ) continue;
+  // pericytes are at i-8, i, i+8 (matches pericyte stride)
+  const pLeft  = arteryPath[i - 8];
+  const pMid   = arteryPath[i];
+  const pRight = arteryPath[i + 8];
 
-  const pCenter = arteryPath[i];
-  const pUp     = arteryPath[i - 11];
-  const pDown   = arteryPath[i + 11];
+  if (!pLeft || !pMid || !pRight) continue;
 
-  const wob = WALL_WOBBLE_AMP * sin(t * 0.002 + pCenter.phase);
+  const wob = WALL_WOBBLE_AMP * sin(t * 0.002 + pMid.phase);
 
   for (let side of [-1, 1]) {
 
     // -------------------------------------------------
-    // Soma (unchanged)
+    // Soma (UNCHANGED)
     // -------------------------------------------------
-    const somaX = pCenter.x + side * (wallOffset + 65);
-    const somaY = pCenter.y + 18 * sin(pCenter.phase);
+    const somaX = pMid.x + side * (wallOffset + 65);
+    const somaY = pMid.y + 18 * sin(pMid.phase);
 
     push();
     noStroke();
@@ -236,73 +233,64 @@ for (let i = 10; i < arteryPath.length - 14; i += 22) {
     ellipse(somaX, somaY, 28, 28);
     pop();
 
-    // =================================================
-    // UPSTREAM ARM + ENDFOOT
-    // =================================================
-    const upMidX = (pUp.x + pCenter.x) / 2;
-    const upMidY = (pUp.y + pCenter.y) / 2;
+    // -------------------------------------------------
+    // ARM → upstream gap (between pLeft and pMid)
+    // -------------------------------------------------
+    const upX = (pLeft.x + pMid.x) / 2;
+    const upY = (pLeft.y + pMid.y) / 2;
 
-    const upGap =
-      dist(pUp.x, pUp.y, pCenter.x, pCenter.y) * 0.9;
-
-    // arm
     push();
     stroke(getColor("astrocyte"));
     strokeWeight(4);
     line(
       somaX,
       somaY,
-      upMidX + side * (wallOffset + 14),
-      upMidY
+      upX + side * (wallOffset + 14),
+      upY
     );
     pop();
 
-    // endfoot
     push();
     noStroke();
     fill(getColor("astrocyte"));
     translate(
-      upMidX + side * (wallOffset + 14 + wob),
-      upMidY
+      upX + side * (wallOffset + 14 + wob),
+      upY
     );
-    rotate(atan2(pCenter.y - pUp.y, pCenter.x - pUp.x));
-    ellipse(0, 0, upGap, 10);
+    rotate(atan2(pMid.y - pLeft.y, pMid.x - pLeft.x));
+    ellipse(0, 0, 38, 10); // SAME SIZE AS BEFORE
     pop();
 
-    // =================================================
-    // DOWNSTREAM ARM + ENDFOOT
-    // =================================================
-    const downMidX = (pCenter.x + pDown.x) / 2;
-    const downMidY = (pCenter.y + pDown.y) / 2;
+    // -------------------------------------------------
+    // ARM → downstream gap (between pMid and pRight)
+    // -------------------------------------------------
+    const downX = (pMid.x + pRight.x) / 2;
+    const downY = (pMid.y + pRight.y) / 2;
 
-    const downGap =
-      dist(pCenter.x, pCenter.y, pDown.x, pDown.y) * 0.9;
-
-    // arm
     push();
     stroke(getColor("astrocyte"));
     strokeWeight(4);
     line(
       somaX,
       somaY,
-      downMidX + side * (wallOffset + 14),
-      downMidY
+      downX + side * (wallOffset + 14),
+      downY
     );
     pop();
 
-    // endfoot
     push();
     noStroke();
     fill(getColor("astrocyte"));
     translate(
-      downMidX + side * (wallOffset + 14 + wob),
-      downMidY
+      downX + side * (wallOffset + 14 + wob),
+      downY
     );
-    rotate(atan2(pDown.y - pCenter.y, pDown.x - pCenter.x));
-    ellipse(0, 0, downGap, 10);
+    rotate(atan2(pRight.y - pMid.y, pRight.x - pMid.x));
+    ellipse(0, 0, 38, 10); // SAME SIZE
     pop();
   }
 }
+
 
   // =========================
   // INNER HIGHLIGHT
