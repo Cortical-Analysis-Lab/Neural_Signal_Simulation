@@ -1,17 +1,17 @@
 // =====================================================
-// BLOOD CONTENTS — SYMBOLIC, WAVE-PROPAGATED AGITATION
+// BLOOD CONTENTS — PULSE-DRIVEN TRANSPORT
 // =====================================================
-// ✔ Particles exist everywhere
-// ✔ Wave propagates through them
-// ✔ Local agitation at wave crest
-// ✔ No global redistribution
+// ✔ Blood moves ONLY when wave passes
+// ✔ Net downstream transport per pulse
+// ✔ Local agitation + bounce
+// ✔ New elements introduced upstream
 // ✔ No continuous drift
-// ✔ Fixed lumen
+// ✔ No lumen fill
 // ✔ COLORS.js native
 // ✔ p5 state isolated
 // =====================================================
 
-console.log("🩸 bloodContents v1.4 (true wave propagation) loaded");
+console.log("🩸 bloodContents v1.5 (pulse-driven transport) loaded");
 
 const bloodParticles = [];
 
@@ -34,17 +34,18 @@ const LANE_MIN = -0.55;
 const LANE_MAX =  0.55;
 
 // -----------------------------------------------------
-// WAVE PARAMETERS (PROPAGATION, NOT TRANSPORT)
+// WAVE / TRANSPORT PARAMETERS
 // -----------------------------------------------------
 
-const WAVE_SPEED   = 0.0009;  // wave speed (t / ms)
-const WAVE_WIDTH   = 0.08;    // spatial width of influence
-const WAVE_STRENGTH_T = 0.015; // longitudinal agitation
-const WAVE_STRENGTH_L = 0.10;  // lateral agitation
-const WAVE_DECAY   = 0.85;    // relaxation per frame
+const WAVE_SPEED        = 0.0009;   // wave speed (t / ms)
+const WAVE_WIDTH        = 0.08;     // spatial width of wave influence
+const WAVE_PUSH_FORWARD = 0.02;     // NET forward transport per pulse
+const WAVE_JITTER_T     = 0.01;     // longitudinal agitation
+const WAVE_JITTER_L     = 0.10;     // lateral agitation
+const RELAX_DECAY       = 0.85;     // relaxation per frame
 
 // -----------------------------------------------------
-// INITIALIZE — RANDOM DISTRIBUTION (STATIC BASE)
+// INITIALIZE — RANDOM DISTRIBUTION
 // -----------------------------------------------------
 
 function initBloodContents() {
@@ -60,7 +61,7 @@ function initBloodContents() {
     return;
   }
 
-  function spawn(type, count, size, shape, colorName) {
+  function spawn(type, count, size, shape, colorName, tInit = random()) {
     const c = COLORS[colorName];
 
     for (let i = 0; i < count; i++) {
@@ -70,11 +71,9 @@ function initBloodContents() {
         size,
         color: c,
 
-        // ---- base (equilibrium) state ----
-        t0: random(),
+        t: tInit + random(-0.02, 0.02),
         lane0: random(LANE_MIN, LANE_MAX),
 
-        // ---- dynamic wave offsets ----
         dt_wave: 0,
         dl_wave: 0
       });
@@ -88,7 +87,7 @@ function initBloodContents() {
 }
 
 // -----------------------------------------------------
-// UPDATE — WAVE PROPAGATES, PARTICLES AGITATE
+// UPDATE — PULSE-DRIVEN TRANSPORT
 // -----------------------------------------------------
 
 function updateBloodContents() {
@@ -97,7 +96,7 @@ function updateBloodContents() {
   for (const p of bloodParticles) {
 
     // circular distance from wave crest
-    let d = abs(p.t0 - waveHead);
+    let d = abs(p.t - waveHead);
     d = min(d, 1 - d);
 
     // -------------------------
@@ -106,23 +105,37 @@ function updateBloodContents() {
     if (d < WAVE_WIDTH) {
       const strength = 1 - d / WAVE_WIDTH;
 
-      // longitudinal compression / release
-      p.dt_wave += WAVE_STRENGTH_T * strength * random(-1, 1);
+      // NET forward transport (key change)
+      p.t += WAVE_PUSH_FORWARD * strength;
 
-      // lateral agitation
-      p.dl_wave += WAVE_STRENGTH_L * strength * random(-1, 1);
+      // local agitation
+      p.dt_wave += WAVE_JITTER_T * strength * random(-1, 1);
+      p.dl_wave += WAVE_JITTER_L * strength * random(-1, 1);
     }
 
     // -------------------------
-    // Relaxation back to base
+    // Relaxation
     // -------------------------
-    p.dt_wave *= WAVE_DECAY;
-    p.dl_wave *= WAVE_DECAY;
+    p.dt_wave *= RELAX_DECAY;
+    p.dl_wave *= RELAX_DECAY;
+
+    // apply wave offsets
+    p.t += p.dt_wave;
+
+    // -------------------------
+    // Recycling (new blood enters)
+    // -------------------------
+    if (p.t > 1) {
+      p.t -= 1;                  // re-enter upstream
+      p.lane0 = random(LANE_MIN, LANE_MAX);
+      p.dt_wave = 0;
+      p.dl_wave = 0;
+    }
   }
 }
 
 // -----------------------------------------------------
-// DRAW — BASE + WAVE OFFSETS
+// DRAW — TRANSPORT + AGITATION
 // -----------------------------------------------------
 
 function drawBloodContents() {
@@ -132,19 +145,16 @@ function drawBloodContents() {
 
   for (const p of bloodParticles) {
 
-    const t = (p.t0 + p.dt_wave + 1) % 1;
     const lane = constrain(
       p.lane0 + p.dl_wave,
       LANE_MIN,
       LANE_MAX
     );
 
-    const pos = getArteryPoint(t, lane);
+    const pos = getArteryPoint(p.t, lane);
     if (!pos) continue;
 
-    // -------------------------
-    // Color
-    // -------------------------
+    // color
     if (p.type === "glucose") {
       const g = COLORS.glucose;
       fill(g[0], g[1], g[2], 180);
@@ -152,18 +162,14 @@ function drawBloodContents() {
       fill(p.color[0], p.color[1], p.color[2]);
     }
 
-    // -------------------------
-    // Shape
-    // -------------------------
+    // shape
     if (p.shape === "circle") {
       circle(pos.x, pos.y, p.size);
     } else {
       rect(pos.x, pos.y, p.size * 0.7, p.size * 0.7);
     }
 
-    // -------------------------
-    // Bound oxygen
-    // -------------------------
+    // bound oxygen
     if (p.type === "rbcOxy") {
       const o2 = COLORS.oxygen;
       fill(o2[0], o2[1], o2[2]);
