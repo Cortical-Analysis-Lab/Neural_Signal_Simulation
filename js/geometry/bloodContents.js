@@ -95,40 +95,44 @@ function updateBloodContents() {
 
   for (const p of bloodParticles) {
 
+    // --- initialize velocity if missing ---
+    if (p.v === undefined) p.v = 0;
+
     // circular distance from wave crest
     let d = abs(p.t - waveHead);
     d = min(d, 1 - d);
 
     // -------------------------
-    // Wave interaction
+    // Wave injects MOMENTUM, not position
     // -------------------------
     if (d < WAVE_WIDTH) {
       const strength = 1 - d / WAVE_WIDTH;
 
-      // NET forward transport (key change)
-      p.t += WAVE_PUSH_FORWARD * strength;
+      // add forward velocity impulse
+      p.v += WAVE_PUSH_FORWARD * strength * random(0.6, 1.2);
 
-      // local agitation
-      p.dt_wave += WAVE_JITTER_T * strength * random(-1, 1);
+      // lateral agitation (unchanged)
       p.dl_wave += WAVE_JITTER_L * strength * random(-1, 1);
     }
 
     // -------------------------
-    // Relaxation
+    // Apply velocity (transport)
     // -------------------------
-    p.dt_wave *= RELAX_DECAY;
-    p.dl_wave *= RELAX_DECAY;
+    p.t += p.v;
 
-    // apply wave offsets
-    p.t += p.dt_wave;
+    // -------------------------
+    // Viscous decay (blood viscosity)
+    // -------------------------
+    p.v *= 0.90;   // ← key line: breaks packet coherence
+    p.dl_wave *= RELAX_DECAY;
 
     // -------------------------
     // Recycling (new blood enters)
     // -------------------------
     if (p.t > 1) {
-      p.t -= 1;                  // re-enter upstream
+      p.t -= 1;
+      p.v = 0;
       p.lane0 = random(LANE_MIN, LANE_MAX);
-      p.dt_wave = 0;
       p.dl_wave = 0;
     }
   }
