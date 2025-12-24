@@ -1,25 +1,15 @@
 // =====================================================
-// BLOOD CONTENTS — SYMBOLIC PARTICLES (V0 / DIAGNOSTIC)
+// BLOOD CONTENTS — SYMBOLIC PARTICLES (V0.1 / DIAGNOSTIC)
 // =====================================================
-// GOALS:
-// ✔ Even distribution
-// ✔ Discrete particles only
+// ✔ Discrete particles
+// ✔ Even angular spacing
 // ✔ No lumen fill
 // ✔ No motion
 // ✔ No accumulation
-// ✔ No blending
-// ✔ Geometry-safe
-//
-// This file is intentionally minimal.
-// Do NOT add realism here yet.
-//
+// ✔ Direct artery read (no API assumptions)
 // =====================================================
 
-console.log("🩸 bloodContents v0 (diagnostic) loaded");
-
-// -----------------------------------------------------
-// PUBLIC API (expected by main.js)
-// -----------------------------------------------------
+console.log("🩸 bloodContents v0.1 (diagnostic) loaded");
 
 const bloodParticles = [];
 
@@ -28,35 +18,36 @@ const bloodParticles = [];
 // -----------------------------------------------------
 
 const BLOOD_CONFIG = {
-  count: 18,            // small on purpose
-  radiusFracMin: 0.20,  // stay well inside walls
+  count: 18,
+  radiusFracMin: 0.25,
   radiusFracMax: 0.75,
   size: 2.5
 };
 
 // -----------------------------------------------------
-// INITIALIZE — ONE-TIME PARTICLE PLACEMENT
+// INITIALIZE — ONE-TIME PLACEMENT
 // -----------------------------------------------------
 
 function initBloodContents() {
   bloodParticles.length = 0;
 
-  const vessel = getActiveArtery(); // from artery.js
-  if (!vessel) return;
+  // ---- DIRECT READ FROM ARTERY GEOMETRY ----
+  if (!window.artery) {
+    console.warn("🩸 bloodContents: artery not ready");
+    return;
+  }
 
-  const cx = vessel.center.x;
-  const cy = vessel.center.y;
-
-  const innerR = vessel.innerRadius;
+  const cx = artery.center.x;
+  const cy = artery.center.y;
+  const innerR = artery.innerRadius;
 
   const N = BLOOD_CONFIG.count;
 
   for (let i = 0; i < N; i++) {
 
-    // Even angular spacing (prevents clustering)
     const theta = (i / N) * TWO_PI;
 
-    // Fixed radial band — no sampling across lumen
+    // Fixed radial bands → no lumen inference
     const rFrac = lerp(
       BLOOD_CONFIG.radiusFracMin,
       BLOOD_CONFIG.radiusFracMax,
@@ -65,14 +56,11 @@ function initBloodContents() {
 
     const r = innerR * rFrac;
 
-    const x = cx + cos(theta) * r;
-    const y = cy + sin(theta) * r;
-
     bloodParticles.push({
-      x,
-      y,
+      x: cx + cos(theta) * r,
+      y: cy + sin(theta) * r,
       size: BLOOD_CONFIG.size,
-      color: colors.rbcOxy // from constants/colors.js
+      color: colors.rbcOxy
     });
   }
 }
@@ -82,7 +70,6 @@ function initBloodContents() {
 // -----------------------------------------------------
 
 function updateBloodContents() {
-  // Diagnostic phase: absolutely no motion
   return;
 }
 
@@ -92,7 +79,6 @@ function updateBloodContents() {
 
 function drawBloodContents() {
   noStroke();
-
   for (const p of bloodParticles) {
     fill(p.color);
     circle(p.x, p.y, p.size);
@@ -100,9 +86,10 @@ function drawBloodContents() {
 }
 
 // -----------------------------------------------------
-// EXPORTS (GLOBAL SCOPE EXPECTED)
+// GLOBAL EXPORTS
 // -----------------------------------------------------
 
 window.initBloodContents   = initBloodContents;
 window.updateBloodContents = updateBloodContents;
-window.drawBloodContents   = drawBloodContents;
+window.drawBloodContents  = drawBloodContents;
+
