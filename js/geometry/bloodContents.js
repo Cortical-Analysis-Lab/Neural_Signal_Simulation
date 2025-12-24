@@ -120,3 +120,28 @@ function drawBloodContents() {
     }
   });
 }
+console.log("🩸 bloodContents v1 loaded");
+
+// =====================================================
+// BLOOD CONTENTS — STUB (RESET PHASE)
+// =====================================================
+
+// Called every frame (safe no-op)
+function updateBloodContents() {
+  // intentionally empty
+}
+
+// Chemical enrichment waves (future)
+function updateSupplyWaves() {
+  // intentionally empty
+}
+
+// Mechanical pressure waves (future)
+function updatePressureWaves() {
+  // intentionally empty
+}
+
+// Rendering hook
+function drawBloodContents() {
+  // intentionally empty
+}
