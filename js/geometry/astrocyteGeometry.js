@@ -3,6 +3,26 @@
 // =====================================================
 console.log("astrocyteGeometry loaded (interactive endfeet)");
 
+
+// -----------------------------------------------------
+// Manual endfoot placement (authoritative)
+// -----------------------------------------------------
+astrocyte.endfeet = [null, null];
+astrocyte._endfootIndex = 0;
+
+function astrocyteMousePressed(x, y) {
+  const i = astrocyte._endfootIndex % 2;
+
+  astrocyte.endfeet[i] = { x, y };
+  astrocyte._endfootIndex++;
+
+  console.log(
+    `🟣 Endfoot ${i} placed at (${x.toFixed(1)}, ${y.toFixed(1)})`
+  );
+}
+
+window.astrocyteMousePressed = astrocyteMousePressed;
+
 // -----------------------------------------------------
 // Astrocyte object
 // -----------------------------------------------------
