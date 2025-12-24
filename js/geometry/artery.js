@@ -206,72 +206,89 @@ function drawArtery() {
   pop();
 
   // =========================
-  // ASTROCYTES (FIXED: TWO ARMS, GAP-SPANNING ENDFEET)
-  // =========================
-   for (let i = 10; i < arteryPath.length - 14; i += 22) {
-  
-    if (
-      !arteryPath[i] ||
-      !arteryPath[i - 11] ||
-      !arteryPath[i + 11]
-    ) continue;
-  
-    const pCenter = arteryPath[i];
-    const pUp     = arteryPath[i - 11];
-    const pDown   = arteryPath[i + 11];
+// ASTROCYTES (BIOLOGICAL: LARGE SOMA + 2 ARMS + GAP-SPANNING ENDFEET)
+// =========================
+for (let i = 10; i < arteryPath.length - 14; i += 22) {
 
+  if (
+    !arteryPath[i] ||
+    !arteryPath[i - 11] ||
+    !arteryPath[i + 11]
+  ) continue;
 
-    const wob = WALL_WOBBLE_AMP * sin(t * 0.002 + pCenter.phase);
+  const pCenter = arteryPath[i];
+  const pUp     = arteryPath[i - 11];
+  const pDown   = arteryPath[i + 11];
 
-    for (let side of [-1, 1]) {
+  const wob = WALL_WOBBLE_AMP * sin(t * 0.002 + pCenter.phase);
 
-      // ---- soma (UNCHANGED) ----
-      const somaX = pCenter.x + side * (wallOffset + 55);
-      const somaY = pCenter.y + 25 * sin(pCenter.phase);
+  for (let side of [-1, 1]) {
 
-      push();
-      noStroke();
-      fill(getColor("astrocyte"));
-      ellipse(somaX, somaY, 16, 16);
-      pop();
+    // -------------------------------------------------
+    // ASTROCYTE SOMA (LARGE, STABLE, READABLE)
+    // -------------------------------------------------
+    const somaX = pCenter.x + side * (wallOffset + 65);
+    const somaY = pCenter.y + 18 * sin(pCenter.phase);
 
-      // ---- main process ----
-      push();
-      stroke(getColor("astrocyte"));
-      strokeWeight(2);
-      line(
-        somaX,
-        somaY,
-        pCenter.x + side * (wallOffset + 10),
-        pCenter.y
-      );
-      pop();
+    push();
+    noStroke();
+    fill(getColor("astrocyte"));
+    ellipse(somaX, somaY, 28, 28); // ↑ increased size
+    pop();
 
-      // ---- upstream endfoot ----
-      push();
-      noStroke();
-      fill(getColor("astrocyte"));
-      translate(
-        (pUp.x + pCenter.x) / 2 + side * (wallOffset + 12 + wob),
-        (pUp.y + pCenter.y) / 2
-      );
-      rotate(atan2(pCenter.y - pUp.y, pCenter.x - pUp.x));
-      ellipse(0, 0, 22, 6);
-      pop();
+    // -------------------------------------------------
+    // ARM 1 — UPSTREAM
+    // -------------------------------------------------
+    push();
+    stroke(getColor("astrocyte"));
+    strokeWeight(4);
+    line(
+      somaX,
+      somaY,
+      (pUp.x + pCenter.x) / 2 + side * (wallOffset + 14),
+      (pUp.y + pCenter.y) / 2
+    );
+    pop();
 
-      // ---- downstream endfoot ----
-      push();
-      noStroke();
-      fill(getColor("astrocyte"));
-      translate(
-        (pCenter.x + pDown.x) / 2 + side * (wallOffset + 12 + wob),
-        (pCenter.y + pDown.y) / 2
-      );
-      rotate(atan2(pDown.y - pCenter.y, pDown.x - pCenter.x));
-      ellipse(0, 0, 22, 6);
-      pop();
-    }
+    // upstream endfoot
+    push();
+    noStroke();
+    fill(getColor("astrocyte"));
+    translate(
+      (pUp.x + pCenter.x) / 2 + side * (wallOffset + 14 + wob),
+      (pUp.y + pCenter.y) / 2
+    );
+    rotate(atan2(pCenter.y - pUp.y, pCenter.x - pUp.x));
+    ellipse(0, 0, 38, 10); // spans gap
+    pop();
+
+    // -------------------------------------------------
+    // ARM 2 — DOWNSTREAM
+    // -------------------------------------------------
+    push();
+    stroke(getColor("astrocyte"));
+    strokeWeight(4);
+    line(
+      somaX,
+      somaY,
+      (pCenter.x + pDown.x) / 2 + side * (wallOffset + 14),
+      (pCenter.y + pDown.y) / 2
+    );
+    pop();
+
+    // downstream endfoot
+    push();
+    noStroke();
+    fill(getColor("astrocyte"));
+    translate(
+      (pCenter.x + pDown.x) / 2 + side * (wallOffset + 14 + wob),
+      (pCenter.y + pDown.y) / 2
+    );
+    rotate(atan2(pDown.y - pCenter.y, pDown.x - pCenter.x));
+    ellipse(0, 0, 38, 10); // spans gap
+    pop();
   }
+}
 
   // =========================
   // INNER HIGHLIGHT
