@@ -98,25 +98,21 @@ function updateBloodContents() {
 // -----------------------------------------------------
 
 function drawBloodContents() {
+  push();
+
+  // 🔴 FORCE VISIBILITY
+  resetMatrix();          // ignore camera / transforms
   noStroke();
+  fill(255, 0, 255);      // magenta = impossible to miss
 
-  for (const p of bloodParticles) {
-    fill(p.color);
-
-    if (p.shape === "circle") {
-      circle(p.x, p.y, p.size);
-    } else {
-      rectMode(CENTER);
-      rect(p.x, p.y, p.size, p.size);
-    }
-
-    // --- OXYGEN DOT (BOUND TO OXY RBC ONLY) ---
-    if (p.type === "rbcOxy") {
-      fill(255);
-      circle(p.x + 2, p.y - 2, 2);
-    }
+  // draw ONE test particle at artery center
+  if (window.artery && artery.center) {
+    circle(artery.center.x, artery.center.y, 12);
   }
+
+  pop();
 }
+
 
 // -----------------------------------------------------
 // GLOBAL EXPORTS
