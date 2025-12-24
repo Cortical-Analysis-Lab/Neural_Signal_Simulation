@@ -234,30 +234,42 @@ function updateBloodContents() {
   const somaY = height / 2;
 
   for (let i = bloodParticles.length - 1; i >= 0; i--) {
-    const p = bloodParticles[i];
-    if (!p.exited) continue;
+  const p = bloodParticles[i];
+  if (!p.exited) continue;
 
-    const dx = somaX - p.x;
-    const dy = somaY - p.y;
-    const d  = sqrt(dx * dx + dy * dy) || 1;
-
-    p.vx += (dx / d) * CSF_DRIFT;
-    p.vy += (dy / d) * CSF_DRIFT;
-
+  // ------------------------------------------
+  // WATER: diffuse locally in CSF, NO neuron pull
+  // ------------------------------------------
+  if (p.type === "water") {
     p.x += p.vx;
     p.y += p.vy;
 
-    if (p.type === "water") {
-      p.alpha -= 2;
-      if (p.alpha <= 0) {
-        bloodParticles.splice(i, 1);
-      }
-    }
-
-    if (d < 20 && (p.type === "glucose" || p.type === "oxygen")) {
+    p.alpha -= 2; // fade out in CSF
+    if (p.alpha <= 0) {
       bloodParticles.splice(i, 1);
     }
+    continue;
   }
+
+  // ------------------------------------------
+  // GLUCOSE + OXYGEN: drift toward neuron 1
+  // ------------------------------------------
+  const dx = somaX - p.x;
+  const dy = somaY - p.y;
+  const d  = sqrt(dx * dx + dy * dy) || 1;
+
+  p.vx += (dx / d) * CSF_DRIFT;
+  p.vy += (dy / d) * CSF_DRIFT;
+
+  p.x += p.vx;
+  p.y += p.vy;
+
+  // consume at soma
+  if (d < 20 && (p.type === "glucose" || p.type === "oxygen")) {
+    bloodParticles.splice(i, 1);
+  }
+}
+
 }
 
 // -----------------------------------------------------
