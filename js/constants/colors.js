@@ -58,7 +58,9 @@ const COLORS = {
   // BLOOD–BRAIN BARRIER
   // =====================================================
   endothelium: [245, 190, 130], // light orange
-  astrocyte:   [200, 170, 230]  // light purple
+  astrocyte:   [200, 170, 230], // light purple
+  pericyte:    [220, 180, 140]  // warm tan / peach
+
 };
 
 // =====================================================
