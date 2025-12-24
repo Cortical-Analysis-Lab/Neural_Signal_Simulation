@@ -10,7 +10,7 @@ let arteryPath = [];
 // -----------------------------------------------------
 const BASE_LUMEN_RADIUS      = 20;
 const PARTICLE_LUMEN_RADIUS = 20;
-const BASE_WALL_OFFSET      = 32 * (4 / 3); // widened artery
+const BASE_WALL_OFFSET      = 32 * (4 / 3);
 
 // -----------------------------------------------------
 // Visual vasomotion (WALLS ONLY)
@@ -86,7 +86,7 @@ function getArteryPoint(t, lane = 0) {
 }
 
 // =====================================================
-// DRAW ARTERY + BBB + NVU (STATE SAFE)
+// DRAW ARTERY + BBB + NVU (BIOLOGICALLY PROPORTIONED)
 // =====================================================
 function drawArtery() {
   if (!arteryPath.length) return;
@@ -104,38 +104,38 @@ function drawArtery() {
   }
 
   // =========================
-  // ENDOTHELIUM (TIGHT, CONTINUOUS)
+  // ENDOTHELIUM (LONG CELLS)
   // =========================
   push();
   stroke(getColor("endothelium"));
-  strokeWeight(4);
+  strokeWeight(5);
   noFill();
 
-  for (let i = 0; i < arteryPath.length - 1; i += 2) {
+  for (let i = 0; i < arteryPath.length - 2; i += 5) { // longer cells
     const p0 = arteryPath[i];
-    const p1 = arteryPath[i + 1];
+    const p1 = arteryPath[i + 2];
 
     const wobL = WALL_WOBBLE_AMP * sin(t * 0.002 + p0.phase);
     const wobR = WALL_WOBBLE_AMP * sin(t * 0.002 + p0.phase + PI);
 
     line(
-      p0.x - wallOffset + 5 - wobL,
+      p0.x - wallOffset + 6 - wobL,
       p0.y,
-      p1.x - wallOffset + 5 - wobL,
+      p1.x - wallOffset + 6 - wobL,
       p1.y
     );
 
     line(
-      p0.x + wallOffset - 5 + wobR,
+      p0.x + wallOffset - 6 + wobR,
       p0.y,
-      p1.x + wallOffset - 5 + wobR,
+      p1.x + wallOffset - 6 + wobR,
       p1.y
     );
   }
   pop();
 
   // =========================
-  // ARTERY WALL (MUSCULAR)
+  // ARTERY WALL
   // =========================
   push();
   stroke(getColor("arteryWall"));
@@ -164,82 +164,84 @@ function drawArtery() {
   pop();
 
   // =========================
-  // PERICYTES (CLEAR + CONTRASTED)
+  // PERICYTES (ELONGATED, GAP-SPANNING)
   // =========================
   push();
   noStroke();
   fill(getColor("pericyte"));
 
-  for (let i = 8; i < arteryPath.length; i += 18) {
+  for (let i = 4; i < arteryPath.length; i += 10) {
     const p = arteryPath[i];
     const wob = WALL_WOBBLE_AMP * sin(t * 0.002 + p.phase);
 
+    // aligned with vessel axis
     ellipse(
-      p.x - wallOffset - 4 - wob,
+      p.x - wallOffset - 8 - wob,
       p.y,
-      10,
-      6
+      22, // length spans endothelial gap
+      8
     );
 
     ellipse(
-      p.x + wallOffset + 4 + wob,
+      p.x + wallOffset + 8 + wob,
       p.y,
-      10,
-      6
+      22,
+      8
     );
   }
   pop();
 
   // =========================
-  // ASTROCYTES (STELLATE, BIOLOGICAL)
+  // ASTROCYTES (NVU-CORRECT SCALE)
   // =========================
-  for (let i = 12; i < arteryPath.length; i += 26) {
+  for (let i = 8; i < arteryPath.length; i += 16) {
     const p = arteryPath[i];
 
-    const somaX = p.x - wallOffset - 75;
-    const somaY = p.y + 30 * sin(p.phase * 0.7);
+    const somaX = p.x - wallOffset - 90;
+    const somaY = p.y + 35 * sin(p.phase * 0.6);
 
-    // ---- soma ----
+    // ---- soma (≈ half neuron size) ----
     push();
     noStroke();
     fill(getColor("astrocyte"));
-    ellipse(somaX, somaY, 14, 14);
+    ellipse(somaX, somaY, 22, 22);
     pop();
 
-    // ---- processes (angled, asymmetric) ----
+    // ---- supporting processes ----
     push();
     stroke(getColor("astrocyte"));
-    strokeWeight(2);
+    strokeWeight(3);
     noFill();
 
-    const angles = [ -0.8, -0.2, 0.6 ];
+    const angles = [ -0.7, 0.2, 0.9 ];
     angles.forEach(a => {
       line(
         somaX,
         somaY,
-        somaX + 22 * cos(a),
-        somaY + 22 * sin(a)
+        somaX + 30 * cos(a),
+        somaY + 30 * sin(a)
       );
     });
 
-    // vessel-directed process
+    // ---- vessel-directed process ----
+    strokeWeight(4);
     line(
       somaX,
       somaY,
-      p.x - wallOffset - 12,
+      p.x - wallOffset - 18,
       p.y
     );
     pop();
 
-    // ---- endfoot (single, subtle) ----
+    // ---- endfoot (bridges pericyte gaps) ----
     push();
     noStroke();
     fill(getColor("astrocyte"));
     ellipse(
-      p.x - wallOffset - 12,
+      p.x - wallOffset - 18,
       p.y,
-      6,
-      3
+      18, // wide enough to cover gap
+      6
     );
     pop();
   }
