@@ -1,181 +1,99 @@
-console.log("🩸 bloodContents loaded");
+console.log("🩸 bloodContents v1 loaded");
 
 // =====================================================
-// BLOOD CONTENTS — SYMBOLIC (ARTERY ONLY)
+// BLOOD CONTENTS — SYMBOLIC PARTICLES (V1)
 // =====================================================
-// Teaching-focused, NOT biologically quantitative
+// GOALS:
+// ✔ Even distribution
+// ✔ No lumen fill
+// ✔ No accumulation
+// ✔ Smooth flow
+// ✔ Teaching-first visuals
 // =====================================================
 
-const bloodContents = [];
-const supplyWaves   = [];
-const pressureWaves = [];
+// Public container
+const bloodParticles = [];
 
 // -----------------------------------------------------
-// VISUAL COUNTS (DISCRETE OBJECTS)
+// VISUAL COUNTS (INTENTIONAL, LOW)
 // -----------------------------------------------------
-const BLOOD_DENSITY = {
-  rbc:     0,  // main visual carriers
-  water:   0,   // light-blue tracers only
-  glucose: 0
+const BLOOD_COUNTS = {
+  rbc: 14,     // dominant visual elements
+  water: 10,   // sparse tracers
+  glucose: 0   // off for now
 };
 
 // -----------------------------------------------------
-// Initialize
+// Initialize particles (even spacing)
 // -----------------------------------------------------
 function initBloodContents() {
-  bloodContents.length = 0;
-  supplyWaves.length = 0;
-  pressureWaves.length = 0;
+  bloodParticles.length = 0;
 
   // =========================
-  // RBCs — DISCRETE STATE
+  // RBCs
   // =========================
-  for (let i = 0; i < BLOOD_DENSITY.rbc; i++) {
-    bloodContents.push({
+  for (let i = 0; i < BLOOD_COUNTS.rbc; i++) {
+    bloodParticles.push({
       type: "rbc",
 
-      t: random(-0.2, 1),
-      lane: random(-0.8, 0.8),   // 🔑 hard interior
+      // Evenly spaced along vessel
+      t: i / BLOOD_COUNTS.rbc,
+
+      // Small radial spread
+      lane: random(-0.6, 0.6),
+
       size: 7,
 
-      oxygenated: random() < 0.8, // 🔑 binary state
+      // Oxygenation state (visual only)
+      sat: random(0.4, 1.0),
 
-      jitter: random(TWO_PI),
-      drift: random(-0.4, 0.4)
+      // Motion phase
+      phase: random(TWO_PI)
     });
   }
 
   // =========================
-  // Water — TRACE ONLY
+  // Water tracers
   // =========================
-  for (let i = 0; i < BLOOD_DENSITY.water; i++) {
-    bloodContents.push({
+  for (let i = 0; i < BLOOD_COUNTS.water; i++) {
+    bloodParticles.push({
       type: "water",
-      t: random(-0.2, 1),
-      lane: random(-0.85, 0.85),
-      size: 1.6,
-
-      jitter: random(TWO_PI),
-      drift: random(-0.3, 0.3)
-    });
-  }
-
-  // =========================
-  // Glucose — SYMBOLIC
-  // =========================
-  for (let i = 0; i < BLOOD_DENSITY.glucose; i++) {
-    bloodContents.push({
-      type: "glucose",
-      t: random(-0.2, 1),
-      lane: random(-0.7, 0.7),
-      size: 4,
-
-      jitter: random(TWO_PI),
-      drift: random(-0.4, 0.4)
+      t: i / BLOOD_COUNTS.water,
+      lane: random(-0.8, 0.8),
+      size: 2,
+      phase: random(TWO_PI)
     });
   }
 }
 
 // -----------------------------------------------------
-// Trigger waves
-// -----------------------------------------------------
-function triggerSupplyWave() {
-  supplyWaves.push({ t: 0 });
-}
-
-function triggerPressureWave() {
-  pressureWaves.push({ t: 0 });
-}
-
-// -----------------------------------------------------
-// Update waves
-// -----------------------------------------------------
-function updateSupplyWaves() {
-  supplyWaves.forEach(w => w.t += 0.004);
-  while (supplyWaves.length && supplyWaves[0].t > 1.2) {
-    supplyWaves.shift();
-  }
-}
-
-function updatePressureWaves() {
-  pressureWaves.forEach(w => w.t += 0.02);
-  while (pressureWaves.length && pressureWaves[0].t > 1.2) {
-    pressureWaves.shift();
-  }
-}
-
-// -----------------------------------------------------
-// Update motion (SMOOTH, CONTINUOUS)
+// Update particle motion (smooth, continuous)
 // -----------------------------------------------------
 function updateBloodContents() {
-  const pulse = getCardiacPulse();
-  const flow  = getHemodynamicScale();
+  const speed = 0.00035; // 🔑 GLOBAL FLOW SPEED
 
-  bloodContents.forEach(p => {
+  bloodParticles.forEach(p => {
 
-    const laminar = 0.4 + 0.6 * (1 - abs(p.lane));
+    // Forward motion
+    p.t += speed;
+    if (p.t >= 1) p.t -= 1;
 
-    const baseSpeed =
-      p.type === "rbc"   ? 0.00025 :
-      p.type === "water" ? 0.00018 :
-      p.type === "glucose" ? 0.00030 :
-      0.00025;
+    // Gentle lateral oscillation
+    p.phase += 0.01;
+    p.lane += 0.0004 * sin(p.phase);
 
-    p.jitter += 0.01;
-    const noise = 0.00004 * sin(p.jitter + p.drift);
-
-    let pressurePush = 0;
-    if (p.type === "rbc") {
-      pressureWaves.forEach(w => {
-        const d = abs(p.t - w.t);
-        if (d < 0.08) pressurePush += 0.001 * (1 - d / 0.08);
-      });
-    }
-
-    p.t += baseSpeed * laminar * flow * (0.6 + 0.6 * pulse)
-         + noise
-         + pressurePush;
-
-    if (p.t > 1) p.t = random(-0.2, 0);
-
-    // 🔑 HARD interior constraint
-    p.lane += 0.0006 * sin(p.jitter * 0.7);
-    p.lane = constrain(p.lane, -0.85, 0.85);
-
-    // Supply wave re-oxygenates RBCs
-    supplyWaves.forEach(w => {
-      if (abs(p.t - w.t) < 0.08 && p.type === "rbc") {
-        p.oxygenated = true;
-      }
-    });
+    // Keep inside lumen
+    p.lane = constrain(p.lane, -0.9, 0.9);
   });
 }
 
 // -----------------------------------------------------
-// Extraction (symbolic, pre-BBB)
-// -----------------------------------------------------
-function extractOxygenNearNeuron1() {
-  const R = 120;
-
-  bloodContents.forEach(p => {
-    if (p.type !== "rbc") return;
-
-    const pos = getArteryPoint(p.t, p.lane);
-    if (!pos) return;
-
-    if (dist(pos.x, pos.y, neuron.x, neuron.y) < R) {
-      p.oxygenated = false; // 🔑 visual flip
-    }
-  });
-}
-
-// -----------------------------------------------------
-// Render — PARTICLES ONLY
+// Draw particles (NO PLASMA, NO FILL)
 // -----------------------------------------------------
 function drawBloodContents() {
   noStroke();
 
-  bloodContents.forEach(p => {
+  bloodParticles.forEach(p => {
     const pos = getArteryPoint(p.t, p.lane);
     if (!pos) return;
 
@@ -183,41 +101,22 @@ function drawBloodContents() {
     // RBCs
     // =========================
     if (p.type === "rbc") {
-
-      fill(
-        p.oxygenated
-          ? getColor("rbcOxy")
-          : getColor("rbcDeoxy")
+      const c = lerpColor(
+        getColor("rbcDeoxy"),
+        getColor("rbcOxy"),
+        p.sat
       );
 
+      fill(red(c), green(c), blue(c), 180);
       ellipse(pos.x, pos.y, p.size);
-
-      // Oxygen dots only if oxygenated
-      if (p.oxygenated) {
-        fill(255);
-        for (let i = 0; i < 4; i++) {
-          const a = TWO_PI * i / 4;
-          const r = p.size * 0.3;
-          ellipse(pos.x + cos(a) * r, pos.y + sin(a) * r, 1.4);
-        }
-      }
     }
 
     // =========================
     // Water tracers
     // =========================
     if (p.type === "water") {
-      fill(160, 210, 255);
+      fill(160, 210, 255, 80);
       ellipse(pos.x, pos.y, p.size);
-    }
-
-    // =========================
-    // Glucose
-    // =========================
-    if (p.type === "glucose") {
-      fill(getColor("glucose"));
-      rectMode(CENTER);
-      rect(pos.x, pos.y, p.size, p.size, 2);
     }
   });
 }
