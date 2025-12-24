@@ -1,21 +1,20 @@
 // =====================================================
-// BLOOD CONTENTS — SYMBOLIC, STATIC (PATH-ALIGNED)
+// BLOOD CONTENTS — SYMBOLIC, FLOWING (PATH-ALIGNED)
 // =====================================================
-// ✔ Uses arteryPath + getArteryPoint
-// ✔ Static (no motion, no coupling)
+// ✔ Continuous axial flow
+// ✔ Fixed lumen (no vasomotion)
 // ✔ Sparse, symbolic particles
 // ✔ Discrete shapes only
-// ✔ No lumen fill
 // ✔ COLORS.js native
-// ✔ p5 state isolated (no bleed)
+// ✔ p5 state isolated
 // =====================================================
 
-console.log("🩸 bloodContents v1.0 (locked static symbolic) loaded");
+console.log("🩸 bloodContents v1.1 (continuous flow) loaded");
 
 const bloodParticles = [];
 
 // -----------------------------------------------------
-// PARTICLE COUNTS (INTENTIONALLY LOW)
+// PARTICLE COUNTS (SPARSE, TEACHING-FIRST)
 // -----------------------------------------------------
 
 const BLOOD_COUNTS = {
@@ -31,6 +30,12 @@ const BLOOD_COUNTS = {
 
 const LANE_MIN = -0.55;
 const LANE_MAX =  0.55;
+
+// -----------------------------------------------------
+// FLOW PARAMETERS (AUTHORITATIVE)
+// -----------------------------------------------------
+
+const FLOW_SPEED = 0.00018;   // axial speed per ms (t-units / ms)
 
 // -----------------------------------------------------
 // INITIALIZE — AFTER arteryPath EXISTS
@@ -80,25 +85,25 @@ function initBloodContents() {
   // SYMBOLIC PARTICLES
   // -----------------------------
 
-  // Oxygenated RBCs (red + white O2 dot)
   place("rbcOxy",   BLOOD_COUNTS.rbcOxy,   10, "circle", "rbcOxy");
-
-  // Deoxygenated RBCs (dark blue)
   place("rbcDeoxy", BLOOD_COUNTS.rbcDeoxy, 10, "circle", "rbcDeoxy");
-
-  // Water (light blue dots)
   place("water",    BLOOD_COUNTS.water,     6, "circle", "water");
-
-  // Glucose (small green squares — must remain discrete)
   place("glucose",  BLOOD_COUNTS.glucose,   5, "square", "glucose");
 }
 
 // -----------------------------------------------------
-// UPDATE — STATIC (INTENTIONAL)
+// UPDATE — CONTINUOUS AXIAL FLOW
 // -----------------------------------------------------
 
 function updateBloodContents() {
-  return;
+  const dt = state.dt; // ms per frame
+
+  for (const p of bloodParticles) {
+    p.t += FLOW_SPEED * dt;
+
+    // wrap cleanly (no popping)
+    if (p.t > 1) p.t -= 1;
+  }
 }
 
 // -----------------------------------------------------
@@ -106,7 +111,7 @@ function updateBloodContents() {
 // -----------------------------------------------------
 
 function drawBloodContents() {
-  push(); // 🔒 isolate p5 drawing state
+  push(); // isolate p5 state
 
   rectMode(CENTER);
   noStroke();
@@ -120,7 +125,7 @@ function drawBloodContents() {
     // -------------------------
     if (p.type === "glucose") {
       const g = COLORS.glucose;
-      fill(g[0], g[1], g[2], 180); // translucent to prevent banding
+      fill(g[0], g[1], g[2], 180);
     } else {
       fill(p.color[0], p.color[1], p.color[2]);
     }
@@ -131,7 +136,6 @@ function drawBloodContents() {
     if (p.shape === "circle") {
       circle(pos.x, pos.y, p.size);
     } else {
-      // glucose squares — deliberately smaller
       rect(pos.x, pos.y, p.size * 0.7, p.size * 0.7);
     }
 
@@ -145,7 +149,7 @@ function drawBloodContents() {
     }
   }
 
-  pop(); // 🔒 restore p5 state
+  pop(); // restore p5 state
 }
 
 // -----------------------------------------------------
