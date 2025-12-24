@@ -155,15 +155,6 @@ function updateBloodContents() {
   const metabolicGain =
     now < metabolicBoostUntil ? METABOLIC_MULTIPLIER : 1.0;
 
-  // -------------------------------------------------
-  // EXTRA SUPPLY DURING METABOLIC BOOST
-  // -------------------------------------------------
-  if (metabolicGain > 1 && random() < 0.25) {
-    spawnAtTop("glucose", 2); // double glucose
-    spawnAtTop("oxygen",  2); // double oxygen
-  }
-
-
   const AQP4_PROB  = AQP4_PROB_BASE  * metabolicGain;
   const GLUT1_PROB = GLUT1_PROB_BASE * metabolicGain;
   const O2_PROB    = O2_PROB_BASE    * metabolicGain;
