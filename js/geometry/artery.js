@@ -295,7 +295,7 @@ for (let i = 12; i < arteryPath.length - 12; i += 16) {
       circle(k * 6, 0, 4); // small clustered channels
     }
     pop();
-
+    pop();
 
     // -------------------------------------------------
     // ARM → downstream gap (between pMid and pRight)
