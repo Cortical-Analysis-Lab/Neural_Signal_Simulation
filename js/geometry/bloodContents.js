@@ -1,20 +1,19 @@
 // =====================================================
-// BLOOD CONTENTS — SYMBOLIC MULTI-PARTICLE (STATIC)
+// BLOOD CONTENTS — SYMBOLIC, STATIC (PATH-ALIGNED)
 // =====================================================
-// Diagnostic-only visualization
+// ✔ Uses arteryPath + getArteryPoint
 // ✔ Static
 // ✔ Sparse
-// ✔ Discrete
+// ✔ Discrete symbols only
 // ✔ No lumen fill
-// ✔ No motion / no coupling
 // =====================================================
 
-console.log("🩸 bloodContents v0.2 (symbolic static) loaded");
+console.log("🩸 bloodContents v0.3 (path-aligned static) loaded");
 
 const bloodParticles = [];
 
 // -----------------------------------------------------
-// VISUAL COUNTS (INTENTIONALLY LOW)
+// INTENTIONALLY LOW COUNTS
 // -----------------------------------------------------
 
 const BLOOD_COUNTS = {
@@ -25,68 +24,65 @@ const BLOOD_COUNTS = {
 };
 
 // -----------------------------------------------------
-// GEOMETRIC MARGINS
+// LANE CONSTRAINTS (INSIDE FIXED LUMEN)
 // -----------------------------------------------------
 
-const RADIAL_MIN = 0.25;
-const RADIAL_MAX = 0.75;
+const LANE_MIN = -0.55;
+const LANE_MAX =  0.55;
 
 // -----------------------------------------------------
-// INITIALIZE — ONE-TIME PLACEMENT
+// INITIALIZE — AFTER arteryPath EXISTS
 // -----------------------------------------------------
 
 function initBloodContents() {
   bloodParticles.length = 0;
 
-  // Defer until artery is ready
-  if (!window.artery || !artery.center || !artery.innerRadius) {
+  if (
+    typeof getArteryPoint !== "function" ||
+    !Array.isArray(arteryPath) ||
+    arteryPath.length === 0
+  ) {
     requestAnimationFrame(initBloodContents);
     return;
   }
 
-  const cx = artery.center.x;
-  const cy = artery.center.y;
-  const R  = artery.innerRadius;
-
-  let index = 0;
+  let seed = 0;
 
   function place(type, count, size, shape, color) {
     for (let i = 0; i < count; i++) {
-      const theta = ((index + i) / 24) * TWO_PI;
-      const rFrac = lerp(RADIAL_MIN, RADIAL_MAX, (i % 3) / 2);
-      const r     = R * rFrac;
+      const t = (seed + i + 1) / (BLOOD_COUNTS_TOTAL + 2);
+      const lane = lerp(LANE_MIN, LANE_MAX, (i % 3) / 2);
 
       bloodParticles.push({
-        x: cx + cos(theta) * r,
-        y: cy + sin(theta) * r,
+        t,
+        lane,
         size,
-        type,
         shape,
+        type,
         color
       });
     }
-    index += count;
+    seed += count;
   }
 
-  // ---------------------------------------------------
+  const BLOOD_COUNTS_TOTAL =
+    BLOOD_COUNTS.rbcOxy +
+    BLOOD_COUNTS.rbcDeoxy +
+    BLOOD_COUNTS.water +
+    BLOOD_COUNTS.glucose;
+
+  // -----------------------------
   // SYMBOLIC PARTICLES
-  // ---------------------------------------------------
+  // -----------------------------
 
-  // Oxy RBC (red) + bound O2 (white dot)
-  place("rbcOxy", BLOOD_COUNTS.rbcOxy, 6, "circle", colors.rbcOxy);
-
-  // Deoxy RBC (dark blue)
+  place("rbcOxy",   BLOOD_COUNTS.rbcOxy,   6, "circle", colors.rbcOxy);
   place("rbcDeoxy", BLOOD_COUNTS.rbcDeoxy, 6, "circle", colors.rbcDeoxy);
-
-  // Water (light blue)
-  place("water", BLOOD_COUNTS.water, 3, "circle", colors.water);
-
-  // Glucose (green square)
-  place("glucose", BLOOD_COUNTS.glucose, 4, "square", colors.glucose);
+  place("water",    BLOOD_COUNTS.water,    3, "circle", colors.water);
+  place("glucose",  BLOOD_COUNTS.glucose,  4, "square", colors.glucose);
 }
 
 // -----------------------------------------------------
-// UPDATE — NO-OP (STATIC)
+// UPDATE — STATIC
 // -----------------------------------------------------
 
 function updateBloodContents() {
@@ -94,25 +90,32 @@ function updateBloodContents() {
 }
 
 // -----------------------------------------------------
-// DRAW — DISCRETE SYMBOLS ONLY
+// DRAW — PATH-ALIGNED SYMBOLS
 // -----------------------------------------------------
 
 function drawBloodContents() {
-  push();
-
-  // 🔴 FORCE VISIBILITY
-  resetMatrix();          // ignore camera / transforms
   noStroke();
-  fill(255, 0, 255);      // magenta = impossible to miss
 
-  // draw ONE test particle at artery center
-  if (window.artery && artery.center) {
-    circle(artery.center.x, artery.center.y, 12);
+  for (const p of bloodParticles) {
+    const pos = getArteryPoint(p.t, p.lane);
+    if (!pos) continue;
+
+    fill(p.color);
+
+    if (p.shape === "circle") {
+      circle(pos.x, pos.y, p.size);
+    } else {
+      rectMode(CENTER);
+      rect(pos.x, pos.y, p.size, p.size);
+    }
+
+    // Bound oxygen dot
+    if (p.type === "rbcOxy") {
+      fill(255);
+      circle(pos.x + 2, pos.y - 2, 2);
+    }
   }
-
-  pop();
 }
-
 
 // -----------------------------------------------------
 // GLOBAL EXPORTS
