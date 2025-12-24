@@ -21,11 +21,16 @@ const vesicles = [];
 // -----------------------------------------------------
 function spawnVesicleBurst(bouton, postsynaptic) {
 
-    if (typeof triggerAstrocyteGlow === "function") {
-    triggerAstrocyteGlow(1.0);
+  // --------------------------------------------------
+  // 🔑 TRIGGER ASTROCYTE RESPONSE (ONCE PER BURST)
+  // --------------------------------------------------
+  if (typeof triggerAstrocyteResponse === "function") {
+    triggerAstrocyteResponse();
   }
 
+  // --------------------------------------------------
   // Backward compatibility
+  // --------------------------------------------------
   if (arguments.length === 2) {
     // OK
   } else if (arguments.length === 1 && bouton?.x !== undefined) {
@@ -36,10 +41,11 @@ function spawnVesicleBurst(bouton, postsynaptic) {
 
   if (!bouton || !postsynaptic) return;
 
-
   const count = floor(random(10, 16));
 
+  // --------------------------------------------------
   // Direction vector toward postsynaptic density
+  // --------------------------------------------------
   const dx = postsynaptic.x - bouton.x;
   const dy = postsynaptic.y - bouton.y;
   const mag = sqrt(dx * dx + dy * dy) || 1;
@@ -47,9 +53,11 @@ function spawnVesicleBurst(bouton, postsynaptic) {
   const ux = dx / mag;
   const uy = dy / mag;
 
+  // --------------------------------------------------
+  // Spawn vesicles
+  // --------------------------------------------------
   for (let i = 0; i < count; i++) {
 
-    // Slight angular spread
     const jitterX = random(-VESICLE_SPREAD, VESICLE_SPREAD);
     const jitterY = random(-VESICLE_SPREAD, VESICLE_SPREAD);
 
