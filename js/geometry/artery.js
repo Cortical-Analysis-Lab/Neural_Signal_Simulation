@@ -10,7 +10,7 @@ let arteryPath = [];
 // -----------------------------------------------------
 const BASE_LUMEN_RADIUS      = 20;
 const PARTICLE_LUMEN_RADIUS = 20;
-const BASE_WALL_OFFSET      = 32 * (4 / 3);
+const BASE_WALL_OFFSET      = 32 * (4 / 3); // widened artery
 
 // -----------------------------------------------------
 // Visual vasomotion (WALLS ONLY)
@@ -37,7 +37,13 @@ function initArtery() {
     const t = i / steps;
 
     arteryPath.push({
-      x: bezierPoint(marginLeft, ctrl1.x, ctrl2.x, marginLeft - 40, t),
+      x: bezierPoint(
+        marginLeft,
+        ctrl1.x,
+        ctrl2.x,
+        marginLeft - 40,
+        t
+      ),
       y: lerp(topY, bottomY, t),
       phase: t * TWO_PI
     });
@@ -49,14 +55,14 @@ function initArtery() {
 }
 
 // -----------------------------------------------------
-// Vasomotion scale
+// Vasomotion scale (walls only)
 // -----------------------------------------------------
 function getVasomotionScale() {
   return 1.0 + VASOMOTION_AMP * sin(state.time * VASOMOTION_FREQ);
 }
 
 // -----------------------------------------------------
-// Lumen mapping
+// Lumen mapping (particles only)
 // -----------------------------------------------------
 function getArteryPoint(t, lane = 0) {
   if (!arteryPath.length) return null;
@@ -80,7 +86,7 @@ function getArteryPoint(t, lane = 0) {
 }
 
 // =====================================================
-// DRAW ARTERY + BBB + NVU (BLEED-SAFE)
+// DRAW ARTERY + BBB + NVU (STATE SAFE)
 // =====================================================
 function drawArtery() {
   if (!arteryPath.length) return;
@@ -98,14 +104,14 @@ function drawArtery() {
   }
 
   // =========================
-  // ENDOTHELIUM (CONTINUOUS, STROKE ONLY)
+  // ENDOTHELIUM (TIGHT, CONTINUOUS)
   // =========================
   push();
   stroke(getColor("endothelium"));
   strokeWeight(4);
   noFill();
 
-  for (let i = 0; i < arteryPath.length - 1; i += 3) {
+  for (let i = 0; i < arteryPath.length - 1; i += 2) {
     const p0 = arteryPath[i];
     const p1 = arteryPath[i + 1];
 
@@ -113,13 +119,17 @@ function drawArtery() {
     const wobR = WALL_WOBBLE_AMP * sin(t * 0.002 + p0.phase + PI);
 
     line(
-      p0.x - wallOffset + 6 - wobL, p0.y,
-      p1.x - wallOffset + 6 - wobL, p1.y
+      p0.x - wallOffset + 5 - wobL,
+      p0.y,
+      p1.x - wallOffset + 5 - wobL,
+      p1.y
     );
 
     line(
-      p0.x + wallOffset - 6 + wobR, p0.y,
-      p1.x + wallOffset - 6 + wobR, p1.y
+      p0.x + wallOffset - 5 + wobR,
+      p0.y,
+      p1.x + wallOffset - 5 + wobR,
+      p1.y
     );
   }
   pop();
@@ -135,7 +145,8 @@ function drawArtery() {
   beginShape();
   arteryPath.forEach(p => {
     vertex(
-      p.x - wallOffset - WALL_WOBBLE_AMP * sin(t * 0.002 + p.phase),
+      p.x - wallOffset -
+        WALL_WOBBLE_AMP * sin(t * 0.002 + p.phase),
       p.y
     );
   });
@@ -144,7 +155,8 @@ function drawArtery() {
   beginShape();
   arteryPath.forEach(p => {
     vertex(
-      p.x + wallOffset + WALL_WOBBLE_AMP * sin(t * 0.002 + p.phase + PI),
+      p.x + wallOffset +
+        WALL_WOBBLE_AMP * sin(t * 0.002 + p.phase + PI),
       p.y
     );
   });
@@ -152,59 +164,83 @@ function drawArtery() {
   pop();
 
   // =========================
-  // PERICYTES (DISCRETE, VISIBLE)
+  // PERICYTES (CLEAR + CONTRASTED)
   // =========================
   push();
   noStroke();
   fill(getColor("pericyte"));
 
-  for (let i = 6; i < arteryPath.length; i += 16) {
+  for (let i = 8; i < arteryPath.length; i += 18) {
     const p = arteryPath[i];
     const wob = WALL_WOBBLE_AMP * sin(t * 0.002 + p.phase);
 
-    ellipse(p.x - wallOffset - wob, p.y, 8, 5);
-    ellipse(p.x + wallOffset + wob, p.y, 8, 5);
+    ellipse(
+      p.x - wallOffset - 4 - wob,
+      p.y,
+      10,
+      6
+    );
+
+    ellipse(
+      p.x + wallOffset + 4 + wob,
+      p.y,
+      10,
+      6
+    );
   }
   pop();
 
   // =========================
-  // ASTROCYTES (FULL BIOLOGICAL CELLS)
+  // ASTROCYTES (STELLATE, BIOLOGICAL)
   // =========================
-  for (let i = 10; i < arteryPath.length; i += 22) {
+  for (let i = 12; i < arteryPath.length; i += 26) {
     const p = arteryPath[i];
 
-    const somaX = p.x - wallOffset - 60;
-    const somaY = p.y + 25 * sin(p.phase);
+    const somaX = p.x - wallOffset - 75;
+    const somaY = p.y + 30 * sin(p.phase * 0.7);
 
     // ---- soma ----
     push();
     noStroke();
     fill(getColor("astrocyte"));
-    ellipse(somaX, somaY, 16, 16);
+    ellipse(somaX, somaY, 14, 14);
     pop();
 
-    // ---- processes ----
+    // ---- processes (angled, asymmetric) ----
     push();
     stroke(getColor("astrocyte"));
     strokeWeight(2);
     noFill();
 
-    for (let k = 0; k < 4; k++) {
-      const ang = p.phase + k * HALF_PI;
+    const angles = [ -0.8, -0.2, 0.6 ];
+    angles.forEach(a => {
       line(
         somaX,
         somaY,
-        p.x - wallOffset - 10,
-        p.y + 6 * sin(ang)
+        somaX + 22 * cos(a),
+        somaY + 22 * sin(a)
       );
-    }
+    });
+
+    // vessel-directed process
+    line(
+      somaX,
+      somaY,
+      p.x - wallOffset - 12,
+      p.y
+    );
     pop();
 
-    // ---- endfoot (small, discrete) ----
+    // ---- endfoot (single, subtle) ----
     push();
     noStroke();
     fill(getColor("astrocyte"));
-    ellipse(p.x - wallOffset - 10, p.y, 8, 3);
+    ellipse(
+      p.x - wallOffset - 12,
+      p.y,
+      6,
+      3
+    );
     pop();
   }
 
