@@ -3,32 +3,24 @@ console.log("🩸 bloodContents loaded");
 // =====================================================
 // BLOOD CONTENTS — SYMBOLIC (ARTERY ONLY)
 // =====================================================
-// NOTE:
-// - NO plasma background
-// - Water = sparse tracers ONLY (for future BBB crossing)
-// - RBCs dominate flow perception
+// Teaching-focused, NOT biologically quantitative
 // =====================================================
 
-// Public container
 const bloodContents = [];
-
-// -----------------------------------------------------
-// Chemical & mechanical waves
-// -----------------------------------------------------
 const supplyWaves   = [];
 const pressureWaves = [];
 
 // -----------------------------------------------------
-// VISUAL DENSITY (INTENTIONALLY SPARSE)
+// VISUAL COUNTS (DISCRETE OBJECTS)
 // -----------------------------------------------------
 const BLOOD_DENSITY = {
-  rbc:     10,  // dominant visual carrier
-  water:   0,  // 🔑 sparse tracers ONLY
+  rbc:     10,  // main visual carriers
+  water:   0,   // light-blue tracers only
   glucose: 0
 };
 
 // -----------------------------------------------------
-// Initialize blood contents
+// Initialize
 // -----------------------------------------------------
 function initBloodContents() {
   bloodContents.length = 0;
@@ -36,20 +28,17 @@ function initBloodContents() {
   pressureWaves.length = 0;
 
   // =========================
-  // RBCs
+  // RBCs — DISCRETE STATE
   // =========================
   for (let i = 0; i < BLOOD_DENSITY.rbc; i++) {
-    const sat = random(0.85, 0.98);
-
     bloodContents.push({
       type: "rbc",
+
       t: random(-0.2, 1),
-      lane: random(-0.85, 0.85),
+      lane: random(-0.8, 0.8),   // 🔑 hard interior
       size: 7,
 
-      sat,
-      targetSat: sat,
-      oxyCount: floor(4 + 6 * sat),
+      oxygenated: random() < 0.8, // 🔑 binary state
 
       jitter: random(TWO_PI),
       drift: random(-0.4, 0.4)
@@ -57,14 +46,14 @@ function initBloodContents() {
   }
 
   // =========================
-  // Water (TRACE MOLECULES)
+  // Water — TRACE ONLY
   // =========================
   for (let i = 0; i < BLOOD_DENSITY.water; i++) {
     bloodContents.push({
       type: "water",
       t: random(-0.2, 1),
-      lane: random(-0.9, 0.9),
-      size: 1.6,              // 🔑 very small
+      lane: random(-0.85, 0.85),
+      size: 1.6,
 
       jitter: random(TWO_PI),
       drift: random(-0.3, 0.3)
@@ -72,7 +61,7 @@ function initBloodContents() {
   }
 
   // =========================
-  // Glucose
+  // Glucose — SYMBOLIC
   // =========================
   for (let i = 0; i < BLOOD_DENSITY.glucose; i++) {
     bloodContents.push({
@@ -80,9 +69,6 @@ function initBloodContents() {
       t: random(-0.2, 1),
       lane: random(-0.7, 0.7),
       size: 4,
-
-      avail: 1.0,
-      targetAvail: 1.0,
 
       jitter: random(TWO_PI),
       drift: random(-0.4, 0.4)
@@ -93,37 +79,33 @@ function initBloodContents() {
 // -----------------------------------------------------
 // Trigger waves
 // -----------------------------------------------------
-function triggerSupplyWave(strength = 1.0) {
-  supplyWaves.push({ t: 0, strength, age: 0 });
+function triggerSupplyWave() {
+  supplyWaves.push({ t: 0 });
 }
 
-function triggerPressureWave(strength = 1.0) {
-  pressureWaves.push({ t: 0, strength, age: 0 });
+function triggerPressureWave() {
+  pressureWaves.push({ t: 0 });
 }
 
 // -----------------------------------------------------
 // Update waves
 // -----------------------------------------------------
 function updateSupplyWaves() {
-  for (let i = supplyWaves.length - 1; i >= 0; i--) {
-    const w = supplyWaves[i];
-    w.t += 0.004;
-    w.age++;
-    if (w.t > 1.2 || w.age > 400) supplyWaves.splice(i, 1);
+  supplyWaves.forEach(w => w.t += 0.004);
+  while (supplyWaves.length && supplyWaves[0].t > 1.2) {
+    supplyWaves.shift();
   }
 }
 
 function updatePressureWaves() {
-  for (let i = pressureWaves.length - 1; i >= 0; i--) {
-    const w = pressureWaves[i];
-    w.t += 0.02;
-    w.age++;
-    if (w.t > 1.2 || w.age > 120) pressureWaves.splice(i, 1);
+  pressureWaves.forEach(w => w.t += 0.02);
+  while (pressureWaves.length && pressureWaves[0].t > 1.2) {
+    pressureWaves.shift();
   }
 }
 
 // -----------------------------------------------------
-// Update blood dynamics (SMOOTH + CONTINUOUS)
+// Update motion (SMOOTH, CONTINUOUS)
 // -----------------------------------------------------
 function updateBloodContents() {
   const pulse = getCardiacPulse();
@@ -131,69 +113,64 @@ function updateBloodContents() {
 
   bloodContents.forEach(p => {
 
-    // ---- laminar profile ----
-    const laneFactor = 1 - abs(p.lane);
-    const laminar = 0.4 + 0.6 * laneFactor;
+    const laminar = 0.4 + 0.6 * (1 - abs(p.lane));
 
-    // ---- base speeds ----
     const baseSpeed =
-      p.type === "rbc"     ? 0.00025 :
+      p.type === "rbc"   ? 0.00025 :
+      p.type === "water" ? 0.00018 :
       p.type === "glucose" ? 0.00030 :
-      p.type === "water"   ? 0.00020 : // 🔑 water drifts more gently
       0.00025;
 
-    // ---- organic jitter ----
     p.jitter += 0.01;
-    const noiseDrift = 0.00004 * sin(p.jitter + p.drift);
+    const noise = 0.00004 * sin(p.jitter + p.drift);
 
-    // ---- pressure only affects RBCs + glucose ----
     let pressurePush = 0;
-    if (p.type !== "water") {
+    if (p.type === "rbc") {
       pressureWaves.forEach(w => {
         const d = abs(p.t - w.t);
-        if (d < 0.08) {
-          pressurePush += (1 - d / 0.08) * w.strength * 0.0015;
-        }
+        if (d < 0.08) pressurePush += 0.001 * (1 - d / 0.08);
       });
     }
 
-    const pulseMod = 0.5 + 0.5 * pulse;
-
-    // ---- advance ----
-    p.t += baseSpeed * laminar * flow * pulseMod
-         + noiseDrift
+    p.t += baseSpeed * laminar * flow * (0.6 + 0.6 * pulse)
+         + noise
          + pressurePush;
 
     if (p.t > 1) p.t = random(-0.2, 0);
 
-    // ---- lateral freedom ----
+    // 🔑 HARD interior constraint
     p.lane += 0.0006 * sin(p.jitter * 0.7);
-    p.lane = constrain(p.lane, -1, 1);
+    p.lane = constrain(p.lane, -0.85, 0.85);
 
-    // ---- chemistry ----
-    if (p.type === "rbc") {
-      p.sat += (p.targetSat - p.sat) * 0.05;
-      p.oxyCount = floor(4 + 6 * p.sat);
-    }
-
-    if (p.type === "glucose") {
-      p.avail += (p.targetAvail - p.avail) * 0.05;
-    }
-
-    // ---- supply waves ----
+    // Supply wave re-oxygenates RBCs
     supplyWaves.forEach(w => {
-      const d = abs(p.t - w.t);
-      if (d > 0.1) return;
-
-      const boost = (1 - d / 0.1) * w.strength;
-      if (p.type === "rbc")     p.targetSat   = min(1.0, p.targetSat + 0.25 * boost);
-      if (p.type === "glucose") p.targetAvail = min(1.0, p.targetAvail + 0.35 * boost);
+      if (abs(p.t - w.t) < 0.08 && p.type === "rbc") {
+        p.oxygenated = true;
+      }
     });
   });
 }
 
 // -----------------------------------------------------
-// Render blood contents (NO PLASMA)
+// Extraction (symbolic, pre-BBB)
+// -----------------------------------------------------
+function extractOxygenNearNeuron1() {
+  const R = 120;
+
+  bloodContents.forEach(p => {
+    if (p.type !== "rbc") return;
+
+    const pos = getArteryPoint(p.t, p.lane);
+    if (!pos) return;
+
+    if (dist(pos.x, pos.y, neuron.x, neuron.y) < R) {
+      p.oxygenated = false; // 🔑 visual flip
+    }
+  });
+}
+
+// -----------------------------------------------------
+// Render — PARTICLES ONLY
 // -----------------------------------------------------
 function drawBloodContents() {
   noStroke();
@@ -202,30 +179,24 @@ function drawBloodContents() {
     const pos = getArteryPoint(p.t, p.lane);
     if (!pos) return;
 
-    const alphaMask = getLumenAlpha(p.lane);
-    if (alphaMask <= 0) return;
-
     // =========================
     // RBCs
     // =========================
     if (p.type === "rbc") {
-      const c = lerpColor(
-        getColor("rbcDeoxy"),
-        getColor("rbcOxy"),
-        p.sat
+
+      fill(
+        p.oxygenated
+          ? getColor("rbcOxy")
+          : getColor("rbcDeoxy")
       );
 
-      fill(red(c), green(c), blue(c), 255 * alphaMask);
-      ellipse(
-        pos.x,
-        pos.y,
-        p.size * (1 + 0.08 * getCardiacPulse())
-      );
+      ellipse(pos.x, pos.y, p.size);
 
-      if (p.sat > 0.5) {
-        fill(255, 255, 255, 200 * alphaMask);
-        for (let i = 0; i < p.oxyCount; i++) {
-          const a = TWO_PI * (i / p.oxyCount);
+      // Oxygen dots only if oxygenated
+      if (p.oxygenated) {
+        fill(255);
+        for (let i = 0; i < 4; i++) {
+          const a = TWO_PI * i / 4;
           const r = p.size * 0.3;
           ellipse(pos.x + cos(a) * r, pos.y + sin(a) * r, 1.4);
         }
@@ -233,10 +204,10 @@ function drawBloodContents() {
     }
 
     // =========================
-    // Water (TRACE ONLY)
+    // Water tracers
     // =========================
     if (p.type === "water") {
-      fill(160, 210, 255, 70 * alphaMask);
+      fill(160, 210, 255);
       ellipse(pos.x, pos.y, p.size);
     }
 
@@ -244,7 +215,7 @@ function drawBloodContents() {
     // Glucose
     // =========================
     if (p.type === "glucose") {
-      fill(getColor("glucose", 150 * p.avail * alphaMask));
+      fill(getColor("glucose"));
       rectMode(CENTER);
       rect(pos.x, pos.y, p.size, p.size, 2);
     }
