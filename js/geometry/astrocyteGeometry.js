@@ -1,7 +1,7 @@
 // =====================================================
 // ASTROCYTE GEOMETRY — TRIPARTITE SYNAPSE (NEURON 2 ↔ 3)
 // =====================================================
-console.log("astrocyteGeometry loaded");
+console.log("astrocyteGeometry loaded թվական");
 
 // -----------------------------------------------------
 // Astrocyte object
@@ -48,7 +48,8 @@ function initAstrocyte() {
       angle: TWO_PI * (i / baseArmCount) + random(-0.3, 0.3),
       length: random(55, 85),
       wobble: random(TWO_PI),
-      target: null
+      target: null,
+      overshoot: 0
     });
   }
 
@@ -58,19 +59,27 @@ function initAstrocyte() {
   const targets = [];
 
   if (neuron2?.synapses?.length) {
-    targets.push(...neuron2.synapses.slice(0, 2));
+    targets.push(neuron2.synapses[0]); // 🔑 first synapse = special
   }
 
   if (neuron3?.synapses?.length) {
-    targets.push(...neuron3.synapses.slice(0, 2));
+    targets.push(neuron3.synapses[0]);
   }
 
-  targets.forEach(s => {
+  targets.forEach((s, i) => {
+
+    const dx = s.x - astrocyte.x;
+    const dy = s.y - astrocyte.y;
+    const d  = dist(astrocyte.x, astrocyte.y, s.x, s.y);
+
     astrocyte.arms.push({
-      angle: atan2(s.y - astrocyte.y, s.x - astrocyte.x),
-      length: dist(astrocyte.x, astrocyte.y, s.x, s.y) * 0.7,
+      angle: atan2(dy, dx),
+      length: d * 0.65,
       wobble: random(TWO_PI),
-      target: s
+      target: s,
+
+      // 🔑 neuron-2 synapse arm passes PSD
+      overshoot: (i === 0) ? 8 : 0
     });
   });
 }
@@ -97,83 +106,66 @@ function drawAstrocyte() {
   translate(astrocyte.x, astrocyte.y);
 
   // =====================================================
-  // SOMA
+  // SOMA (fill stays purple; glow is outline only)
   // =====================================================
-  const somaColor =
-    astrocyte.somaGlow > 0
-      ? color(255, 235, 120)
-      : getColor("astrocyte");
-
   noStroke();
-  fill(somaColor);
+  fill(getColor("astrocyte"));
   ellipse(0, 0, astrocyte.radius * 2);
 
+  if (astrocyte.somaGlow > 0) {
+    stroke(255, 230, 120, map(astrocyte.somaGlow, 0, SOMA_GLOW_FRAMES, 40, 160));
+    strokeWeight(4);
+    noFill();
+    ellipse(0, 0, astrocyte.radius * 2.4);
+  }
+
   // Nucleus
+  noStroke();
   fill(190, 80, 210);
   ellipse(0, 0, 10);
 
   // =====================================================
-  // ARMS
+  // ARMS + ENDFEET
   // =====================================================
+  stroke(getColor("astrocyte"));
+  strokeWeight(5);
+  noFill();
+
   astrocyte.arms.forEach(a => {
 
-    const wob = sin(state.time * 0.001 + a.wobble) * 4;
+    const wob = sin(state.time * 0.001 + a.wobble) * 3;
+    const L   = a.length + a.overshoot;
 
-    let L = a.length;
+    const cx = cos(a.angle + 0.25) * (L * 0.5);
+    const cy = sin(a.angle + 0.25) * (L * 0.5);
 
-    // 🔑 extend perisynaptic arms slightly
-    if (a.target) L *= 1.15;
-
-    // direction to synapse
-    let ux = 0, uy = 0;
-    if (a.target) {
-      const dx = a.target.x - astrocyte.x;
-      const dy = a.target.y - astrocyte.y;
-      const mag = sqrt(dx * dx + dy * dy) || 1;
-      ux = dx / mag;
-      uy = dy / mag;
-    }
-
-    // arm endpoint now biased TOWARD cleft
-    const x3 = cos(a.angle) * (L + wob) + ux * 6;
-    const y3 = sin(a.angle) * (L + wob) + uy * 6;
-
-    const x2 = cos(a.angle + 0.25) * (L * 0.5);
-    const y2 = sin(a.angle + 0.25) * (L * 0.5);
-
-    const armColor =
-      a.target && astrocyte.endfootGlow > 0
-        ? lerpColor(getColor("astrocyte"), color(255, 235, 120), 0.8)
-        : getColor("astrocyte");
-
-    stroke(armColor);
-    strokeWeight(5);
-    noFill();
+    const ex = cos(a.angle) * (L + wob);
+    const ey = sin(a.angle) * (L + wob);
 
     beginShape();
     vertex(0, 0);
-    quadraticVertex(x2, y2, x3, y3);
+    quadraticVertex(cx, cy, ex, ey);
     endShape();
 
-    // =================================================
-    // PERISYNAPTIC ENDFOOT (PAST PSD)
-    // =================================================
+    // -----------------------------
+    // ENDFOOT (ATTACHED)
+    // -----------------------------
     if (a.target) {
 
-      const px = -uy * 6 + ux * 8;
-      const py =  ux * 6 + uy * 8;
-
-      const footColor =
-        astrocyte.endfootGlow > 0
-          ? color(255, 235, 120)
-          : getColor("astrocyte");
-
-      push();
-      translate(x3 + px, y3 + py);
+      // Base endfoot
       noStroke();
-      fill(footColor);
-      ellipse(0, 0, 10, 6);
-      pop();
+      fill(getColor("astrocyte"));
+      ellipse(ex, ey, 12, 8);
+
+      // Glow halo ONLY
+      if (astrocyte.endfootGlow > 0) {
+        stroke(255, 235, 120,
+          map(astrocyte.endfootGlow, 0, ENDFOOT_GLOW_FRAMES, 40, 180)
+        );
+        strokeWeight(3);
+        noFill();
+        ellipse(ex, ey, 16, 12);
+      }
     }
   });
 
