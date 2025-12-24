@@ -1,21 +1,21 @@
 // =====================================================
-// BLOOD CONTENTS — DISTRIBUTED PULSE INTERACTION
+// BLOOD CONTENTS — PULSE-GATED CONTINUOUS FLOW
 // =====================================================
-// ✔ Continuous distribution everywhere
-// ✔ Wave perturbs local elements only
-// ✔ No packet transport
-// ✔ No empty regions
-// ✔ New elements appear independently
+// ✔ Elements always distributed
+// ✔ Elements only move when pulse arrives
+// ✔ Net downstream transport across pulses
+// ✔ Elements settle to rest after pulse
+// ✔ No clumping, no slabs
 // ✔ COLORS.js native
 // ✔ p5 state isolated
 // =====================================================
 
-console.log("🩸 bloodContents v1.6 (distributed pulse interaction) loaded");
+console.log("🩸 bloodContents v1.7 (pulse-gated continuous flow) loaded");
 
 const bloodParticles = [];
 
 // -----------------------------------------------------
-// PARTICLE COUNTS (FINAL)
+// PARTICLE COUNTS
 // -----------------------------------------------------
 
 const BLOOD_COUNTS = {
@@ -24,12 +24,6 @@ const BLOOD_COUNTS = {
   water:    20,
   glucose:  12
 };
-
-const TOTAL_PARTICLES =
-  BLOOD_COUNTS.rbcOxy +
-  BLOOD_COUNTS.rbcDeoxy +
-  BLOOD_COUNTS.water +
-  BLOOD_COUNTS.glucose;
 
 // -----------------------------------------------------
 // LANE CONSTRAINTS
@@ -42,14 +36,13 @@ const LANE_MAX =  0.55;
 // PULSE PARAMETERS
 // -----------------------------------------------------
 
-const WAVE_SPEED       = 0.0009;
-const WAVE_WIDTH       = 0.10;
-const STEP_FORWARD     = 0.006;   // small, non-transporting
-const JITTER_LATERAL   = 0.08;
-const RELAX_RATE       = 0.06;    // relax toward equilibrium
+const WAVE_SPEED        = 0.0009;  // t / ms
+const WAVE_WIDTH        = 0.10;    // spatial influence
+const WAVE_PUSH_FORWARD = 0.018;   // impulse strength
+const VELOCITY_DECAY    = 0.86;    // viscous settling
 
 // -----------------------------------------------------
-// INITIALIZE — UNIFORMLY DISTRIBUTED BACKGROUND
+// INITIALIZE — UNIFORM DISTRIBUTION
 // -----------------------------------------------------
 
 function initBloodContents() {
@@ -75,13 +68,14 @@ function initBloodContents() {
         size,
         color: c,
 
-        // equilibrium position (never empty)
-        t0: random(),
+        // longitudinal position
+        t: random(),
+
+        // radial equilibrium
         lane0: random(LANE_MIN, LANE_MAX),
 
-        // dynamic offsets
-        t: 0,
-        lane: 0
+        // dynamic state
+        v: 0
       });
     }
   }
@@ -93,7 +87,7 @@ function initBloodContents() {
 }
 
 // -----------------------------------------------------
-// UPDATE — LOCAL, DISTRIBUTED WAVE EFFECT
+// UPDATE — PULSE-GATED TRANSPORT
 // -----------------------------------------------------
 
 function updateBloodContents() {
@@ -101,55 +95,41 @@ function updateBloodContents() {
 
   for (const p of bloodParticles) {
 
-    // initialize velocity once
-    if (p.v === undefined) p.v = 0;
-
     // circular distance to wave peak
-    let d = abs(p.t - waveHead);
-    d = min(d, 1 - d);
+    let d = Math.abs(p.t - waveHead);
+    d = Math.min(d, 1 - d);
 
     // -------------------------
     // Wave injects forward impulse
     // -------------------------
     if (d < WAVE_WIDTH) {
       const strength = 1 - d / WAVE_WIDTH;
-
-      // add forward momentum
       p.v += WAVE_PUSH_FORWARD * strength;
     }
 
     // -------------------------
-    // Apply transport
+    // Apply velocity
     // -------------------------
     p.t += p.v;
 
     // -------------------------
-    // Viscous damping (blood slows after pulse)
+    // Viscous decay (settles after wave)
     // -------------------------
-    p.v *= 0.88; // settles to rest between waves
+    p.v *= VELOCITY_DECAY;
 
     // -------------------------
     // Recycling (continuous inflow)
     // -------------------------
     if (p.t > 1) {
       p.t -= 1;
-      p.v = 0; // new blood enters at rest
+      p.v = 0;
       p.lane0 = random(LANE_MIN, LANE_MAX);
     }
   }
 }
 
-
-    // -------------------------
-    // Relaxation toward background
-    // -------------------------
-    p.t *= (1 - RELAX_RATE);
-    p.lane *= (1 - RELAX_RATE);
-  }
-}
-
 // -----------------------------------------------------
-// DRAW — BACKGROUND + LOCAL OFFSETS
+// DRAW — PATH-ALIGNED, STATE-SAFE
 // -----------------------------------------------------
 
 function drawBloodContents() {
@@ -158,15 +138,7 @@ function drawBloodContents() {
   noStroke();
 
   for (const p of bloodParticles) {
-
-    const t = (p.t0 + p.t + 1) % 1;
-    const lane = constrain(
-      p.lane0 + p.lane,
-      LANE_MIN,
-      LANE_MAX
-    );
-
-    const pos = getArteryPoint(t, lane);
+    const pos = getArteryPoint(p.t, p.lane0);
     if (!pos) continue;
 
     // color
@@ -184,7 +156,7 @@ function drawBloodContents() {
       rect(pos.x, pos.y, p.size * 0.7, p.size * 0.7);
     }
 
-    // bound oxygen
+    // bound oxygen (oxy RBC only)
     if (p.type === "rbcOxy") {
       const o2 = COLORS.oxygen;
       fill(o2[0], o2[1], o2[2]);
