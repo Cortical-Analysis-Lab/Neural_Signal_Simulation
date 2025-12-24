@@ -72,8 +72,8 @@ const O2_PROB_BASE    = 0.006;
 // ACTIVITY COUPLING
 // -----------------------------------------------------
 
-const METABOLIC_BOOST_DURATION = 3600; // ms
-const METABOLIC_MULTIPLIER    = 3.0;
+const METABOLIC_BOOST_DURATION = 10000; // ms
+const METABOLIC_MULTIPLIER    = 5.0;
 
 let metabolicBoostUntil = 0;
 
