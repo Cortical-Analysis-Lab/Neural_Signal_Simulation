@@ -18,11 +18,12 @@ const bloodParticles = [];
 // -----------------------------------------------------
 
 const BLOOD_COUNTS = {
-  rbcOxy:   10,
-  rbcDeoxy: 6,
-  water:    10,
-  glucose:  6
+  rbcOxy:   20,
+  rbcDeoxy: 12,
+  water:    20,
+  glucose:  12
 };
+
 
 // -----------------------------------------------------
 // LANE CONSTRAINTS
@@ -82,7 +83,7 @@ function initBloodContents() {
   spawn("rbcOxy",   BLOOD_COUNTS.rbcOxy,   10, "circle", "rbcOxy");
   spawn("rbcDeoxy", BLOOD_COUNTS.rbcDeoxy, 10, "circle", "rbcDeoxy");
   spawn("water",    BLOOD_COUNTS.water,     6, "circle", "water");
-  spawn("glucose",  BLOOD_COUNTS.glucose,   5, "square", "glucose");
+  spawn("glucose",  BLOOD_COUNTS.glucose,   5 * 2.5, "square", "glucose");
 }
 
 // -----------------------------------------------------
