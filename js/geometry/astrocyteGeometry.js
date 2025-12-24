@@ -14,57 +14,99 @@ const astrocyte = {
 };
 
 // -----------------------------------------------------
+// Helper: point adjacent to synaptic cleft (NOT attached)
+// -----------------------------------------------------
+function getCleftAdjacentPoint(pre, post, offset = 12) {
+  const mx = (pre.x + post.x) * 0.5;
+  const my = (pre.y + post.y) * 0.5;
+
+  const dx = post.x - pre.x;
+  const dy = post.y - pre.y;
+  const len = Math.hypot(dx, dy) || 1;
+
+  // perpendicular (normal) to synapse axis
+  const nx = -dy / len;
+  const ny =  dx / len;
+
+  return {
+    x: mx + nx * offset,
+    y: my + ny * offset
+  };
+}
+
+// -----------------------------------------------------
 // Initialize astrocyte
 // -----------------------------------------------------
 function initAstrocyte() {
 
-  if (!neuron2?.soma || !neuron3?.soma) return;
+  if (
+    !neuron?.synapses?.length ||
+    !neuron2?.soma ||
+    !neuron3?.soma
+  ) return;
 
-  // =====================================================
-  // 1. SOMA POSITION — BETWEEN NEURON 2 & 3
-  // =====================================================
+  // -------------------------------------------------
+  // Soma position: BETWEEN neuron 2 & 3 somas
+  // -------------------------------------------------
   astrocyte.x = (neuron2.soma.x + neuron3.soma.x) * 0.5;
-  astrocyte.y = (neuron2.soma.y + neuron3.soma.y) * 0.5 + 10;
+  astrocyte.y = (neuron2.soma.y + neuron3.soma.y) * 0.5;
 
-  astrocyte.arms.length = 0;
+  astrocyte.arms.length = [];
 
-  // =====================================================
-  // 2. ORGANIC BACKGROUND ARMS
-  // =====================================================
-  const baseArmCount = 6;
-
-  for (let i = 0; i < baseArmCount; i++) {
-    const angle = TWO_PI * (i / baseArmCount) + random(-0.3, 0.3);
-
-    astrocyte.arms.push({
-      type: "organic",
-      angle,
-      length: random(55, 85),
-      wobble: random(TWO_PI),
-      target: null
-    });
-  }
-
-  // =====================================================
-  // 3. LOCKED PERISYNAPTIC ARMS (CRITICAL FIX)
-  // =====================================================
+  // -------------------------------------------------
+  // LOCKED ARMS — synaptic gaps (tripartite)
+  // -------------------------------------------------
   const lockedTargets = [];
 
-  if (neuron2?.synapses?.length) lockedTargets.push(neuron2.synapses[0]);
-  if (neuron3?.synapses?.length) lockedTargets.push(neuron3.synapses[0]);
+  // neuron 1 → neuron 2 synapse
+  if (neuron.synapses[0] && neuron2.synapses[0]) {
+    lockedTargets.push(
+      getCleftAdjacentPoint(
+        neuron.synapses[0],
+        neuron2.synapses[0],
+        12
+      )
+    );
+  }
 
-  lockedTargets.forEach(s => {
-    const dx = s.x - astrocyte.x;
-    const dy = s.y - astrocyte.y;
+  // neuron 1 → neuron 3 synapse
+  if (neuron.synapses[1] && neuron3.synapses[0]) {
+    lockedTargets.push(
+      getCleftAdjacentPoint(
+        neuron.synapses[1],
+        neuron3.synapses[0],
+        12
+      )
+    );
+  }
+
+  lockedTargets.forEach(t => {
+    const dx = t.x - astrocyte.x;
+    const dy = t.y - astrocyte.y;
 
     astrocyte.arms.push({
-      type: "synaptic",
-      angle: atan2(dy, dx),
-      length: dist(astrocyte.x, astrocyte.y, s.x, s.y), // 🔑 FULL LENGTH
-      wobble: random(TWO_PI),
-      target: s
+      locked: true,
+      targetX: t.x,
+      targetY: t.y,
+      angle: Math.atan2(dy, dx),
+      length: Math.hypot(dx, dy),
+      wobble: random(TWO_PI)
     });
   });
+
+  // -------------------------------------------------
+  // FREE ARMS — background astrocyte morphology
+  // -------------------------------------------------
+  const FREE_ARM_COUNT = 7;
+
+  for (let i = 0; i < FREE_ARM_COUNT; i++) {
+    astrocyte.arms.push({
+      locked: false,
+      angle: random(TWO_PI),
+      length: random(45, 70),
+      wobble: random(TWO_PI)
+    });
+  }
 }
 
 // -----------------------------------------------------
@@ -77,57 +119,51 @@ function drawAstrocyte() {
   push();
   translate(astrocyte.x, astrocyte.y);
 
-  // =====================================================
-  // SOMA
-  // =====================================================
+  // -----------------------------
+  // Soma
+  // -----------------------------
   noStroke();
   fill(getColor("astrocyte"));
   ellipse(0, 0, astrocyte.radius * 2);
 
   // Nucleus
-  fill(190, 80, 210);
+  fill(180, 60, 200);
   ellipse(0, 0, 10);
 
-  // =====================================================
-  // ARMS
-  // =====================================================
+  // -----------------------------
+  // Arms
+  // -----------------------------
   stroke(getColor("astrocyte"));
   strokeWeight(5);
   noFill();
 
   astrocyte.arms.forEach(a => {
 
-    const wob =
-      a.type === "organic"
-        ? sin(state.time * 0.001 + a.wobble) * 4
-        : 0; // 🔒 LOCKED arms do NOT wobble
+    const wob = sin(state.time * 0.001 + a.wobble) * 3;
 
-    const x1 = cos(a.angle) * astrocyte.radius;
-    const y1 = sin(a.angle) * astrocyte.radius;
+    let x3, y3;
 
-    const x2 = cos(a.angle) * (a.length * 0.5);
-    const y2 = sin(a.angle) * (a.length * 0.5);
+    if (a.locked) {
+      // stop short of synaptic cleft (ensheath, don't contact)
+      const shrink = 6;
+      const dx = a.targetX - astrocyte.x;
+      const dy = a.targetY - astrocyte.y;
+      const len = Math.hypot(dx, dy) || 1;
 
-    const x3 = cos(a.angle) * (a.length + wob);
-    const y3 = sin(a.angle) * (a.length + wob);
+      x3 = dx * ((len - shrink) / len);
+      y3 = dy * ((len - shrink) / len);
+    } else {
+      x3 = cos(a.angle) * (a.length + wob);
+      y3 = sin(a.angle) * (a.length + wob);
+    }
+
+    const x2 = x3 * 0.6;
+    const y2 = y3 * 0.6;
 
     beginShape();
     vertex(0, 0);
     quadraticVertex(x2, y2, x3, y3);
     endShape();
-
-    // =================================================
-    // END FOOT — FLATTENED AT SYNAPTIC GAP
-    // =================================================
-    if (a.type === "synaptic" && a.target) {
-      push();
-      translate(x3, y3);
-      rotate(a.angle);
-      noStroke();
-      fill(getColor("astrocyte"));
-      ellipse(0, 0, 14, 6); // flattened endfoot
-      pop();
-    }
   });
 
   pop();
@@ -136,5 +172,5 @@ function drawAstrocyte() {
 // -----------------------------------------------------
 // EXPORTS
 // -----------------------------------------------------
-window.initAstrocyte = initAstrocyte;
-window.drawAstrocyte = drawAstrocyte;
+window.initAstrocyte  = initAstrocyte;
+window.drawAstrocyte  = drawAstrocyte;
