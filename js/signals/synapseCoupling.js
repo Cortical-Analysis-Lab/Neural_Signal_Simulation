@@ -16,6 +16,11 @@ const RELEASE_PROB          = 0.9; // probabilistic release
 const pendingReleases = [];
 
 // -----------------------------------------------------
+// 🔑 Active synaptic clefts (for astrocyte targeting)
+// -----------------------------------------------------
+window.activeSynapticClefts = window.activeSynapticClefts || [];
+
+// -----------------------------------------------------
 // Helpers
 // -----------------------------------------------------
 function getBoutonAmplitude(bouton) {
@@ -71,6 +76,19 @@ function triggerSynapticRelease(bouton) {
   const hit = findNearestPostsynapticTarget(bouton);
   if (!hit.target) return;
 
+  // =====================================================
+  // 🔑 Register synaptic cleft midpoint
+  // (bouton ↔ postsynapse)
+  // =====================================================
+  const cleftX = (bouton.x + hit.target.x) * 0.5;
+  const cleftY = (bouton.y + hit.target.y) * 0.5;
+
+  window.activeSynapticClefts.push({
+    x: cleftX,
+    y: cleftY,
+    life: 60   // frames astrocyte can target this cleft
+  });
+
   pendingReleases.push({
     bouton,
     synapse: hit.target,
@@ -107,6 +125,16 @@ function updateSynapticCoupling() {
       pendingReleases.splice(i, 1);
     }
   }
+
+  // =====================================================
+  // 🔑 Decay synaptic cleft markers
+  // =====================================================
+  for (let i = window.activeSynapticClefts.length - 1; i >= 0; i--) {
+    window.activeSynapticClefts[i].life--;
+    if (window.activeSynapticClefts[i].life <= 0) {
+      window.activeSynapticClefts.splice(i, 1);
+    }
+  }
 }
 
 // -----------------------------------------------------
@@ -124,12 +152,12 @@ function spawnPostsynapticPSP(synapse, targetNeuron, bouton) {
     return;
   }
 
- // Neuron 3: interneuron receives IPSP first
-if (targetNeuron === "neuron3") {
-
-  if (typeof spawnNeuron3IPSP === "function") {
-    spawnNeuron3IPSP(synapse);
+  // ----------------------------
+  // Neuron 3: interneuron IPSP
+  // ----------------------------
+  if (targetNeuron === "neuron3") {
+    if (typeof spawnNeuron3IPSP === "function") {
+      spawnNeuron3IPSP(synapse);
+    }
   }
-}
-
 }
