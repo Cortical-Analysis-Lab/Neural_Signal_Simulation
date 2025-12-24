@@ -44,7 +44,6 @@ const COLORS = {
   // =====================================================
   arteryWall:      [165,  70,  60], // muscular wall
   arteryHighlight: [220, 120, 100], // specular highlight
-  arteryLumen:     [ 90,  25,  25], // interior blood space
 
   // =====================================================
   // BLOOD CONTENTS
