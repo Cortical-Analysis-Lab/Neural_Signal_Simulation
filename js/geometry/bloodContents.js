@@ -22,9 +22,9 @@ const pressureWaves = [];
 // VISUAL DENSITY (INTENTIONALLY SPARSE)
 // -----------------------------------------------------
 const BLOOD_DENSITY = {
-  rbc:     70,  // dominant visual carrier
-  water:   18,  // 🔑 sparse tracers ONLY
-  glucose: 18
+  rbc:     10,  // dominant visual carrier
+  water:   0,  // 🔑 sparse tracers ONLY
+  glucose: 0
 };
 
 // -----------------------------------------------------
