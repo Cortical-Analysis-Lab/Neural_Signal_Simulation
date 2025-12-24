@@ -1,28 +1,35 @@
 // =====================================================
-// BLOOD CONTENTS — SYMBOLIC PARTICLES (V0.1 / DIAGNOSTIC)
+// BLOOD CONTENTS — SYMBOLIC MULTI-PARTICLE (STATIC)
 // =====================================================
-// ✔ Discrete particles
-// ✔ Even angular spacing
+// Diagnostic-only visualization
+// ✔ Static
+// ✔ Sparse
+// ✔ Discrete
 // ✔ No lumen fill
-// ✔ No motion
-// ✔ No accumulation
-// ✔ Direct artery read (no API assumptions)
+// ✔ No motion / no coupling
 // =====================================================
 
-console.log("🩸 bloodContents v0.1 (diagnostic) loaded");
+console.log("🩸 bloodContents v0.2 (symbolic static) loaded");
 
 const bloodParticles = [];
 
 // -----------------------------------------------------
-// CONFIG — VISUAL ONLY
+// VISUAL COUNTS (INTENTIONALLY LOW)
 // -----------------------------------------------------
 
-const BLOOD_CONFIG = {
-  count: 18,
-  radiusFracMin: 0.25,
-  radiusFracMax: 0.75,
-  size: 2.5
+const BLOOD_COUNTS = {
+  rbcOxy:   6,
+  rbcDeoxy: 4,
+  water:    6,
+  glucose:  3
 };
+
+// -----------------------------------------------------
+// GEOMETRIC MARGINS
+// -----------------------------------------------------
+
+const RADIAL_MIN = 0.25;
+const RADIAL_MAX = 0.75;
 
 // -----------------------------------------------------
 // INITIALIZE — ONE-TIME PLACEMENT
@@ -31,42 +38,55 @@ const BLOOD_CONFIG = {
 function initBloodContents() {
   bloodParticles.length = 0;
 
-  // ---- DIRECT READ FROM ARTERY GEOMETRY ----
-  if (!window.artery) {
-    console.warn("🩸 bloodContents: artery not ready");
+  // Defer until artery is ready
+  if (!window.artery || !artery.center || !artery.innerRadius) {
+    requestAnimationFrame(initBloodContents);
     return;
   }
 
   const cx = artery.center.x;
   const cy = artery.center.y;
-  const innerR = artery.innerRadius;
+  const R  = artery.innerRadius;
 
-  const N = BLOOD_CONFIG.count;
+  let index = 0;
 
-  for (let i = 0; i < N; i++) {
+  function place(type, count, size, shape, color) {
+    for (let i = 0; i < count; i++) {
+      const theta = ((index + i) / 24) * TWO_PI;
+      const rFrac = lerp(RADIAL_MIN, RADIAL_MAX, (i % 3) / 2);
+      const r     = R * rFrac;
 
-    const theta = (i / N) * TWO_PI;
-
-    // Fixed radial bands → no lumen inference
-    const rFrac = lerp(
-      BLOOD_CONFIG.radiusFracMin,
-      BLOOD_CONFIG.radiusFracMax,
-      (i % 3) / 2
-    );
-
-    const r = innerR * rFrac;
-
-    bloodParticles.push({
-      x: cx + cos(theta) * r,
-      y: cy + sin(theta) * r,
-      size: BLOOD_CONFIG.size,
-      color: colors.rbcOxy
-    });
+      bloodParticles.push({
+        x: cx + cos(theta) * r,
+        y: cy + sin(theta) * r,
+        size,
+        type,
+        shape,
+        color
+      });
+    }
+    index += count;
   }
+
+  // ---------------------------------------------------
+  // SYMBOLIC PARTICLES
+  // ---------------------------------------------------
+
+  // Oxy RBC (red) + bound O2 (white dot)
+  place("rbcOxy", BLOOD_COUNTS.rbcOxy, 6, "circle", colors.rbcOxy);
+
+  // Deoxy RBC (dark blue)
+  place("rbcDeoxy", BLOOD_COUNTS.rbcDeoxy, 6, "circle", colors.rbcDeoxy);
+
+  // Water (light blue)
+  place("water", BLOOD_COUNTS.water, 3, "circle", colors.water);
+
+  // Glucose (green square)
+  place("glucose", BLOOD_COUNTS.glucose, 4, "square", colors.glucose);
 }
 
 // -----------------------------------------------------
-// UPDATE — NO-OP (INTENTIONAL)
+// UPDATE — NO-OP (STATIC)
 // -----------------------------------------------------
 
 function updateBloodContents() {
@@ -74,14 +94,27 @@ function updateBloodContents() {
 }
 
 // -----------------------------------------------------
-// DRAW — DISCRETE PARTICLES ONLY
+// DRAW — DISCRETE SYMBOLS ONLY
 // -----------------------------------------------------
 
 function drawBloodContents() {
   noStroke();
+
   for (const p of bloodParticles) {
     fill(p.color);
-    circle(p.x, p.y, p.size);
+
+    if (p.shape === "circle") {
+      circle(p.x, p.y, p.size);
+    } else {
+      rectMode(CENTER);
+      rect(p.x, p.y, p.size, p.size);
+    }
+
+    // --- OXYGEN DOT (BOUND TO OXY RBC ONLY) ---
+    if (p.type === "rbcOxy") {
+      fill(255);
+      circle(p.x + 2, p.y - 2, 2);
+    }
   }
 }
 
@@ -92,4 +125,3 @@ function drawBloodContents() {
 window.initBloodContents   = initBloodContents;
 window.updateBloodContents = updateBloodContents;
 window.drawBloodContents  = drawBloodContents;
-
