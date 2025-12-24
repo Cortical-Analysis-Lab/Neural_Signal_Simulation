@@ -208,10 +208,18 @@ function drawArtery() {
   // =========================
   // ASTROCYTES (FIXED: TWO ARMS, GAP-SPANNING ENDFEET)
   // =========================
-  for (let i = 10; i < arteryPath.length - 14; i += 22) {
+   for (let i = 10; i < arteryPath.length - 14; i += 22) {
+  
+    if (
+      !arteryPath[i] ||
+      !arteryPath[i - 11] ||
+      !arteryPath[i + 11]
+    ) continue;
+  
     const pCenter = arteryPath[i];
     const pUp     = arteryPath[i - 11];
     const pDown   = arteryPath[i + 11];
+
 
     const wob = WALL_WOBBLE_AMP * sin(t * 0.002 + pCenter.phase);
 
