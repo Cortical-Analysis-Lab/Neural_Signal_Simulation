@@ -62,7 +62,7 @@ function getVasomotionScale() {
 }
 
 // -----------------------------------------------------
-// Vessel local frame (CRITICAL)
+// Vessel local frame
 // -----------------------------------------------------
 function getVesselFrame(i) {
   const p0 = arteryPath[i];
@@ -76,9 +76,9 @@ function getVesselFrame(i) {
     x: p0.x,
     y: p0.y,
     tx: dx / len,
-    ty: dy / len,   // tangent
+    ty: dy / len,
     nx: -dy / len,
-    ny:  dx / len, // normal
+    ny:  dx / len,
     phase: p0.phase
   };
 }
@@ -100,7 +100,7 @@ function getArteryPoint(t, lane = 0) {
 }
 
 // =====================================================
-// DRAW ARTERY + NVU (BOUND, PARALLEL, BIOLOGICAL)
+// DRAW ARTERY + NVU (REFINED PROPORTIONS)
 // =====================================================
 function drawArtery() {
   if (!arteryPath.length) return;
@@ -118,14 +118,14 @@ function drawArtery() {
   }
 
   // =========================
-  // ENDOTHELIUM (LONG, FEWER)
+  // ENDOTHELIUM (LONGER, TIGHTER)
   // =========================
   push();
   stroke(getColor("endothelium"));
   strokeWeight(6);
   noFill();
 
-  for (let i = 0; i < arteryPath.length - 4; i += 6) {
+  for (let i = 0; i < arteryPath.length - 4; i += 4) {
     const f = getVesselFrame(i);
     const wob = WALL_WOBBLE_AMP * sin(t * 0.002 + f.phase);
 
@@ -135,15 +135,15 @@ function drawArtery() {
     line(
       f.x + ox,
       f.y + oy,
-      f.x + ox + f.tx * 40,
-      f.y + oy + f.ty * 40
+      f.x + ox + f.tx * 55,   // longer → fewer gaps
+      f.y + oy + f.ty * 55
     );
 
     line(
       f.x - ox,
       f.y - oy,
-      f.x - ox + f.tx * 40,
-      f.y - oy + f.ty * 40
+      f.x - ox + f.tx * 55,
+      f.y - oy + f.ty * 55
     );
   }
   pop();
@@ -178,13 +178,13 @@ function drawArtery() {
   pop();
 
   // =========================
-  // PERICYTES (ELONGATED, PARALLEL, WALL-BOUND)
+  // PERICYTES (ELONGATED, HIGH COVERAGE)
   // =========================
   push();
   noStroke();
   fill(getColor("pericyte"));
 
-  for (let i = 4; i < arteryPath.length; i += 10) {
+  for (let i = 4; i < arteryPath.length; i += 8) {
     const f = getVesselFrame(i);
     const wob = WALL_WOBBLE_AMP * sin(t * 0.002 + f.phase);
 
@@ -194,58 +194,60 @@ function drawArtery() {
     push();
     translate(f.x + ox, f.y + oy);
     rotate(atan2(f.ty, f.tx));
-    ellipse(0, 0, 70, 20); // ~10× scale, parallel
+    ellipse(0, 0, 90, 18); // longer → narrower gaps
     pop();
 
     push();
     translate(f.x - ox, f.y - oy);
     rotate(atan2(f.ty, f.tx));
-    ellipse(0, 0, 70, 20);
+    ellipse(0, 0, 90, 18);
     pop();
   }
   pop();
 
   // =========================
-  // ASTROCYTES (LARGE, BOUND, PARALLEL ENDFEET)
+  // ASTROCYTES (BOTH SIDES, REDUCED SIZE)
   // =========================
-  for (let i = 8; i < arteryPath.length; i += 16) {
-    const f = getVesselFrame(i);
-    const wob = WALL_WOBBLE_AMP * sin(t * 0.002 + f.phase);
+  for (let side of [-1, 1]) {
+    for (let i = 10; i < arteryPath.length; i += 18) {
+      const f = getVesselFrame(i);
+      const wob = WALL_WOBBLE_AMP * sin(t * 0.002 + f.phase);
 
-    // ---- Soma (≈ 1/2 neuron size) ----
-    const somaX = f.x + f.nx * (wallOffset + 130);
-    const somaY = f.y + f.ny * (wallOffset + 130);
+      // ---- soma (reduced 1.5×) ----
+      const somaX = f.x + f.nx * side * (wallOffset + 95);
+      const somaY = f.y + f.ny * side * (wallOffset + 95);
 
-    push();
-    noStroke();
-    fill(getColor("astrocyte"));
-    ellipse(somaX, somaY, 80, 80); // BIG
-    pop();
+      push();
+      noStroke();
+      fill(getColor("astrocyte"));
+      ellipse(somaX, somaY, 55, 55);
+      pop();
 
-    // ---- Main process ----
-    push();
-    stroke(getColor("astrocyte"));
-    strokeWeight(8);
-    line(
-      somaX,
-      somaY,
-      f.x + f.nx * (wallOffset + 30),
-      f.y + f.ny * (wallOffset + 30)
-    );
-    pop();
+      // ---- main process ----
+      push();
+      stroke(getColor("astrocyte"));
+      strokeWeight(6);
+      line(
+        somaX,
+        somaY,
+        f.x + f.nx * side * (wallOffset + 30),
+        f.y + f.ny * side * (wallOffset + 30)
+      );
+      pop();
 
-    // ---- Endfoot (PARALLEL, GAP-SPANNING) ----
-    push();
-    noStroke();
-    fill(getColor("astrocyte"));
+      // ---- endfoot (shorter, flatter) ----
+      push();
+      noStroke();
+      fill(getColor("astrocyte"));
 
-    translate(
-      f.x + f.nx * (wallOffset + 22 + wob),
-      f.y + f.ny * (wallOffset + 22 + wob)
-    );
-    rotate(atan2(f.ty, f.tx));
-    ellipse(0, 0, 100, 28); // spans pericytes
-    pop();
+      translate(
+        f.x + f.nx * side * (wallOffset + 22 + wob),
+        f.y + f.ny * side * (wallOffset + 22 + wob)
+      );
+      rotate(atan2(f.ty, f.tx));
+      ellipse(0, 0, 60, 14); // flatter + shorter
+      pop();
+    }
   }
 
   // =========================
