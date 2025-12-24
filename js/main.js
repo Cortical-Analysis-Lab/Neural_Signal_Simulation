@@ -9,11 +9,11 @@ const state = {
   paused: false,
   mode: "overview" // overview | ion | synapse
 };
+
 // -----------------------------------------------------
 // Global Toggles
 // -----------------------------------------------------
 window.myelinEnabled = false;
-
 
 // =====================================================
 // CAMERA STATE (WORLD SPACE ONLY)
@@ -48,9 +48,8 @@ function setMode(mode) {
     camera.targetZoom = 2.5;
   }
 
-  updateOverviewUI(); // 👈 ADD THIS LINE
+  updateOverviewUI();
 }
-
 
 // =====================================================
 // P5 SETUP
@@ -62,22 +61,17 @@ function setup() {
   canvas.parent(document.body);
   frameRate(60);
 
-  // 1️⃣ Build neuron 1 first
+  // ---- Core geometry ----
   initSynapses();
   initAxonPath(neuron);
-
   initArtery();
 
+  // Myelin nodes (geometry only)
+  neuron.axon.myelinNodes = generateMyelinNodes(neuron.axon.path);
 
-  // Generate Nodes of Ranvier (geometry only)
-neuron.axon.myelinNodes = generateMyelinNodes(neuron.axon.path);
-
-
-
-  // 2️⃣ THEN build neuron 2 (depends on axon terminals)
+  // Dependent neurons
   initNeuron2();
   initNeuron3();
-
 
   setMode("overview");
 
@@ -85,25 +79,20 @@ neuron.axon.myelinNodes = generateMyelinNodes(neuron.axon.path);
   const pauseBtn = document.getElementById("pauseBtn");
   if (pauseBtn) pauseBtn.onclick = togglePause;
 
-  // UI panels
+  // Panels
   initUIPanels();
-  // =====================================================
-// MYELIN TOGGLE HOOKUP
-// =====================================================
-const myelinToggle = document.getElementById("myelinToggle");
 
-if (myelinToggle) {
-  myelinToggle.checked = window.myelinEnabled;
+  // Myelin toggle
+  const myelinToggle = document.getElementById("myelinToggle");
+  if (myelinToggle) {
+    myelinToggle.checked = window.myelinEnabled;
+    myelinToggle.addEventListener("change", () => {
+      window.myelinEnabled = myelinToggle.checked;
+      console.log("Myelin enabled:", window.myelinEnabled);
+    });
+  }
 
-  myelinToggle.addEventListener("change", () => {
-    window.myelinEnabled = myelinToggle.checked;
-    console.log("Myelin enabled:", window.myelinEnabled);
-  });
-}
-
-// Ensure correct visibility on load
-updateOverviewUI();
-
+  updateOverviewUI();
 }
 
 // =====================================================
@@ -111,59 +100,59 @@ updateOverviewUI();
 // =====================================================
 function draw() {
   background(15, 17, 21);
-    // 🩸 DRAW ARTERY IN SCREEN SPACE (NO CAMERA)
+
+  // =====================================================
+  // UPDATE PHASE (AUTHORITATIVE)
+  // =====================================================
+  if (!state.paused) {
+    state.time += state.dt;
+
+    updateHemodynamics();
+    updateBloodContents();
+    updateSupplyWaves();
+    updatePressureWaves(); // 🔑 REQUIRED
+  }
+
+  // =====================================================
+  // DRAW ARTERY (SCREEN SPACE — NO CAMERA)
+  // =====================================================
   drawArtery();
 
-
-  // Smooth camera interpolation
+  // =====================================================
+  // CAMERA INTERPOLATION
+  // =====================================================
   camera.x    += (camera.targetX    - camera.x)    * camera.lerpSpeed;
   camera.y    += (camera.targetY    - camera.y)    * camera.lerpSpeed;
   camera.zoom += (camera.targetZoom - camera.zoom) * camera.lerpSpeed;
 
-  if (!state.paused) {
-    state.time += state.dt;
-  }
-
   // =====================================================
-  // APPLY CAMERA TRANSFORM (CENTERED WORLD)
+  // WORLD SPACE (NEURONS)
   // =====================================================
   push();
   translate(width / 2, height / 2);
   scale(camera.zoom);
   translate(-camera.x, -camera.y);
 
-    if (!state.paused) {
-  
-    // =====================================================
-    // CORE SIGNAL + STATE UPDATES (AUTHORITATIVE)
-    // =====================================================
-    updateHemodynamics();
-    updateBloodContents();
-    updateSupplyWaves();
-
-
+  if (!state.paused) {
     updateSynapseHover();
     updateEPSPs();
     updateSoma();
     updateVoltageTrace();
-  
- if (window.myelinEnabled) {
-    updateMyelinAPs();
-    updateTerminalDots(); // terminals still needed
-  } else {
-    updateAxonSpikes();
-    updateTerminalDots();
-  }
 
-  updateVesicles();
+    if (window.myelinEnabled) {
+      updateMyelinAPs();
+      updateTerminalDots();
+    } else {
+      updateAxonSpikes();
+      updateTerminalDots();
+    }
 
-  
+    updateVesicles();
     updateNeuron2EPSPs();
     updateSynapticCoupling();
   }
 
-
-  // ---- RENDER ----
+  // ---- Render views ----
   switch (state.mode) {
     case "overview":
       drawOverview(state);
@@ -175,12 +164,12 @@ function draw() {
       drawSynapseView(state);
       break;
   }
+
   pop();
 
   // =====================================================
-  // UI OVERLAY (SCREEN SPACE)
+  // UI OVERLAY
   // =====================================================
-
   drawTimeReadout();
 }
 
@@ -209,7 +198,6 @@ function togglePause() {
 // COLLAPSIBLE UI PANELS
 // =====================================================
 function initUIPanels() {
-
   const instructions = document.getElementById("instructions");
   if (instructions) {
     instructions.classList.add("panel", "left", "open");
@@ -240,9 +228,8 @@ function initUIPanels() {
 // =====================================================
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
-  initArtery(); // 🔑 rebuild static artery geometry
+  initArtery();
 }
-
 
 // =====================================================
 // OVERVIEW-ONLY UI VISIBILITY
@@ -254,4 +241,3 @@ function updateOverviewUI() {
   myelinUI.style.display =
     state.mode === "overview" ? "flex" : "none";
 }
-
