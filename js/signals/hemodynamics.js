@@ -3,6 +3,7 @@
 // =====================================================
 // Diagnostic-safe signal generator
 // Motion + coupling intentionally disabled
+// Provides READ-ONLY cardiac phase & envelopes
 // =====================================================
 
 console.log("💓 hemodynamics loaded");
@@ -14,8 +15,8 @@ console.log("💓 hemodynamics loaded");
 let heartRate = 72;         // bpm
 let vasomotionRate = 0.08; // Hz
 
-let cardiacPhase = 0;
-let vasoPhase    = 0;
+let cardiacPhase = 0;      // 0 → 1
+let vasoPhase    = 0;      // 0 → 1
 
 let lastTime = 0;
 
@@ -28,21 +29,39 @@ function updateHemodynamics() {
   const dt  = lastTime ? (now - lastTime) / 1000 : 0;
   lastTime  = now;
 
+  // normalized phases
   cardiacPhase = (cardiacPhase + dt * (heartRate / 60)) % 1;
   vasoPhase    = (vasoPhase + dt * vasomotionRate) % 1;
 }
 
 // -----------------------------------------------------
-// Cardiac pulse (0 → 1)
+// CARDIAC PHASE (0 → 1)
+// -----------------------------------------------------
+// Single source of truth for heartbeat timing
 // -----------------------------------------------------
 
-function getCardiacPulse() {
+function getCardiacPhase() {
+  return cardiacPhase;
+}
+
+// -----------------------------------------------------
+// SYSTOLIC ENVELOPE (0 → 1)
+// -----------------------------------------------------
+// Fast upstroke, slow decay
+// Use this for:
+//   - artery expansion
+//   - blood advancement
+// -----------------------------------------------------
+
+function getSystolicEnvelope() {
   const p = cardiacPhase;
 
   if (p < 0.15) {
-    return p / 0.15; // rapid systole
+    // rapid systole
+    return p / 0.15;
   } else {
-    return Math.exp(-(p - 0.15) * 5); // diastolic decay
+    // diastolic decay
+    return Math.exp(-(p - 0.15) * 5);
   }
 }
 
@@ -57,11 +76,13 @@ function getVasomotion() {
 // -----------------------------------------------------
 // Combined hemodynamic scaling (READ-ONLY)
 // -----------------------------------------------------
+// Existing consumers continue to work unchanged
+// -----------------------------------------------------
 
 function getHemodynamicScale() {
   return (
     1 +
-    0.12 * getCardiacPulse() +
+    0.12 * getSystolicEnvelope() +
     0.08 * getVasomotion()
   );
 }
@@ -85,10 +106,17 @@ function updatePressureWaves() {
 // GLOBAL EXPORTS
 // -----------------------------------------------------
 
-window.updateHemodynamics   = updateHemodynamics;
-window.getCardiacPulse      = getCardiacPulse;
-window.getVasomotion        = getVasomotion;
-window.getHemodynamicScale = getHemodynamicScale;
+window.updateHemodynamics    = updateHemodynamics;
 
-window.updateSupplyWaves    = updateSupplyWaves;
-window.updatePressureWaves  = updatePressureWaves;
+// Cardiac timing
+window.getCardiacPhase       = getCardiacPhase;
+window.getSystolicEnvelope   = getSystolicEnvelope;
+
+// Legacy-compatible helpers
+window.getCardiacPulse       = getSystolicEnvelope;
+window.getVasomotion         = getVasomotion;
+window.getHemodynamicScale  = getHemodynamicScale;
+
+// Required hooks
+window.updateSupplyWaves     = updateSupplyWaves;
+window.updatePressureWaves   = updatePressureWaves;
