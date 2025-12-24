@@ -13,6 +13,8 @@ function drawOverview(state) {
   drawNeuron1();
   drawNeuron2();
   drawNeuron3();
+  drawAstrocyte();
+
 
   drawVoltageTrace();
   drawEPSPs();
