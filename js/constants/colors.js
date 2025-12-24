@@ -40,30 +40,29 @@ const COLORS = {
   nodeAxon:     [255, 215, 150],
 
   // =====================================================
-  // VASCULATURE (ARTERY — CUTAWAY)
+  // VASCULATURE
   // =====================================================
-  arteryWall:      [165,  70,  60], // muscular wall
-  arteryHighlight: [220, 120, 100], // specular highlight
-
-  // =====================================================
-  // BLOOD CONTENTS
-  // =====================================================
-  rbcOxy:   [190,  40,  40],  // oxygenated hemoglobin
-  rbcDeoxy: [ 60, 100, 200],  // deoxygenated hemoglobin
-  oxygen:   [255, 255, 255],  // O2 cargo
-  water:    [160, 210, 255],  // H2O
-  glucose:  [120, 220, 120]   // glucose
+  arteryWall:      [165,  70,  60],
+  arteryHighlight: [220, 120, 100],
 
   // --------------------
-// BLOOD–BRAIN BARRIER
-// --------------------
-endothelium: [245, 190, 130], // light orange
-astrocyte:   [200, 170, 230]  // light purple
+  // BLOOD CONTENTS
+  // --------------------
+  rbcOxy:   [190,  40,  40],
+  rbcDeoxy: [ 60, 100, 200],
+  oxygen:   [255, 255, 255],
+  water:    [160, 210, 255],
+  glucose:  [120, 220, 120],
 
+  // =====================================================
+  // BLOOD–BRAIN BARRIER
+  // =====================================================
+  endothelium: [245, 190, 130], // light orange
+  astrocyte:   [200, 170, 230]  // light purple
 };
 
 // =====================================================
-// COLOR ACCESS HELPER
+// COLOR ACCESS HELPER (GLOBAL)
 // =====================================================
 function getColor(name, alpha = 255) {
   const c = COLORS[name];
@@ -75,3 +74,9 @@ function getColor(name, alpha = 255) {
 
   return color(c[0], c[1], c[2], alpha);
 }
+
+// -----------------------------------------------------
+// GLOBAL EXPORTS
+// -----------------------------------------------------
+window.COLORS  = COLORS;
+window.getColor = getColor;
