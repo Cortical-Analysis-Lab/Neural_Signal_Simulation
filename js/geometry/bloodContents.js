@@ -2,19 +2,20 @@
 // BLOOD CONTENTS — SYMBOLIC, STATIC (PATH-ALIGNED)
 // =====================================================
 // ✔ Uses arteryPath + getArteryPoint
-// ✔ Static
-// ✔ Sparse (but visible)
-// ✔ Discrete symbols only
+// ✔ Static (no motion, no coupling)
+// ✔ Sparse, symbolic particles
+// ✔ Discrete shapes only
 // ✔ No lumen fill
-// ✔ Uses COLORS.js directly (no helpers)
+// ✔ COLORS.js native
+// ✔ p5 state isolated (no bleed)
 // =====================================================
 
-console.log("🩸 bloodContents v0.6 (COLORS-native) loaded");
+console.log("🩸 bloodContents v1.0 (locked static symbolic) loaded");
 
 const bloodParticles = [];
 
 // -----------------------------------------------------
-// COUNTS — TEMPORARILY BOOSTED FOR VISIBILITY
+// PARTICLE COUNTS (INTENTIONALLY LOW)
 // -----------------------------------------------------
 
 const BLOOD_COUNTS = {
@@ -25,7 +26,7 @@ const BLOOD_COUNTS = {
 };
 
 // -----------------------------------------------------
-// LANE CONSTRAINTS (INSIDE FIXED LUMEN)
+// LANE CONSTRAINTS (FIXED LUMEN SPACE)
 // -----------------------------------------------------
 
 const LANE_MIN = -0.55;
@@ -50,7 +51,7 @@ function initBloodContents() {
 
   let seed = 0;
 
-  const BLOOD_COUNTS_TOTAL =
+  const TOTAL =
     BLOOD_COUNTS.rbcOxy +
     BLOOD_COUNTS.rbcDeoxy +
     BLOOD_COUNTS.water +
@@ -60,7 +61,7 @@ function initBloodContents() {
     const c = COLORS[colorName];
 
     for (let i = 0; i < count; i++) {
-      const t = (seed + i + 1) / (BLOOD_COUNTS_TOTAL + 2);
+      const t = (seed + i + 1) / (TOTAL + 2);
       const lane = lerp(LANE_MIN, LANE_MAX, (i % 3) / 2);
 
       bloodParticles.push({
@@ -79,14 +80,21 @@ function initBloodContents() {
   // SYMBOLIC PARTICLES
   // -----------------------------
 
+  // Oxygenated RBCs (red + white O2 dot)
   place("rbcOxy",   BLOOD_COUNTS.rbcOxy,   10, "circle", "rbcOxy");
+
+  // Deoxygenated RBCs (dark blue)
   place("rbcDeoxy", BLOOD_COUNTS.rbcDeoxy, 10, "circle", "rbcDeoxy");
+
+  // Water (light blue dots)
   place("water",    BLOOD_COUNTS.water,     6, "circle", "water");
-  place("glucose",  BLOOD_COUNTS.glucose,   7, "square", "glucose");
+
+  // Glucose (small green squares — must remain discrete)
+  place("glucose",  BLOOD_COUNTS.glucose,   5, "square", "glucose");
 }
 
 // -----------------------------------------------------
-// UPDATE — STATIC
+// UPDATE — STATIC (INTENTIONAL)
 // -----------------------------------------------------
 
 function updateBloodContents() {
@@ -94,36 +102,50 @@ function updateBloodContents() {
 }
 
 // -----------------------------------------------------
-// DRAW — PATH-ALIGNED SYMBOLS
+// DRAW — PATH-ALIGNED, STATE-SAFE
 // -----------------------------------------------------
 
 function drawBloodContents() {
+  push(); // 🔒 isolate p5 drawing state
+
+  rectMode(CENTER);
+  noStroke();
+
   for (const p of bloodParticles) {
     const pos = getArteryPoint(p.t, p.lane);
     if (!pos) continue;
 
-    // 🔍 faint diagnostic outline
-    stroke(255, 60);
-    strokeWeight(1);
+    // -------------------------
+    // Fill color
+    // -------------------------
+    if (p.type === "glucose") {
+      const g = COLORS.glucose;
+      fill(g[0], g[1], g[2], 180); // translucent to prevent banding
+    } else {
+      fill(p.color[0], p.color[1], p.color[2]);
+    }
 
-    fill(p.color[0], p.color[1], p.color[2]);
-
+    // -------------------------
+    // Draw shape
+    // -------------------------
     if (p.shape === "circle") {
       circle(pos.x, pos.y, p.size);
     } else {
-      rectMode(CENTER);
-      rect(pos.x, pos.y, p.size, p.size);
+      // glucose squares — deliberately smaller
+      rect(pos.x, pos.y, p.size * 0.7, p.size * 0.7);
     }
 
-    noStroke();
-
-    // Bound oxygen dot (oxy RBC only)
+    // -------------------------
+    // Bound oxygen (oxy RBCs only)
+    // -------------------------
     if (p.type === "rbcOxy") {
       const o2 = COLORS.oxygen;
       fill(o2[0], o2[1], o2[2]);
       circle(pos.x + 3, pos.y - 3, 3);
     }
   }
+
+  pop(); // 🔒 restore p5 state
 }
 
 // -----------------------------------------------------
