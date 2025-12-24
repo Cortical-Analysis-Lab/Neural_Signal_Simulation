@@ -14,7 +14,7 @@ const pressureWaves = [];
 // VISUAL COUNTS (DISCRETE OBJECTS)
 // -----------------------------------------------------
 const BLOOD_DENSITY = {
-  rbc:     10,  // main visual carriers
+  rbc:     0,  // main visual carriers
   water:   0,   // light-blue tracers only
   glucose: 0
 };
