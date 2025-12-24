@@ -1,10 +1,10 @@
 // =====================================================
-// ASTROCYTE GEOMETRY — TRIPARTITE SYNAPSE (DEBUGGABLE)
+// ASTROCYTE GEOMETRY — TRUE TRIPARTITE SYNAPSE
 // =====================================================
 console.log("astrocyteGeometry loaded");
 
 // -----------------------------------------------------
-// DEBUG TOGGLE (TURN OFF WHEN DONE)
+// DEBUG
 // -----------------------------------------------------
 window.DEBUG_ASTROCYTE = true;
 
@@ -17,28 +17,24 @@ const astrocyte = {
   radius: 26,
   arms: [],
 
-  // Glow state
   endfootGlow: 0,
-  somaGlow: 0,
-
-  // Debug geometry
-  debugClefts: []
+  somaGlow: 0
 };
 
 // -----------------------------------------------------
-// Glow timing (SLOWER, PROPAGATING)
+// Glow timing (slow propagation)
 // -----------------------------------------------------
-const ENDFOOT_GLOW_FRAMES = 36;   // 2× slower
+const ENDFOOT_GLOW_FRAMES = 36;
 const SOMA_GLOW_DELAY    = 18;
 const SOMA_GLOW_FRAMES   = 44;
 
 // -----------------------------------------------------
-// Helper: synaptic cleft midpoint
+// Compute synaptic cleft midpoint
 // -----------------------------------------------------
-function getSynapticCleft(bouton, synapse) {
+function cleftMidpoint(bouton, psd) {
   return {
-    x: (bouton.x + synapse.x) * 0.5,
-    y: (bouton.y + synapse.y) * 0.5
+    x: (bouton.x + psd.x) * 0.5,
+    y: (bouton.y + psd.y) * 0.5
   };
 }
 
@@ -47,7 +43,7 @@ function getSynapticCleft(bouton, synapse) {
 // -----------------------------------------------------
 function initAstrocyte() {
 
-  if (!neuron2?.soma || !neuron3?.soma) return;
+  if (!neuron?.synapses || !neuron2?.synapses || !neuron3?.synapses) return;
 
   // ---------------------------------------------------
   // Place soma between neuron 2 & 3
@@ -56,50 +52,43 @@ function initAstrocyte() {
   astrocyte.y = (neuron2.soma.y + neuron3.soma.y) * 0.5 + 10;
 
   astrocyte.arms.length = 0;
-  astrocyte.debugClefts.length = 0;
 
   // ---------------------------------------------------
-  // Base organic arms (background structure)
+  // Identify ONE synapse per postsynaptic neuron
   // ---------------------------------------------------
-  const baseArmCount = 7;
-  for (let i = 0; i < baseArmCount; i++) {
-    astrocyte.arms.push({
-      angle: TWO_PI * (i / baseArmCount) + random(-0.3, 0.3),
-      length: random(55, 85),
-      wobble: random(TWO_PI),
-      target: null
+  const targets = [];
+
+  // Neuron 1 → Neuron 2
+  if (neuron.synapses[0] && neuron2.synapses[0]) {
+    targets.push({
+      bouton: neuron.synapses[0],
+      psd: neuron2.synapses[0]
+    });
+  }
+
+  // Neuron 1 → Neuron 3
+  if (neuron.synapses[1] && neuron3.synapses[0]) {
+    targets.push({
+      bouton: neuron.synapses[1],
+      psd: neuron3.synapses[0]
     });
   }
 
   // ---------------------------------------------------
-  // Targeted perisynaptic arms (TRUE cleft targeting)
+  // Create ONE arm per cleft
   // ---------------------------------------------------
-  const targets = [];
+  targets.forEach(({ bouton, psd }) => {
 
-  neuron2?.synapses?.slice(0, 2).forEach(s => {
-    targets.push({ synapse: s, bouton: neuron.synapses[0] });
-  });
-
-  neuron3?.synapses?.slice(0, 2).forEach(s => {
-    targets.push({ synapse: s, bouton: neuron.synapses[0] });
-  });
-
-  targets.forEach(({ synapse, bouton }) => {
-
-    if (!bouton || !synapse) return;
-
-    const cleft = getSynapticCleft(bouton, synapse);
-    astrocyte.debugClefts.push(cleft);
+    const cleft = cleftMidpoint(bouton, psd);
 
     const dx = cleft.x - astrocyte.x;
     const dy = cleft.y - astrocyte.y;
 
     astrocyte.arms.push({
       angle: atan2(dy, dx),
-      // 🔑 Overshoot to compensate for spline curvature
-      length: dist(astrocyte.x, astrocyte.y, cleft.x, cleft.y) * 1.15,
+      length: dist(astrocyte.x, astrocyte.y, cleft.x, cleft.y) * 1.1,
       wobble: random(TWO_PI),
-      target: cleft
+      cleft
     });
   });
 }
@@ -109,7 +98,6 @@ function initAstrocyte() {
 // -----------------------------------------------------
 function triggerAstrocyteResponse() {
   astrocyte.endfootGlow = ENDFOOT_GLOW_FRAMES;
-
   setTimeout(() => {
     astrocyte.somaGlow = SOMA_GLOW_FRAMES;
   }, SOMA_GLOW_DELAY * 16);
@@ -125,18 +113,14 @@ function drawAstrocyte() {
   push();
   translate(astrocyte.x, astrocyte.y);
 
-  // ===================================================
-  // SOMA (outline glow only)
-  // ===================================================
+  // ---------------- SOMA (outline glow) ----------------
   noFill();
   strokeWeight(4);
-
   stroke(
     astrocyte.somaGlow > 0
       ? color(255, 235, 120)
       : getColor("astrocyte")
   );
-
   ellipse(0, 0, astrocyte.radius * 2);
 
   // Nucleus
@@ -144,90 +128,55 @@ function drawAstrocyte() {
   fill(190, 80, 210);
   ellipse(0, 0, 10);
 
-  // ===================================================
-  // ARMS
-  // ===================================================
-  stroke(getColor("astrocyte"));
-  strokeWeight(5);
-  noFill();
-
+  // ---------------- ARMS ----------------
   astrocyte.arms.forEach(a => {
 
-    const wob = sin(state.time * 0.001 + a.wobble) * 3;
-
+    const wob = sin(state.time * 0.001 + a.wobble) * 2;
     const L = a.length;
 
-    const cx = cos(a.angle + 0.25) * (L * 0.5);
-    const cy = sin(a.angle + 0.25) * (L * 0.5);
+    const cx = cos(a.angle + 0.2) * (L * 0.5);
+    const cy = sin(a.angle + 0.2) * (L * 0.5);
 
     const ex = cos(a.angle) * (L + wob);
     const ey = sin(a.angle) * (L + wob);
 
-    // Arm spline
+    // Arm
+    stroke(getColor("astrocyte"));
+    strokeWeight(5);
+    noFill();
     beginShape();
     vertex(0, 0);
     quadraticVertex(cx, cy, ex, ey);
     endShape();
 
-    // --------------------------------------------------
-    // DEBUG: arm vector
-    // --------------------------------------------------
-    if (window.DEBUG_ASTROCYTE && a.target) {
-      stroke(0, 200, 255, 120);
-      strokeWeight(2);
-      line(0, 0, ex, ey);
-      stroke(getColor("astrocyte"));
-      strokeWeight(5);
-    }
+    // Endfoot (attached, past cleft)
+    const dx = a.cleft.x - astrocyte.x;
+    const dy = a.cleft.y - astrocyte.y;
+    const mag = sqrt(dx * dx + dy * dy) || 1;
 
-    // --------------------------------------------------
-    // ENDFOOT (LOCKED to arm endpoint)
-    // --------------------------------------------------
-    if (a.target) {
+    const fx = ex + (dx / mag) * 6;
+    const fy = ey + (dy / mag) * 6;
 
-      // Small directional push PAST the cleft
-      const dx = a.target.x - astrocyte.x;
-      const dy = a.target.y - astrocyte.y;
-      const mag = sqrt(dx * dx + dy * dy) || 1;
+    noFill();
+    strokeWeight(3);
+    stroke(
+      astrocyte.endfootGlow > 0
+        ? color(255, 235, 120)
+        : getColor("astrocyte")
+    );
+    ellipse(fx, fy, 10, 6);
 
-      const ux = dx / mag;
-      const uy = dy / mag;
-
-      const fx = ex + ux * 6;
-      const fy = ey + uy * 6;
-
-      noFill();
-      stroke(
-        astrocyte.endfootGlow > 0
-          ? color(255, 235, 120)
-          : getColor("astrocyte")
-      );
-      strokeWeight(3);
-      ellipse(fx, fy, 10, 6);
+    // DEBUG: cleft
+    if (window.DEBUG_ASTROCYTE) {
+      noStroke();
+      fill(255, 60, 60);
+      ellipse(a.cleft.x - astrocyte.x, a.cleft.y - astrocyte.y, 6);
     }
   });
 
-  // ===================================================
-  // DEBUG: synaptic clefts
-  // ===================================================
-  if (window.DEBUG_ASTROCYTE) {
-    noStroke();
-    fill(255, 60, 60);
-    astrocyte.debugClefts.forEach(c =>
-      ellipse(c.x - astrocyte.x, c.y - astrocyte.y, 6)
-    );
-
-    fill(255);
-    textSize(10);
-    text(`EF: ${astrocyte.endfootGlow}`, -22, -42);
-    text(`SO: ${astrocyte.somaGlow}`, -22, -30);
-  }
-
   pop();
 
-  // --------------------------------------------------
-  // Glow decay (slow)
-  // --------------------------------------------------
+  // Glow decay
   astrocyte.endfootGlow = max(0, astrocyte.endfootGlow - 1);
   astrocyte.somaGlow    = max(0, astrocyte.somaGlow - 1);
 }
