@@ -1,20 +1,20 @@
 // =====================================================
-// BLOOD CONTENTS — SYMBOLIC, FLOWING (PATH-ALIGNED)
+// BLOOD CONTENTS — SYMBOLIC, FLOWING (RANDOMIZED MIX)
 // =====================================================
 // ✔ Continuous axial flow
-// ✔ Fixed lumen (no vasomotion)
-// ✔ Sparse, symbolic particles
-// ✔ Discrete shapes only
+// ✔ Randomized longitudinal + radial distribution
+// ✔ Slight per-particle speed variation
+// ✔ Fixed lumen
 // ✔ COLORS.js native
 // ✔ p5 state isolated
 // =====================================================
 
-console.log("🩸 bloodContents v1.1 (continuous flow) loaded");
+console.log("🩸 bloodContents v1.2 (randomized flow) loaded");
 
 const bloodParticles = [];
 
 // -----------------------------------------------------
-// PARTICLE COUNTS (SPARSE, TEACHING-FIRST)
+// PARTICLE COUNTS (SPARSE)
 // -----------------------------------------------------
 
 const BLOOD_COUNTS = {
@@ -25,20 +25,21 @@ const BLOOD_COUNTS = {
 };
 
 // -----------------------------------------------------
-// LANE CONSTRAINTS (FIXED LUMEN SPACE)
+// LANE CONSTRAINTS
 // -----------------------------------------------------
 
 const LANE_MIN = -0.55;
 const LANE_MAX =  0.55;
 
 // -----------------------------------------------------
-// FLOW PARAMETERS (AUTHORITATIVE)
+// FLOW PARAMETERS
 // -----------------------------------------------------
 
-const FLOW_SPEED = 0.00018;   // axial speed per ms (t-units / ms)
+const BASE_FLOW_SPEED = 0.00018; // t-units / ms
+const FLOW_JITTER     = 0.25;    // ±25%
 
 // -----------------------------------------------------
-// INITIALIZE — AFTER arteryPath EXISTS
+// INITIALIZE — RANDOMIZED DISTRIBUTION
 // -----------------------------------------------------
 
 function initBloodContents() {
@@ -54,54 +55,45 @@ function initBloodContents() {
     return;
   }
 
-  let seed = 0;
-
-  const TOTAL =
-    BLOOD_COUNTS.rbcOxy +
-    BLOOD_COUNTS.rbcDeoxy +
-    BLOOD_COUNTS.water +
-    BLOOD_COUNTS.glucose;
-
-  function place(type, count, size, shape, colorName) {
+  function spawn(type, count, size, shape, colorName) {
     const c = COLORS[colorName];
 
     for (let i = 0; i < count; i++) {
-      const t = (seed + i + 1) / (TOTAL + 2);
-      const lane = lerp(LANE_MIN, LANE_MAX, (i % 3) / 2);
-
       bloodParticles.push({
-        t,
-        lane,
-        size,
-        shape,
         type,
-        color: c
+        shape,
+        size,
+        color: c,
+
+        // 🔀 randomized initial position
+        t: random(),
+        lane: random(LANE_MIN, LANE_MAX),
+
+        // 🔀 slight per-particle speed variation
+        speed: BASE_FLOW_SPEED * random(1 - FLOW_JITTER, 1 + FLOW_JITTER)
       });
     }
-    seed += count;
   }
 
   // -----------------------------
-  // SYMBOLIC PARTICLES
+  // SYMBOLIC PARTICLES (MIXED)
   // -----------------------------
 
-  place("rbcOxy",   BLOOD_COUNTS.rbcOxy,   10, "circle", "rbcOxy");
-  place("rbcDeoxy", BLOOD_COUNTS.rbcDeoxy, 10, "circle", "rbcDeoxy");
-  place("water",    BLOOD_COUNTS.water,     6, "circle", "water");
-  place("glucose",  BLOOD_COUNTS.glucose,   5, "square", "glucose");
+  spawn("rbcOxy",   BLOOD_COUNTS.rbcOxy,   10, "circle", "rbcOxy");
+  spawn("rbcDeoxy", BLOOD_COUNTS.rbcDeoxy, 10, "circle", "rbcDeoxy");
+  spawn("water",    BLOOD_COUNTS.water,     6, "circle", "water");
+  spawn("glucose",  BLOOD_COUNTS.glucose,   5, "square", "glucose");
 }
 
 // -----------------------------------------------------
-// UPDATE — CONTINUOUS AXIAL FLOW
+// UPDATE — CONTINUOUS FLOW
 // -----------------------------------------------------
 
 function updateBloodContents() {
-  const dt = state.dt; // ms per frame
+  const dt = state.dt;
 
   for (const p of bloodParticles) {
-    p.t += FLOW_SPEED * dt;
-
-    // wrap cleanly (no popping)
+    p.t += p.speed * dt;
     if (p.t > 1) p.t -= 1;
   }
 }
@@ -111,7 +103,7 @@ function updateBloodContents() {
 // -----------------------------------------------------
 
 function drawBloodContents() {
-  push(); // isolate p5 state
+  push();
 
   rectMode(CENTER);
   noStroke();
@@ -121,7 +113,7 @@ function drawBloodContents() {
     if (!pos) continue;
 
     // -------------------------
-    // Fill color
+    // Color
     // -------------------------
     if (p.type === "glucose") {
       const g = COLORS.glucose;
@@ -131,7 +123,7 @@ function drawBloodContents() {
     }
 
     // -------------------------
-    // Draw shape
+    // Shape
     // -------------------------
     if (p.shape === "circle") {
       circle(pos.x, pos.y, p.size);
@@ -140,7 +132,7 @@ function drawBloodContents() {
     }
 
     // -------------------------
-    // Bound oxygen (oxy RBCs only)
+    // Bound oxygen (oxy RBCs)
     // -------------------------
     if (p.type === "rbcOxy") {
       const o2 = COLORS.oxygen;
@@ -149,7 +141,7 @@ function drawBloodContents() {
     }
   }
 
-  pop(); // restore p5 state
+  pop();
 }
 
 // -----------------------------------------------------
