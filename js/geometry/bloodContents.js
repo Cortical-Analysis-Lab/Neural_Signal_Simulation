@@ -5,11 +5,15 @@
 // ✔ Smooth interpolation
 // ✔ Soft particle collisions
 // ✔ Soft wall interactions
-// ✔ Reload-safe (no redeclare errors)
+// ✔ BBB exit events (AQP4 / GLUT1 / O2)
+// ✔ CSF drift toward neuron 1
+// ✔ Water fades out (astrocytic buffering)
+// ✔ O2 + glucose consumed at soma
+// ✔ Reload-safe
 // ✔ COLORS.js native
 // =====================================================
 
-console.log("🩸 bloodContents v2.0 (reload-safe smooth heartbeat fluid) loaded");
+console.log("🩸 bloodContents v2.2 (BBB + consumption dynamics) loaded");
 
 // -----------------------------------------------------
 // GLOBAL STORAGE (RELOAD SAFE)
@@ -54,6 +58,21 @@ const COLLISION_K  = 0.015;
 const WALL_K       = 0.020;
 const LANE_DAMPING = 0.90;
 
+// -----------------------------------------------------
+// BBB TRANSPORT PROBABILITIES
+// -----------------------------------------------------
+
+const AQP4_PROB   = 0.010;
+const GLUT1_PROB  = 0.008;
+const O2_PROB     = 0.005;
+
+// -----------------------------------------------------
+// CSF CONSUMPTION PARAMETERS
+// -----------------------------------------------------
+
+const WATER_FADE_RATE   = 1.5;   // alpha per frame
+const CONSUME_RADIUS    = 14;    // distance to soma
+
 let lastBeatTime = 0;
 
 // -----------------------------------------------------
@@ -85,13 +104,21 @@ function initBloodContents() {
         size,
         color: c,
 
-        // axial motion
+        // blood motion
         t: t0,
         tTarget: t0,
-
-        // lateral motion
         lane: random(LANE_MIN, LANE_MAX),
-        vLane: 0
+        vLane: 0,
+
+        // CSF motion
+        state: "blood",
+        x: 0,
+        y: 0,
+        vx: 0,
+        vy: 0,
+
+        // visual
+        alpha: 255
       });
     }
   }
@@ -99,25 +126,77 @@ function initBloodContents() {
   spawn("rbcOxy",   BLOOD_COUNTS.rbcOxy,   10, "circle", "rbcOxy");
   spawn("rbcDeoxy", BLOOD_COUNTS.rbcDeoxy, 10, "circle", "rbcDeoxy");
   spawn("water",    BLOOD_COUNTS.water,     6, "circle", "water");
-  spawn("glucose",  BLOOD_COUNTS.glucose,   5 * 2.5, "square", "glucose");
+  spawn("glucose",  BLOOD_COUNTS.glucose,   12, "square", "glucose");
 }
 
 // -----------------------------------------------------
-// UPDATE — HEARTBEAT + MICRO-PHYSICS
+// UPDATE
 // -----------------------------------------------------
 
 function updateBloodContents() {
   const now = state.time;
 
-  // -------------------------
-  // Heartbeat step
-  // -------------------------
+  // =====================================================
+  // BBB EXIT EVENTS
+  // =====================================================
+
+  for (const p of bloodParticles) {
+    if (p.state !== "blood") continue;
+
+    if (p.type === "water" && Math.abs(p.lane) > 0.48 && random() < AQP4_PROB) {
+      const pos = getArteryPoint(p.t, p.lane);
+      if (!pos) continue;
+
+      Object.assign(p, {
+        state: "csf",
+        x: pos.x,
+        y: pos.y,
+        vx: random(-0.3, 0.3),
+        vy: random(-0.2, 0.2),
+        alpha: 200
+      });
+      continue;
+    }
+
+    if (p.type === "glucose" && Math.abs(p.lane) > 0.45 && random() < GLUT1_PROB) {
+      const pos = getArteryPoint(p.t, p.lane);
+      if (!pos) continue;
+
+      Object.assign(p, {
+        state: "csf",
+        x: pos.x,
+        y: pos.y,
+        vx: random(-0.25, 0.25),
+        vy: random(-0.15, 0.15)
+      });
+      continue;
+    }
+
+    if (p.type === "rbcOxy" && random() < O2_PROB) {
+      const pos = getArteryPoint(p.t, p.lane);
+      if (!pos) continue;
+
+      Object.assign(p, {
+        state: "csf",
+        x: pos.x,
+        y: pos.y,
+        vx: random(-0.35, 0.35),
+        vy: random(-0.2, 0.2)
+      });
+    }
+  }
+
+  // =====================================================
+  // HEARTBEAT TRANSPORT (BLOOD ONLY)
+  // =====================================================
+
   if (now - lastBeatTime >= BEAT_INTERVAL) {
     lastBeatTime = now;
 
     for (const p of bloodParticles) {
-      p.tTarget += FLOW_STEP;
+      if (p.state !== "blood") continue;
 
+      p.tTarget += FLOW_STEP;
       if (p.tTarget > 1) {
         p.tTarget -= 1;
         p.t = p.tTarget;
@@ -127,54 +206,47 @@ function updateBloodContents() {
     }
   }
 
-  // -------------------------
-  // Smooth axial motion
-  // -------------------------
   for (const p of bloodParticles) {
-    p.t += (p.tTarget - p.t) * T_EASE;
+    if (p.state === "blood") {
+      p.t += (p.tTarget - p.t) * T_EASE;
+    }
   }
 
-  // -------------------------
-  // Soft particle collisions (lane only)
-  // -------------------------
-  for (let i = 0; i < bloodParticles.length; i++) {
-    const a = bloodParticles[i];
+  // =====================================================
+  // CSF DRIFT + CONSUMPTION
+  // =====================================================
 
-    for (let j = i + 1; j < bloodParticles.length; j++) {
-      const b = bloodParticles[j];
+  if (window.neuron && neuron.soma) {
+    for (let i = bloodParticles.length - 1; i >= 0; i--) {
+      const p = bloodParticles[i];
+      if (p.state !== "csf") continue;
 
-      const dl = a.lane - b.lane;
-      const dist = Math.abs(dl);
+      const dx = neuron.soma.x - p.x;
+      const dy = neuron.soma.y - p.y;
+      const d  = sqrt(dx*dx + dy*dy) + 0.001;
 
-      if (dist > 0 && dist < COLLISION_R) {
-        const push = (COLLISION_R - dist) * COLLISION_K;
-        const dir  = dl / dist;
+      // Drift
+      p.vx += (dx / d) * 0.02;
+      p.vy += (dy / d) * 0.02;
+      p.vx *= 0.95;
+      p.vy *= 0.95;
+      p.x  += p.vx;
+      p.y  += p.vy;
 
-        a.vLane += dir * push;
-        b.vLane -= dir * push;
+      // Water fades out
+      if (p.type === "water") {
+        p.alpha -= WATER_FADE_RATE;
+        if (p.alpha <= 0) {
+          bloodParticles.splice(i, 1);
+        }
+        continue;
+      }
+
+      // Oxygen & glucose consumed at soma
+      if ((p.type === "glucose" || p.type === "rbcOxy") && d < CONSUME_RADIUS) {
+        bloodParticles.splice(i, 1);
       }
     }
-  }
-
-  // -------------------------
-  // Wall interaction
-  // -------------------------
-  for (const p of bloodParticles) {
-    if (p.lane < LANE_MIN) {
-      p.vLane += (LANE_MIN - p.lane) * WALL_K;
-    }
-    if (p.lane > LANE_MAX) {
-      p.vLane += (LANE_MAX - p.lane) * WALL_K;
-    }
-  }
-
-  // -------------------------
-  // Integrate lateral motion
-  // -------------------------
-  for (const p of bloodParticles) {
-    p.lane += p.vLane;
-    p.vLane *= LANE_DAMPING;
-    p.lane = constrain(p.lane, LANE_MIN, LANE_MAX);
   }
 }
 
@@ -188,28 +260,22 @@ function drawBloodContents() {
   noStroke();
 
   for (const p of bloodParticles) {
-    const pos = getArteryPoint(p.t, p.lane);
+    const pos = p.state === "blood"
+      ? getArteryPoint(p.t, p.lane)
+      : { x: p.x, y: p.y };
+
     if (!pos) continue;
 
-    // color
-    if (p.type === "glucose") {
-      const g = COLORS.glucose;
-      fill(g[0], g[1], g[2], 180);
-    } else {
-      fill(p.color[0], p.color[1], p.color[2]);
-    }
+    fill(p.color[0], p.color[1], p.color[2], p.alpha);
 
-    // shape
     if (p.shape === "circle") {
       circle(pos.x, pos.y, p.size);
     } else {
       rect(pos.x, pos.y, p.size * 0.7, p.size * 0.7);
     }
 
-    // oxygen dot
     if (p.type === "rbcOxy") {
-      const o2 = COLORS.oxygen;
-      fill(o2[0], o2[1], o2[2]);
+      fill(COLORS.oxygen[0], COLORS.oxygen[1], COLORS.oxygen[2], p.alpha);
       circle(pos.x + 3, pos.y - 3, 3);
     }
   }
