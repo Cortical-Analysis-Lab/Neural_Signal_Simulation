@@ -205,8 +205,8 @@ function drawArtery() {
   }
   pop();
 
-  // =========================
-// ASTROCYTES (BIOLOGICAL: LARGE SOMA + 2 ARMS + GAP-SPANNING ENDFEET)
+// =========================
+// ASTROCYTES (TWO ARMS, ENDFEET ALWAYS SPAN PERICYTE GAPS)
 // =========================
 for (let i = 10; i < arteryPath.length - 14; i += 22) {
 
@@ -225,7 +225,7 @@ for (let i = 10; i < arteryPath.length - 14; i += 22) {
   for (let side of [-1, 1]) {
 
     // -------------------------------------------------
-    // ASTROCYTE SOMA (LARGE, STABLE, READABLE)
+    // Soma (unchanged)
     // -------------------------------------------------
     const somaX = pCenter.x + side * (wallOffset + 65);
     const somaY = pCenter.y + 18 * sin(pCenter.phase);
@@ -233,59 +233,73 @@ for (let i = 10; i < arteryPath.length - 14; i += 22) {
     push();
     noStroke();
     fill(getColor("astrocyte"));
-    ellipse(somaX, somaY, 28, 28); // ↑ increased size
+    ellipse(somaX, somaY, 28, 28);
     pop();
 
-    // -------------------------------------------------
-    // ARM 1 — UPSTREAM
-    // -------------------------------------------------
+    // =================================================
+    // UPSTREAM ARM + ENDFOOT
+    // =================================================
+    const upMidX = (pUp.x + pCenter.x) / 2;
+    const upMidY = (pUp.y + pCenter.y) / 2;
+
+    const upGap =
+      dist(pUp.x, pUp.y, pCenter.x, pCenter.y) * 0.9;
+
+    // arm
     push();
     stroke(getColor("astrocyte"));
     strokeWeight(4);
     line(
       somaX,
       somaY,
-      (pUp.x + pCenter.x) / 2 + side * (wallOffset + 14),
-      (pUp.y + pCenter.y) / 2
+      upMidX + side * (wallOffset + 14),
+      upMidY
     );
     pop();
 
-    // upstream endfoot
+    // endfoot
     push();
     noStroke();
     fill(getColor("astrocyte"));
     translate(
-      (pUp.x + pCenter.x) / 2 + side * (wallOffset + 14 + wob),
-      (pUp.y + pCenter.y) / 2
+      upMidX + side * (wallOffset + 14 + wob),
+      upMidY
     );
     rotate(atan2(pCenter.y - pUp.y, pCenter.x - pUp.x));
-    ellipse(0, 0, 38, 10); // spans gap
+    ellipse(0, 0, upGap, 10);
     pop();
 
-    // -------------------------------------------------
-    // ARM 2 — DOWNSTREAM
-    // -------------------------------------------------
+    // =================================================
+    // DOWNSTREAM ARM + ENDFOOT
+    // =================================================
+    const downMidX = (pCenter.x + pDown.x) / 2;
+    const downMidY = (pCenter.y + pDown.y) / 2;
+
+    const downGap =
+      dist(pCenter.x, pCenter.y, pDown.x, pDown.y) * 0.9;
+
+    // arm
     push();
     stroke(getColor("astrocyte"));
     strokeWeight(4);
     line(
       somaX,
       somaY,
-      (pCenter.x + pDown.x) / 2 + side * (wallOffset + 14),
-      (pCenter.y + pDown.y) / 2
+      downMidX + side * (wallOffset + 14),
+      downMidY
     );
     pop();
 
-    // downstream endfoot
+    // endfoot
     push();
     noStroke();
     fill(getColor("astrocyte"));
     translate(
-      (pCenter.x + pDown.x) / 2 + side * (wallOffset + 14 + wob),
-      (pCenter.y + pDown.y) / 2
+      downMidX + side * (wallOffset + 14 + wob),
+      downMidY
     );
     rotate(atan2(pDown.y - pCenter.y, pDown.x - pCenter.x));
-    ellipse(0, 0, 38, 10); // spans gap
+    ellipse(0, 0, downGap, 10);
     pop();
   }
 }
