@@ -3,28 +3,8 @@
 // =====================================================
 console.log("astrocyteGeometry loaded (interactive endfeet)");
 
-
 // -----------------------------------------------------
-// Manual endfoot placement (authoritative)
-// -----------------------------------------------------
-astrocyte.endfeet = [null, null];
-astrocyte._endfootIndex = 0;
-
-function astrocyteMousePressed(x, y) {
-  const i = astrocyte._endfootIndex % 2;
-
-  astrocyte.endfeet[i] = { x, y };
-  astrocyte._endfootIndex++;
-
-  console.log(
-    `🟣 Endfoot ${i} placed at (${x.toFixed(1)}, ${y.toFixed(1)})`
-  );
-}
-
-window.astrocyteMousePressed = astrocyteMousePressed;
-
-// -----------------------------------------------------
-// Astrocyte object
+// Astrocyte object (DECLARE FIRST)
 // -----------------------------------------------------
 const astrocyte = {
   x: 0,
@@ -45,7 +25,7 @@ const astrocyte = {
 // Glow timing (VERY SLOW)
 // -----------------------------------------------------
 const ENDFOOT_GLOW_FRAMES = 30;
-const BORDER_PROP_SPEED  = 0.003; // 🔑 slow angular propagation
+const BORDER_PROP_SPEED  = 0.003; // slow angular propagation
 const SOMA_GLOW_TRIGGER  = 0.95;
 const SOMA_GLOW_FRAMES   = 40;
 
@@ -53,7 +33,6 @@ const SOMA_GLOW_FRAMES   = 40;
 // Initialize astrocyte
 // -----------------------------------------------------
 function initAstrocyte() {
-
   if (!neuron2?.soma || !neuron3?.soma) return;
 
   // Place soma between neuron 2 & 3
@@ -101,13 +80,11 @@ function rebuildAstrocyteArms() {
 // USER INPUT — SHIFT + CLICK to place endfeet
 // -----------------------------------------------------
 function astrocyteMousePressed(worldX, worldY) {
-  if (!keyIsDown(SHIFT)) return;
 
-  // Find slot (first empty or overwrite nearest)
+  // Find first empty slot, else overwrite nearest
   let idx = astrocyte.endfeet.findIndex(e => e === null);
 
   if (idx === -1) {
-    // overwrite nearest
     let minD = Infinity;
     idx = 0;
     astrocyte.endfeet.forEach((e, i) => {
@@ -124,6 +101,11 @@ function astrocyteMousePressed(worldX, worldY) {
   astrocyte.borderGlowPhase = 0;
 
   rebuildAstrocyteArms();
+
+  // 🔑 AUTHORITATIVE LOG
+  console.log(
+    `🟣 Astrocyte endfoot ${idx}: (${worldX.toFixed(1)}, ${worldY.toFixed(1)})`
+  );
 }
 
 // -----------------------------------------------------
@@ -205,7 +187,6 @@ function drawAstrocyte() {
       fill(getColor("astrocyte"));
       ellipse(ex, ey, 12, 8);
 
-      // Glow ring
       const idx = astrocyte.endfeet.indexOf(a.target);
       if (idx !== -1 && astrocyte.endfootGlow[idx] > 0) {
         stroke(255, 235, 120, 160);
