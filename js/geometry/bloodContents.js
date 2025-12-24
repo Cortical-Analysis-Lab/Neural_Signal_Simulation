@@ -1,20 +1,20 @@
 // =====================================================
-// BLOOD CONTENTS — SYMBOLIC, FLOWING (RANDOMIZED MIX)
+// BLOOD CONTENTS — SYMBOLIC, WAVE-DRIVEN FLOW
 // =====================================================
-// ✔ Continuous axial flow
-// ✔ Randomized longitudinal + radial distribution
-// ✔ Slight per-particle speed variation
+// ✔ Motion ONLY during wave passage
+// ✔ No continuous drift
 // ✔ Fixed lumen
+// ✔ Randomized mix
 // ✔ COLORS.js native
 // ✔ p5 state isolated
 // =====================================================
 
-console.log("🩸 bloodContents v1.2 (randomized flow) loaded");
+console.log("🩸 bloodContents v1.3 (wave-driven flow) loaded");
 
 const bloodParticles = [];
 
 // -----------------------------------------------------
-// PARTICLE COUNTS (SPARSE)
+// PARTICLE COUNTS (DOUBLED, AS REQUESTED)
 // -----------------------------------------------------
 
 const BLOOD_COUNTS = {
@@ -24,7 +24,6 @@ const BLOOD_COUNTS = {
   glucose:  12
 };
 
-
 // -----------------------------------------------------
 // LANE CONSTRAINTS
 // -----------------------------------------------------
@@ -33,11 +32,12 @@ const LANE_MIN = -0.55;
 const LANE_MAX =  0.55;
 
 // -----------------------------------------------------
-// FLOW PARAMETERS
+// WAVE PARAMETERS (AUTHORITATIVE)
 // -----------------------------------------------------
 
-const BASE_FLOW_SPEED = 0.00018; // t-units / ms
-const FLOW_JITTER     = 0.25;    // ±25%
+const WAVE_SPEED      = 0.0009;   // wave speed along artery (t/ms)
+const WAVE_WIDTH      = 0.06;     // spatial width of pushing region
+const WAVE_PUSH_AMT   = 0.012;    // how far particles move per wave pass
 
 // -----------------------------------------------------
 // INITIALIZE — RANDOMIZED DISTRIBUTION
@@ -66,19 +66,12 @@ function initBloodContents() {
         size,
         color: c,
 
-        // 🔀 randomized initial position
+        // randomized initial placement
         t: random(),
-        lane: random(LANE_MIN, LANE_MAX),
-
-        // 🔀 slight per-particle speed variation
-        speed: BASE_FLOW_SPEED * random(1 - FLOW_JITTER, 1 + FLOW_JITTER)
+        lane: random(LANE_MIN, LANE_MAX)
       });
     }
   }
-
-  // -----------------------------
-  // SYMBOLIC PARTICLES (MIXED)
-  // -----------------------------
 
   spawn("rbcOxy",   BLOOD_COUNTS.rbcOxy,   10, "circle", "rbcOxy");
   spawn("rbcDeoxy", BLOOD_COUNTS.rbcDeoxy, 10, "circle", "rbcDeoxy");
@@ -87,15 +80,26 @@ function initBloodContents() {
 }
 
 // -----------------------------------------------------
-// UPDATE — CONTINUOUS FLOW
+// UPDATE — WAVE-DRIVEN ONLY
 // -----------------------------------------------------
 
 function updateBloodContents() {
-  const dt = state.dt;
+  const waveHead = (state.time * WAVE_SPEED) % 1;
 
   for (const p of bloodParticles) {
-    p.t += p.speed * dt;
-    if (p.t > 1) p.t -= 1;
+
+    // distance from wave crest (circular)
+    let d = abs(p.t - waveHead);
+    d = min(d, 1 - d);
+
+    // Only move if wave is passing
+    if (d < WAVE_WIDTH) {
+      const strength = 1 - d / WAVE_WIDTH;
+      p.t += WAVE_PUSH_AMT * strength;
+
+      // wrap cleanly
+      if (p.t > 1) p.t -= 1;
+    }
   }
 }
 
@@ -113,9 +117,7 @@ function drawBloodContents() {
     const pos = getArteryPoint(p.t, p.lane);
     if (!pos) continue;
 
-    // -------------------------
-    // Color
-    // -------------------------
+    // color
     if (p.type === "glucose") {
       const g = COLORS.glucose;
       fill(g[0], g[1], g[2], 180);
@@ -123,18 +125,14 @@ function drawBloodContents() {
       fill(p.color[0], p.color[1], p.color[2]);
     }
 
-    // -------------------------
-    // Shape
-    // -------------------------
+    // shape
     if (p.shape === "circle") {
       circle(pos.x, pos.y, p.size);
     } else {
       rect(pos.x, pos.y, p.size * 0.7, p.size * 0.7);
     }
 
-    // -------------------------
-    // Bound oxygen (oxy RBCs)
-    // -------------------------
+    // bound oxygen
     if (p.type === "rbcOxy") {
       const o2 = COLORS.oxygen;
       fill(o2[0], o2[1], o2[2]);
