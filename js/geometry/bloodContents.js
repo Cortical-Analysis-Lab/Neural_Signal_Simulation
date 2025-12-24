@@ -101,21 +101,44 @@ function updateBloodContents() {
 
   for (const p of bloodParticles) {
 
-    // base longitudinal position
-    const baseT = (p.t0 + p.t + 1) % 1;
+    // initialize velocity once
+    if (p.v === undefined) p.v = 0;
 
-    // distance from wave
-    let d = abs(baseT - waveHead);
+    // circular distance to wave peak
+    let d = abs(p.t - waveHead);
     d = min(d, 1 - d);
 
     // -------------------------
-    // Pulse interaction (LOCAL)
+    // Wave injects forward impulse
     // -------------------------
-    if (d < WAVE_WIDTH && random() < 0.35) {
-      // only some particles respond → breaks packets
-      p.t += STEP_FORWARD * random(0.6, 1.2);
-      p.lane += JITTER_LATERAL * random(-1, 1);
+    if (d < WAVE_WIDTH) {
+      const strength = 1 - d / WAVE_WIDTH;
+
+      // add forward momentum
+      p.v += WAVE_PUSH_FORWARD * strength;
     }
+
+    // -------------------------
+    // Apply transport
+    // -------------------------
+    p.t += p.v;
+
+    // -------------------------
+    // Viscous damping (blood slows after pulse)
+    // -------------------------
+    p.v *= 0.88; // settles to rest between waves
+
+    // -------------------------
+    // Recycling (continuous inflow)
+    // -------------------------
+    if (p.t > 1) {
+      p.t -= 1;
+      p.v = 0; // new blood enters at rest
+      p.lane0 = random(LANE_MIN, LANE_MAX);
+    }
+  }
+}
+
 
     // -------------------------
     // Relaxation toward background
