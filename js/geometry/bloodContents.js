@@ -1,16 +1,16 @@
 // =====================================================
-// BLOOD CONTENTS — PULSE-GATED CONTINUOUS FLOW
+// BLOOD CONTENTS — HEARTBEAT-STEPPED FLOW
 // =====================================================
 // ✔ Elements always distributed
-// ✔ Elements only move when pulse arrives
-// ✔ Net downstream transport across pulses
-// ✔ Elements settle to rest after pulse
-// ✔ No clumping, no slabs
+// ✔ Elements move only on heartbeat
+// ✔ Discrete step → pause → step
+// ✔ Net downstream transport
+// ✔ No waves, no jitter, no clumps
 // ✔ COLORS.js native
 // ✔ p5 state isolated
 // =====================================================
 
-console.log("🩸 bloodContents v1.7 (pulse-gated continuous flow) loaded");
+console.log("🩸 bloodContents v1.8 (heartbeat-stepped flow) loaded");
 
 const bloodParticles = [];
 
@@ -33,13 +33,14 @@ const LANE_MIN = -0.55;
 const LANE_MAX =  0.55;
 
 // -----------------------------------------------------
-// PULSE PARAMETERS
+// HEARTBEAT PARAMETERS
 // -----------------------------------------------------
 
-const WAVE_SPEED        = 0.0009;  // t / ms
-const WAVE_WIDTH        = 0.10;    // spatial influence
-const WAVE_PUSH_FORWARD = 0.018;   // impulse strength
-const VELOCITY_DECAY    = 0.86;    // viscous settling
+const HEART_RATE_BPM = 72;
+const BEAT_INTERVAL = 60000 / HEART_RATE_BPM; // ms per beat
+const FLOW_STEP     = 0.012;                  // t-units per beat
+
+let lastBeatTime = 0;
 
 // -----------------------------------------------------
 // INITIALIZE — UNIFORM DISTRIBUTION
@@ -71,11 +72,8 @@ function initBloodContents() {
         // longitudinal position
         t: random(),
 
-        // radial equilibrium
-        lane0: random(LANE_MIN, LANE_MAX),
-
-        // dynamic state
-        v: 0
+        // radial lane
+        lane: random(LANE_MIN, LANE_MAX)
       });
     }
   }
@@ -87,43 +85,24 @@ function initBloodContents() {
 }
 
 // -----------------------------------------------------
-// UPDATE — PULSE-GATED TRANSPORT
+// UPDATE — HEARTBEAT-GATED TRANSPORT
 // -----------------------------------------------------
 
 function updateBloodContents() {
-  const waveHead = (state.time * WAVE_SPEED) % 1;
+  const now = state.time;
 
-  for (const p of bloodParticles) {
+  // Heartbeat check
+  if (now - lastBeatTime >= BEAT_INTERVAL) {
+    lastBeatTime = now;
 
-    // circular distance to wave peak
-    let d = Math.abs(p.t - waveHead);
-    d = Math.min(d, 1 - d);
+    for (const p of bloodParticles) {
+      p.t += FLOW_STEP;
 
-    // -------------------------
-    // Wave injects forward impulse
-    // -------------------------
-    if (d < WAVE_WIDTH) {
-      const strength = 1 - d / WAVE_WIDTH;
-      p.v += WAVE_PUSH_FORWARD * strength;
-    }
-
-    // -------------------------
-    // Apply velocity
-    // -------------------------
-    p.t += p.v;
-
-    // -------------------------
-    // Viscous decay (settles after wave)
-    // -------------------------
-    p.v *= VELOCITY_DECAY;
-
-    // -------------------------
-    // Recycling (continuous inflow)
-    // -------------------------
-    if (p.t > 1) {
-      p.t -= 1;
-      p.v = 0;
-      p.lane0 = random(LANE_MIN, LANE_MAX);
+      // wrap → new blood enters upstream
+      if (p.t > 1) {
+        p.t -= 1;
+        p.lane = random(LANE_MIN, LANE_MAX);
+      }
     }
   }
 }
@@ -138,7 +117,7 @@ function drawBloodContents() {
   noStroke();
 
   for (const p of bloodParticles) {
-    const pos = getArteryPoint(p.t, p.lane0);
+    const pos = getArteryPoint(p.t, p.lane);
     if (!pos) continue;
 
     // color
