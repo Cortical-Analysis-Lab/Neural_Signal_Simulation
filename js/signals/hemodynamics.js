@@ -13,7 +13,7 @@ console.log("💓 hemodynamics loaded");
 // -----------------------------------------------------
 
 let heartRate = 72;         // bpm
-let vasomotionRate = 0.08; // Hz
+let vasomotionRate = 0.05; // Hz
 
 let cardiacPhase = 0;      // 0 → 1
 let vasoPhase    = 0;      // 0 → 1
