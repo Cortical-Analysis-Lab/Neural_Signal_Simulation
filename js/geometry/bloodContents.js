@@ -1,22 +1,21 @@
 // =====================================================
-// BLOOD CONTENTS — PULSE-DRIVEN TRANSPORT
+// BLOOD CONTENTS — DISTRIBUTED PULSE INTERACTION
 // =====================================================
-// ✔ Blood moves ONLY when wave passes
-// ✔ Net downstream transport per pulse
-// ✔ Local agitation + bounce
-// ✔ New elements introduced upstream
-// ✔ No continuous drift
-// ✔ No lumen fill
+// ✔ Continuous distribution everywhere
+// ✔ Wave perturbs local elements only
+// ✔ No packet transport
+// ✔ No empty regions
+// ✔ New elements appear independently
 // ✔ COLORS.js native
 // ✔ p5 state isolated
 // =====================================================
 
-console.log("🩸 bloodContents v1.5 (pulse-driven transport) loaded");
+console.log("🩸 bloodContents v1.6 (distributed pulse interaction) loaded");
 
 const bloodParticles = [];
 
 // -----------------------------------------------------
-// PARTICLE COUNTS
+// PARTICLE COUNTS (FINAL)
 // -----------------------------------------------------
 
 const BLOOD_COUNTS = {
@@ -26,6 +25,12 @@ const BLOOD_COUNTS = {
   glucose:  12
 };
 
+const TOTAL_PARTICLES =
+  BLOOD_COUNTS.rbcOxy +
+  BLOOD_COUNTS.rbcDeoxy +
+  BLOOD_COUNTS.water +
+  BLOOD_COUNTS.glucose;
+
 // -----------------------------------------------------
 // LANE CONSTRAINTS
 // -----------------------------------------------------
@@ -34,18 +39,17 @@ const LANE_MIN = -0.55;
 const LANE_MAX =  0.55;
 
 // -----------------------------------------------------
-// WAVE / TRANSPORT PARAMETERS
+// PULSE PARAMETERS
 // -----------------------------------------------------
 
-const WAVE_SPEED        = 0.0009;   // wave speed (t / ms)
-const WAVE_WIDTH        = 0.08;     // spatial width of wave influence
-const WAVE_PUSH_FORWARD = 0.02;     // NET forward transport per pulse
-const WAVE_JITTER_T     = 0.01;     // longitudinal agitation
-const WAVE_JITTER_L     = 0.10;     // lateral agitation
-const RELAX_DECAY       = 0.85;     // relaxation per frame
+const WAVE_SPEED       = 0.0009;
+const WAVE_WIDTH       = 0.10;
+const STEP_FORWARD     = 0.006;   // small, non-transporting
+const JITTER_LATERAL   = 0.08;
+const RELAX_RATE       = 0.06;    // relax toward equilibrium
 
 // -----------------------------------------------------
-// INITIALIZE — RANDOM DISTRIBUTION
+// INITIALIZE — UNIFORMLY DISTRIBUTED BACKGROUND
 // -----------------------------------------------------
 
 function initBloodContents() {
@@ -61,7 +65,7 @@ function initBloodContents() {
     return;
   }
 
-  function spawn(type, count, size, shape, colorName, tInit = random()) {
+  function spawn(type, count, size, shape, colorName) {
     const c = COLORS[colorName];
 
     for (let i = 0; i < count; i++) {
@@ -71,11 +75,13 @@ function initBloodContents() {
         size,
         color: c,
 
-        t: tInit + random(-0.02, 0.02),
+        // equilibrium position (never empty)
+        t0: random(),
         lane0: random(LANE_MIN, LANE_MAX),
 
-        dt_wave: 0,
-        dl_wave: 0
+        // dynamic offsets
+        t: 0,
+        lane: 0
       });
     }
   }
@@ -87,7 +93,7 @@ function initBloodContents() {
 }
 
 // -----------------------------------------------------
-// UPDATE — PULSE-DRIVEN TRANSPORT
+// UPDATE — LOCAL, DISTRIBUTED WAVE EFFECT
 // -----------------------------------------------------
 
 function updateBloodContents() {
@@ -95,51 +101,32 @@ function updateBloodContents() {
 
   for (const p of bloodParticles) {
 
-    // --- initialize velocity if missing ---
-    if (p.v === undefined) p.v = 0;
+    // base longitudinal position
+    const baseT = (p.t0 + p.t + 1) % 1;
 
-    // circular distance from wave crest
-    let d = abs(p.t - waveHead);
+    // distance from wave
+    let d = abs(baseT - waveHead);
     d = min(d, 1 - d);
 
     // -------------------------
-    // Wave injects MOMENTUM, not position
+    // Pulse interaction (LOCAL)
     // -------------------------
-    if (d < WAVE_WIDTH) {
-      const strength = 1 - d / WAVE_WIDTH;
-
-      // add forward velocity impulse
-      p.v += WAVE_PUSH_FORWARD * strength * random(0.6, 1.2);
-
-      // lateral agitation (unchanged)
-      p.dl_wave += WAVE_JITTER_L * strength * random(-1, 1);
+    if (d < WAVE_WIDTH && random() < 0.35) {
+      // only some particles respond → breaks packets
+      p.t += STEP_FORWARD * random(0.6, 1.2);
+      p.lane += JITTER_LATERAL * random(-1, 1);
     }
 
     // -------------------------
-    // Apply velocity (transport)
+    // Relaxation toward background
     // -------------------------
-    p.t += p.v;
-
-    // -------------------------
-    // Viscous decay (blood viscosity)
-    // -------------------------
-    p.v *= 0.90;   // ← key line: breaks packet coherence
-    p.dl_wave *= RELAX_DECAY;
-
-    // -------------------------
-    // Recycling (new blood enters)
-    // -------------------------
-    if (p.t > 1) {
-      p.t -= 1;
-      p.v = 0;
-      p.lane0 = random(LANE_MIN, LANE_MAX);
-      p.dl_wave = 0;
-    }
+    p.t *= (1 - RELAX_RATE);
+    p.lane *= (1 - RELAX_RATE);
   }
 }
 
 // -----------------------------------------------------
-// DRAW — TRANSPORT + AGITATION
+// DRAW — BACKGROUND + LOCAL OFFSETS
 // -----------------------------------------------------
 
 function drawBloodContents() {
@@ -149,13 +136,14 @@ function drawBloodContents() {
 
   for (const p of bloodParticles) {
 
+    const t = (p.t0 + p.t + 1) % 1;
     const lane = constrain(
-      p.lane0 + p.dl_wave,
+      p.lane0 + p.lane,
       LANE_MIN,
       LANE_MAX
     );
 
-    const pos = getArteryPoint(p.t, lane);
+    const pos = getArteryPoint(t, lane);
     if (!pos) continue;
 
     // color
