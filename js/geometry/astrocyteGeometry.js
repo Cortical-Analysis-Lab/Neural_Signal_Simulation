@@ -32,7 +32,7 @@ function initAstrocyte() {
   astrocyte.arms.length = 0;
 
   // =====================================================
-  // 3. BASE ORGANIC RADIAL ARMS (STRUCTURE)
+  // 3. BASE ORGANIC RADIAL ARMS
   // =====================================================
   const baseArmCount = 7;
 
@@ -49,7 +49,7 @@ function initAstrocyte() {
   }
 
   // =====================================================
-  // 4. TARGETED PERISYNAPTIC ARMS (FUNCTION)
+  // 4. TARGETED PERISYNAPTIC ARMS
   // =====================================================
   const targets = [];
 
@@ -96,7 +96,7 @@ function drawAstrocyte() {
   ellipse(0, 0, 10);
 
   // =====================================================
-  // ARMS (ORGANIC + PERISYNAPTIC)
+  // ARMS
   // =====================================================
   stroke(getColor("astrocyte"));
   strokeWeight(5);
@@ -106,23 +106,34 @@ function drawAstrocyte() {
 
     const wob = sin(state.time * 0.001 + a.wobble) * 4;
 
+    // --------------------------------------------------
+    // 🔑 SLIGHT EXTENSION FOR LEFT-FACING PERISYNAPTIC ARMS
+    // --------------------------------------------------
+    let lengthScale = 1.0;
+
+    if (a.target && cos(a.angle) < 0) {
+      lengthScale = 1.25; // extend by 25%
+    }
+
+    const effectiveLength = a.length * lengthScale;
+
     const x1 = cos(a.angle) * astrocyte.radius;
     const y1 = sin(a.angle) * astrocyte.radius;
 
-    const x2 = cos(a.angle + 0.25) * (a.length * 0.5);
-    const y2 = sin(a.angle + 0.25) * (a.length * 0.5);
+    const x2 = cos(a.angle + 0.25) * (effectiveLength * 0.5);
+    const y2 = sin(a.angle + 0.25) * (effectiveLength * 0.5);
 
-    const x3 = cos(a.angle) * (a.length + wob);
-    const y3 = sin(a.angle) * (a.length + wob);
+    const x3 = cos(a.angle) * (effectiveLength + wob);
+    const y3 = sin(a.angle) * (effectiveLength + wob);
 
     beginShape();
     vertex(0, 0);
     quadraticVertex(x2, y2, x3, y3);
     endShape();
 
-    // ---------------------------------------------------
-    // Perisynaptic endfoot (visual cue)
-    // ---------------------------------------------------
+    // --------------------------------------------------
+    // Perisynaptic endfoot
+    // --------------------------------------------------
     if (a.target) {
       push();
       translate(x3, y3);
@@ -139,5 +150,5 @@ function drawAstrocyte() {
 // -----------------------------------------------------
 // EXPORTS
 // -----------------------------------------------------
-window.initAstrocyte  = initAstrocyte;
-window.drawAstrocyte  = drawAstrocyte;
+window.initAstrocyte = initAstrocyte;
+window.drawAstrocyte = drawAstrocyte;
