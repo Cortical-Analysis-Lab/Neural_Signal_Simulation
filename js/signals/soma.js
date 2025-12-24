@@ -43,9 +43,6 @@ const soma = {
 // -----------------------------------------------------
 // PSP arrival at soma (EPSP / IPSP)
 // -----------------------------------------------------
-// -----------------------------------------------------
-// PSP arrival at soma (EPSP / IPSP)
-// -----------------------------------------------------
 function addEPSPToSoma(amplitude, type, sourceNeuron = 1) {
 
   // 🚫 Ignore IPSPs originating from neuron 3
@@ -85,6 +82,13 @@ function updateSoma() {
         soma.Vm = 40;
         soma.apState = AP.PEAK;
         soma.apTimer = AP_PARAMS.peakHold;
+
+        // =================================================
+        // 🩸 NEUROVASCULAR / METABOLIC COUPLING TRIGGER
+        // =================================================
+        window.metabolicBoost = 2.0;          // 2× transport
+        window.metabolicBoostTimer = 600;     // ms duration
+        // =================================================
 
         // Fire axon ONCE at peak
         spawnAxonSpike();
