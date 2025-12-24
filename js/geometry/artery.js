@@ -100,7 +100,7 @@ function getLumenAlpha(lane) {
 }
 
 // =====================================================
-// DRAW ARTERY (WALLS ONLY — NO LUMEN FILL)
+// DRAW ARTERY + BBB (NO LUMEN FILL)
 // =====================================================
 function drawArtery() {
   if (!arteryPath.length) return;
@@ -113,48 +113,109 @@ function drawArtery() {
   noFill();
 
   // =========================
-  // BLOOD CONTENTS (STATIC LUMEN)
+  // BLOOD CONTENTS (LUMEN)
   // =========================
   if (typeof drawBloodContents === "function") {
     drawBloodContents();
   }
 
   // =========================
-  // LEFT WALL
+  // BBB — ENDOTHELIUM (INNER LINING)
+  // =========================
+  stroke(getColor("endothelium", 200));
+  strokeWeight(5);
+
+  for (let i = 0; i < arteryPath.length - 1; i += 3) {
+    const p0 = arteryPath[i];
+    const p1 = arteryPath[i + 1];
+
+    const wobbleL =
+      WALL_WOBBLE_AMP * sin(t * 0.002 + p0.phase);
+    const wobbleR =
+      WALL_WOBBLE_AMP * sin(t * 0.002 + p0.phase + PI);
+
+    // Left endothelial tile
+    line(
+      p0.x - (wallOffset - 5) - wobbleL,
+      p0.y,
+      p1.x - (wallOffset - 5) - wobbleL,
+      p1.y
+    );
+
+    // Right endothelial tile
+    line(
+      p0.x + (wallOffset - 5) + wobbleR,
+      p0.y,
+      p1.x + (wallOffset - 5) + wobbleR,
+      p1.y
+    );
+  }
+
+  // =========================
+  // BBB — ASTROCYTIC ENDFEET
+  // =========================
+  noStroke();
+  fill(getColor("astrocyte", 150));
+
+  for (let i = 0; i < arteryPath.length; i += 4) {
+    const p = arteryPath[i];
+
+    const wobble =
+      WALL_WOBBLE_AMP * sin(t * 0.002 + p.phase);
+
+    // flattened endfeet pads
+    const w = 16;
+    const h = 6;
+
+    // Left endfoot
+    ellipse(
+      p.x - (wallOffset + 12) - wobble,
+      p.y,
+      w,
+      h
+    );
+
+    // Right endfoot
+    ellipse(
+      p.x + (wallOffset + 12) + wobble,
+      p.y,
+      w,
+      h
+    );
+  }
+
+  // =========================
+  // ARTERY WALLS (MUSCULAR)
   // =========================
   stroke(getColor("arteryWall"));
   strokeWeight(8);
+
   beginShape();
   arteryPath.forEach(p => {
     const wobble =
       WALL_WOBBLE_AMP * sin(t * 0.002 + p.phase);
-
     vertex(p.x - wallOffset - wobble, p.y);
   });
   endShape();
 
-  // =========================
-  // RIGHT WALL (OUT OF PHASE)
-  // =========================
   beginShape();
   arteryPath.forEach(p => {
     const wobble =
       WALL_WOBBLE_AMP * sin(t * 0.002 + p.phase + PI);
-
     vertex(p.x + wallOffset + wobble, p.y);
   });
   endShape();
 
   // =========================
-  // SUBTLE INNER HIGHLIGHT
+  // INNER HIGHLIGHT
   // =========================
   stroke(getColor("arteryHighlight", 120));
   strokeWeight(2);
+
   beginShape();
   arteryPath.forEach(p => {
     const wobble =
       0.6 * WALL_WOBBLE_AMP * sin(t * 0.002 + p.phase);
-
     vertex(p.x - wallOffset + 3 - wobble, p.y - 3);
   });
   endShape();
