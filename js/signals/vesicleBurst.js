@@ -21,6 +21,10 @@ const vesicles = [];
 // -----------------------------------------------------
 function spawnVesicleBurst(bouton, postsynaptic) {
 
+    if (typeof triggerAstrocyteGlow === "function") {
+    triggerAstrocyteGlow(1.0);
+  }
+
   // Backward compatibility
   if (arguments.length === 2) {
     // OK
