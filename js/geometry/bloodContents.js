@@ -6,9 +6,10 @@
 // ✔ Sparse (but visible)
 // ✔ Discrete symbols only
 // ✔ No lumen fill
+// ✔ Uses COLORS.js directly (no helpers)
 // =====================================================
 
-console.log("🩸 bloodContents v0.4 (path-aligned static, visible) loaded");
+console.log("🩸 bloodContents v0.6 (COLORS-native) loaded");
 
 const bloodParticles = [];
 
@@ -40,7 +41,8 @@ function initBloodContents() {
   if (
     typeof getArteryPoint !== "function" ||
     !Array.isArray(arteryPath) ||
-    arteryPath.length === 0
+    arteryPath.length === 0 ||
+    typeof COLORS !== "object"
   ) {
     requestAnimationFrame(initBloodContents);
     return;
@@ -54,7 +56,9 @@ function initBloodContents() {
     BLOOD_COUNTS.water +
     BLOOD_COUNTS.glucose;
 
-  function place(type, count, size, shape, color) {
+  function place(type, count, size, shape, colorName) {
+    const c = COLORS[colorName];
+
     for (let i = 0; i < count; i++) {
       const t = (seed + i + 1) / (BLOOD_COUNTS_TOTAL + 2);
       const lane = lerp(LANE_MIN, LANE_MAX, (i % 3) / 2);
@@ -65,7 +69,7 @@ function initBloodContents() {
         size,
         shape,
         type,
-        color
+        color: c
       });
     }
     seed += count;
@@ -75,10 +79,10 @@ function initBloodContents() {
   // SYMBOLIC PARTICLES
   // -----------------------------
 
-  place("rbcOxy",   BLOOD_COUNTS.rbcOxy,   10, "circle", colors.rbcOxy);
-  place("rbcDeoxy", BLOOD_COUNTS.rbcDeoxy, 10, "circle", colors.rbcDeoxy);
-  place("water",    BLOOD_COUNTS.water,     6, "circle", colors.water);
-  place("glucose",  BLOOD_COUNTS.glucose,   7, "square", colors.glucose);
+  place("rbcOxy",   BLOOD_COUNTS.rbcOxy,   10, "circle", "rbcOxy");
+  place("rbcDeoxy", BLOOD_COUNTS.rbcDeoxy, 10, "circle", "rbcDeoxy");
+  place("water",    BLOOD_COUNTS.water,     6, "circle", "water");
+  place("glucose",  BLOOD_COUNTS.glucose,   7, "square", "glucose");
 }
 
 // -----------------------------------------------------
@@ -90,7 +94,7 @@ function updateBloodContents() {
 }
 
 // -----------------------------------------------------
-// DRAW — PATH-ALIGNED SYMBOLS (WITH DIAGNOSTIC OUTLINE)
+// DRAW — PATH-ALIGNED SYMBOLS
 // -----------------------------------------------------
 
 function drawBloodContents() {
@@ -98,10 +102,11 @@ function drawBloodContents() {
     const pos = getArteryPoint(p.t, p.lane);
     if (!pos) continue;
 
-    // 🔍 faint outline for visibility against dark lumen
+    // 🔍 faint diagnostic outline
     stroke(255, 60);
     strokeWeight(1);
-    fill(p.color);
+
+    fill(p.color[0], p.color[1], p.color[2]);
 
     if (p.shape === "circle") {
       circle(pos.x, pos.y, p.size);
@@ -114,7 +119,8 @@ function drawBloodContents() {
 
     // Bound oxygen dot (oxy RBC only)
     if (p.type === "rbcOxy") {
-      fill(255);
+      const o2 = COLORS.oxygen;
+      fill(o2[0], o2[1], o2[2]);
       circle(pos.x + 3, pos.y - 3, 3);
     }
   }
