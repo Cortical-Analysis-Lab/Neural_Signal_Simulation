@@ -1,5 +1,5 @@
 // =====================================================
-// ASTROCYTE GEOMETRY — TRIPARTITE SYNAPSE (NEURON 2 ↔ 3)
+// ASTROCYTE GEOMETRY — TRIPARTITE SYNAPSE (N1↔N2, N1↔N3)
 // =====================================================
 console.log("astrocyteGeometry loaded");
 
@@ -9,56 +9,44 @@ console.log("astrocyteGeometry loaded");
 const astrocyte = {
   x: 0,
   y: 0,
-  radius: 26,
+  radius: 28,
   arms: []
 };
 
 // -----------------------------------------------------
-// Initialize astrocyte near synaptic midpoint
+// Initialize astrocyte between neuron 2 & 3 somas
 // -----------------------------------------------------
 function initAstrocyte() {
 
-  if (!neuron2?.synapses?.length || !neuron3?.synapses?.length) return;
+  if (!neuron2?.soma || !neuron3?.soma || !neuron?.synapses) return;
 
   // -------------------------------------------------
-  // Find centroid between neuron 2 & 3 synapses
+  // Soma position: midpoint between neuron 2 & 3 somas
   // -------------------------------------------------
-  let sx = 0, sy = 0, n = 0;
+  astrocyte.x =
+    (neuron2.soma.x + neuron3.soma.x) * 0.5;
 
-  neuron2.synapses.forEach(s => {
-    sx += s.x;
-    sy += s.y;
-    n++;
-  });
+  astrocyte.y =
+    (neuron2.soma.y + neuron3.soma.y) * 0.5 + 10;
 
-  neuron3.synapses.forEach(s => {
-    sx += s.x;
-    sy += s.y;
-    n++;
-  });
-
-  astrocyte.x = sx / n;
-  astrocyte.y = sy / n - 20; // 🔑 slightly up & between neurons
-
-  // -------------------------------------------------
-  // Select synapses for tripartite contact (1–2)
-  // -------------------------------------------------
   astrocyte.arms.length = 0;
 
-  const targets = [
-    ...(neuron2.synapses || []),
-    ...(neuron3.synapses || [])
-  ]
-    .filter(s =>
-      dist(s.x, s.y, astrocyte.x, astrocyte.y) < 120
-    )
-    .slice(0, 2); // 🔑 only 1–2 arms
+  // -------------------------------------------------
+  // Target synapses from neuron 1 → (2 & 3)
+  // -------------------------------------------------
+  const targets = [];
 
-  targets.forEach(s => {
+  neuron.synapses.forEach(s => {
+    const d = dist(s.x, s.y, astrocyte.x, astrocyte.y);
+    if (d < 140) targets.push(s);
+  });
+
+  targets.slice(0, 2).forEach(s => {
     astrocyte.arms.push({
-      endX: s.x,
-      endY: s.y,
-      wobble: random(TWO_PI)
+      targetX: s.x,
+      targetY: s.y,
+      phase: random(TWO_PI),
+      curl: random(-0.4, 0.4)
     });
   });
 }
@@ -74,43 +62,52 @@ function drawAstrocyte() {
   translate(astrocyte.x, astrocyte.y);
 
   // =============================
-  // Soma
+  // SOMA (star-like, not jelly)
   // =============================
   noStroke();
   fill(getColor("astrocyte"));
   ellipse(0, 0, astrocyte.radius * 2);
 
-  // Nucleus
-  fill(180, 60, 200);
-  ellipse(0, 0, 10);
+  // nucleus
+  fill(180, 70, 200);
+  ellipse(0, 0, 11);
 
   // =============================
-  // Arms → Synapses
+  // PRIMARY ARMS (branch-like)
   // =============================
-  stroke(getColor("astrocyte"));
-  strokeWeight(5);
-  noFill();
-
   astrocyte.arms.forEach(a => {
 
-    const wob = sin(state.time * 0.001 + a.wobble) * 6;
+    const tx = a.targetX - astrocyte.x;
+    const ty = a.targetY - astrocyte.y;
 
-    const endX = a.endX - astrocyte.x;
-    const endY = a.endY - astrocyte.y;
+    const d = sqrt(tx * tx + ty * ty) || 1;
+    const ux = tx / d;
+    const uy = ty / d;
 
-    const midX = endX * 0.5 + wob;
-    const midY = endY * 0.5 - 8;
+    const wob =
+      sin(state.time * 0.001 + a.phase) * 6;
 
-    // Arm curve
+    // control point — gives dendrite-like curvature
+    const cx =
+      ux * d * 0.45 - uy * (18 + wob) + a.curl * 20;
+    const cy =
+      uy * d * 0.45 + ux * (18 + wob);
+
+    stroke(getColor("astrocyte"));
+    strokeWeight(5);
+    noFill();
+
     beginShape();
     vertex(0, 0);
-    quadraticVertex(midX, midY, endX, endY);
+    quadraticVertex(cx, cy, tx, ty);
     endShape();
 
-    // Endfoot cap (tripartite contact)
+    // =============================
+    // ENDFOOT / SPINE CAP
+    // =============================
     noStroke();
     fill(getColor("astrocyte"));
-    ellipse(endX, endY, 12, 8);
+    ellipse(tx, ty, 14, 9);
   });
 
   pop();
