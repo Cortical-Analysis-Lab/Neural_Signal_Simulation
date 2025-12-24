@@ -1,19 +1,24 @@
 // =====================================================
-// ARTERY GEOMETRY (STATIC, LEFT-SIDE, TUBULAR)
+// ARTERY GEOMETRY (STATIC CENTERLINE + DYNAMIC WALLS)
 // =====================================================
 console.log("🩸 artery geometry loaded");
 
 let arteryPath = [];
 
 // -----------------------------------------------------
-// Vasomotion parameters (visual, not physiological)
+// Geometry constants
 // -----------------------------------------------------
-const BASE_LUMEN_RADIUS = 20;
+const BASE_LUMEN_RADIUS      = 20;   // 🔑 FIXED lumen for particles
+const PARTICLE_LUMEN_RADIUS = 20;   // 🔑 particles NEVER vasomote
+
 const BASE_WALL_OFFSET  = 32;
 
-const VASOMOTION_FREQ = 0.0009;   // slow oscillation
-const VASOMOTION_AMP  = 0.06;     // radius modulation
-const WALL_WOBBLE_AMP = 2.5;      // px lateral compliance
+// -----------------------------------------------------
+// Visual vasomotion (walls only)
+// -----------------------------------------------------
+const VASOMOTION_FREQ = 0.0009;
+const VASOMOTION_AMP  = 0.06;
+const WALL_WOBBLE_AMP = 2.5;
 
 // -----------------------------------------------------
 // Build artery centerline (screen space)
@@ -33,9 +38,15 @@ function initArtery() {
     const t = i / steps;
 
     arteryPath.push({
-      x: bezierPoint(marginLeft, ctrl1.x, ctrl2.x, marginLeft - 40, t),
+      x: bezierPoint(
+        marginLeft,
+        ctrl1.x,
+        ctrl2.x,
+        marginLeft - 40,
+        t
+      ),
       y: lerp(topY, bottomY, t),
-      phase: t * TWO_PI   // 🔑 spatial phase for wobble
+      phase: t * TWO_PI
     });
   }
 
@@ -45,14 +56,14 @@ function initArtery() {
 }
 
 // -----------------------------------------------------
-// Vasomotion scale (radius)
+// Wall vasomotion scale (walls only)
 // -----------------------------------------------------
 function getVasomotionScale() {
   return 1.0 + VASOMOTION_AMP * sin(state.time * VASOMOTION_FREQ);
 }
 
 // -----------------------------------------------------
-// Map blood particle → screen
+// Map blood particle → screen (FIXED lumen)
 // -----------------------------------------------------
 function getArteryPoint(t, lane = 0) {
   if (!arteryPath.length) return null;
@@ -70,16 +81,15 @@ function getArteryPoint(t, lane = 0) {
   const nx = -dy / len;
   const ny =  dx / len;
 
-  const lumenRadius = BASE_LUMEN_RADIUS * getVasomotionScale();
-
+  // 🔑 FIXED radius — NO vasomotion
   return {
-    x: p0.x + nx * lane * lumenRadius,
-    y: p0.y + ny * lane * lumenRadius
+    x: p0.x + nx * lane * PARTICLE_LUMEN_RADIUS,
+    y: p0.y + ny * lane * PARTICLE_LUMEN_RADIUS
   };
 }
 
 // -----------------------------------------------------
-// Soft lumen alpha mask (particles only)
+// Soft alpha mask (particles only)
 // -----------------------------------------------------
 function getLumenAlpha(lane) {
   const r = abs(lane);
@@ -88,7 +98,7 @@ function getLumenAlpha(lane) {
 }
 
 // =====================================================
-// DRAW ARTERY (NO FILLED LUMEN)
+// DRAW ARTERY (WALLS ONLY MOVE)
 // =====================================================
 function drawArtery() {
   if (!arteryPath.length) return;
@@ -101,22 +111,21 @@ function drawArtery() {
   noFill();
 
   // =========================
-  // BLOOD CONTENTS FIRST
+  // BLOOD CONTENTS (STATIC LUMEN)
   // =========================
   if (typeof drawBloodContents === "function") {
     drawBloodContents();
   }
 
   // =========================
-  // LEFT WALL (elastic)
+  // LEFT WALL
   // =========================
   stroke(getColor("arteryWall"));
   strokeWeight(8);
   beginShape();
   arteryPath.forEach(p => {
     const wobble =
-      WALL_WOBBLE_AMP *
-      sin(t * 0.002 + p.phase);
+      WALL_WOBBLE_AMP * sin(t * 0.002 + p.phase);
 
     vertex(p.x - wallOffset - wobble, p.y);
   });
@@ -128,23 +137,21 @@ function drawArtery() {
   beginShape();
   arteryPath.forEach(p => {
     const wobble =
-      WALL_WOBBLE_AMP *
-      sin(t * 0.002 + p.phase + PI);
+      WALL_WOBBLE_AMP * sin(t * 0.002 + p.phase + PI);
 
     vertex(p.x + wallOffset + wobble, p.y);
   });
   endShape();
 
   // =========================
-  // SUBTLE INNER HIGHLIGHT
+  // INNER HIGHLIGHT
   // =========================
   stroke(getColor("arteryHighlight", 120));
   strokeWeight(2);
   beginShape();
   arteryPath.forEach(p => {
     const wobble =
-      0.6 * WALL_WOBBLE_AMP *
-      sin(t * 0.002 + p.phase);
+      0.6 * WALL_WOBBLE_AMP * sin(t * 0.002 + p.phase);
 
     vertex(p.x - wallOffset + 3 - wobble, p.y - 3);
   });
