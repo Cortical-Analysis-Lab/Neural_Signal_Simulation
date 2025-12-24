@@ -10,7 +10,7 @@ let arteryPath = [];
 // -----------------------------------------------------
 const BASE_LUMEN_RADIUS      = 20;   // particle reference only
 const PARTICLE_LUMEN_RADIUS = 20;   // 🔑 particles NEVER vasomote
-const BASE_WALL_OFFSET      = 32;
+const BASE_WALL_OFFSET      = 32 * (4 / 3); // widen artery by 1/3
 
 // -----------------------------------------------------
 // Visual vasomotion (WALLS ONLY)
