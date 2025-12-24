@@ -135,15 +135,15 @@ function drawArtery() {
     line(
       f.x + ox,
       f.y + oy,
-      f.x + ox + f.tx * 55,   // longer → fewer gaps
-      f.y + oy + f.ty * 55
+      f.x + ox + f.tx * 60,
+      f.y + oy + f.ty * 60
     );
 
     line(
       f.x - ox,
       f.y - oy,
-      f.x - ox + f.tx * 55,
-      f.y - oy + f.ty * 55
+      f.x - ox + f.tx * 60,
+      f.y - oy + f.ty * 60
     );
   }
   pop();
@@ -160,7 +160,7 @@ function drawArtery() {
   arteryPath.forEach(p => {
     vertex(
       p.x - wallOffset -
-        WALL_WOBBLE_AMP * sin(t * 0.002 + p.phase),
+      WALL_WOBBLE_AMP * sin(t * 0.002 + p.phase),
       p.y
     );
   });
@@ -170,7 +170,7 @@ function drawArtery() {
   arteryPath.forEach(p => {
     vertex(
       p.x + wallOffset +
-        WALL_WOBBLE_AMP * sin(t * 0.002 + p.phase + PI),
+      WALL_WOBBLE_AMP * sin(t * 0.002 + p.phase + PI),
       p.y
     );
   });
@@ -178,7 +178,7 @@ function drawArtery() {
   pop();
 
   // =========================
-  // PERICYTES (ELONGATED, HIGH COVERAGE)
+  // PERICYTES (ELONGATED, PARALLEL)
   // =========================
   push();
   noStroke();
@@ -188,39 +188,40 @@ function drawArtery() {
     const f = getVesselFrame(i);
     const wob = WALL_WOBBLE_AMP * sin(t * 0.002 + f.phase);
 
-    const ox = f.nx * (wallOffset + 6 + wob);
-    const oy = f.ny * (wallOffset + 6 + wob);
+    for (let side of [-1, 1]) {
+      const ox = f.nx * side * (wallOffset + 10 + wob);
+      const oy = f.ny * side * (wallOffset + 10 + wob);
 
-    push();
-    translate(f.x + ox, f.y + oy);
-    rotate(atan2(f.ty, f.tx));
-    ellipse(0, 0, 90, 18); // longer → narrower gaps
-    pop();
-
-    push();
-    translate(f.x - ox, f.y - oy);
-    rotate(atan2(f.ty, f.tx));
-    ellipse(0, 0, 90, 18);
-    pop();
+      push();
+      translate(f.x + ox, f.y + oy);
+      rotate(atan2(f.ty, f.tx));
+      ellipse(0, 0, 130, 22);
+      pop();
+    }
   }
   pop();
 
   // =========================
-  // ASTROCYTES (BOTH SIDES, REDUCED SIZE)
+  // ASTROCYTES (SOMA OVER PERICYTE, ENDFEET BRIDGE GAPS)
   // =========================
   for (let side of [-1, 1]) {
-    for (let i = 10; i < arteryPath.length; i += 18) {
-      const f = getVesselFrame(i);
-      const wob = WALL_WOBBLE_AMP * sin(t * 0.002 + f.phase);
+    for (let i = 4; i < arteryPath.length - 8; i += 8) {
 
-      // ---- soma (reduced 1.5×) ----
-      const somaX = f.x + f.nx * side * (wallOffset + 95);
-      const somaY = f.y + f.ny * side * (wallOffset + 95);
+      const fC = getVesselFrame(i);
+      const fP = getVesselFrame(i - 4);
+      const fN = getVesselFrame(i + 4);
 
+      const wob = WALL_WOBBLE_AMP * sin(t * 0.002 + fC.phase);
+      const somaOffset = wallOffset + 100 + wob;
+
+      const sx = fC.x + fC.nx * side * somaOffset;
+      const sy = fC.y + fC.ny * side * somaOffset;
+
+      // ---- soma ----
       push();
       noStroke();
       fill(getColor("astrocyte"));
-      ellipse(somaX, somaY, 55, 55);
+      ellipse(sx, sy, 36, 36);
       pop();
 
       // ---- main process ----
@@ -228,24 +229,39 @@ function drawArtery() {
       stroke(getColor("astrocyte"));
       strokeWeight(6);
       line(
-        somaX,
-        somaY,
-        f.x + f.nx * side * (wallOffset + 30),
-        f.y + f.ny * side * (wallOffset + 30)
+        sx,
+        sy,
+        fC.x + fC.nx * side * (wallOffset + 34),
+        fC.y + fC.ny * side * (wallOffset + 34)
       );
       pop();
 
-      // ---- endfoot (shorter, flatter) ----
+      // ---- upstream endfoot ----
       push();
       noStroke();
       fill(getColor("astrocyte"));
-
       translate(
-        f.x + f.nx * side * (wallOffset + 22 + wob),
-        f.y + f.ny * side * (wallOffset + 22 + wob)
+        (fP.x + fC.x) / 2 +
+          fC.nx * side * (wallOffset + 26 + wob),
+        (fP.y + fC.y) / 2 +
+          fC.ny * side * (wallOffset + 26 + wob)
       );
-      rotate(atan2(f.ty, f.tx));
-      ellipse(0, 0, 60, 14); // flatter + shorter
+      rotate(atan2(fC.ty, fC.tx));
+      ellipse(0, 0, 48, 12);
+      pop();
+
+      // ---- downstream endfoot ----
+      push();
+      noStroke();
+      fill(getColor("astrocyte"));
+      translate(
+        (fC.x + fN.x) / 2 +
+          fC.nx * side * (wallOffset + 26 + wob),
+        (fC.y + fN.y) / 2 +
+          fC.ny * side * (wallOffset + 26 + wob)
+      );
+      rotate(atan2(fC.ty, fC.tx));
+      ellipse(0, 0, 48, 12);
       pop();
     }
   }
@@ -262,7 +278,7 @@ function drawArtery() {
   arteryPath.forEach(p => {
     vertex(
       p.x - wallOffset + 3 -
-        WALL_WOBBLE_AMP * 0.6 * sin(t * 0.002 + p.phase),
+      WALL_WOBBLE_AMP * 0.6 * sin(t * 0.002 + p.phase),
       p.y - 3
     );
   });
