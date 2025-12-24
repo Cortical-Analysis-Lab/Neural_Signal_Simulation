@@ -1,20 +1,22 @@
 // =====================================================
-// BLOOD CONTENTS — SYMBOLIC, WAVE-DRIVEN FLOW
+// BLOOD CONTENTS — SYMBOLIC, WAVE-PROPAGATED AGITATION
 // =====================================================
-// ✔ Motion ONLY during wave passage
+// ✔ Particles exist everywhere
+// ✔ Wave propagates through them
+// ✔ Local agitation at wave crest
+// ✔ No global redistribution
 // ✔ No continuous drift
 // ✔ Fixed lumen
-// ✔ Randomized mix
 // ✔ COLORS.js native
 // ✔ p5 state isolated
 // =====================================================
 
-console.log("🩸 bloodContents v1.3 (wave-driven flow) loaded");
+console.log("🩸 bloodContents v1.4 (true wave propagation) loaded");
 
 const bloodParticles = [];
 
 // -----------------------------------------------------
-// PARTICLE COUNTS (DOUBLED, AS REQUESTED)
+// PARTICLE COUNTS
 // -----------------------------------------------------
 
 const BLOOD_COUNTS = {
@@ -32,15 +34,17 @@ const LANE_MIN = -0.55;
 const LANE_MAX =  0.55;
 
 // -----------------------------------------------------
-// WAVE PARAMETERS (AUTHORITATIVE)
+// WAVE PARAMETERS (PROPAGATION, NOT TRANSPORT)
 // -----------------------------------------------------
 
-const WAVE_SPEED      = 0.0009;   // wave speed along artery (t/ms)
-const WAVE_WIDTH      = 0.06;     // spatial width of pushing region
-const WAVE_PUSH_AMT   = 0.012;    // how far particles move per wave pass
+const WAVE_SPEED   = 0.0009;  // wave speed (t / ms)
+const WAVE_WIDTH   = 0.08;    // spatial width of influence
+const WAVE_STRENGTH_T = 0.015; // longitudinal agitation
+const WAVE_STRENGTH_L = 0.10;  // lateral agitation
+const WAVE_DECAY   = 0.85;    // relaxation per frame
 
 // -----------------------------------------------------
-// INITIALIZE — RANDOMIZED DISTRIBUTION
+// INITIALIZE — RANDOM DISTRIBUTION (STATIC BASE)
 // -----------------------------------------------------
 
 function initBloodContents() {
@@ -66,9 +70,13 @@ function initBloodContents() {
         size,
         color: c,
 
-        // randomized initial placement
-        t: random(),
-        lane: random(LANE_MIN, LANE_MAX)
+        // ---- base (equilibrium) state ----
+        t0: random(),
+        lane0: random(LANE_MIN, LANE_MAX),
+
+        // ---- dynamic wave offsets ----
+        dt_wave: 0,
+        dl_wave: 0
       });
     }
   }
@@ -80,7 +88,7 @@ function initBloodContents() {
 }
 
 // -----------------------------------------------------
-// UPDATE — WAVE-DRIVEN ONLY
+// UPDATE — WAVE PROPAGATES, PARTICLES AGITATE
 // -----------------------------------------------------
 
 function updateBloodContents() {
@@ -88,36 +96,55 @@ function updateBloodContents() {
 
   for (const p of bloodParticles) {
 
-    // distance from wave crest (circular)
-    let d = abs(p.t - waveHead);
+    // circular distance from wave crest
+    let d = abs(p.t0 - waveHead);
     d = min(d, 1 - d);
 
-    // Only move if wave is passing
+    // -------------------------
+    // Wave interaction
+    // -------------------------
     if (d < WAVE_WIDTH) {
       const strength = 1 - d / WAVE_WIDTH;
-      p.t += WAVE_PUSH_AMT * strength;
 
-      // wrap cleanly
-      if (p.t > 1) p.t -= 1;
+      // longitudinal compression / release
+      p.dt_wave += WAVE_STRENGTH_T * strength * random(-1, 1);
+
+      // lateral agitation
+      p.dl_wave += WAVE_STRENGTH_L * strength * random(-1, 1);
     }
+
+    // -------------------------
+    // Relaxation back to base
+    // -------------------------
+    p.dt_wave *= WAVE_DECAY;
+    p.dl_wave *= WAVE_DECAY;
   }
 }
 
 // -----------------------------------------------------
-// DRAW — PATH-ALIGNED, STATE-SAFE
+// DRAW — BASE + WAVE OFFSETS
 // -----------------------------------------------------
 
 function drawBloodContents() {
   push();
-
   rectMode(CENTER);
   noStroke();
 
   for (const p of bloodParticles) {
-    const pos = getArteryPoint(p.t, p.lane);
+
+    const t = (p.t0 + p.dt_wave + 1) % 1;
+    const lane = constrain(
+      p.lane0 + p.dl_wave,
+      LANE_MIN,
+      LANE_MAX
+    );
+
+    const pos = getArteryPoint(t, lane);
     if (!pos) continue;
 
-    // color
+    // -------------------------
+    // Color
+    // -------------------------
     if (p.type === "glucose") {
       const g = COLORS.glucose;
       fill(g[0], g[1], g[2], 180);
@@ -125,14 +152,18 @@ function drawBloodContents() {
       fill(p.color[0], p.color[1], p.color[2]);
     }
 
-    // shape
+    // -------------------------
+    // Shape
+    // -------------------------
     if (p.shape === "circle") {
       circle(pos.x, pos.y, p.size);
     } else {
       rect(pos.x, pos.y, p.size * 0.7, p.size * 0.7);
     }
 
-    // bound oxygen
+    // -------------------------
+    // Bound oxygen
+    // -------------------------
     if (p.type === "rbcOxy") {
       const o2 = COLORS.oxygen;
       fill(o2[0], o2[1], o2[2]);
