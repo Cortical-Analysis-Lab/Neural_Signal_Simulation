@@ -68,7 +68,7 @@ function initAstrocyte() {
   targets.forEach(s => {
     astrocyte.arms.push({
       angle: atan2(s.y - astrocyte.y, s.x - astrocyte.x),
-      length: dist(astrocyte.x, astrocyte.y, s.x, s.y) * 0.65,
+      length: dist(astrocyte.x, astrocyte.y, s.x, s.y) * 0.7,
       wobble: random(TWO_PI),
       target: s
     });
@@ -83,7 +83,7 @@ function triggerAstrocyteResponse() {
 
   setTimeout(() => {
     astrocyte.somaGlow = SOMA_GLOW_FRAMES;
-  }, SOMA_GLOW_DELAY * 16); // frame → ms
+  }, SOMA_GLOW_DELAY * 16);
 }
 
 // -----------------------------------------------------
@@ -101,7 +101,7 @@ function drawAstrocyte() {
   // =====================================================
   const somaColor =
     astrocyte.somaGlow > 0
-      ? color(255, 230, 120)
+      ? color(255, 235, 120)
       : getColor("astrocyte");
 
   noStroke();
@@ -115,24 +115,40 @@ function drawAstrocyte() {
   // =====================================================
   // ARMS
   // =====================================================
-  stroke(getColor("astrocyte"));
-  strokeWeight(5);
-  noFill();
-
   astrocyte.arms.forEach(a => {
 
     const wob = sin(state.time * 0.001 + a.wobble) * 4;
 
-    let lengthScale = 1.0;
-    if (a.target && cos(a.angle) < 0) lengthScale = 1.25;
+    let L = a.length;
 
-    const L = a.length * lengthScale;
+    // 🔑 extend perisynaptic arms slightly
+    if (a.target) L *= 1.15;
+
+    // direction to synapse
+    let ux = 0, uy = 0;
+    if (a.target) {
+      const dx = a.target.x - astrocyte.x;
+      const dy = a.target.y - astrocyte.y;
+      const mag = sqrt(dx * dx + dy * dy) || 1;
+      ux = dx / mag;
+      uy = dy / mag;
+    }
+
+    // arm endpoint now biased TOWARD cleft
+    const x3 = cos(a.angle) * (L + wob) + ux * 6;
+    const y3 = sin(a.angle) * (L + wob) + uy * 6;
 
     const x2 = cos(a.angle + 0.25) * (L * 0.5);
     const y2 = sin(a.angle + 0.25) * (L * 0.5);
 
-    const x3 = cos(a.angle) * (L + wob);
-    const y3 = sin(a.angle) * (L + wob);
+    const armColor =
+      a.target && astrocyte.endfootGlow > 0
+        ? lerpColor(getColor("astrocyte"), color(255, 235, 120), 0.8)
+        : getColor("astrocyte");
+
+    stroke(armColor);
+    strokeWeight(5);
+    noFill();
 
     beginShape();
     vertex(0, 0);
@@ -140,22 +156,12 @@ function drawAstrocyte() {
     endShape();
 
     // =================================================
-    // PERISYNAPTIC ENDFOOT (SHIFTED PAST PSD)
+    // PERISYNAPTIC ENDFOOT (PAST PSD)
     // =================================================
     if (a.target) {
 
-      const dx = a.target.x - astrocyte.x;
-      const dy = a.target.y - astrocyte.y;
-      const mag = sqrt(dx * dx + dy * dy) || 1;
-
-      const ux = dx / mag;
-      const uy = dy / mag;
-
-      const along   = 6;
-      const lateral = 6;
-
-      const px = -uy * lateral + ux * along;
-      const py =  ux * lateral + uy * along;
+      const px = -uy * 6 + ux * 8;
+      const py =  ux * 6 + uy * 8;
 
       const footColor =
         astrocyte.endfootGlow > 0
