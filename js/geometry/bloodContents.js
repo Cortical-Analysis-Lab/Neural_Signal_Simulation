@@ -1,19 +1,16 @@
 // =====================================================
-// BLOOD CONTENTS — SMOOTH HEARTBEAT FLOW (FLUID-LIKE)
+// BLOOD CONTENTS — HEARTBEAT FLOW + BBB TRANSPORT
 // =====================================================
-// ✔ Heartbeat-gated transport
+// ✔ Heartbeat-gated axial flow
 // ✔ Smooth interpolation
-// ✔ Soft particle collisions
-// ✔ Soft wall interactions
-// ✔ BBB exit events (AQP4 / GLUT1 / O2)
-// ✔ CSF drift toward neuron 1
-// ✔ Water fades out (astrocytic buffering)
-// ✔ O2 + glucose consumed at soma
+// ✔ Soft collisions + wall interaction
+// ✔ BBB exit via AQP4 / GLUT1 / O2
+// ✔ Exited particles drift to neuron 1
+// ✔ Water fades, glucose & O2 vanish at soma
 // ✔ Reload-safe
-// ✔ COLORS.js native
 // =====================================================
 
-console.log("🩸 bloodContents v2.2 (BBB + consumption dynamics) loaded");
+console.log("🩸 bloodContents v2.1 (BBB transport enabled) loaded");
 
 // -----------------------------------------------------
 // GLOBAL STORAGE (RELOAD SAFE)
@@ -23,14 +20,14 @@ window.bloodParticles = window.bloodParticles || [];
 const bloodParticles = window.bloodParticles;
 
 // -----------------------------------------------------
-// PARTICLE COUNTS
+// PARTICLE COUNTS (↑ 1.5×)
 // -----------------------------------------------------
 
 const BLOOD_COUNTS = {
-  rbcOxy:   20,
-  rbcDeoxy: 12,
-  water:    20,
-  glucose:  12
+  rbcOxy:   Math.round(20 * 1.5),  // 30
+  rbcDeoxy: Math.round(12 * 1.5),  // 18
+  water:    Math.round(20 * 1.5),  // 30
+  glucose:  Math.round(12 * 1.5)   // 18
 };
 
 // -----------------------------------------------------
@@ -58,22 +55,19 @@ const COLLISION_K  = 0.015;
 const WALL_K       = 0.020;
 const LANE_DAMPING = 0.90;
 
-// -----------------------------------------------------
-// BBB TRANSPORT PROBABILITIES
-// -----------------------------------------------------
-
-const AQP4_PROB   = 0.010;
-const GLUT1_PROB  = 0.008;
-const O2_PROB     = 0.005;
-
-// -----------------------------------------------------
-// CSF CONSUMPTION PARAMETERS
-// -----------------------------------------------------
-
-const WATER_FADE_RATE   = 1.5;   // alpha per frame
-const CONSUME_RADIUS    = 14;    // distance to soma
-
 let lastBeatTime = 0;
+
+// -----------------------------------------------------
+// BBB TRANSPORT PARAMETERS
+// -----------------------------------------------------
+
+const EXIT_LANE_THRESHOLD = 0.40;
+
+const AQP4_PROB  = 0.035;  // water
+const GLUT1_PROB = 0.020;  // glucose
+const O2_PROB    = 0.015;  // oxygen
+
+const CSF_DRIFT  = 0.05;
 
 // -----------------------------------------------------
 // INITIALIZE
@@ -104,20 +98,20 @@ function initBloodContents() {
         size,
         color: c,
 
-        // blood motion
+        // axial motion (artery)
         t: t0,
         tTarget: t0,
+
+        // lateral motion (artery)
         lane: random(LANE_MIN, LANE_MAX),
         vLane: 0,
 
-        // CSF motion
-        state: "blood",
+        // CSF state
+        exited: false,
         x: 0,
         y: 0,
         vx: 0,
         vy: 0,
-
-        // visual
         alpha: 255
       });
     }
@@ -130,73 +124,23 @@ function initBloodContents() {
 }
 
 // -----------------------------------------------------
-// UPDATE
+// UPDATE — HEARTBEAT + BBB + CSF
 // -----------------------------------------------------
 
 function updateBloodContents() {
   const now = state.time;
 
-  // =====================================================
-  // BBB EXIT EVENTS
-  // =====================================================
-
-  for (const p of bloodParticles) {
-    if (p.state !== "blood") continue;
-
-    if (p.type === "water" && Math.abs(p.lane) > 0.48 && random() < AQP4_PROB) {
-      const pos = getArteryPoint(p.t, p.lane);
-      if (!pos) continue;
-
-      Object.assign(p, {
-        state: "csf",
-        x: pos.x,
-        y: pos.y,
-        vx: random(-0.3, 0.3),
-        vy: random(-0.2, 0.2),
-        alpha: 200
-      });
-      continue;
-    }
-
-    if (p.type === "glucose" && Math.abs(p.lane) > 0.45 && random() < GLUT1_PROB) {
-      const pos = getArteryPoint(p.t, p.lane);
-      if (!pos) continue;
-
-      Object.assign(p, {
-        state: "csf",
-        x: pos.x,
-        y: pos.y,
-        vx: random(-0.25, 0.25),
-        vy: random(-0.15, 0.15)
-      });
-      continue;
-    }
-
-    if (p.type === "rbcOxy" && random() < O2_PROB) {
-      const pos = getArteryPoint(p.t, p.lane);
-      if (!pos) continue;
-
-      Object.assign(p, {
-        state: "csf",
-        x: pos.x,
-        y: pos.y,
-        vx: random(-0.35, 0.35),
-        vy: random(-0.2, 0.2)
-      });
-    }
-  }
-
-  // =====================================================
-  // HEARTBEAT TRANSPORT (BLOOD ONLY)
-  // =====================================================
-
+  // -------------------------
+  // HEARTBEAT STEP (artery)
+  // -------------------------
   if (now - lastBeatTime >= BEAT_INTERVAL) {
     lastBeatTime = now;
 
     for (const p of bloodParticles) {
-      if (p.state !== "blood") continue;
+      if (p.exited) continue;
 
       p.tTarget += FLOW_STEP;
+
       if (p.tTarget > 1) {
         p.tTarget -= 1;
         p.t = p.tTarget;
@@ -206,46 +150,124 @@ function updateBloodContents() {
     }
   }
 
+  // -------------------------
+  // SMOOTH AXIAL MOTION
+  // -------------------------
   for (const p of bloodParticles) {
-    if (p.state === "blood") {
+    if (!p.exited) {
       p.t += (p.tTarget - p.t) * T_EASE;
     }
   }
 
-  // =====================================================
-  // CSF DRIFT + CONSUMPTION
-  // =====================================================
+  // -------------------------
+  // SOFT COLLISIONS (lane)
+  // -------------------------
+  for (let i = 0; i < bloodParticles.length; i++) {
+    const a = bloodParticles[i];
+    if (a.exited) continue;
 
-  if (window.neuron && neuron.soma) {
-    for (let i = bloodParticles.length - 1; i >= 0; i--) {
-      const p = bloodParticles[i];
-      if (p.state !== "csf") continue;
+    for (let j = i + 1; j < bloodParticles.length; j++) {
+      const b = bloodParticles[j];
+      if (b.exited) continue;
 
-      const dx = neuron.soma.x - p.x;
-      const dy = neuron.soma.y - p.y;
-      const d  = sqrt(dx*dx + dy*dy) + 0.001;
+      const dl = a.lane - b.lane;
+      const dist = Math.abs(dl);
 
-      // Drift
-      p.vx += (dx / d) * 0.02;
-      p.vy += (dy / d) * 0.02;
-      p.vx *= 0.95;
-      p.vy *= 0.95;
-      p.x  += p.vx;
-      p.y  += p.vy;
+      if (dist > 0 && dist < COLLISION_R) {
+        const push = (COLLISION_R - dist) * COLLISION_K;
+        const dir  = dl / dist;
 
-      // Water fades out
-      if (p.type === "water") {
-        p.alpha -= WATER_FADE_RATE;
-        if (p.alpha <= 0) {
-          bloodParticles.splice(i, 1);
-        }
+        a.vLane += dir * push;
+        b.vLane -= dir * push;
+      }
+    }
+  }
+
+  // -------------------------
+  // WALL INTERACTION
+  // -------------------------
+  for (const p of bloodParticles) {
+    if (p.exited) continue;
+
+    if (p.lane < LANE_MIN) p.vLane += (LANE_MIN - p.lane) * WALL_K;
+    if (p.lane > LANE_MAX) p.vLane += (LANE_MAX - p.lane) * WALL_K;
+  }
+
+  // -------------------------
+  // INTEGRATE LANE MOTION
+  // -------------------------
+  for (const p of bloodParticles) {
+    if (!p.exited) {
+      p.lane += p.vLane;
+      p.vLane *= LANE_DAMPING;
+      p.lane = constrain(p.lane, LANE_MIN, LANE_MAX);
+    }
+  }
+
+  // -------------------------
+  // BBB EXIT LOGIC
+  // -------------------------
+  for (const p of bloodParticles) {
+    if (p.exited) continue;
+
+    if (Math.abs(p.lane) < EXIT_LANE_THRESHOLD) continue;
+
+    let allowExit = false;
+
+    if (p.type === "water"    && random() < AQP4_PROB)  allowExit = true;
+    if (p.type === "glucose"  && random() < GLUT1_PROB) allowExit = true;
+    if (p.type === "rbcOxy"   && random() < O2_PROB) {
+      p.type  = "oxygen";
+      p.shape = "circle";
+      p.size  = 4;
+      p.color = COLORS.oxygen;
+      allowExit = true;
+    }
+
+    if (!allowExit) continue;
+
+    const pos = getArteryPoint(p.t, p.lane);
+    if (!pos) continue;
+
+    p.exited = true;
+    p.x = pos.x;
+    p.y = pos.y;
+    p.vx = random(-0.2, 0.2);
+    p.vy = random(-0.2, 0.2);
+  }
+
+  // -------------------------
+  // CSF DRIFT → NEURON 1
+  // -------------------------
+  const somaX = width / 2;
+  const somaY = height / 2;
+
+  for (let i = bloodParticles.length - 1; i >= 0; i--) {
+    const p = bloodParticles[i];
+    if (!p.exited) continue;
+
+    const dx = somaX - p.x;
+    const dy = somaY - p.y;
+    const d  = sqrt(dx * dx + dy * dy) || 1;
+
+    p.vx += (dx / d) * CSF_DRIFT;
+    p.vy += (dy / d) * CSF_DRIFT;
+
+    p.x += p.vx;
+    p.y += p.vy;
+
+    // water fades
+    if (p.type === "water") {
+      p.alpha -= 2;
+      if (p.alpha <= 0) {
+        bloodParticles.splice(i, 1);
         continue;
       }
+    }
 
-      // Oxygen & glucose consumed at soma
-      if ((p.type === "glucose" || p.type === "rbcOxy") && d < CONSUME_RADIUS) {
-        bloodParticles.splice(i, 1);
-      }
+    // glucose + oxygen consumed at soma
+    if (d < 20 && (p.type === "glucose" || p.type === "oxygen")) {
+      bloodParticles.splice(i, 1);
     }
   }
 }
@@ -260,23 +282,26 @@ function drawBloodContents() {
   noStroke();
 
   for (const p of bloodParticles) {
-    const pos = p.state === "blood"
-      ? getArteryPoint(p.t, p.lane)
-      : { x: p.x, y: p.y };
 
-    if (!pos) continue;
+    let x, y;
 
-    fill(p.color[0], p.color[1], p.color[2], p.alpha);
-
-    if (p.shape === "circle") {
-      circle(pos.x, pos.y, p.size);
+    if (p.exited) {
+      x = p.x;
+      y = p.y;
     } else {
-      rect(pos.x, pos.y, p.size * 0.7, p.size * 0.7);
+      const pos = getArteryPoint(p.t, p.lane);
+      if (!pos) continue;
+      x = pos.x;
+      y = pos.y;
     }
 
-    if (p.type === "rbcOxy") {
-      fill(COLORS.oxygen[0], COLORS.oxygen[1], COLORS.oxygen[2], p.alpha);
-      circle(pos.x + 3, pos.y - 3, 3);
+    if (p.type === "glucose") {
+      const g = COLORS.glucose;
+      fill(g[0], g[1], g[2], p.alpha);
+      rect(x, y, p.size * 0.7, p.size * 0.7);
+    } else {
+      fill(p.color[0], p.color[1], p.color[2], p.alpha);
+      circle(x, y, p.size);
     }
   }
 
@@ -284,7 +309,7 @@ function drawBloodContents() {
 }
 
 // -----------------------------------------------------
-// GLOBAL EXPORTS
+// EXPORTS
 // -----------------------------------------------------
 
 window.initBloodContents   = initBloodContents;
