@@ -1,10 +1,10 @@
 // =====================================================
-// ASTROCYTE GEOMETRY — USER-PLACED TRIPARTITE ENDFEET
+// ASTROCYTE GEOMETRY — LOCKED TRIPARTITE ENDFEET
 // =====================================================
-console.log("astrocyteGeometry loaded (interactive endfeet)");
+console.log("astrocyteGeometry loaded (locked endfeet)");
 
 // -----------------------------------------------------
-// Astrocyte object (DECLARE FIRST)
+// Astrocyte object
 // -----------------------------------------------------
 const astrocyte = {
   x: 0,
@@ -12,8 +12,11 @@ const astrocyte = {
   radius: 26,
   arms: [],
 
-  // User-defined endfeet (world coords)
-  endfeet: [null, null],
+  // 🔑 LOCKED ENDFEET (WORLD COORDINATES)
+  endfeet: [
+    { x: 271.7, y: -8.8 },    // neuron 1 ↔ 2 synaptic cleft
+    { x: 236.7, y: -40.4 }    // neuron 1 ↔ 3 synaptic cleft
+  ],
 
   // Glow state
   endfootGlow: [0, 0],
@@ -22,10 +25,10 @@ const astrocyte = {
 };
 
 // -----------------------------------------------------
-// Glow timing (VERY SLOW)
+// Glow timing (VERY SLOW, EDUCATIONAL)
 // -----------------------------------------------------
 const ENDFOOT_GLOW_FRAMES = 30;
-const BORDER_PROP_SPEED  = 0.003; // slow angular propagation
+const BORDER_PROP_SPEED  = 0.003;   // slow circumferential spread
 const SOMA_GLOW_TRIGGER  = 0.95;
 const SOMA_GLOW_FRAMES   = 40;
 
@@ -33,6 +36,7 @@ const SOMA_GLOW_FRAMES   = 40;
 // Initialize astrocyte
 // -----------------------------------------------------
 function initAstrocyte() {
+
   if (!neuron2?.soma || !neuron3?.soma) return;
 
   // Place soma between neuron 2 & 3
@@ -43,25 +47,29 @@ function initAstrocyte() {
 }
 
 // -----------------------------------------------------
-// Rebuild arms based on endfeet
+// Build arms deterministically from locked endfeet
 // -----------------------------------------------------
 function rebuildAstrocyteArms() {
+
   astrocyte.arms.length = 0;
 
-  // Base organic arms (background texture)
+  // -----------------------------------------------
+  // Background organic arms (visual texture only)
+  // -----------------------------------------------
   const baseArmCount = 5;
   for (let i = 0; i < baseArmCount; i++) {
     astrocyte.arms.push({
-      angle: TWO_PI * (i / baseArmCount) + random(-0.4, 0.4),
-      length: random(50, 75),
-      wobble: random(TWO_PI),
+      angle: TWO_PI * (i / baseArmCount),
+      length: 55 + i * 4,
+      wobble: i * 1.7,
       target: null
     });
   }
 
-  // Targeted arms → user endfeet
+  // -----------------------------------------------
+  // Functional arms → synaptic endfeet
+  // -----------------------------------------------
   astrocyte.endfeet.forEach(pt => {
-    if (!pt) return;
 
     const dx = pt.x - astrocyte.x;
     const dy = pt.y - astrocyte.y;
@@ -77,39 +85,7 @@ function rebuildAstrocyteArms() {
 }
 
 // -----------------------------------------------------
-// USER INPUT — SHIFT + CLICK to place endfeet
-// -----------------------------------------------------
-function astrocyteMousePressed(worldX, worldY) {
-
-  // Find first empty slot, else overwrite nearest
-  let idx = astrocyte.endfeet.findIndex(e => e === null);
-
-  if (idx === -1) {
-    let minD = Infinity;
-    idx = 0;
-    astrocyte.endfeet.forEach((e, i) => {
-      const d = dist(worldX, worldY, e.x, e.y);
-      if (d < minD) {
-        minD = d;
-        idx = i;
-      }
-    });
-  }
-
-  astrocyte.endfeet[idx] = { x: worldX, y: worldY };
-  astrocyte.endfootGlow[idx] = ENDFOOT_GLOW_FRAMES;
-  astrocyte.borderGlowPhase = 0;
-
-  rebuildAstrocyteArms();
-
-  // 🔑 AUTHORITATIVE LOG
-  console.log(
-    `🟣 Astrocyte endfoot ${idx}: (${worldX.toFixed(1)}, ${worldY.toFixed(1)})`
-  );
-}
-
-// -----------------------------------------------------
-// Triggered externally (e.g. vesicle release)
+// Triggered by vesicle release
 // -----------------------------------------------------
 function triggerAstrocyteResponse() {
   astrocyte.endfootGlow = astrocyte.endfootGlow.map(() => ENDFOOT_GLOW_FRAMES);
@@ -125,7 +101,9 @@ function drawAstrocyte() {
   push();
   translate(astrocyte.x, astrocyte.y);
 
-  // ---------------- SOMA ----------------
+  // =====================================================
+  // SOMA (purple fill, glow is outline only)
+  // =====================================================
   noStroke();
   fill(getColor("astrocyte"));
   ellipse(0, 0, astrocyte.radius * 2);
@@ -138,7 +116,7 @@ function drawAstrocyte() {
 
     const endAngle = TWO_PI * astrocyte.borderGlowPhase;
     beginShape();
-    for (let a = 0; a < endAngle; a += 0.15) {
+    for (let a = 0; a < endAngle; a += 0.12) {
       vertex(
         cos(a) * astrocyte.radius * 1.15,
         sin(a) * astrocyte.radius * 1.15
@@ -147,7 +125,7 @@ function drawAstrocyte() {
     endShape();
   }
 
-  // Soma glow (late)
+  // Soma glow (late, slow)
   if (astrocyte.somaGlow > 0) {
     stroke(255, 230, 120, 100);
     strokeWeight(5);
@@ -161,12 +139,15 @@ function drawAstrocyte() {
   fill(190, 80, 210);
   ellipse(0, 0, 10);
 
-  // ---------------- ARMS ----------------
+  // =====================================================
+  // ARMS + ENDFEET
+  // =====================================================
   stroke(getColor("astrocyte"));
   strokeWeight(5);
   noFill();
 
   astrocyte.arms.forEach(a => {
+
     const wob = sin(state.time * 0.001 + a.wobble) * 2;
     const L   = a.length;
 
@@ -181,7 +162,9 @@ function drawAstrocyte() {
     quadraticVertex(cx, cy, ex, ey);
     endShape();
 
-    // Endfoot
+    // -----------------------------
+    // ENDFOOT (attached, stable)
+    // -----------------------------
     if (a.target) {
       noStroke();
       fill(getColor("astrocyte"));
@@ -200,8 +183,11 @@ function drawAstrocyte() {
 
   pop();
 
-  // ---------------- Glow propagation ----------------
+  // --------------------------------------------------
+  // Glow propagation (endfoot → border → soma)
+  // --------------------------------------------------
   if (astrocyte.endfootGlow.some(g => g > 0)) {
+
     astrocyte.borderGlowPhase = min(
       1,
       astrocyte.borderGlowPhase + BORDER_PROP_SPEED
@@ -222,4 +208,3 @@ function drawAstrocyte() {
 window.initAstrocyte = initAstrocyte;
 window.drawAstrocyte = drawAstrocyte;
 window.triggerAstrocyteResponse = triggerAstrocyteResponse;
-window.astrocyteMousePressed = astrocyteMousePressed;
