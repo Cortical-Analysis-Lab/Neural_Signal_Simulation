@@ -32,7 +32,7 @@ function initAstrocyte() {
   astrocyte.arms.length = 0;
 
   // =====================================================
-  // 3. BASE ORGANIC RADIAL ARMS
+  // 3. BASE ORGANIC RADIAL ARMS (STRUCTURAL)
   // =====================================================
   const baseArmCount = 7;
 
@@ -49,7 +49,7 @@ function initAstrocyte() {
   }
 
   // =====================================================
-  // 4. TARGETED PERISYNAPTIC ARMS
+  // 4. TARGETED PERISYNAPTIC ARMS (FUNCTIONAL)
   // =====================================================
   const targets = [];
 
@@ -96,7 +96,7 @@ function drawAstrocyte() {
   ellipse(0, 0, 10);
 
   // =====================================================
-  // ARMS
+  // ARMS (ORGANIC + PERISYNAPTIC)
   // =====================================================
   stroke(getColor("astrocyte"));
   strokeWeight(5);
@@ -107,12 +107,12 @@ function drawAstrocyte() {
     const wob = sin(state.time * 0.001 + a.wobble) * 4;
 
     // --------------------------------------------------
-    // 🔑 SLIGHT EXTENSION FOR LEFT-FACING PERISYNAPTIC ARMS
+    // 🔑 ONLY extend LEFT-facing PERISYNAPTIC arms
     // --------------------------------------------------
     let lengthScale = 1.0;
 
     if (a.target && cos(a.angle) < 0) {
-      lengthScale = 1.25; // extend by 25%
+      lengthScale = 1.25; // +25% toward synaptic cleft
     }
 
     const effectiveLength = a.length * lengthScale;
@@ -132,7 +132,7 @@ function drawAstrocyte() {
     endShape();
 
     // --------------------------------------------------
-    // Perisynaptic endfoot
+    // Perisynaptic endfoot (cleft-adjacent, not touching)
     // --------------------------------------------------
     if (a.target) {
       push();
@@ -150,5 +150,5 @@ function drawAstrocyte() {
 // -----------------------------------------------------
 // EXPORTS
 // -----------------------------------------------------
-window.initAstrocyte = initAstrocyte;
+window.initAstrocyte  = initAstrocyte;
 window.drawAstrocyte = drawAstrocyte;
