@@ -53,6 +53,13 @@ const COLORS = {
   oxygen:   [255, 255, 255],  // O2 cargo
   water:    [160, 210, 255],  // H2O
   glucose:  [120, 220, 120]   // glucose
+
+  // --------------------
+// BLOOD–BRAIN BARRIER
+// --------------------
+endothelium: [245, 190, 130], // light orange
+astrocyte:   [200, 170, 230]  // light purple
+
 };
 
 // =====================================================
