@@ -1,4 +1,4 @@
-console.log("🩸 bloodContents v1 loaded");
+console.log("🩸 bloodContents v1 (clean) loaded");
 
 // =====================================================
 // BLOOD CONTENTS — SYMBOLIC PARTICLES (V1)
@@ -37,15 +37,15 @@ function initBloodContents() {
       type: "rbc",
 
       // Evenly spaced along vessel
-      t: i / BLOOD_COUNTS.rbc,
+      t: (i + 0.5) / BLOOD_COUNTS.rbc,
 
       // Small radial spread
-      lane: random(-0.6, 0.6),
+      lane: map(i % 4, 0, 3, -0.6, 0.6),
 
       size: 7,
 
       // Oxygenation state (visual only)
-      sat: random(0.4, 1.0),
+      sat: i % 3 === 0 ? 0.35 : 0.95,
 
       // Motion phase
       phase: random(TWO_PI)
@@ -58,9 +58,11 @@ function initBloodContents() {
   for (let i = 0; i < BLOOD_COUNTS.water; i++) {
     bloodParticles.push({
       type: "water",
-      t: i / BLOOD_COUNTS.water,
-      lane: random(-0.8, 0.8),
+
+      t: (i + 0.5) / BLOOD_COUNTS.water,
+      lane: random(-0.75, 0.75),
       size: 2,
+
       phase: random(TWO_PI)
     });
   }
@@ -70,22 +72,28 @@ function initBloodContents() {
 // Update particle motion (smooth, continuous)
 // -----------------------------------------------------
 function updateBloodContents() {
-  const speed = 0.00035; // 🔑 GLOBAL FLOW SPEED
+  const speed = 0.00035; // 🔑 global flow speed
 
   bloodParticles.forEach(p => {
 
     // Forward motion
     p.t += speed;
-    if (p.t >= 1) p.t -= 1;
+    if (p.t > 1) p.t -= 1;
 
     // Gentle lateral oscillation
     p.phase += 0.01;
-    p.lane += 0.0004 * sin(p.phase);
+    p.lane += 0.0003 * sin(p.phase);
 
-    // Keep inside lumen
-    p.lane = constrain(p.lane, -0.9, 0.9);
+    // Soft containment
+    p.lane = constrain(p.lane, -0.85, 0.85);
   });
 }
+
+// -----------------------------------------------------
+// Required no-op hooks (used by main.js)
+// -----------------------------------------------------
+function updateSupplyWaves() {}
+function updatePressureWaves() {}
 
 // -----------------------------------------------------
 // Draw particles (NO PLASMA, NO FILL)
@@ -107,7 +115,7 @@ function drawBloodContents() {
         p.sat
       );
 
-      fill(red(c), green(c), blue(c), 180);
+      fill(red(c), green(c), blue(c), 200);
       ellipse(pos.x, pos.y, p.size);
     }
 
@@ -119,29 +127,4 @@ function drawBloodContents() {
       ellipse(pos.x, pos.y, p.size);
     }
   });
-}
-console.log("🩸 bloodContents v1 loaded");
-
-// =====================================================
-// BLOOD CONTENTS — STUB (RESET PHASE)
-// =====================================================
-
-// Called every frame (safe no-op)
-function updateBloodContents() {
-  // intentionally empty
-}
-
-// Chemical enrichment waves (future)
-function updateSupplyWaves() {
-  // intentionally empty
-}
-
-// Mechanical pressure waves (future)
-function updatePressureWaves() {
-  // intentionally empty
-}
-
-// Rendering hook
-function drawBloodContents() {
-  // intentionally empty
 }
