@@ -16,8 +16,8 @@ const BASE_WALL_OFFSET      = 32 * (4 / 3);
 // Visual vasomotion (WALLS ONLY)
 // -----------------------------------------------------
 const VASOMOTION_FREQ = 0.0009;
-const VASOMOTION_AMP  = 0.06;
-const WALL_WOBBLE_AMP = 2.5;
+const VASOMOTION_AMP  = 0.03;
+const WALL_WOBBLE_AMP = 1.5;
 
 // -----------------------------------------------------
 // Build artery centerline
