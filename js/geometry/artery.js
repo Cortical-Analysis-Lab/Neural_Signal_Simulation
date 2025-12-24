@@ -145,6 +145,33 @@ function drawArtery() {
       f.x - ox + f.tx * 55,
       f.y - oy + f.ty * 55
     );
+    // ---- GLUT1 transporters (endothelium) ----
+    push();
+    noStroke();
+    fill(getColor("glucose"));
+    
+    translate(
+      f.x + ox + f.tx * 28,
+      f.y + oy + f.ty * 28
+    );
+    rotate(atan2(f.ty, f.tx));
+    rectMode(CENTER);
+    rect(0, 0, 8, 4); // GLUT1 block
+    pop();
+    
+    push();
+    noStroke();
+    fill(getColor("glucose"));
+    
+    translate(
+      f.x - ox + f.tx * 28,
+      f.y - oy + f.ty * 28
+    );
+    rotate(atan2(f.ty, f.tx));
+    rectMode(CENTER);
+    rect(0, 0, 8, 4);
+    pop();
+
   }
   pop();
 
@@ -259,7 +286,16 @@ for (let i = 12; i < arteryPath.length - 12; i += 16) {
     );
     rotate(atan2(pMid.y - pLeft.y, pMid.x - pLeft.x));
     ellipse(0, 0, 38, 10); // SAME SIZE AS BEFORE
+    // ---- AQP4 channels (astrocyte endfeet) ----
+    push();
+    noStroke();
+    fill(getColor("water"));
+    
+    for (let k = -1; k <= 1; k++) {
+      circle(k * 6, 0, 4); // small clustered channels
+    }
     pop();
+
 
     // -------------------------------------------------
     // ARM → downstream gap (between pMid and pRight)
@@ -287,7 +323,16 @@ for (let i = 12; i < arteryPath.length - 12; i += 16) {
     );
     rotate(atan2(pRight.y - pMid.y, pRight.x - pMid.x));
     ellipse(0, 0, 38, 10); // SAME SIZE
+    // ---- AQP4 channels (astrocyte endfeet) ----
+    push();
+    noStroke();
+    fill(getColor("water"));
+    
+    for (let k = -1; k <= 1; k++) {
+      circle(k * 6, 0, 4); // small clustered channels
+    }
     pop();
+
   }
 }
 
