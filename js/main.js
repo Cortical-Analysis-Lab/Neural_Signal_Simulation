@@ -72,6 +72,8 @@ function setup() {
   // Dependent neurons
   initNeuron2();
   initNeuron3();
+  initAstrocyte();
+
 
   setMode("overview");
 
