@@ -3,24 +3,24 @@
 // =====================================================
 // ✔ Uses arteryPath + getArteryPoint
 // ✔ Static
-// ✔ Sparse
+// ✔ Sparse (but visible)
 // ✔ Discrete symbols only
 // ✔ No lumen fill
 // =====================================================
 
-console.log("🩸 bloodContents v0.3 (path-aligned static) loaded");
+console.log("🩸 bloodContents v0.4 (path-aligned static, visible) loaded");
 
 const bloodParticles = [];
 
 // -----------------------------------------------------
-// INTENTIONALLY LOW COUNTS
+// COUNTS — TEMPORARILY BOOSTED FOR VISIBILITY
 // -----------------------------------------------------
 
 const BLOOD_COUNTS = {
-  rbcOxy:   6,
-  rbcDeoxy: 4,
-  water:    6,
-  glucose:  3
+  rbcOxy:   10,
+  rbcDeoxy: 6,
+  water:    10,
+  glucose:  6
 };
 
 // -----------------------------------------------------
@@ -48,6 +48,12 @@ function initBloodContents() {
 
   let seed = 0;
 
+  const BLOOD_COUNTS_TOTAL =
+    BLOOD_COUNTS.rbcOxy +
+    BLOOD_COUNTS.rbcDeoxy +
+    BLOOD_COUNTS.water +
+    BLOOD_COUNTS.glucose;
+
   function place(type, count, size, shape, color) {
     for (let i = 0; i < count; i++) {
       const t = (seed + i + 1) / (BLOOD_COUNTS_TOTAL + 2);
@@ -65,20 +71,14 @@ function initBloodContents() {
     seed += count;
   }
 
-  const BLOOD_COUNTS_TOTAL =
-    BLOOD_COUNTS.rbcOxy +
-    BLOOD_COUNTS.rbcDeoxy +
-    BLOOD_COUNTS.water +
-    BLOOD_COUNTS.glucose;
-
   // -----------------------------
   // SYMBOLIC PARTICLES
   // -----------------------------
 
-  place("rbcOxy",   BLOOD_COUNTS.rbcOxy,   6, "circle", colors.rbcOxy);
-  place("rbcDeoxy", BLOOD_COUNTS.rbcDeoxy, 6, "circle", colors.rbcDeoxy);
-  place("water",    BLOOD_COUNTS.water,    3, "circle", colors.water);
-  place("glucose",  BLOOD_COUNTS.glucose,  4, "square", colors.glucose);
+  place("rbcOxy",   BLOOD_COUNTS.rbcOxy,   10, "circle", colors.rbcOxy);
+  place("rbcDeoxy", BLOOD_COUNTS.rbcDeoxy, 10, "circle", colors.rbcDeoxy);
+  place("water",    BLOOD_COUNTS.water,     6, "circle", colors.water);
+  place("glucose",  BLOOD_COUNTS.glucose,   7, "square", colors.glucose);
 }
 
 // -----------------------------------------------------
@@ -90,16 +90,17 @@ function updateBloodContents() {
 }
 
 // -----------------------------------------------------
-// DRAW — PATH-ALIGNED SYMBOLS
+// DRAW — PATH-ALIGNED SYMBOLS (WITH DIAGNOSTIC OUTLINE)
 // -----------------------------------------------------
 
 function drawBloodContents() {
-  noStroke();
-
   for (const p of bloodParticles) {
     const pos = getArteryPoint(p.t, p.lane);
     if (!pos) continue;
 
+    // 🔍 faint outline for visibility against dark lumen
+    stroke(255, 60);
+    strokeWeight(1);
     fill(p.color);
 
     if (p.shape === "circle") {
@@ -109,10 +110,12 @@ function drawBloodContents() {
       rect(pos.x, pos.y, p.size, p.size);
     }
 
-    // Bound oxygen dot
+    noStroke();
+
+    // Bound oxygen dot (oxy RBC only)
     if (p.type === "rbcOxy") {
       fill(255);
-      circle(pos.x + 2, pos.y - 2, 2);
+      circle(pos.x + 3, pos.y - 3, 3);
     }
   }
 }
