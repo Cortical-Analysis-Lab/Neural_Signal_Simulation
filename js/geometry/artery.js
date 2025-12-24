@@ -8,20 +8,19 @@ let arteryPath = [];
 // -----------------------------------------------------
 // Geometry constants
 // -----------------------------------------------------
-const BASE_LUMEN_RADIUS      = 20;   // 🔑 FIXED lumen for particles
+const BASE_LUMEN_RADIUS      = 20;   // particle reference only
 const PARTICLE_LUMEN_RADIUS = 20;   // 🔑 particles NEVER vasomote
-
-const BASE_WALL_OFFSET  = 32;
-
-// -----------------------------------------------------
-// Visual vasomotion (walls only)
-// -----------------------------------------------------
-const VASOMOTION_FREQ = 0.0009;
-const VASOMOTION_AMP  = 0.06;
-const WALL_WOBBLE_AMP = 2.5;
+const BASE_WALL_OFFSET      = 32;
 
 // -----------------------------------------------------
-// Build artery centerline (screen space)
+// Visual vasomotion (WALLS ONLY)
+// -----------------------------------------------------
+const VASOMOTION_FREQ = 0.0009;   // slow oscillation
+const VASOMOTION_AMP  = 0.06;     // radial scaling
+const WALL_WOBBLE_AMP = 2.5;      // lateral compliance (px)
+
+// -----------------------------------------------------
+// Build artery centerline (SCREEN SPACE)
 // -----------------------------------------------------
 function initArtery() {
   arteryPath = [];
@@ -46,24 +45,27 @@ function initArtery() {
         t
       ),
       y: lerp(topY, bottomY, t),
+
+      // Spatial phase so wall motion propagates
       phase: t * TWO_PI
     });
   }
 
+  // Initialize symbolic blood AFTER geometry exists
   if (typeof initBloodContents === "function") {
     initBloodContents();
   }
 }
 
 // -----------------------------------------------------
-// Wall vasomotion scale (walls only)
+// Vasomotion scale (WALLS ONLY)
 // -----------------------------------------------------
 function getVasomotionScale() {
   return 1.0 + VASOMOTION_AMP * sin(state.time * VASOMOTION_FREQ);
 }
 
 // -----------------------------------------------------
-// Map blood particle → screen (FIXED lumen)
+// Map particle position → screen (FIXED LUMEN)
 // -----------------------------------------------------
 function getArteryPoint(t, lane = 0) {
   if (!arteryPath.length) return null;
@@ -98,7 +100,7 @@ function getLumenAlpha(lane) {
 }
 
 // =====================================================
-// DRAW ARTERY (WALLS ONLY MOVE)
+// DRAW ARTERY (WALLS ONLY — NO LUMEN FILL)
 // =====================================================
 function drawArtery() {
   if (!arteryPath.length) return;
@@ -132,7 +134,7 @@ function drawArtery() {
   endShape();
 
   // =========================
-  // RIGHT WALL (out of phase)
+  // RIGHT WALL (OUT OF PHASE)
   // =========================
   beginShape();
   arteryPath.forEach(p => {
@@ -144,7 +146,7 @@ function drawArtery() {
   endShape();
 
   // =========================
-  // INNER HIGHLIGHT
+  // SUBTLE INNER HIGHLIGHT
   // =========================
   stroke(getColor("arteryHighlight", 120));
   strokeWeight(2);
