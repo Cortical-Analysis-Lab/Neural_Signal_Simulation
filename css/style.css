@@ -11,7 +11,7 @@ html, body {
 }
 
 /* =====================================================
-   CANVAS (CRITICAL FIX)
+   CANVAS (ALWAYS BELOW UI)
    ===================================================== */
 canvas {
   position: fixed !important;
@@ -27,7 +27,7 @@ canvas {
   position: fixed;
   top: 12px;
   left: 12px;
-  z-index: 20;
+  z-index: 30;
 
   max-width: calc(100vw - 24px);
   background: rgba(20, 24, 32, 0.85);
@@ -61,47 +61,21 @@ button:hover {
 }
 
 /* =====================================================
-   PANELS (SHARED)
+   PANELS (CONTENT ONLY — NO TABS INSIDE)
    ===================================================== */
 .panel {
   position: fixed;
   background: rgba(20, 22, 28, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
-  z-index: 40;
+  z-index: 20;
 
   transition: transform 0.35s ease;
   backdrop-filter: blur(6px);
 }
 
 /* =====================================================
-   PANEL TABS (INTERACTIVE LABELS — FIXED)
-   ===================================================== */
-.panel-tab {
-  position: fixed;              /* 🔑 FIX: not inside transformed parent */
-  background: rgba(30, 34, 44, 0.95);
-  color: #eaeaea;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  user-select: none;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  z-index: 50;                  /* 🔑 ABOVE CANVAS */
-  pointer-events: auto;         /* 🔑 CLICKABLE */
-
-  transition: background 0.25s ease;
-}
-
-.panel-tab:hover {
-  background: rgba(60, 120, 255, 0.9);
-}
-
-/* =====================================================
-   INSTRUCTIONS PANEL (LEFT)
+   LEFT PANEL — INSTRUCTIONS
    ===================================================== */
 .panel.left {
   top: 80px;
@@ -114,23 +88,8 @@ button:hover {
   overflow-y: auto;
 }
 
-/* Vertical clickable tab (ALWAYS VISIBLE) */
-.panel-tab.vertical {
-  top: 50%;
-  left: 0;
-
-  width: 44px;
-  height: 180px;
-
-  transform: translateY(-50%) rotate(-90deg);
-  transform-origin: center;
-
-  border-radius: 10px 10px 0 0;
-}
-
-/* Collapse panel only (tab unaffected) */
 .panel.left:not(.open) {
-  transform: translateX(-100%);
+  transform: translateX(-110%);
 }
 
 /* Content styles */
@@ -142,7 +101,7 @@ button:hover {
 
 #instructions hr {
   border: none;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255,255,255,0.1);
   margin: 10px 0;
 }
 
@@ -172,38 +131,22 @@ button:hover {
 }
 
 /* =====================================================
-   OBSERVATIONS PANEL (BOTTOM)
+   BOTTOM PANEL — OBSERVATIONS
    ===================================================== */
 .panel.bottom {
   bottom: 12px;
   left: 50%;
-  transform: translateX(-50%);
   width: calc(100vw - 48px);
   max-width: none;
-
+  transform: translateX(-50%);
   padding: 12px 18px;
   font-size: 13px;
-  text-align: left;
 }
 
-/* Horizontal clickable tab (ALWAYS VISIBLE) */
-.panel-tab.horizontal {
-  bottom: 0;
-  left: 50%;
-
-  height: 36px;
-  padding: 8px 22px;
-
-  transform: translateX(-50%);
-  border-radius: 10px 10px 0 0;
-}
-
-/* Collapse panel only (tab unaffected) */
 .panel.bottom:not(.open) {
-  transform: translate(-50%, 100%);
+  transform: translate(-50%, 120%);
 }
 
-/* Content */
 #observations ul {
   list-style: none;
   padding: 0;
@@ -216,6 +159,54 @@ button:hover {
 
 #observations li {
   white-space: nowrap;
+}
+
+/* =====================================================
+   EDGE TABS — ALWAYS VISIBLE, ALWAYS CLICKABLE
+   ===================================================== */
+.edge-tab {
+  position: fixed;
+  background: rgba(30, 34, 44, 0.95);
+  color: #eaeaea;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  z-index: 50;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  user-select: none;
+  transition: background 0.25s ease;
+}
+
+.edge-tab:hover {
+  background: rgba(60, 120, 255, 0.9);
+}
+
+/* Vertical Instructions tab */
+.edge-tab.left {
+  top: 50%;
+  left: 0;
+  width: 44px;
+  height: 180px;
+
+  transform: translateY(-50%) rotate(-90deg);
+  transform-origin: center;
+
+  border-radius: 10px 10px 0 0;
+}
+
+/* Horizontal Observations tab */
+.edge-tab.bottom {
+  left: 50%;
+  bottom: 0;
+  height: 36px;
+  padding: 8px 24px;
+
+  transform: translateX(-50%);
+  border-radius: 10px 10px 0 0;
 }
 
 /* =====================================================
