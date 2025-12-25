@@ -41,26 +41,12 @@ const camera = {
 };
 
 // =====================================================
-// SYNAPSE FOCUS CONTEXT (PERSISTENT)
+// 🔒 LOCKED SYNAPSE FOCAL POINT (WORLD COORDS)
 // =====================================================
-window.synapseFocus = null;
-
-// =====================================================
-// SET SYNAPSE FOCUS FROM WORLD COORDS
-// =====================================================
-function setSynapseFocusFromWorld(x, y) {
-
-  window.synapseFocus = {
-    x,
-    y,
-    releaseProb: 0.9,
-    diffusionDelay: 10
-  };
-
-  console.log(
-    `📍 Synapse focus set (world coords): x=${x.toFixed(2)}, y=${y.toFixed(2)}`
-  );
-}
+const LOCKED_SYNAPSE_FOCUS = {
+  x: 272.08,
+  y: -0.42
+};
 
 // =====================================================
 // MODE SWITCHING
@@ -75,15 +61,9 @@ function setMode(mode) {
   }
 
   else if (mode === "synapse") {
-
-    if (window.synapseFocus) {
-      camera.targetX = window.synapseFocus.x;
-      camera.targetY = window.synapseFocus.y;
-      camera.targetZoom = 5.0;
-    } else {
-      console.warn("⚠️ No synapse selected. Click one in Overview first.");
-      camera.targetZoom = 4.0;
-    }
+    camera.targetX = LOCKED_SYNAPSE_FOCUS.x;
+    camera.targetY = LOCKED_SYNAPSE_FOCUS.y;
+    camera.targetZoom = 5.0;
   }
 
   else {
@@ -167,23 +147,6 @@ function setup() {
 }
 
 // =====================================================
-// CLICK TO SELECT SYNAPSE (OVERVIEW ONLY)
-// =====================================================
-function mousePressed() {
-
-  // Only allow selection in Overview
-  if (state.mode !== "overview") return;
-
-  // Convert screen → world coordinates
-  const worldX =
-    (mouseX - width / 2) / camera.zoom + camera.x;
-  const worldY =
-    (mouseY - height / 2) / camera.zoom + camera.y;
-
-  setSynapseFocusFromWorld(worldX, worldY);
-}
-
-// =====================================================
 // MAIN LOOP
 // =====================================================
 function draw() {
@@ -203,7 +166,7 @@ function draw() {
 
   // =====================================================
   // DRAW ARTERY (HIDE IN SYNAPSE VIEW)
-  // =====================================================
+// =====================================================
   if (state.mode !== "synapse") {
     drawArtery();
   }
@@ -251,23 +214,6 @@ function draw() {
     case "synapse":
       drawSynapseView(state);
       break;
-  }
-
-  // -----------------------------------------------------
-  // Optional: show selected synapse marker in Overview
-  // -----------------------------------------------------
-  if (state.mode === "overview" && window.synapseFocus) {
-    push();
-    stroke(255, 200, 80);
-    strokeWeight(2);
-    noFill();
-    ellipse(
-      window.synapseFocus.x,
-      window.synapseFocus.y,
-      18,
-      18
-    );
-    pop();
   }
 
   if (typeof drawHighlightOverlay === "function") {
