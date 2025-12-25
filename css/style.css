@@ -99,7 +99,6 @@ button:hover {
   bottom: 12px;
   left: 50%;
   width: calc(100vw - 48px);
-  max-width: none;
   transform: translateX(-50%);
   padding: 12px 18px;
   font-size: 13px;
@@ -110,7 +109,7 @@ button:hover {
 }
 
 /* =====================================================
-   EDGE TABS — ALWAYS VISIBLE, ALWAYS CLICKABLE
+   EDGE TABS — ALWAYS VISIBLE
    ===================================================== */
 .edge-tab {
   position: fixed;
@@ -126,9 +125,7 @@ button:hover {
   justify-content: center;
 
   user-select: none;
-  transition:
-    background 0.25s ease,
-    box-shadow 0.25s ease;
+  transition: background 0.25s ease, box-shadow 0.25s ease;
 }
 
 .edge-tab:hover {
@@ -148,7 +145,6 @@ button:hover {
 
   writing-mode: vertical-rl;
   text-orientation: mixed;
-
   transform: translateY(-50%);
 
   border-radius: 10px 10px 0 0;
@@ -163,10 +159,48 @@ button:hover {
 
   height: 36px;
   padding: 8px 26px;
-
   transform: translateX(-50%);
   border-radius: 10px 10px 0 0;
 }
+
+/* =====================================================
+   EVENT LOG — WHAT JUST HAPPENED?
+   ===================================================== */
+#event-log {
+  position: fixed;
+  bottom: 14px;
+  left: 14px;
+
+  width: 340px;
+  max-height: 160px;
+  overflow: hidden;
+
+  z-index: 25;
+  pointer-events: auto;
+
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.event-line {
+  margin-bottom: 4px;
+  cursor: pointer;
+  opacity: 0.92;
+  transition: opacity 0.2s ease;
+}
+
+.event-line:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+/* =====================================================
+   EVENT COLORS (MATCH JS)
+   ===================================================== */
+.event-neural    { color: #ffd966; } /* yellow */
+.event-vascular { color: #ff6f6f; } /* red */
+.event-glial    { color: #b58cff; } /* purple */
+.event-system   { color: #b0b0b0; } /* gray */
 
 /* =====================================================
    MOBILE ADJUSTMENTS
@@ -199,5 +233,9 @@ button:hover {
   .edge-tab.instructions {
     height: 160px;
     font-size: 12px;
+  }
+
+  #event-log {
+    width: calc(100vw - 28px);
   }
 }
