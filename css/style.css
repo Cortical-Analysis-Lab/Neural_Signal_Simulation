@@ -133,22 +133,27 @@ button:hover {
   background: rgba(60, 120, 255, 0.9);
 }
 
-/* 🔑 FIX: match HTML class names */
-
-/* Vertical Instructions tab */
+/* =====================================================
+   🔑 FIXED INSTRUCTIONS TAB (TRUE VERTICAL TEXT)
+   ===================================================== */
 .edge-tab.instructions {
   top: 50%;
   left: 0;
+
   width: 44px;
   height: 180px;
 
-  transform: translateY(-50%) rotate(-90deg);
-  transform-origin: center;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+
+  transform: translateY(-50%);
 
   border-radius: 10px 10px 0 0;
 }
 
-/* Horizontal Observations tab */
+/* =====================================================
+   OBSERVATIONS TAB (BOTTOM)
+   ===================================================== */
 .edge-tab.observations {
   left: 50%;
   bottom: 0;
