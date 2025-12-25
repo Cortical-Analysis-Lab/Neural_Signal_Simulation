@@ -1,51 +1,115 @@
 // =====================================================
-// EVENT LOG — "WHAT JUST HAPPENED?"
+// EVENT LOG — METABOLIC SUMMARY
 // =====================================================
-console.log("🧾 eventLog.js loaded");
+console.log("🧾 eventLog.js loaded (metabolic summary mode)");
 
 // -----------------------------------------------------
-// Configuration
-// -----------------------------------------------------
-const MAX_EVENTS = 12; // scrollable, visually shows ~3–4
-
-// -----------------------------------------------------
-// Event colors (semantic)
+// Semantic colors
 // -----------------------------------------------------
 const EVENT_COLORS = {
-  neural:    "#ffd966", // 🟡 neural
-  vascular: "#ff6f6f", // 🔴 vascular
-  glial:    "#b58cff", // 🟣 glial
-  system:   "#b0b0b0"  // ⚪ system
+  low:      "#b0b0b0", // baseline / system
+  neural:   "#ffd966", // elevated demand
+  vascular: "#ff6f6f", // increased supply
+  glial:    "#b58cff"  // astrocytic coordination
 };
 
 // -----------------------------------------------------
-// Internal state
+// Internal metabolic state (ACCUMULATED)
 // -----------------------------------------------------
-const eventLog = [];
+const metabolicState = {
+  neuralDemand: 0,
+  vascularSupply: 0,
+  glialActivity: 0,
+  lastSummary: ""
+};
 
 // -----------------------------------------------------
-// Public: log an event (DOES NOT CARE if UI hidden)
+// Tunable decay (per frame-ish updates)
+// -----------------------------------------------------
+const DECAY_RATE = 0.985;
+
+// -----------------------------------------------------
+// Public: register low-level events (ACCUMULATE ONLY)
 // -----------------------------------------------------
 function logEvent(type, message, target = null) {
-  eventLog.push({
-    type,
-    message,
-    target
-  });
 
-  if (eventLog.length > MAX_EVENTS) {
-    eventLog.shift();
+  // Accumulate signals — NOT messages
+  switch (type) {
+    case "neural":
+      metabolicState.neuralDemand += 1;
+      break;
+
+    case "vascular":
+      metabolicState.vascularSupply += 1;
+      break;
+
+    case "glial":
+      metabolicState.glialActivity += 1;
+      break;
   }
 }
 
 // -----------------------------------------------------
-// Public: draw log UI (visibility controlled here)
+// Internal: decay toward baseline
+// -----------------------------------------------------
+function decayMetabolicState() {
+  metabolicState.neuralDemand   *= DECAY_RATE;
+  metabolicState.vascularSupply *= DECAY_RATE;
+  metabolicState.glialActivity  *= DECAY_RATE;
+}
+
+// -----------------------------------------------------
+// Internal: generate ONE meaningful sentence
+// -----------------------------------------------------
+function generateMetabolicSummary() {
+
+  const n = metabolicState.neuralDemand;
+  const v = metabolicState.vascularSupply;
+  const g = metabolicState.glialActivity;
+
+  // ---- Priority logic (teaching-first) ----
+  if (n < 0.3 && v < 0.3 && g < 0.3) {
+    return {
+      text: "Baseline metabolic activity",
+      color: EVENT_COLORS.low
+    };
+  }
+
+  if (n > 1.5 && v < n * 0.7) {
+    return {
+      text: "Elevated neural demand detected",
+      color: EVENT_COLORS.neural
+    };
+  }
+
+  if (v > n && v > 1.0) {
+    return {
+      text: "Neurovascular coupling increasing metabolic supply",
+      color: EVENT_COLORS.vascular
+    };
+  }
+
+  if (g > 0.8) {
+    return {
+      text: "Astrocytes coordinating metabolic support",
+      color: EVENT_COLORS.glial
+    };
+  }
+
+  return {
+    text: "Metabolic activity adapting to neural demand",
+    color: EVENT_COLORS.neural
+  };
+}
+
+// -----------------------------------------------------
+// Public: draw SINGLE-LINE log
 // -----------------------------------------------------
 function drawEventLog() {
   const container = document.getElementById("event-log");
   if (!container) return;
 
-  // 🔑 Toggle controls VISIBILITY, not logging
+  // Toggle controls visibility ONLY
   if (!window.loggingEnabled) {
     container.classList.add("hidden");
     return;
@@ -53,51 +117,23 @@ function drawEventLog() {
     container.classList.remove("hidden");
   }
 
-  container.innerHTML = eventLog.map(evt => {
-    const color = EVENT_COLORS[evt.type] || "#ccc";
+  // Update state
+  decayMetabolicState();
+  const summary = generateMetabolicSummary();
 
-    return `
-      <div class="event-line"
-           style="color:${color}"
-           onclick="highlightTarget('${evt.target || ""}')">
-        • ${evt.message}
-      </div>
-    `;
-  }).join("");
+  // Avoid DOM churn if text unchanged
+  if (summary.text === metabolicState.lastSummary) return;
+  metabolicState.lastSummary = summary.text;
 
-  // Always scroll to newest
-  container.scrollTop = container.scrollHeight;
+  container.innerHTML = `
+    <div class="event-line" style="color:${summary.color}">
+      • ${summary.text}
+    </div>
+  `;
 }
 
 // -----------------------------------------------------
-// Public: highlight helper (log click → visual cue)
-// -----------------------------------------------------
-function highlightTarget(target) {
-  if (!target || typeof state === "undefined") return;
-
-  const duration = 600;
-
-  switch (target) {
-    case "soma":
-      window.highlightSomaUntil = state.time + duration;
-      break;
-    case "dendrite":
-      window.highlightDendriteUntil = state.time + duration;
-      break;
-    case "axon":
-      window.highlightAxonUntil = state.time + duration;
-      break;
-    case "astrocyte":
-      window.highlightAstrocyteUntil = state.time + duration;
-      break;
-    case "artery":
-      window.highlightArteryUntil = state.time + duration;
-      break;
-  }
-}
-
-// -----------------------------------------------------
-// Optional: highlight overlay renderer (SAFE)
+// Optional: highlight overlay renderer (unchanged)
 // -----------------------------------------------------
 function drawHighlightOverlay() {
   if (typeof state === "undefined") return;
@@ -115,9 +151,8 @@ function drawHighlightOverlay() {
 }
 
 // -----------------------------------------------------
-// Public API (GLOBAL, SINGLE SOURCE OF TRUTH)
+// Public API
 // -----------------------------------------------------
 window.logEvent              = logEvent;
 window.drawEventLog          = drawEventLog;
-window.highlightTarget       = highlightTarget;
 window.drawHighlightOverlay  = drawHighlightOverlay;
