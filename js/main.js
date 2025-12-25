@@ -42,8 +42,8 @@ const camera = {
   targetY: 0,
   targetZoom: 1,
 
-  t: 0,                 // transition progress
-  duration: 120         // frames
+  t: 0,
+  duration: 120            // frames (overview → synapse)
 };
 
 // =====================================================
@@ -76,6 +76,7 @@ function beginTransition(targetMode) {
     camera.targetX = window.synapseFocus.x;
     camera.targetY = window.synapseFocus.y;
     camera.targetZoom = 5.0;
+    camera.duration = 120;
     state.transition = "toSynapse";
   }
 
@@ -83,6 +84,7 @@ function beginTransition(targetMode) {
     camera.targetX = 0;
     camera.targetY = 0;
     camera.targetZoom = 1.2;
+    camera.duration = 240;   // 🔑 half speed back
     state.transition = "toOverview";
   }
 
@@ -91,24 +93,14 @@ function beginTransition(targetMode) {
 }
 
 // =====================================================
-// MODE SWITCHING (ENTRY POINT)
+// MODE SWITCHING
 // =====================================================
 function setMode(mode) {
+  if (mode === "synapse") return beginTransition("synapse");
+  if (mode === "overview") return beginTransition("overview");
 
-  if (mode === "synapse") {
-    beginTransition("synapse");
-    return;
-  }
-
-  if (mode === "overview") {
-    beginTransition("overview");
-    return;
-  }
-
-  // Ion view (no transition yet)
   state.mode = mode;
   camera.targetZoom = 2.5;
-
   updateOverviewUI();
   if (typeof updateUIPanelContent === "function") {
     updateUIPanelContent(mode);
@@ -125,7 +117,6 @@ function setup() {
   canvas.parent(document.body);
   frameRate(60);
 
-  // ---- Core geometry ----
   initSynapses();
   initAxonPath(neuron);
   initArtery();
@@ -138,7 +129,6 @@ function setup() {
 
   state.mode = "overview";
 
-  // UI wiring preserved
   const pauseBtn = document.getElementById("pauseBtn");
   if (pauseBtn) pauseBtn.onclick = togglePause;
 
@@ -176,7 +166,7 @@ function draw() {
   const transitioning = state.transition !== null;
 
   // ---------------------------------------------------
-  // UPDATE PHASE (FREEZE DURING TRANSITION)
+  // UPDATE PHASE (FROZEN DURING TRANSITION)
   // ---------------------------------------------------
   if (!state.paused && !transitioning) {
     state.time += state.dt;
@@ -199,6 +189,7 @@ function draw() {
     camera.y = lerp(camera.startY, camera.targetY, e);
     camera.zoom = lerp(camera.startZoom, camera.targetZoom, e);
 
+    // 🔑 Switch mode ONLY after fade completes
     if (u >= 1) {
       state.mode =
         state.transition === "toSynapse" ? "synapse" : "overview";
@@ -216,9 +207,7 @@ function draw() {
   // ---------------------------------------------------
   // DRAW ARTERY (NOT IN SYNAPSE)
   // ---------------------------------------------------
-  if (state.mode !== "synapse") {
-    drawArtery();
-  }
+  if (state.mode !== "synapse") drawArtery();
 
   // ---------------------------------------------------
   // WORLD SPACE
@@ -248,6 +237,23 @@ function draw() {
   if (state.mode === "synapse") drawSynapseView(state);
 
   pop();
+
+  // ---------------------------------------------------
+  // FADE OVERLAY (SCREEN SPACE)
+  // ---------------------------------------------------
+  if (transitioning) {
+    const u = constrain(camera.t / camera.duration, 0, 1);
+    const alpha =
+      state.transition === "toSynapse"
+        ? map(u, 0.3, 1.0, 0, 220, true)
+        : map(u, 0.0, 0.6, 220, 0, true);
+
+    push();
+    noStroke();
+    fill(0, alpha);
+    rect(0, 0, width, height);
+    pop();
+  }
 
   // ---------------------------------------------------
   // UI OVERLAY
