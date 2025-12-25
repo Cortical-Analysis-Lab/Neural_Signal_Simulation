@@ -173,7 +173,14 @@ button:hover {
 
   width: 300px;
   max-height: 96px; /* ~3–4 lines */
-  overflow: hidden;
+  overflow-y: auto;        /* ✅ ENABLE SCROLLING */
+  overflow-x: hidden;
+
+  background: rgba(20, 22, 28, 0.88);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+
+  padding: 8px 10px;
 
   z-index: 25;
   pointer-events: auto;
@@ -181,6 +188,31 @@ button:hover {
   font-size: 12px;
   line-height: 1.4;
 }
+
+/* Individual log lines */
+.event-line {
+  margin-bottom: 4px;
+  cursor: pointer;
+  opacity: 0.9;
+
+  transition:
+    opacity 0.2s ease,
+    transform 0.25s ease;
+}
+
+.event-line:hover {
+  opacity: 1;
+  transform: translateX(-2px);
+}
+
+/* =====================================================
+   EVENT COLORS (MATCH JS)
+   ===================================================== */
+.event-neural    { color: #ffd966; } /* yellow */
+.event-vascular  { color: #ff6f6f; } /* red */
+.event-glial     { color: #b58cff; } /* purple */
+.event-system    { color: #b0b0b0; } /* gray */
+
 
 .event-line {
   margin-bottom: 4px;
