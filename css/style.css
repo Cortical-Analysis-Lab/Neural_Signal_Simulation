@@ -85,7 +85,7 @@ button:hover {
   overflow-y: auto;
 }
 
-.panel.left:not(.closed) {
+.panel.left:not(.open) {
   transform: translateX(-110%);
 }
 
@@ -99,7 +99,7 @@ button:hover {
   font-size: 13px;
 }
 
-.panel.bottom:not(.closed) {
+.panel.bottom:not(.open) {
   transform: translate(-50%, 120%);
 }
 
