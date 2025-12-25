@@ -79,18 +79,26 @@ function updateSoma() {
       soma.Vm += AP_PARAMS.upstrokeRate;
 
       if (soma.Vm >= 40) {
-      soma.Vm = 40;
-      soma.apState = AP.PEAK;
-      soma.apTimer = AP_PARAMS.peakHold;
-    
-      // 🔑 METABOLIC DEMAND SIGNAL (Neuron 1 fired)
-      window.neuron1Fired = true;
-      window.lastNeuron1SpikeTime = state.time;
-    
-      spawnAxonSpike();
-      console.log("⚡ ACTION POTENTIAL");
-    }
+        soma.Vm = 40;
+        soma.apState = AP.PEAK;
+        soma.apTimer = AP_PARAMS.peakHold;
 
+        // 🔑 METABOLIC DEMAND SIGNAL (Neuron 1 fired)
+        window.neuron1Fired = true;
+        window.lastNeuron1SpikeTime = state.time;
+
+        // 🔔 LOG NEURAL EVENT (ONCE PER AP)
+        if (typeof logEvent === "function") {
+          logEvent(
+            "neural",
+            "Action potential generated at the soma",
+            "soma"
+          );
+        }
+
+        spawnAxonSpike();
+        console.log("⚡ ACTION POTENTIAL");
+      }
       break;
 
     // =================================================
