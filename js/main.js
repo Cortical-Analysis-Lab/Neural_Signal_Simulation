@@ -46,7 +46,10 @@ function setMode(mode) {
   }
 
   updateOverviewUI();
-  updateUIPanelContent?.();
+
+  if (typeof updateUIPanelContent === "function") {
+    updateUIPanelContent(mode);
+  }
 
   logEvent("system", `Switched to ${mode} view`);
 }
@@ -111,7 +114,10 @@ function setup() {
   }
 
   updateOverviewUI();
-  updateUIPanelContent?.();
+
+  if (typeof updateUIPanelContent === "function") {
+    updateUIPanelContent(state.mode);
+  }
 }
 
 // =====================================================
@@ -182,8 +188,10 @@ function draw() {
       break;
   }
 
-  // 🔑 Highlight overlay (clickable logs)
-  drawHighlightOverlay();
+  // 🔑 Highlight overlays from log clicks
+  if (typeof drawHighlightOverlay === "function") {
+    drawHighlightOverlay();
+  }
 
   pop();
 
@@ -191,7 +199,10 @@ function draw() {
   // UI OVERLAY
   // =====================================================
   drawTimeReadout();
-  drawEventLog();
+
+  if (typeof drawEventLog === "function") {
+    drawEventLog(state.time);
+  }
 }
 
 // =====================================================
