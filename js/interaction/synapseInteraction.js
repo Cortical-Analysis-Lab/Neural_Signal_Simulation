@@ -45,27 +45,7 @@ function mousePressed() {
   const p = getWorldPoint(mouseX, mouseY);
 
   // ===================================================
-  // 🔑 ASTROCYTE ENDFOOT PLACEMENT (SHIFT + CLICK)
-  // ===================================================
-  if (keyIsDown(SHIFT) && typeof astrocyteMousePressed === "function") {
-    astrocyteMousePressed(p.x, p.y);
-
-    // Log authoritative coordinates for copy-paste
-    if (window.astrocyte?.endfeet) {
-      console.log(
-        "🟣 Astrocyte endfeet:",
-        astrocyte.endfeet.map((e, i) =>
-          e
-            ? `#${i}: (${e.x.toFixed(1)}, ${e.y.toFixed(1)})`
-            : `#${i}: null`
-        )
-      );
-    }
-
-    return; // prevent synapse interaction underneath
-  }
-
-  const multiSelect = keyIsDown(CONTROL) || keyIsDown(91); // Ctrl / Cmd
+    const multiSelect = keyIsDown(CONTROL) || keyIsDown(91); // Ctrl / Cmd
 
   neuron.synapses.forEach(s => {
     if (!s.hovered) return;
