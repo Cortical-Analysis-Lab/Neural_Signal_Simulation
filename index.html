@@ -13,16 +13,24 @@
 
 <body>
 
-<!-- ===============================
-     INSTRUCTIONS PANEL (LEFT)
-================================ -->
-<div id="instructions" class="panel left open full-height">
+<!-- =====================================================
+     EDGE TABS — ALWAYS VISIBLE CONTROLS
+===================================================== -->
 
-  <!-- CLICKABLE VERTICAL TAB -->
-  <div class="panel-tab vertical"
-       onclick="togglePanel('instructions')">
-    Instructions
-  </div>
+<div class="edge-tab left"
+     onclick="togglePanel('instructions')">
+  Instructions
+</div>
+
+<div class="edge-tab bottom"
+     onclick="togglePanel('observations')">
+  Observations
+</div>
+
+<!-- =====================================================
+     INSTRUCTIONS PANEL (LEFT)
+===================================================== -->
+<div id="instructions" class="panel left open">
 
   <div class="panel-content">
     <h2>Neuron Simulator</h2>
@@ -53,16 +61,10 @@
   </div>
 </div>
 
-<!-- ===============================
+<!-- =====================================================
      OBSERVATIONS PANEL (BOTTOM)
-================================ -->
-<div id="observations" class="panel bottom open full-width">
-
-  <!-- CLICKABLE HORIZONTAL TAB -->
-  <div class="panel-tab horizontal"
-       onclick="togglePanel('observations')">
-    Observations
-  </div>
+===================================================== -->
+<div id="observations" class="panel bottom open">
 
   <div class="panel-content">
     <ul>
@@ -77,9 +79,9 @@
   </div>
 </div>
 
-<!-- ===============================
+<!-- =====================================================
      TOP UI BAR
-================================ -->
+===================================================== -->
 <div id="ui">
   <h1>Neural Signal Simulation</h1>
 
@@ -96,9 +98,9 @@
   </div>
 </div>
 
-<!-- ===============================
+<!-- =====================================================
      SCRIPTS (LOAD EACH FILE ONCE)
-================================ -->
+===================================================== -->
 
 <!-- Constants -->
 <script src="js/constants/colors.js"></script>
