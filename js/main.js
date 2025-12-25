@@ -16,6 +16,15 @@ const state = {
 window.myelinEnabled  = false;
 window.loggingEnabled = true;
 
+// -----------------------------------------------------
+// SAFE LOGGING WRAPPER (prevents crashes)
+// -----------------------------------------------------
+function safeLog(type, message, target = null) {
+  if (typeof logEvent === "function") {
+    logEvent(type, message, target);
+  }
+}
+
 // =====================================================
 // CAMERA STATE (WORLD SPACE ONLY)
 // =====================================================
@@ -51,7 +60,7 @@ function setMode(mode) {
     updateUIPanelContent(mode);
   }
 
-  logEvent("system", `Switched to ${mode} view`);
+  safeLog("system", `Switched to ${mode} view`);
 }
 
 // =====================================================
@@ -91,7 +100,7 @@ function setup() {
     myelinToggle.checked = window.myelinEnabled;
     myelinToggle.addEventListener("change", () => {
       window.myelinEnabled = myelinToggle.checked;
-      logEvent(
+      safeLog(
         "system",
         `Myelin ${window.myelinEnabled ? "enabled" : "disabled"}`
       );
@@ -106,7 +115,7 @@ function setup() {
     logToggle.checked = window.loggingEnabled;
     logToggle.addEventListener("change", () => {
       window.loggingEnabled = logToggle.checked;
-      logEvent(
+      safeLog(
         "system",
         `Event logging ${window.loggingEnabled ? "enabled" : "disabled"}`
       );
@@ -226,7 +235,7 @@ function togglePause() {
     pauseBtn.innerText = state.paused ? "Resume" : "Pause";
   }
 
-  logEvent(
+  safeLog(
     "system",
     state.paused ? "Simulation paused" : "Simulation resumed"
   );
