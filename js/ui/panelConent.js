@@ -11,19 +11,23 @@ window.updateUIPanelContent = updateUIPanelContent;
 // -----------------------------------------------------
 // Main dispatcher
 // -----------------------------------------------------
-function updateUIPanelContent() {
-  updateInstructionsPanel();
-  updateObservationsPanel();
+function updateUIPanelContent(modeOverride) {
+  const mode =
+    modeOverride ||
+    (typeof state !== "undefined" ? state.mode : "overview");
+
+  updateInstructionsPanel(mode);
+  updateObservationsPanel(mode);
 }
 
 // =====================================================
 // INSTRUCTIONS PANEL
 // =====================================================
-function updateInstructionsPanel() {
+function updateInstructionsPanel(mode) {
   const el = document.getElementById("instructions-content");
   if (!el) return;
 
-  switch (state.mode) {
+  switch (mode) {
 
     // =================================================
     // OVERVIEW MODE
@@ -109,11 +113,11 @@ function updateInstructionsPanel() {
 // =====================================================
 // OBSERVATIONS PANEL
 // =====================================================
-function updateObservationsPanel() {
+function updateObservationsPanel(mode) {
   const el = document.getElementById("observations-content");
   if (!el) return;
 
-  switch (state.mode) {
+  switch (mode) {
 
     // =================================================
     // OVERVIEW MODE
