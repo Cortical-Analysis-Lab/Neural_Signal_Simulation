@@ -1,14 +1,13 @@
 // =====================================================
-// BLOOD CONTENTS — HEARTBEAT FLOW + ACTIVITY-COUPLED BBB
+// BLOOD CONTENTS — HEARTBEAT FLOW + LABELED MOLECULES
 // =====================================================
-// ✔ Slower CSF transport
-// ✔ Activity-dependent glucose & oxygen boost
-// ✔ Mid-artery BBB gating
-// ✔ Correct routes only
-// ✔ Reload-safe
+// ✔ Text-based molecules (HbO2, Hb, Glu, H2O, O2)
+// ✔ O2 only appears after HbO2 dissociation
+// ✔ Heartbeat-locked transport
+// ✔ Wall accumulation before exit
 // =====================================================
 
-console.log("🩸 bloodContents v2.3 (activity-coupled transport) loaded");
+console.log("🩸 bloodContents v3.0 (labeled molecules) loaded");
 
 // -----------------------------------------------------
 // GLOBAL STORAGE (RELOAD SAFE)
@@ -18,14 +17,14 @@ window.bloodParticles = window.bloodParticles || [];
 const bloodParticles = window.bloodParticles;
 
 // -----------------------------------------------------
-// PARTICLE COUNTS (BASELINE)
+// PARTICLE COUNTS
 // -----------------------------------------------------
 
 const BLOOD_COUNTS = {
-  rbcOxy:   30,
-  rbcDeoxy: 18,
-  water:    30,
-  glucose:  18
+  rbcOxy:   26,
+  rbcDeoxy: 16,
+  water:    22,
+  glucose:  16
 };
 
 // -----------------------------------------------------
@@ -43,16 +42,6 @@ const HEART_RATE_BPM = 72;
 const BEAT_INTERVAL = 60000 / HEART_RATE_BPM;
 const FLOW_STEP     = 0.012;
 
-// -----------------------------------------------------
-// FLUID FEEL PARAMETERS
-// -----------------------------------------------------
-
-const T_EASE        = 0.12;
-const COLLISION_R  = 0.06;
-const COLLISION_K  = 0.015;
-const WALL_K       = 0.020;
-const LANE_DAMPING = 0.90;
-
 let lastBeatTime = 0;
 
 // -----------------------------------------------------
@@ -63,7 +52,6 @@ const EXIT_LANE_THRESHOLD = 0.42;
 const BBB_T_MIN = 0.35;
 const BBB_T_MAX = 0.65;
 
-// base probabilities
 const AQP4_PROB_BASE  = 0.012;
 const GLUT1_PROB_BASE = 0.008;
 const O2_PROB_BASE    = 0.006;
@@ -72,16 +60,15 @@ const O2_PROB_BASE    = 0.006;
 // ACTIVITY COUPLING
 // -----------------------------------------------------
 
-const METABOLIC_BOOST_DURATION = 10000; // ms
+const METABOLIC_BOOST_DURATION = 10000;
 const METABOLIC_MULTIPLIER    = 5.0;
-
 let metabolicBoostUntil = 0;
 
 // -----------------------------------------------------
-// CSF DRIFT (HALF SPEED)
+// CSF DRIFT
 // -----------------------------------------------------
 
-const CSF_DRIFT = 0.0225; // was 0.045
+const CSF_DRIFT = 0.0225;
 
 // -----------------------------------------------------
 // INITIALIZE
@@ -93,24 +80,20 @@ function initBloodContents() {
   if (
     typeof getArteryPoint !== "function" ||
     !Array.isArray(arteryPath) ||
-    arteryPath.length === 0 ||
-    typeof COLORS !== "object"
+    arteryPath.length === 0
   ) {
     requestAnimationFrame(initBloodContents);
     return;
   }
 
-  function spawn(type, count, size, shape, colorName) {
-    const c = COLORS[colorName];
-
+  function spawn(type, label, colorName, count) {
     for (let i = 0; i < count; i++) {
       const t0 = random();
 
       bloodParticles.push({
         type,
-        shape,
-        size,
-        color: c,
+        label,
+        color: COLORS[colorName],
 
         t: t0,
         tTarget: t0,
@@ -127,10 +110,10 @@ function initBloodContents() {
     }
   }
 
-  spawn("rbcOxy",   BLOOD_COUNTS.rbcOxy,   10, "circle", "rbcOxy");
-  spawn("rbcDeoxy", BLOOD_COUNTS.rbcDeoxy, 10, "circle", "rbcDeoxy");
-  spawn("water",    BLOOD_COUNTS.water,     6, "circle", "water");
-  spawn("glucose",  BLOOD_COUNTS.glucose,  12, "square", "glucose");
+  spawn("rbcOxy",   "HbO₂", "rbcOxy",   BLOOD_COUNTS.rbcOxy);
+  spawn("rbcDeoxy", "Hb",   "rbcDeoxy", BLOOD_COUNTS.rbcDeoxy);
+  spawn("water",    "H₂O",  "water",    BLOOD_COUNTS.water);
+  spawn("glucose",  "Glu",  "glucose",  BLOOD_COUNTS.glucose);
 }
 
 // -----------------------------------------------------
@@ -140,11 +123,9 @@ function initBloodContents() {
 function updateBloodContents() {
   const now = state.time;
 
-  // -------------------------------------------------
-  // Detect neuron 1 firing
-  // -------------------------------------------------
+  // Neuron activity coupling
   if (
-    window.neuron1Fired === true ||
+    window.neuron1Fired ||
     (window.lastNeuron1SpikeTime &&
      now - window.lastNeuron1SpikeTime < 50)
   ) {
@@ -159,9 +140,7 @@ function updateBloodContents() {
   const GLUT1_PROB = GLUT1_PROB_BASE * metabolicGain;
   const O2_PROB    = O2_PROB_BASE    * metabolicGain;
 
-  // -------------------------------------------------
-  // HEARTBEAT FLOW
-  // -------------------------------------------------
+  // ---------------- HEARTBEAT ----------------
   if (now - lastBeatTime >= BEAT_INTERVAL) {
     lastBeatTime = now;
 
@@ -169,25 +148,21 @@ function updateBloodContents() {
       if (p.exited) continue;
 
       p.tTarget += FLOW_STEP;
-
       if (p.tTarget > 1) {
         p.tTarget -= 1;
         p.t = p.tTarget;
         p.lane = random(LANE_MIN, LANE_MAX);
-        p.vLane = 0;
       }
     }
   }
 
   for (const p of bloodParticles) {
     if (!p.exited) {
-      p.t += (p.tTarget - p.t) * T_EASE;
+      p.t += (p.tTarget - p.t) * 0.15;
     }
   }
 
-  // -------------------------------------------------
-  // BBB EXIT (MID-ARTERY ONLY)
-  // -------------------------------------------------
+  // ---------------- BBB EXIT ----------------
   for (const p of bloodParticles) {
     if (p.exited) continue;
     if (p.t < BBB_T_MIN || p.t > BBB_T_MAX) continue;
@@ -197,9 +172,11 @@ function updateBloodContents() {
 
     if (p.type === "water"   && random() < AQP4_PROB)  allow = true;
     if (p.type === "glucose" && random() < GLUT1_PROB) allow = true;
-    if (p.type === "rbcOxy"  && random() < O2_PROB) {
+
+    // HbO2 → O2 dissociation
+    if (p.type === "rbcOxy" && random() < O2_PROB) {
       p.type  = "oxygen";
-      p.size  = 4;
+      p.label = "O₂";
       p.color = COLORS.oxygen;
       allow = true;
     }
@@ -214,62 +191,50 @@ function updateBloodContents() {
     p.y = pos.y;
 
     const dir = p.lane > 0 ? 1 : -1;
-    p.vx = dir * 0.2;   // HALF SPEED
+    p.vx = dir * 0.2;
     p.vy = random(-0.025, 0.025);
   }
 
-  // -------------------------------------------------
-  // CSF DRIFT → NEURON 1
-  // -------------------------------------------------
+  // ---------------- CSF / NEURON ----------------
   const somaX = width / 2;
   const somaY = height / 2;
 
   for (let i = bloodParticles.length - 1; i >= 0; i--) {
-  const p = bloodParticles[i];
-  if (!p.exited) continue;
+    const p = bloodParticles[i];
+    if (!p.exited) continue;
 
-  // ------------------------------------------
-  // WATER: diffuse locally in CSF, NO neuron pull
-  // ------------------------------------------
-  if (p.type === "water") {
+    if (p.type === "water") {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.alpha -= 2;
+      if (p.alpha <= 0) bloodParticles.splice(i, 1);
+      continue;
+    }
+
+    const dx = somaX - p.x;
+    const dy = somaY - p.y;
+    const d  = sqrt(dx * dx + dy * dy) || 1;
+
+    p.vx += (dx / d) * CSF_DRIFT;
+    p.vy += (dy / d) * CSF_DRIFT;
+
     p.x += p.vx;
     p.y += p.vy;
 
-    p.alpha -= 2; // fade out in CSF
-    if (p.alpha <= 0) {
+    if (d < 20 && (p.type === "glucose" || p.type === "oxygen")) {
       bloodParticles.splice(i, 1);
     }
-    continue;
   }
-
-  // ------------------------------------------
-  // GLUCOSE + OXYGEN: drift toward neuron 1
-  // ------------------------------------------
-  const dx = somaX - p.x;
-  const dy = somaY - p.y;
-  const d  = sqrt(dx * dx + dy * dy) || 1;
-
-  p.vx += (dx / d) * CSF_DRIFT;
-  p.vy += (dy / d) * CSF_DRIFT;
-
-  p.x += p.vx;
-  p.y += p.vy;
-
-  // consume at soma
-  if (d < 20 && (p.type === "glucose" || p.type === "oxygen")) {
-    bloodParticles.splice(i, 1);
-  }
-}
-
 }
 
 // -----------------------------------------------------
-// DRAW
+// DRAW — TEXT LABELS
 // -----------------------------------------------------
 
 function drawBloodContents() {
   push();
-  rectMode(CENTER);
+  textAlign(CENTER, CENTER);
+  textSize(10);
   noStroke();
 
   for (const p of bloodParticles) {
@@ -286,12 +251,7 @@ function drawBloodContents() {
     }
 
     fill(p.color[0], p.color[1], p.color[2], p.alpha);
-
-    if (p.shape === "square") {
-      rect(x, y, p.size * 0.7, p.size * 0.7);
-    } else {
-      circle(x, y, p.size);
-    }
+    text(p.label, x, y);
   }
 
   pop();
