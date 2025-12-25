@@ -48,13 +48,12 @@ function spawnNeuron2EPSP(postSynapse) {
 }
 
 // -----------------------------------------------------
-// Spawn IPSP on neuron 3 dendrite (NEW)
+// Spawn IPSP on neuron 3 dendrite
 // -----------------------------------------------------
 function spawnNeuron3IPSP(postSynapse) {
 
   if (!neuron3 || !neuron3.dendrites.length) return;
 
-  // Primary synaptic trunk is index 0 by construction
   const path = [...neuron3.dendrites[0]].reverse();
 
   epsps.push({
@@ -65,8 +64,8 @@ function spawnNeuron3IPSP(postSynapse) {
     amplitude: 25,
     baseAmplitude: 25,
 
-    speed: 0.010,      // IPSPs slightly slower
-    decay: 0.994,      // longer-lasting
+    speed: 0.010,
+    decay: 0.994,
     type: "inh"
   });
 }
@@ -75,29 +74,58 @@ function spawnNeuron3IPSP(postSynapse) {
 // Update PSP propagation + decay (GLOBAL)
 // -----------------------------------------------------
 function updateEPSPs() {
+
   for (let i = epsps.length - 1; i >= 0; i--) {
     const e = epsps[i];
 
     e.progress += e.speed;
     e.amplitude *= e.decay;
 
-    // PSP fades out before reaching soma
+    // --------------------------------------------------
+    // PSP fades before reaching soma
+    // --------------------------------------------------
     if (e.amplitude < 0.6) {
+
+      if (
+        !state.paused &&
+        typeof logEvent === "function"
+      ) {
+        logEvent(
+          "system",
+          "Postsynaptic potential decayed before reaching the soma",
+          "dendrite"
+        );
+      }
+
       epsps.splice(i, 1);
       continue;
     }
 
+    // --------------------------------------------------
     // PSP reaches soma
-   if (e.progress >= 1) {
+    // --------------------------------------------------
+    if (e.progress >= 1) {
 
-      // Determine source neuron
       const sourceNeuron =
         e.synapseId === "neuron3" ? 3 : 1;
-    
+
       addEPSPToSoma(e.baseAmplitude, e.type, sourceNeuron);
+
+      if (
+        !state.paused &&
+        typeof logEvent === "function"
+      ) {
+        logEvent(
+          "neural",
+          e.type === "exc"
+            ? "Excitatory postsynaptic potential reached the soma"
+            : "Inhibitory postsynaptic potential reached the soma",
+          "soma"
+        );
+      }
+
       epsps.splice(i, 1);
     }
-
   }
 }
 
@@ -105,6 +133,7 @@ function updateEPSPs() {
 // Update neuron 2 EPSPs (visual only)
 // -----------------------------------------------------
 function updateNeuron2EPSPs() {
+
   for (let i = epsps2.length - 1; i >= 0; i--) {
     const e = epsps2[i];
 
@@ -117,7 +146,6 @@ function updateNeuron2EPSPs() {
     }
 
     if (e.progress >= 1) {
-      // (future) integrate into neuron2 soma
       epsps2.splice(i, 1);
     }
   }
@@ -127,6 +155,7 @@ function updateNeuron2EPSPs() {
 // Draw PSPs along dendritic paths (GLOBAL)
 // -----------------------------------------------------
 function drawEPSPs() {
+
   epsps.forEach(e => {
     if (!e.path || e.path.length < 2) return;
 
@@ -141,7 +170,6 @@ function drawEPSPs() {
     const x = lerp(p0.x, p1.x, t);
     const y = lerp(p0.y, p1.y, t);
 
-    // Visual tapering
     const strength = map(e.amplitude, 6, 30, 0.4, 1.2, true);
     const w = map(e.baseAmplitude, 6, 30, 3, 12) * strength;
 
@@ -162,6 +190,7 @@ function drawEPSPs() {
 // Draw neuron 2 EPSPs
 // -----------------------------------------------------
 function drawNeuron2EPSPs() {
+
   epsps2.forEach(e => {
     const path = e.path;
     const segments = path.length - 1;
