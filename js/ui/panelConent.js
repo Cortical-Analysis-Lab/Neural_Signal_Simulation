@@ -1,146 +1,211 @@
 // =====================================================
-// UI PANEL CONTENT CONTROLLER
+// MODE-DEPENDENT PANEL CONTENT
 // =====================================================
-// • Mode-dependent Instructions + Observations
-// • Pure UI logic (no simulation coupling)
-// • Called by main.js → updateUIPanelContent()
-// =====================================================
-
-console.log("📋 panelContent loaded");
+console.log("📘 panelContent.js loaded");
 
 // -----------------------------------------------------
-// PANEL CONTENT DEFINITIONS
+// Public API
 // -----------------------------------------------------
-
-const PANEL_CONTENT = {
-
-  overview: {
-    instructions: `
-      <h2>Neuron Simulator</h2>
-
-      <p><strong>Synapse types</strong></p>
-      <ul>
-        <li><span class="exc">Green</span> = excitatory (EPSP)</li>
-        <li><span class="inh">Red</span> = inhibitory (IPSP)</li>
-      </ul>
-
-      <hr />
-
-      <p><b>Single synapse controls</b></p>
-      <ul>
-        <li>Hover over a synapse to reveal controls</li>
-        <li>➕ / ➖ adjust synaptic strength</li>
-        <li>Click a synapse to release neurotransmitter</li>
-      </ul>
-
-      <hr />
-
-      <p><b>Group firing</b></p>
-      <ul>
-        <li>Hold <b>Control</b> and click synapses to select them</li>
-        <li>Press <b>Space</b> to fire selected synapses together</li>
-      </ul>
-    `,
-
-    observations: `
-      <ul>
-        <li>Postsynaptic potentials may decay before reaching the soma.</li>
-        <li>Excitatory and inhibitory inputs compete dynamically.</li>
-        <li>Astrocytes respond to synaptic activity.</li>
-        <li>Neural firing increases metabolic demand.</li>
-        <li>Blood flow and oxygen delivery are activity-dependent.</li>
-      </ul>
-    `
-  },
-
-  ion: {
-    instructions: `
-      <h2>Ion View</h2>
-
-      <p>This mode focuses on <b>membrane potential</b> and ionic dynamics.</p>
-
-      <ul>
-        <li>Observe depolarization and repolarization phases</li>
-        <li>Threshold crossing triggers an action potential</li>
-        <li>After-hyperpolarization follows firing</li>
-      </ul>
-
-      <hr />
-
-      <p><b>Teaching note</b></p>
-      <p>
-        This view abstracts ion channels but preserves
-        their functional roles (Na⁺ influx, K⁺ efflux).
-      </p>
-    `,
-
-    observations: `
-      <ul>
-        <li>EPSPs sum to move the membrane toward threshold.</li>
-        <li>IPSPs counteract depolarization.</li>
-        <li>Action potentials are all-or-none events.</li>
-        <li>Refractory periods limit firing frequency.</li>
-      </ul>
-    `
-  },
-
-  synapse: {
-    instructions: `
-      <h2>Synapse View</h2>
-
-      <p>This mode emphasizes <b>chemical synaptic transmission</b>.</p>
-
-      <ul>
-        <li>Action potentials trigger vesicle release</li>
-        <li>Neurotransmitter diffuses across the cleft</li>
-        <li>Postsynaptic receptors generate PSPs</li>
-      </ul>
-
-      <hr />
-
-      <p><b>Astrocytes</b></p>
-      <ul>
-        <li>Sense synaptic activity</li>
-        <li>Respond to neurotransmitter spillover</li>
-      </ul>
-    `,
-
-    observations: `
-      <ul>
-        <li>Release is probabilistic, not guaranteed.</li>
-        <li>Vesicle bursts are brief and localized.</li>
-        <li>Astrocytes integrate activity across synapses.</li>
-        <li>Synapses are the primary sites of plasticity.</li>
-      </ul>
-    `
-  }
-
-};
+window.updateUIPanelContent = updateUIPanelContent;
 
 // -----------------------------------------------------
-// PUBLIC UPDATE FUNCTION
+// Main dispatcher
 // -----------------------------------------------------
-
 function updateUIPanelContent() {
-  if (!window.state) return;
+  updateInstructionsPanel();
+  updateObservationsPanel();
+}
 
-  const mode = state.mode || "overview";
-  const content = PANEL_CONTENT[mode] || PANEL_CONTENT.overview;
+// =====================================================
+// INSTRUCTIONS PANEL
+// =====================================================
+function updateInstructionsPanel() {
+  const el = document.getElementById("instructions-content");
+  if (!el) return;
 
-  const instructionsEl  = document.getElementById("instructions-content");
-  const observationsEl = document.getElementById("observations-content");
+  switch (state.mode) {
 
-  if (instructionsEl) {
-    instructionsEl.innerHTML = content.instructions;
-  }
+    // =================================================
+    // OVERVIEW MODE
+    // =================================================
+    case "overview":
+      el.innerHTML = `
+        <h2>Neuron Simulator</h2>
 
-  if (observationsEl) {
-    observationsEl.innerHTML = content.observations;
+        <p><strong>Synapse types</strong></p>
+        <ul>
+          <li><span class="exc">Green</span> = excitatory (EPSP)</li>
+          <li><span class="inh">Red</span> = inhibitory (IPSP)</li>
+        </ul>
+
+        <hr />
+
+        <p><b>Single synapse controls</b></p>
+        <ul>
+          <li>Hover over a synapse to reveal controls</li>
+          <li>➕ / ➖ adjust synaptic strength</li>
+          <li>Click a synapse to release neurotransmitter</li>
+        </ul>
+
+        <hr />
+
+        <p><b>Group firing</b></p>
+        <ul>
+          <li>Hold <b>Control</b> and click synapses to select them</li>
+          <li>Selected synapses are highlighted</li>
+          <li>Press <b>Space</b> to fire all selected synapses together</li>
+        </ul>
+      `;
+      break;
+
+    // =================================================
+    // ION VIEW
+    // =================================================
+    case "ion":
+      el.innerHTML = `
+        <h2>Ion View</h2>
+
+        <p>
+          This view focuses on the ionic basis of membrane potential changes.
+        </p>
+
+        <ul>
+          <li>Depolarization reflects Na⁺ influx</li>
+          <li>Repolarization reflects K⁺ efflux</li>
+          <li>After-hyperpolarization stabilizes firing rate</li>
+        </ul>
+
+        <p class="hint">
+          Action potentials are all-or-none events once threshold is reached.
+        </p>
+      `;
+      break;
+
+    // =================================================
+    // SYNAPSE VIEW
+    // =================================================
+    case "synapse":
+      el.innerHTML = `
+        <h2>Synapse View</h2>
+
+        <p>
+          This view emphasizes chemical synaptic transmission.
+        </p>
+
+        <ul>
+          <li>Presynaptic boutons release neurotransmitter</li>
+          <li>Vesicles diffuse across the synaptic cleft</li>
+          <li>Postsynaptic receptors generate PSPs</li>
+        </ul>
+
+        <p class="hint">
+          Astrocytic endfeet respond to synaptic activity at tripartite synapses.
+        </p>
+      `;
+      break;
   }
 }
 
-// -----------------------------------------------------
-// EXPORT (GLOBAL)
-// -----------------------------------------------------
+// =====================================================
+// OBSERVATIONS PANEL
+// =====================================================
+function updateObservationsPanel() {
+  const el = document.getElementById("observations-content");
+  if (!el) return;
 
-window.updateUIPanelContent = updateUIPanelContent;
+  switch (state.mode) {
+
+    // =================================================
+    // OVERVIEW MODE
+    // =================================================
+    case "overview":
+      el.innerHTML = `
+        <ul>
+          <li>
+            Small postsynaptic potentials (PSPs) may decay before reaching the soma,
+            especially when synapses are weak or distant.
+          </li>
+
+          <li>
+            Large or cooperative excitatory PSPs can summate and drive the membrane
+            potential toward action potential threshold.
+          </li>
+
+          <li>
+            Inhibitory PSPs counteract depolarization and can suppress firing.
+          </li>
+
+          <li>
+            Astrocytes detect neurotransmitter release and respond locally at synapses.
+          </li>
+
+          <li>
+            Neural firing increases metabolic demand, engaging neurovascular coupling.
+          </li>
+
+          <li>
+            Blood flow and oxygen delivery are pulsatile and heartbeat-linked.
+          </li>
+
+          <li>
+            Oxygen and glucose accumulate in the perivascular space before delivery.
+          </li>
+
+          <li>
+            Transport across the blood–brain barrier is selective and activity-dependent.
+          </li>
+        </ul>
+      `;
+      break;
+
+    // =================================================
+    // ION VIEW
+    // =================================================
+    case "ion":
+      el.innerHTML = `
+        <ul>
+          <li>
+            Membrane potential reflects the balance of ionic conductances.
+          </li>
+
+          <li>
+            Threshold crossing initiates rapid Na⁺-driven depolarization.
+          </li>
+
+          <li>
+            Repolarization and after-hyperpolarization limit firing frequency.
+          </li>
+
+          <li>
+            Refractory periods prevent immediate reactivation.
+          </li>
+        </ul>
+      `;
+      break;
+
+    // =================================================
+    // SYNAPSE VIEW
+    // =================================================
+    case "synapse":
+      el.innerHTML = `
+        <ul>
+          <li>
+            Synaptic transmission includes probabilistic vesicle release.
+          </li>
+
+          <li>
+            Neurotransmitter diffusion introduces temporal delay.
+          </li>
+
+          <li>
+            PSP amplitude depends on bouton size and synaptic strength.
+          </li>
+
+          <li>
+            Astrocytic processes target active synaptic clefts.
+          </li>
+        </ul>
+      `;
+      break;
+  }
+}
