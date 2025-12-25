@@ -4,10 +4,10 @@
 // ✔ Text-based molecules (HbO2, Hb, Glu, H2O, O2)
 // ✔ O2 only appears after HbO2 dissociation
 // ✔ Heartbeat-locked transport
-// ✔ Wall accumulation before exit
+// ✔ Perivascular accumulation before delivery
 // =====================================================
 
-console.log("🩸 bloodContents v3.0 (labeled molecules) loaded");
+console.log("🩸 bloodContents v3.1 (perivascular reservoir) loaded");
 
 // -----------------------------------------------------
 // GLOBAL STORAGE (RELOAD SAFE)
@@ -52,9 +52,10 @@ const EXIT_LANE_THRESHOLD = 0.42;
 const BBB_T_MIN = 0.35;
 const BBB_T_MAX = 0.65;
 
-const AQP4_PROB_BASE  = 0.012;
-const GLUT1_PROB_BASE = 0.008;
-const O2_PROB_BASE    = 0.006;
+// 🔑 Increased baseline probabilities (educational clarity)
+const AQP4_PROB_BASE  = 0.030;
+const GLUT1_PROB_BASE = 0.022;
+const O2_PROB_BASE    = 0.018;
 
 // -----------------------------------------------------
 // ACTIVITY COUPLING
@@ -65,10 +66,11 @@ const METABOLIC_MULTIPLIER    = 5.0;
 let metabolicBoostUntil = 0;
 
 // -----------------------------------------------------
-// CSF DRIFT
+// CSF / PERIVASCULAR MOTION
 // -----------------------------------------------------
 
 const CSF_DRIFT = 0.0225;
+const PERIVASCULAR_DRIFT = 0.006;
 
 // -----------------------------------------------------
 // INITIALIZE
@@ -98,9 +100,10 @@ function initBloodContents() {
         t: t0,
         tTarget: t0,
         lane: random(LANE_MIN, LANE_MAX),
-        vLane: 0,
 
-        exited: false,
+        // 🔑 Explicit state
+        state: "intravascular",
+
         x: 0,
         y: 0,
         vx: 0,
@@ -123,7 +126,7 @@ function initBloodContents() {
 function updateBloodContents() {
   const now = state.time;
 
-  // Neuron activity coupling
+  // ---------------- NEURAL ACTIVITY ----------------
   if (
     window.neuron1Fired ||
     (window.lastNeuron1SpikeTime &&
@@ -141,11 +144,13 @@ function updateBloodContents() {
   const O2_PROB    = O2_PROB_BASE    * metabolicGain;
 
   // ---------------- HEARTBEAT ----------------
-  if (now - lastBeatTime >= BEAT_INTERVAL) {
-    lastBeatTime = now;
+  const beat = now - lastBeatTime >= BEAT_INTERVAL;
+  if (beat) lastBeatTime = now;
 
+  // Intravascular flow
+  if (beat) {
     for (const p of bloodParticles) {
-      if (p.exited) continue;
+      if (p.state !== "intravascular") continue;
 
       p.tTarget += FLOW_STEP;
       if (p.tTarget > 1) {
@@ -157,14 +162,14 @@ function updateBloodContents() {
   }
 
   for (const p of bloodParticles) {
-    if (!p.exited) {
+    if (p.state === "intravascular") {
       p.t += (p.tTarget - p.t) * 0.15;
     }
   }
 
   // ---------------- BBB EXIT ----------------
   for (const p of bloodParticles) {
-    if (p.exited) continue;
+    if (p.state !== "intravascular") continue;
     if (p.t < BBB_T_MIN || p.t > BBB_T_MAX) continue;
     if (Math.abs(p.lane) < EXIT_LANE_THRESHOLD) continue;
 
@@ -186,43 +191,44 @@ function updateBloodContents() {
     const pos = getArteryPoint(p.t, p.lane);
     if (!pos) continue;
 
-    p.exited = true;
+    // 🔑 Enter perivascular space
+    p.state = "perivascular";
     p.x = pos.x;
     p.y = pos.y;
 
     const dir = p.lane > 0 ? 1 : -1;
-    p.vx = dir * 0.2;
-    p.vy = random(-0.025, 0.025);
+    p.vx = dir * PERIVASCULAR_DRIFT;
+    p.vy = random(-0.01, 0.01);
   }
 
-  // ---------------- CSF / NEURON ----------------
+  // ---------------- PERIVASCULAR → CSF / NEURON ----------------
   const somaX = width / 2;
   const somaY = height / 2;
 
   for (let i = bloodParticles.length - 1; i >= 0; i--) {
     const p = bloodParticles[i];
-    if (!p.exited) continue;
+    if (p.state !== "perivascular") continue;
 
+    // H2O: local diffusion, delayed fade
     if (p.type === "water") {
       p.x += p.vx;
       p.y += p.vy;
-      p.alpha -= 2;
+
+      p.alpha -= 0.6;
       if (p.alpha <= 0) bloodParticles.splice(i, 1);
       continue;
     }
 
-    const dx = somaX - p.x;
-    const dy = somaY - p.y;
-    const d  = sqrt(dx * dx + dy * dy) || 1;
+    // O2 / Glucose: heartbeat-locked delivery
+    if (beat) {
+      const dx = somaX - p.x;
+      const dy = somaY - p.y;
+      const d  = sqrt(dx * dx + dy * dy) || 1;
 
-    p.vx += (dx / d) * CSF_DRIFT;
-    p.vy += (dy / d) * CSF_DRIFT;
+      p.x += (dx / d) * 6;
+      p.y += (dy / d) * 6;
 
-    p.x += p.vx;
-    p.y += p.vy;
-
-    if (d < 20 && (p.type === "glucose" || p.type === "oxygen")) {
-      bloodParticles.splice(i, 1);
+      if (d < 20) bloodParticles.splice(i, 1);
     }
   }
 }
@@ -240,14 +246,14 @@ function drawBloodContents() {
   for (const p of bloodParticles) {
     let x, y;
 
-    if (p.exited) {
-      x = p.x;
-      y = p.y;
-    } else {
+    if (p.state === "intravascular") {
       const pos = getArteryPoint(p.t, p.lane);
       if (!pos) continue;
       x = pos.x;
       y = pos.y;
+    } else {
+      x = p.x;
+      y = p.y;
     }
 
     fill(p.color[0], p.color[1], p.color[2], p.alpha);
