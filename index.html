@@ -31,7 +31,8 @@
      INSTRUCTIONS PANEL (LEFT)
 ===================================================== -->
 <div id="instructions" class="panel left open">
-  <div class="panel-content">
+  <div class="panel-content" id="instructions-content">
+
     <h2>Neuron Simulator</h2>
 
     <p><strong>Synapse types</strong></p>
@@ -57,6 +58,7 @@
       <li>Selected synapses are highlighted</li>
       <li>Press <b>Space</b> to fire all selected synapses together</li>
     </ul>
+
   </div>
 </div>
 
@@ -64,65 +66,23 @@
      OBSERVATIONS PANEL (BOTTOM)
 ===================================================== -->
 <div id="observations" class="panel bottom open">
-  <div class="panel-content">
+  <div class="panel-content" id="observations-content">
+
     <ul>
-      <li>
-        Small postsynaptic potentials (PSPs) may decay before reaching the soma,
-        especially when synapses are weak or distant.
-      </li>
-
-      <li>
-        Large or cooperative excitatory PSPs can summate and drive the membrane
-        potential toward action potential threshold.
-      </li>
-
-      <li>
-        Inhibitory PSPs counteract depolarization and can suppress action potential
-        generation even in the presence of excitation.
-      </li>
-
-      <li>
-        Multiple synapses interact dynamically, allowing competition or cooperation
-        across dendritic branches.
-      </li>
-
-      <li>
-        Astrocytes respond to synaptic activity, reflecting their role in sensing
-        neurotransmitter release and modulating local signaling.
-      </li>
-
-      <li>
-        Neural firing increases metabolic demand, triggering activity-dependent
-        neurovascular coupling.
-      </li>
-
-      <li>
-        Blood vessels respond to neural activity with pulsatile flow and pressure
-        waves linked to the heartbeat.
-      </li>
-
-      <li>
-        Oxygen dissociates from hemoglobin and, along with glucose, accumulates in
-        the perivascular space before delivery.
-      </li>
-
-      <li>
-        Transport across the blood–brain barrier is selective and activity-dependent,
-        conceptually reflecting channels such as AQP4 (water) and GLUT1 (glucose).
-      </li>
-
-      <li>
-        Following neuronal firing, increased oxygen and glucose availability supports
-        sustained signaling and recovery of membrane potential.
-      </li>
+      <li>Postsynaptic potentials may decay before reaching the soma.</li>
+      <li>Excitatory and inhibitory inputs compete dynamically.</li>
+      <li>Astrocytes sense synaptic activity and respond locally.</li>
+      <li>Neural firing increases metabolic demand.</li>
+      <li>Blood flow and oxygen delivery are activity-dependent.</li>
     </ul>
+
   </div>
 </div>
 
 <!-- =====================================================
      EVENT LOG — WHAT JUST HAPPENED?
 ===================================================== -->
-<div id="event-log"></div>
+<div id="event-log" aria-live="polite"></div>
 
 <!-- =====================================================
      TOP UI BAR
@@ -149,13 +109,24 @@
 </div>
 
 <!-- =====================================================
-     SCRIPTS (LOAD EACH FILE ONCE)
+     SCRIPTS (LOAD ORDER MATTERS)
 ===================================================== -->
 
+<!-- Constants -->
 <script src="js/constants/colors.js"></script>
+<script src="js/constants/eventLog.js"></script>
 
+<!-- Signals -->
 <script src="js/signals/hemodynamics.js"></script>
+<script src="js/signals/psp.js"></script>
+<script src="js/signals/soma.js"></script>
+<script src="js/signals/voltageTrace.js"></script>
+<script src="js/signals/synapseCoupling.js"></script>
+<script src="js/signals/axonSpike.js"></script>
+<script src="js/signals/myelinAP.js"></script>
+<script src="js/signals/vesicleBurst.js"></script>
 
+<!-- Geometry -->
 <script src="js/geometry/neuronGeometry.js"></script>
 <script src="js/geometry/neuron2Geometry.js"></script>
 <script src="js/geometry/neuron3Geometry.js"></script>
@@ -165,20 +136,15 @@
 <script src="js/geometry/artery.js"></script>
 <script src="js/geometry/bloodContents.js"></script>
 
-<script src="js/signals/psp.js"></script>
-<script src="js/signals/soma.js"></script>
-<script src="js/signals/voltageTrace.js"></script>
-<script src="js/signals/synapseCoupling.js"></script>
-<script src="js/signals/axonSpike.js"></script>
-<script src="js/signals/myelinAP.js"></script>
-<script src="js/signals/vesicleBurst.js"></script>
-
+<!-- Views -->
 <script src="js/views/Overview.js"></script>
 <script src="js/views/IonView.js"></script>
 <script src="js/views/SynapseView.js"></script>
 
+<!-- Interaction -->
 <script src="js/interaction/synapseInteraction.js"></script>
 
+<!-- Main -->
 <script src="js/main.js"></script>
 
 </body>
