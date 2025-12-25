@@ -1,223 +1,121 @@
 // =====================================================
-// POSTSYNAPTIC POTENTIAL (EPSP / IPSP) MODEL
+// EVENT LOG — "WHAT JUST HAPPENED?"
 // =====================================================
-console.log("psp loaded");
+console.log("🧾 eventLog.js loaded");
 
 // -----------------------------------------------------
-// Active postsynaptic potentials (global PSP engine)
+// Configuration
 // -----------------------------------------------------
-const epsps = [];   // neuron 1 + neuron 3 PSPs
-const epsps2 = [];  // neuron 2 EPSPs (visual only for now)
+const MAX_EVENTS = 6;
 
 // -----------------------------------------------------
-// Spawn a PSP from a synapse (generic, neuron 1 legacy)
+// Event colors (semantic)
 // -----------------------------------------------------
-function spawnEPSP(synapse) {
-  epsps.push({
-    synapseId: synapse.id,
-    path: synapse.path,
+const EVENT_COLORS = {
+  neural:    "#ffd966", // 🟡 neural
+  vascular: "#ff6f6f", // 🔴 vascular
+  glial:    "#b58cff", // 🟣 glial
+  system:   "#b0b0b0"  // ⚪ system
+};
 
-    progress: 0,                    // 0 → synapse, 1 → soma
-    amplitude: synapse.radius,
-    baseAmplitude: synapse.radius,
+// -----------------------------------------------------
+// Internal state
+// -----------------------------------------------------
+const eventLog = [];
 
-    speed: 0.012,
-    decay: 0.995,
-    type: synapse.type              // "exc" or "inh"
+// -----------------------------------------------------
+// Public: log an event
+// -----------------------------------------------------
+function logEvent(type, message, target = null) {
+  if (!window.loggingEnabled) return;
+  if (state?.paused) return;
+
+  eventLog.push({
+    type,
+    message,
+    target,
+    time: state.time
   });
-}
 
-// -----------------------------------------------------
-// Spawn EPSP on neuron 2 dendrite
-// -----------------------------------------------------
-function spawnNeuron2EPSP(postSynapse) {
-
-  if (!neuron2 || !neuron2.dendrites.length) return;
-
-  const path = [...neuron2.dendrites[0]].reverse();
-
-  epsps2.push({
-    path,
-    progress: 0,
-    amplitude: 40,
-    baseAmplitude: 40,
-    speed: 0.01,
-    decay: 0.992,
-    type: "exc"
-  });
-}
-
-// -----------------------------------------------------
-// Spawn IPSP on neuron 3 dendrite
-// -----------------------------------------------------
-function spawnNeuron3IPSP(postSynapse) {
-
-  if (!neuron3 || !neuron3.dendrites.length) return;
-
-  const path = [...neuron3.dendrites[0]].reverse();
-
-  epsps.push({
-    synapseId: "neuron3",
-    path,
-
-    progress: 0,
-    amplitude: 25,
-    baseAmplitude: 25,
-
-    speed: 0.010,
-    decay: 0.994,
-    type: "inh"
-  });
-}
-
-// -----------------------------------------------------
-// Update PSP propagation + decay (GLOBAL)
-// -----------------------------------------------------
-function updateEPSPs() {
-
-  for (let i = epsps.length - 1; i >= 0; i--) {
-    const e = epsps[i];
-
-    e.progress += e.speed;
-    e.amplitude *= e.decay;
-
-    // --------------------------------------------------
-    // PSP fades before reaching soma
-    // --------------------------------------------------
-    if (e.amplitude < 0.6) {
-
-      if (
-        !state.paused &&
-        typeof logEvent === "function"
-      ) {
-        logEvent(
-          "system",
-          "Postsynaptic potential decayed before reaching the soma",
-          "dendrite"
-        );
-      }
-
-      epsps.splice(i, 1);
-      continue;
-    }
-
-    // --------------------------------------------------
-    // PSP reaches soma
-    // --------------------------------------------------
-    if (e.progress >= 1) {
-
-      const sourceNeuron =
-        e.synapseId === "neuron3" ? 3 : 1;
-
-      addEPSPToSoma(e.baseAmplitude, e.type, sourceNeuron);
-
-      if (
-        !state.paused &&
-        typeof logEvent === "function"
-      ) {
-        logEvent(
-          "neural",
-          e.type === "exc"
-            ? "Excitatory postsynaptic potential reached the soma"
-            : "Inhibitory postsynaptic potential reached the soma",
-          "soma"
-        );
-      }
-
-      epsps.splice(i, 1);
-    }
+  if (eventLog.length > MAX_EVENTS) {
+    eventLog.shift();
   }
 }
 
 // -----------------------------------------------------
-// Update neuron 2 EPSPs (visual only)
+// Public: draw log UI
 // -----------------------------------------------------
-function updateNeuron2EPSPs() {
+function drawEventLog(now = 0) {
+  const container = document.getElementById("event-log");
+  if (!container || !window.loggingEnabled) return;
 
-  for (let i = epsps2.length - 1; i >= 0; i--) {
-    const e = epsps2[i];
+  container.innerHTML = eventLog.map(evt => {
+    const age = Math.max(0, now - evt.time);
+    const color = EVENT_COLORS[evt.type] || "#ccc";
 
-    e.progress += e.speed;
-    e.amplitude *= e.decay;
+    return `
+      <div class="event-line"
+           style="color:${color}"
+           onclick="highlightTarget('${evt.target || ""}')">
+        • ${evt.message}
+        <span style="opacity:0.55">
+          (~${Math.round(age)} ms ago)
+        </span>
+      </div>
+    `;
+  }).join("");
+}
 
-    if (e.amplitude < 0.6) {
-      epsps2.splice(i, 1);
-      continue;
-    }
+// -----------------------------------------------------
+// Public: highlight helper (called by log clicks)
+// -----------------------------------------------------
+function highlightTarget(target) {
+  if (!target) return;
 
-    if (e.progress >= 1) {
-      epsps2.splice(i, 1);
-    }
+  console.log("🎯 Highlight target:", target);
+
+  // Simple time-based flags (consumed by drawHighlightOverlay)
+  const duration = 600;
+
+  switch (target) {
+    case "soma":
+      window.highlightSomaUntil = state.time + duration;
+      break;
+    case "dendrite":
+      window.highlightDendriteUntil = state.time + duration;
+      break;
+    case "axon":
+      window.highlightAxonUntil = state.time + duration;
+      break;
+    case "astrocyte":
+      window.highlightAstrocyteUntil = state.time + duration;
+      break;
+    case "artery":
+      window.highlightArteryUntil = state.time + duration;
+      break;
   }
 }
 
 // -----------------------------------------------------
-// Draw PSPs along dendritic paths (GLOBAL)
+// Public: overlay renderer (optional, safe)
 // -----------------------------------------------------
-function drawEPSPs() {
+function drawHighlightOverlay() {
+  push();
+  noFill();
+  strokeWeight(3);
 
-  epsps.forEach(e => {
-    if (!e.path || e.path.length < 2) return;
+  if (window.highlightSomaUntil > state.time) {
+    stroke("#ffd966");
+    ellipse(0, 0, 110, 110);
+  }
 
-    const segments = e.path.length - 1;
-    const total = e.progress * segments;
-    const idx = floor(total);
-    const t = total - idx;
-
-    const p0 = e.path[constrain(idx, 0, segments - 1)];
-    const p1 = e.path[constrain(idx + 1, 0, segments)];
-
-    const x = lerp(p0.x, p1.x, t);
-    const y = lerp(p0.y, p1.y, t);
-
-    const strength = map(e.amplitude, 6, 30, 0.4, 1.2, true);
-    const w = map(e.baseAmplitude, 6, 30, 3, 12) * strength;
-
-    const c =
-      e.type === "exc"
-        ? getColor("epsp")
-        : getColor("ipsp");
-
-    push();
-    stroke(c);
-    strokeWeight(w);
-    point(x, y);
-    pop();
-  });
-}
-
-// -----------------------------------------------------
-// Draw neuron 2 EPSPs
-// -----------------------------------------------------
-function drawNeuron2EPSPs() {
-
-  epsps2.forEach(e => {
-    const path = e.path;
-    const segments = path.length - 1;
-    const total = e.progress * segments;
-    const idx = floor(total);
-    const t = total - idx;
-
-    const p0 = path[constrain(idx, 0, segments - 1)];
-    const p1 = path[constrain(idx + 1, 0, segments)];
-
-    const x = lerp(p0.x, p1.x, t);
-    const y = lerp(p0.y, p1.y, t);
-
-    const w = map(e.amplitude, 4, 12, 3, 8, true);
-
-    push();
-    stroke(getColor("epsp"));
-    strokeWeight(w);
-    point(x, y);
-    pop();
-  });
+  pop();
 }
 
 // -----------------------------------------------------
 // Public API
 // -----------------------------------------------------
-window.logEvent = logEvent;
-window.drawEventLog = drawEventLog;
-window.highlightTarget = highlightTarget;
-
+window.logEvent            = logEvent;
+window.drawEventLog        = drawEventLog;
+window.highlightTarget     = highlightTarget;
+window.drawHighlightOverlay = drawHighlightOverlay;
