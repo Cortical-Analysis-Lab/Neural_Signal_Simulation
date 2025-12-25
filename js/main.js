@@ -41,11 +41,15 @@ const camera = {
 };
 
 // =====================================================
-// 🔒 LOCKED SYNAPSE FOCAL POINT (WORLD COORDS)
+// 🔒 LOCKED SYNAPSE FOCUS (SINGLE SOURCE OF TRUTH)
 // =====================================================
-const LOCKED_SYNAPSE_FOCUS = {
+window.synapseFocus = {
   x: 272.08,
-  y: -0.42
+  y: -0.42,
+
+  // future synapse-local parameters
+  releaseProb: 0.9,
+  diffusionDelay: 10
 };
 
 // =====================================================
@@ -61,8 +65,8 @@ function setMode(mode) {
   }
 
   else if (mode === "synapse") {
-    camera.targetX = LOCKED_SYNAPSE_FOCUS.x;
-    camera.targetY = LOCKED_SYNAPSE_FOCUS.y;
+    camera.targetX = window.synapseFocus.x;
+    camera.targetY = window.synapseFocus.y;
     camera.targetZoom = 5.0;
   }
 
@@ -166,7 +170,7 @@ function draw() {
 
   // =====================================================
   // DRAW ARTERY (HIDE IN SYNAPSE VIEW)
-// =====================================================
+  // =====================================================
   if (state.mode !== "synapse") {
     drawArtery();
   }
