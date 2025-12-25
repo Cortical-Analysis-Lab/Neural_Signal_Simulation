@@ -1,62 +1,44 @@
 console.log("🔬 SynapseView loaded");
 
 // =====================================================
-// SYNAPSE VIEW — FREE CAMERA, DETAIL OVERLAY
+// SYNAPSE VIEW — FOCUSED, INTERACTIVE SANDBOX
 // =====================================================
-// Teaching-first zoomed synapse visualization
-// • No camera control
-// • Uses real synaptic clefts
-// • Visual only (no new behavior)
-// • Safe when no synapse is active
+// • Camera pre-positioned on entry
+// • Functionally isolated from Overview
+// • User-modifiable synaptic parameters
 // =====================================================
 
 function drawSynapseView(state) {
 
-  // ---------------------------------------------------
-  // Draw base neurons (still part of world)
-  // ---------------------------------------------------
-  drawNeuron1();
-  drawNeuron2();
-
-  // ---------------------------------------------------
-  // Draw synapse detail at active clefts
-  // ---------------------------------------------------
-  if (
-    !window.activeSynapticClefts ||
-    window.activeSynapticClefts.length === 0
-  ) {
-    drawSynapseIdleHint();
+  if (!window.synapseFocus) {
+    drawNoSynapseMessage();
     return;
   }
 
-  // Use most recent cleft
-  const cleft =
-    window.activeSynapticClefts[
-      window.activeSynapticClefts.length - 1
-    ];
+  const s = window.synapseFocus;
 
   push();
-  translate(cleft.x, cleft.y);
+  translate(s.x, s.y);
 
   drawSynapticCleftHalo();
-  drawPresynapticTerminalDetail();
-  drawPostsynapticSpineDetail();
-  drawAstrocyteEndfeetDetail();
+  drawPresynapticTerminalDetail(s);
+  drawPostsynapticSpineDetail(s);
+  drawAstrocyteEndfeetDetail(s);
 
   pop();
 }
 
 // =====================================================
-// IDLE TEACHING CUE (NO SYNAPSE YET)
+// FALLBACK MESSAGE
 // =====================================================
-function drawSynapseIdleHint() {
+function drawNoSynapseMessage() {
   push();
-  fill(180, 180, 180, 120);
+  fill(180);
   noStroke();
   textAlign(CENTER, CENTER);
-  textSize(14);
+  textSize(16);
   text(
-    "Waiting for synaptic transmission…",
+    "No active synapse to inspect.\nTrigger a spike first.",
     camera.x,
     camera.y
   );
@@ -64,33 +46,28 @@ function drawSynapseIdleHint() {
 }
 
 // =====================================================
-// SYNAPTIC CLEFT VISUAL
+// VISUAL COMPONENTS (DETAIL LEVEL)
 // =====================================================
 function drawSynapticCleftHalo() {
   noFill();
-  stroke(160, 200, 255, 120);
+  stroke(160, 210, 255, 140);
   strokeWeight(2);
-
-  ellipse(0, 0, 18, 18);
+  ellipse(0, 0, 20, 20);
 }
 
-// =====================================================
-// PRESYNAPTIC TERMINAL (DETAIL)
-// =====================================================
-function drawPresynapticTerminalDetail() {
+function drawPresynapticTerminalDetail(s) {
   push();
-  translate(-24, 0);
+  translate(-26, 0);
 
-  // Terminal body
   fill(170, 190, 255);
   noStroke();
-  ellipse(0, 0, 46, 46);
+  ellipse(0, 0, 48, 48);
 
   // Active zone
   fill(120, 140, 220);
-  rect(18, -12, 6, 24, 3);
+  rect(18, -14, 6, 28, 3);
 
-  // Vesicles (static pool)
+  // Vesicle pool (static for now)
   fill(240);
   for (let i = 0; i < 6; i++) {
     ellipse(
@@ -104,19 +81,14 @@ function drawPresynapticTerminalDetail() {
   pop();
 }
 
-// =====================================================
-// POSTSYNAPTIC SPINE (DETAIL)
-// =====================================================
-function drawPostsynapticSpineDetail() {
+function drawPostsynapticSpineDetail(s) {
   push();
-  translate(24, 0);
+  translate(26, 0);
 
-  // Spine head
   fill(200, 170, 170);
   noStroke();
-  ellipse(0, 0, 42, 42);
+  ellipse(0, 0, 44, 44);
 
-  // Receptors
   stroke(110);
   strokeWeight(2);
   for (let y = -12; y <= 12; y += 6) {
@@ -126,13 +98,9 @@ function drawPostsynapticSpineDetail() {
   pop();
 }
 
-// =====================================================
-// ASTROCYTIC END-FEET (TRIPARTITE SYNAPSE)
-// =====================================================
-function drawAstrocyteEndfeetDetail() {
+function drawAstrocyteEndfeetDetail(s) {
   noFill();
-  stroke(130, 210, 170, 90);
+  stroke(130, 210, 170, 100);
   strokeWeight(6);
-
-  arc(0, 0, 110, 80, PI * 0.15, PI * 0.85);
+  arc(0, 0, 120, 90, PI * 0.15, PI * 0.85);
 }
