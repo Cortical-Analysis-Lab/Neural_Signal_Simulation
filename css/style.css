@@ -83,10 +83,14 @@ button:hover {
   font-size: 13px;
   line-height: 1.45;
   overflow-y: auto;
+
+  /* DEFAULT: closed */
+  transform: translateX(-110%);
 }
 
-.panel.left:not(.open) {
-  transform: translateX(-110%);
+/* OPEN STATE */
+.panel.left.open {
+  transform: translateX(0);
 }
 
 /* ---------------- BOTTOM: OBSERVATIONS ---------------- */
@@ -94,13 +98,16 @@ button:hover {
   bottom: 12px;
   left: 50%;
   width: calc(100vw - 48px);
-  transform: translateX(-50%);
   padding: 12px 18px;
   font-size: 13px;
+
+  /* DEFAULT: closed */
+  transform: translate(-50%, 120%);
 }
 
-.panel.bottom:not(.open) {
-  transform: translate(-50%, 120%);
+/* OPEN STATE */
+.panel.bottom.open {
+  transform: translate(-50%, 0);
 }
 
 /* =====================================================
