@@ -7,7 +7,8 @@ const state = {
   time: 0,
   dt: 16.67,
   paused: false,
-  mode: "overview" // overview | ion | synapse
+  mode: "overview",        // overview | ion | synapse
+  transition: null         // null | "toSynapse"
 };
 
 // -----------------------------------------------------
@@ -46,41 +47,73 @@ const camera = {
 window.synapseFocus = {
   x: 272.08,
   y: -0.42,
-
-  // future synapse-local parameters
   releaseProb: 0.9,
   diffusionDelay: 10
 };
 
 // =====================================================
+// SYNAPSE TRANSITION PARAMETERS
+// =====================================================
+const SYNAPSE_ZOOM_TARGET = {
+  x: window.synapseFocus.x,
+  y: window.synapseFocus.y,
+  zoom: 5.0
+};
+
+const SYNAPSE_TRANSITION_SPEED = 0.035;
+const SYNAPSE_EPSILON = 0.02;
+
+// =====================================================
 // MODE SWITCHING
 // =====================================================
 function setMode(mode) {
-  state.mode = mode;
 
+  // ----------------------------
+  // OVERVIEW
+  // ----------------------------
   if (mode === "overview") {
+    state.mode = "overview";
+    state.transition = null;
+
     camera.targetX = 0;
     camera.targetY = 0;
     camera.targetZoom = 1.2;
+    camera.lerpSpeed = 0.08;
   }
 
+  // ----------------------------
+  // SYNAPSE (DEFERRED TRANSITION)
+  // ----------------------------
   else if (mode === "synapse") {
-    camera.targetX = window.synapseFocus.x;
-    camera.targetY = window.synapseFocus.y;
-    camera.targetZoom = 5.0;
+
+    // 🔑 Do NOT switch modes yet
+    state.transition = "toSynapse";
+
+    camera.targetX = SYNAPSE_ZOOM_TARGET.x;
+    camera.targetY = SYNAPSE_ZOOM_TARGET.y;
+    camera.targetZoom = SYNAPSE_ZOOM_TARGET.zoom;
+
+    camera.lerpSpeed = SYNAPSE_TRANSITION_SPEED;
+
+    safeLog("system", "Zooming into synapse…");
+    return;
   }
 
+  // ----------------------------
+  // ION
+  // ----------------------------
   else {
+    state.mode = mode;
     camera.targetZoom = 2.5;
   }
 
   updateOverviewUI();
 
   if (typeof updateUIPanelContent === "function") {
-    updateUIPanelContent(mode);
+    updateUIPanelContent(state.mode);
   }
 
-  safeLog("system", `Switched to ${mode} view`);
+  safeLog("system", `Switched to ${state.mode} view`);
 }
 
 // =====================================================
@@ -181,6 +214,34 @@ function draw() {
   camera.x    += (camera.targetX    - camera.x)    * camera.lerpSpeed;
   camera.y    += (camera.targetY    - camera.y)    * camera.lerpSpeed;
   camera.zoom += (camera.targetZoom - camera.zoom) * camera.lerpSpeed;
+
+  // =====================================================
+  // HANDLE SYNAPSE TRANSITION COMPLETION
+  // =====================================================
+  if (state.transition === "toSynapse") {
+
+    const dz = abs(camera.zoom - camera.targetZoom);
+    const dx = abs(camera.x - camera.targetX);
+    const dy = abs(camera.y - camera.targetY);
+
+    if (dz < SYNAPSE_EPSILON && dx < 0.5 && dy < 0.5) {
+
+      camera.x = camera.targetX;
+      camera.y = camera.targetY;
+      camera.zoom = camera.targetZoom;
+      camera.lerpSpeed = 0.08;
+
+      state.transition = null;
+      state.mode = "synapse";
+
+      updateOverviewUI();
+      if (typeof updateUIPanelContent === "function") {
+        updateUIPanelContent("synapse");
+      }
+
+      safeLog("system", "Entered synapse view");
+    }
+  }
 
   // =====================================================
   // WORLD SPACE
