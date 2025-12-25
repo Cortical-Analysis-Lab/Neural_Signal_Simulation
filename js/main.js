@@ -41,23 +41,51 @@ const camera = {
 };
 
 // =====================================================
-// 🔑 SYNAPSE CAMERA TARGETING (NEW)
+// 🔑 SYNAPSE FOCUS CONTEXT (NEW, MODE-SCOPED)
 // =====================================================
-function focusCameraOnActiveSynapse() {
+window.synapseFocus = null;
+
+// =====================================================
+// 🔑 CAPTURE SYNAPSE FOCUS (ON MODE ENTRY)
+// =====================================================
+function captureSynapseFocus() {
   if (
     !window.activeSynapticClefts ||
     window.activeSynapticClefts.length === 0
-  ) return;
+  ) {
+    window.synapseFocus = null;
+    return;
+  }
 
-  // Use most recent synaptic cleft
   const cleft =
     window.activeSynapticClefts[
       window.activeSynapticClefts.length - 1
     ];
 
-  camera.targetX = cleft.x;
-  camera.targetY = cleft.y;
-  camera.targetZoom = 4.0; // strong zoom for teaching
+  // Freeze synapse for inspection & manipulation
+  window.synapseFocus = {
+    x: cleft.x,
+    y: cleft.y,
+    cleftRef: cleft,
+
+    // 🔬 Tunable (future UI controls)
+    releaseProb: typeof RELEASE_PROB !== "undefined" ? RELEASE_PROB : 0.9,
+    diffusionDelay:
+      typeof CLEFT_DIFFUSION_DELAY !== "undefined"
+        ? CLEFT_DIFFUSION_DELAY
+        : 10
+  };
+}
+
+// =====================================================
+// 🔑 APPLY SYNAPSE CAMERA (ON ENTRY ONLY)
+// =====================================================
+function applySynapseCamera() {
+  if (!window.synapseFocus) return;
+
+  camera.targetX = window.synapseFocus.x;
+  camera.targetY = window.synapseFocus.y;
+  camera.targetZoom = 4.0; // teaching-scale zoom
 }
 
 // =====================================================
@@ -70,11 +98,12 @@ function setMode(mode) {
     camera.targetX = 0;
     camera.targetY = 0;
     camera.targetZoom = 1.2;
+    window.synapseFocus = null; // clear sandbox
   }
 
   else if (mode === "synapse") {
-    // 🔑 Zoom to real biological synapse
-    focusCameraOnActiveSynapse();
+    captureSynapseFocus();
+    applySynapseCamera();
   }
 
   else {
@@ -141,7 +170,7 @@ function setup() {
   // ----------------------
   const logToggle = document.getElementById("logToggle");
   if (logToggle) {
-    logToggle.checked = false; // 🔑 START CLOSED
+    logToggle.checked = false;
 
     logToggle.addEventListener("change", () => {
       window.loggingEnabled = logToggle.checked;
@@ -179,7 +208,7 @@ function draw() {
 
   // =====================================================
   // DRAW ARTERY (SCREEN SPACE)
-// =====================================================
+  // =====================================================
   drawArtery();
 
   // =====================================================
@@ -223,11 +252,10 @@ function draw() {
       drawIonView(state);
       break;
     case "synapse":
-      drawSynapseView(state);
+      drawSynapseView(state); // 🔬 sandboxed view
       break;
   }
 
-  // 🔑 Highlight overlays (from log system)
   if (typeof drawHighlightOverlay === "function") {
     drawHighlightOverlay();
   }
