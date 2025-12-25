@@ -61,7 +61,7 @@ button:hover {
 }
 
 /* =====================================================
-   PANELS (CONTENT ONLY)
+   PANELS
    ===================================================== */
 .panel {
   position: fixed;
@@ -69,14 +69,11 @@ button:hover {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
   z-index: 20;
-
   transition: transform 0.35s ease;
   backdrop-filter: blur(6px);
 }
 
-/* =====================================================
-   LEFT PANEL — INSTRUCTIONS
-   ===================================================== */
+/* ---------------- LEFT: INSTRUCTIONS ---------------- */
 .panel.left {
   top: 80px;
   left: 12px;
@@ -92,9 +89,7 @@ button:hover {
   transform: translateX(-110%);
 }
 
-/* =====================================================
-   BOTTOM PANEL — OBSERVATIONS
-   ===================================================== */
+/* ---------------- BOTTOM: OBSERVATIONS ---------------- */
 .panel.bottom {
   bottom: 12px;
   left: 50%;
@@ -109,7 +104,7 @@ button:hover {
 }
 
 /* =====================================================
-   EDGE TABS — ALWAYS VISIBLE
+   EDGE TABS
    ===================================================== */
 .edge-tab {
   position: fixed;
@@ -133,30 +128,22 @@ button:hover {
   box-shadow: 0 0 12px rgba(90, 140, 255, 0.35);
 }
 
-/* =====================================================
-   INSTRUCTIONS TAB — TRUE VERTICAL
-   ===================================================== */
+/* Instructions tab (vertical) */
 .edge-tab.instructions {
   top: 50%;
   left: 0;
-
   width: 44px;
   height: 200px;
-
   writing-mode: vertical-rl;
   text-orientation: mixed;
   transform: translateY(-50%);
-
   border-radius: 10px 10px 0 0;
 }
 
-/* =====================================================
-   OBSERVATIONS TAB — BOTTOM
-   ===================================================== */
+/* Observations tab (bottom) */
 .edge-tab.observations {
   left: 50%;
   bottom: 0;
-
   height: 36px;
   padding: 8px 26px;
   transform: translateX(-50%);
@@ -164,7 +151,7 @@ button:hover {
 }
 
 /* =====================================================
-   EVENT LOG — WHAT JUST HAPPENED?
+   EVENT LOG — METABOLIC SUMMARY WINDOW
    ===================================================== */
 #event-log {
   position: fixed;
@@ -172,7 +159,7 @@ button:hover {
   bottom: 14px;
 
   width: 320px;
-  max-height: 110px; /* ~3–4 lines */
+  max-height: 120px;   /* shows ~3–5 lines */
   padding: 8px 10px;
 
   overflow-y: auto;
@@ -189,62 +176,25 @@ button:hover {
   line-height: 1.4;
 }
 
-/* Individual log lines */
-.event-line {
-  margin-bottom: 4px;
-  cursor: pointer;
-  opacity: 0.9;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.event-line:hover {
-  opacity: 1;
-  transform: translateX(-2px);
-}
-
-/* Hidden state (used by toggle) */
+/* Hidden state (toggle-controlled) */
 #event-log.hidden {
   display: none;
 }
 
-
-/* =====================================================
-   EVENT COLORS (MATCH JS)
-   ===================================================== */
-.event-neural    { color: #ffd966; } /* yellow */
-.event-vascular  { color: #ff6f6f; } /* red */
-.event-glial     { color: #b58cff; } /* purple */
-.event-system    { color: #b0b0b0; } /* gray */
-
-
+/* Individual summary lines */
 .event-line {
   margin-bottom: 4px;
-  cursor: pointer;
   opacity: 0.9;
-  transition: opacity 0.2s ease, transform 0.25s ease;
-}
-
-.event-line:hover {
-  opacity: 1;
-  transform: translateX(-2px);
 }
 
 /* =====================================================
-   EVENT COLORS
+   SEMANTIC COLORS (MATCH JS)
    ===================================================== */
-.event-neural    { color: #ffd966; } /* yellow */
-.event-vascular  { color: #ff6f6f; } /* red */
-.event-glial     { color: #b58cff; } /* purple */
-.event-system    { color: #b0b0b0; } /* gray */
-
-
-/* =====================================================
-   EVENT COLORS (MATCH JS)
-   ===================================================== */
-.event-neural    { color: #ffd966; } /* yellow */
-.event-vascular { color: #ff6f6f; } /* red */
-.event-glial    { color: #b58cff; } /* purple */
-.event-system   { color: #b0b0b0; } /* gray */
+.event-neural    { color: #ffd966; }
+.event-vascular  { color: #ff6f6f; }
+.event-glial     { color: #b58cff; }
+.event-system,
+.event-low       { color: #b0b0b0; }
 
 /* =====================================================
    MOBILE ADJUSTMENTS
