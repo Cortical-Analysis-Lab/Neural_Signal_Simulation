@@ -9,7 +9,7 @@
 // ✔ Population conserved over time
 // =====================================================
 
-console.log("🩸 bloodContents v3.2 (steady-state + AP supply coupling) loaded");
+console.log("🩸 bloodContents v3.3 (vascular logging added) loaded");
 
 // -----------------------------------------------------
 // GLOBAL STORAGE (RELOAD SAFE)
@@ -194,7 +194,7 @@ function updateBloodContents() {
   const beat = now - lastBeatTime >= BEAT_INTERVAL;
   if (beat) lastBeatTime = now;
 
-  // Intravascular flow (SUPPLY-COUPLED)
+  // ---------------- INTRAVASCULAR FLOW ----------------
   if (beat) {
     for (const p of bloodParticles) {
       if (p.state !== "intravascular") continue;
@@ -238,6 +238,14 @@ function updateBloodContents() {
       p.label = "O₂";
       p.color = COLORS.oxygen;
       allow = true;
+
+      if (!state.paused && typeof logEvent === "function") {
+        logEvent(
+          "vascular",
+          "Oxygen dissociated from hemoglobin at the blood–brain barrier",
+          "bbb"
+        );
+      }
     }
 
     if (!allow) continue;
@@ -252,6 +260,14 @@ function updateBloodContents() {
     const dir = p.lane > 0 ? 1 : -1;
     p.vx = dir * PERIVASCULAR_DRIFT;
     p.vy = random(-0.01, 0.01);
+
+    if (!state.paused && typeof logEvent === "function") {
+      logEvent(
+        "vascular",
+        `${p.label} exited the vessel into perivascular space`,
+        "perivascular"
+      );
+    }
   }
 
   // ---------------- PERIVASCULAR → CSF / NEURON ----------------
