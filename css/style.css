@@ -61,7 +61,7 @@ button:hover {
 }
 
 /* =====================================================
-   PANELS (CONTENT ONLY — NO TABS INSIDE)
+   PANELS (CONTENT ONLY)
    ===================================================== */
 .panel {
   position: fixed;
@@ -92,44 +92,6 @@ button:hover {
   transform: translateX(-110%);
 }
 
-/* Content styles */
-#instructions h2 {
-  margin: 0 0 8px 0;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-#instructions hr {
-  border: none;
-  border-top: 1px solid rgba(255,255,255,0.1);
-  margin: 10px 0;
-}
-
-#instructions ul {
-  padding-left: 16px;
-  margin: 6px 0;
-}
-
-#instructions li {
-  margin-bottom: 4px;
-}
-
-#instructions .exc {
-  color: rgb(120, 255, 180);
-  font-weight: 600;
-}
-
-#instructions .inh {
-  color: rgb(255, 120, 120);
-  font-weight: 600;
-}
-
-#instructions .hint {
-  margin-top: 8px;
-  font-style: italic;
-  color: #cfcfcf;
-}
-
 /* =====================================================
    BOTTOM PANEL — OBSERVATIONS
    ===================================================== */
@@ -145,20 +107,6 @@ button:hover {
 
 .panel.bottom:not(.open) {
   transform: translate(-50%, 120%);
-}
-
-#observations ul {
-  list-style: none;
-  padding: 0;
-  margin: 8px 0 0 0;
-
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 18px;
-}
-
-#observations li {
-  white-space: nowrap;
 }
 
 /* =====================================================
@@ -185,8 +133,10 @@ button:hover {
   background: rgba(60, 120, 255, 0.9);
 }
 
+/* 🔑 FIX: match HTML class names */
+
 /* Vertical Instructions tab */
-.edge-tab.left {
+.edge-tab.instructions {
   top: 50%;
   left: 0;
   width: 44px;
@@ -199,7 +149,7 @@ button:hover {
 }
 
 /* Horizontal Observations tab */
-.edge-tab.bottom {
+.edge-tab.observations {
   left: 50%;
   bottom: 0;
   height: 36px;
