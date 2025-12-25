@@ -1,19 +1,16 @@
 console.log("🔬 SynapseView loaded");
 
 // =====================================================
-// SYNAPSE VIEW — FOCUSED, INTERACTIVE SANDBOX
+// SYNAPSE VIEW — BIOLOGICAL TRIPARTITE RECONSTRUCTION
 // =====================================================
 // • Camera positioning handled externally (main.js)
-// • Uses synapseFocus (event-based OR user-selected)
-// • Functionally isolated from Overview
-// • Ready for user manipulation of synaptic parameters
+// • Structural (not dynamic) reconstruction
+// • Anatomically faithful layout
+// • Teaching-first, physiology-ready
 // =====================================================
 
 function drawSynapseView(state) {
 
-  // ---------------------------------------------------
-  // No synapse selected yet
-  // ---------------------------------------------------
   if (!window.synapseFocus) {
     drawNoSynapseMessage();
     return;
@@ -24,16 +21,17 @@ function drawSynapseView(state) {
   push();
   translate(s.x, s.y);
 
-  drawSynapticCleftHalo(s);
-  drawPresynapticTerminalDetail(s);
-  drawPostsynapticSpineDetail(s);
-  drawAstrocyteEndfeetDetail(s);
+  drawExtracellularSpace();
+  drawPresynapticBouton();
+  drawSynapticCleft();
+  drawPostsynapticSpine();
+  drawAstrocyticEnsheathment();
 
   pop();
 }
 
 // =====================================================
-// FALLBACK MESSAGE (NO SYNAPSE SELECTED)
+// FALLBACK MESSAGE
 // =====================================================
 function drawNoSynapseMessage() {
   push();
@@ -42,7 +40,7 @@ function drawNoSynapseMessage() {
   textAlign(CENTER, CENTER);
   textSize(16);
   text(
-    "Click a synapse to inspect\nor trigger a spike first",
+    "No synapse selected",
     camera.x,
     camera.y
   );
@@ -50,103 +48,133 @@ function drawNoSynapseMessage() {
 }
 
 // =====================================================
-// SYNAPTIC CLEFT VISUAL
+// EXTRACELLULAR SPACE (BACKGROUND CONTEXT)
 // =====================================================
-function drawSynapticCleftHalo(s) {
-  noFill();
-  stroke(160, 210, 255, 150);
-  strokeWeight(2);
-
-  ellipse(0, 0, 22, 22);
-
-  // Teaching cue: label
-  fill(160, 210, 255);
+function drawExtracellularSpace() {
   noStroke();
-  textSize(10);
-  textAlign(CENTER, TOP);
-  text("Synaptic cleft", 0, 16);
+  fill(60, 80, 90, 40);
+  ellipse(0, 0, 220, 160);
 }
 
 // =====================================================
-// PRESYNAPTIC TERMINAL (DETAIL)
+// PRESYNAPTIC BOUTON
 // =====================================================
-function drawPresynapticTerminalDetail(s) {
+function drawPresynapticBouton() {
   push();
-  translate(-28, 0);
+  translate(-45, 0);
 
-  // Terminal body
-  fill(170, 190, 255);
+  // Bouton membrane
+  fill(160, 185, 255);
+  stroke(90, 120, 200);
+  strokeWeight(1.5);
+  ellipse(0, 0, 70, 60);
+
+  // Active zone (membrane specialization)
   noStroke();
-  ellipse(0, 0, 50, 50);
+  fill(110, 130, 220);
+  rect(30, -12, 6, 24, 3);
 
-  // Active zone
-  fill(120, 140, 220);
-  rect(20, -14, 6, 28, 3);
+  // Docked vesicles (ready releasable pool)
+  fill(245);
+  ellipse(22, -8, 7, 7);
+  ellipse(22,  0, 7, 7);
+  ellipse(22,  8, 7, 7);
 
-  // Vesicle pool (static for now)
-  fill(240);
-  for (let i = 0; i < 6; i++) {
+  // Reserve vesicle pool
+  for (let i = 0; i < 8; i++) {
     ellipse(
-      random(-9, 9),
-      random(-11, 11),
+      random(-15, 10),
+      random(-18, 18),
       6,
       6
     );
   }
 
   // Label
-  fill(200);
+  noStroke();
+  fill(220);
   textSize(9);
   textAlign(CENTER, TOP);
-  text("Presynaptic\nterminal", 0, 28);
+  text("Presynaptic bouton", 0, 36);
 
   pop();
 }
 
 // =====================================================
-// POSTSYNAPTIC SPINE (DETAIL)
+// SYNAPTIC CLEFT (EXTRACELLULAR GAP)
 // =====================================================
-function drawPostsynapticSpineDetail(s) {
+function drawSynapticCleft() {
   push();
-  translate(28, 0);
+
+  // Cleft space (very thin)
+  noStroke();
+  fill(200, 230, 255, 120);
+  rect(-5, -18, 10, 36, 5);
+
+  // Label
+  fill(200, 230, 255);
+  textSize(9);
+  textAlign(CENTER, TOP);
+  text("Cleft", 0, 20);
+
+  pop();
+}
+
+// =====================================================
+// POSTSYNAPTIC SPINE (NECK + HEAD)
+// =====================================================
+function drawPostsynapticSpine() {
+  push();
+  translate(45, 0);
+
+  // Spine neck
+  stroke(140, 110, 110);
+  strokeWeight(6);
+  line(-18, 0, -2, 0);
 
   // Spine head
-  fill(200, 170, 170);
   noStroke();
-  ellipse(0, 0, 46, 46);
+  fill(200, 160, 160);
+  ellipse(12, 0, 46, 42);
 
-  // Receptors
-  stroke(110);
+  // Postsynaptic density (PSD)
+  fill(120, 90, 90);
+  rect(-2, -10, 6, 20, 3);
+
+  // Receptors embedded in PSD
+  stroke(60);
   strokeWeight(2);
-  for (let y = -14; y <= 14; y += 7) {
-    line(-22, y, -15, y);
+  for (let y = -8; y <= 8; y += 6) {
+    line(-6, y, -2, y);
   }
 
   // Label
-  fill(200);
   noStroke();
+  fill(220);
   textSize(9);
   textAlign(CENTER, TOP);
-  text("Postsynaptic\nspine", 0, 28);
+  text("Postsynaptic spine", 12, 28);
 
   pop();
 }
 
 // =====================================================
-// ASTROCYTIC END-FEET (TRIPARTITE SYNAPSE)
+// ASTROCYTIC END-FEET (PARTIAL ENSHEATHMENT)
 // =====================================================
-function drawAstrocyteEndfeetDetail(s) {
+function drawAstrocyticEnsheathment() {
 
   noFill();
-  stroke(130, 210, 170, 110);
-  strokeWeight(6);
+  stroke(120, 210, 170, 120);
+  strokeWeight(7);
 
-  arc(0, 0, 130, 95, PI * 0.15, PI * 0.85);
+  // Astrocyte processes wrap around — not sealing
+  arc(0, 0, 200, 140, PI * 0.2, PI * 0.6);
+  arc(0, 0, 200, 140, PI * 0.8, PI * 1.2);
 
   // Label
-  fill(170, 230, 200);
   noStroke();
+  fill(170, 240, 200);
   textSize(9);
   textAlign(CENTER, BOTTOM);
-  text("Astrocytic endfeet", 0, -52);
+  text("Astrocytic endfeet", 0, -80);
 }
