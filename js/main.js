@@ -14,10 +14,10 @@ const state = {
 // Global Toggles
 // -----------------------------------------------------
 window.myelinEnabled  = false;
-window.loggingEnabled = false; // 🔑 START OFF
+window.loggingEnabled = false;
 
 // -----------------------------------------------------
-// SAFE LOGGING WRAPPER (prevents crashes)
+// SAFE LOGGING WRAPPER
 // -----------------------------------------------------
 function safeLog(type, message = null, target = null) {
   if (typeof logEvent === "function") {
@@ -41,52 +41,9 @@ const camera = {
 };
 
 // =====================================================
-// 🔑 SYNAPSE FOCUS CONTEXT (NEW, MODE-SCOPED)
+// SYNAPSE FOCUS CONTEXT (OPTIONAL, FUTURE USE)
 // =====================================================
 window.synapseFocus = null;
-
-// =====================================================
-// 🔑 CAPTURE SYNAPSE FOCUS (ON MODE ENTRY)
-// =====================================================
-function captureSynapseFocus() {
-  if (
-    !window.activeSynapticClefts ||
-    window.activeSynapticClefts.length === 0
-  ) {
-    window.synapseFocus = null;
-    return;
-  }
-
-  const cleft =
-    window.activeSynapticClefts[
-      window.activeSynapticClefts.length - 1
-    ];
-
-  // Freeze synapse for inspection & manipulation
-  window.synapseFocus = {
-    x: cleft.x,
-    y: cleft.y,
-    cleftRef: cleft,
-
-    // 🔬 Tunable (future UI controls)
-    releaseProb: typeof RELEASE_PROB !== "undefined" ? RELEASE_PROB : 0.9,
-    diffusionDelay:
-      typeof CLEFT_DIFFUSION_DELAY !== "undefined"
-        ? CLEFT_DIFFUSION_DELAY
-        : 10
-  };
-}
-
-// =====================================================
-// 🔑 APPLY SYNAPSE CAMERA (ON ENTRY ONLY)
-// =====================================================
-function applySynapseCamera() {
-  if (!window.synapseFocus) return;
-
-  camera.targetX = window.synapseFocus.x;
-  camera.targetY = window.synapseFocus.y;
-  camera.targetZoom = 4.0; // teaching-scale zoom
-}
 
 // =====================================================
 // MODE SWITCHING
@@ -98,12 +55,10 @@ function setMode(mode) {
     camera.targetX = 0;
     camera.targetY = 0;
     camera.targetZoom = 1.2;
-    window.synapseFocus = null; // clear sandbox
   }
 
   else if (mode === "synapse") {
-    captureSynapseFocus();
-    applySynapseCamera();
+    camera.targetZoom = 4.0; // start zoomed-in
   }
 
   else {
@@ -157,7 +112,6 @@ function setup() {
 
     myelinToggle.addEventListener("change", () => {
       window.myelinEnabled = myelinToggle.checked;
-
       safeLog(
         "system",
         `Myelin ${window.myelinEnabled ? "enabled" : "disabled"}`
@@ -166,7 +120,7 @@ function setup() {
   }
 
   // ----------------------
-  // Logging toggle (POPUP CONTROL)
+  // Logging toggle
   // ----------------------
   const logToggle = document.getElementById("logToggle");
   if (logToggle) {
@@ -174,7 +128,6 @@ function setup() {
 
     logToggle.addEventListener("change", () => {
       window.loggingEnabled = logToggle.checked;
-
       if (typeof setEventLogOpen === "function") {
         setEventLogOpen(logToggle.checked);
       }
@@ -189,6 +142,30 @@ function setup() {
 }
 
 // =====================================================
+// DEBUG: CLICK TO SELECT WORLD-SPACE FOCUS POINT
+// =====================================================
+function mousePressed() {
+
+  // Only active in Synapse View
+  if (state.mode !== "synapse") return;
+
+  // Convert screen → world coordinates
+  const worldX =
+    (mouseX - width / 2) / camera.zoom + camera.x;
+  const worldY =
+    (mouseY - height / 2) / camera.zoom + camera.y;
+
+  console.log(
+    `📍 Synapse focus selected at world coords: x=${worldX.toFixed(2)}, y=${worldY.toFixed(2)}`
+  );
+
+  // Immediately zoom camera to this point
+  camera.targetX = worldX;
+  camera.targetY = worldY;
+  camera.targetZoom = 5.0;
+}
+
+// =====================================================
 // MAIN LOOP
 // =====================================================
 function draw() {
@@ -196,7 +173,7 @@ function draw() {
 
   // =====================================================
   // UPDATE PHASE
-  // =====================================================
+// =====================================================
   if (!state.paused) {
     state.time += state.dt;
 
@@ -207,20 +184,22 @@ function draw() {
   }
 
   // =====================================================
-  // DRAW ARTERY (SCREEN SPACE)
-  // =====================================================
-  drawArtery();
+  // DRAW ARTERY (HIDE IN SYNAPSE VIEW)
+// =====================================================
+  if (state.mode !== "synapse") {
+    drawArtery();
+  }
 
   // =====================================================
   // CAMERA INTERPOLATION
-  // =====================================================
+// =====================================================
   camera.x    += (camera.targetX    - camera.x)    * camera.lerpSpeed;
   camera.y    += (camera.targetY    - camera.y)    * camera.lerpSpeed;
   camera.zoom += (camera.targetZoom - camera.zoom) * camera.lerpSpeed;
 
   // =====================================================
   // WORLD SPACE
-  // =====================================================
+// =====================================================
   push();
   translate(width / 2, height / 2);
   scale(camera.zoom);
@@ -252,7 +231,7 @@ function draw() {
       drawIonView(state);
       break;
     case "synapse":
-      drawSynapseView(state); // 🔬 sandboxed view
+      drawSynapseView(state);
       break;
   }
 
@@ -264,7 +243,7 @@ function draw() {
 
   // =====================================================
   // UI OVERLAY
-  // =====================================================
+// =====================================================
   drawTimeReadout();
 
   if (typeof drawEventLog === "function") {
