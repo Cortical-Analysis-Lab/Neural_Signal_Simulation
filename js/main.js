@@ -14,7 +14,7 @@ const state = {
 // Global Toggles
 // -----------------------------------------------------
 window.myelinEnabled  = false;
-window.loggingEnabled = true;
+window.loggingEnabled = false;
 
 // -----------------------------------------------------
 // SAFE LOGGING WRAPPER (prevents crashes)
