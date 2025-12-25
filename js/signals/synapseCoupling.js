@@ -77,6 +77,20 @@ function triggerSynapticRelease(bouton) {
   if (!hit.target) return;
 
   // =====================================================
+  // 🟡 NEURAL LOG — neurotransmitter release
+  // =====================================================
+  if (
+    !state.paused &&
+    typeof logEvent === "function"
+  ) {
+    logEvent(
+      "neural",
+      "Neurotransmitter released into synaptic cleft",
+      "synapse"
+    );
+  }
+
+  // =====================================================
   // 🔑 Register synaptic cleft midpoint
   // (bouton ↔ postsynapse)
   // =====================================================
@@ -107,7 +121,9 @@ function updateSynapticCoupling() {
     const e = pendingReleases[i];
     e.timer--;
 
+    // ----------------------------
     // Vesicle fusion
+    // ----------------------------
     if (e.timer <= 0 && e.phase === "release") {
 
       if (typeof spawnVesicleBurst === "function") {
@@ -118,7 +134,9 @@ function updateSynapticCoupling() {
       e.timer = CLEFT_DIFFUSION_DELAY;
     }
 
+    // ----------------------------
     // Postsynaptic effect
+    // ----------------------------
     else if (e.timer <= 0 && e.phase === "psp") {
 
       spawnPostsynapticPSP(e.synapse, e.targetNeuron, e.bouton);
@@ -146,6 +164,18 @@ function spawnPostsynapticPSP(synapse, targetNeuron, bouton) {
   // Neuron 2: EPSP → dendrite → soma
   // ----------------------------
   if (targetNeuron === "neuron2") {
+
+    if (
+      !state.paused &&
+      typeof logEvent === "function"
+    ) {
+      logEvent(
+        "neural",
+        "Excitatory signal propagates toward postsynaptic neuron",
+        "dendrite"
+      );
+    }
+
     if (typeof spawnNeuron2EPSP === "function") {
       spawnNeuron2EPSP(synapse);
     }
@@ -156,6 +186,18 @@ function spawnPostsynapticPSP(synapse, targetNeuron, bouton) {
   // Neuron 3: interneuron IPSP
   // ----------------------------
   if (targetNeuron === "neuron3") {
+
+    if (
+      !state.paused &&
+      typeof logEvent === "function"
+    ) {
+      logEvent(
+        "neural",
+        "Inhibitory signal suppresses downstream firing",
+        "interneuron"
+      );
+    }
+
     if (typeof spawnNeuron3IPSP === "function") {
       spawnNeuron3IPSP(synapse);
     }
