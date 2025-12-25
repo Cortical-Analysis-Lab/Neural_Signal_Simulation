@@ -74,15 +74,11 @@ function setup() {
   initNeuron3();
   initAstrocyte();
 
-
   setMode("overview");
 
   // Pause button
   const pauseBtn = document.getElementById("pauseBtn");
   if (pauseBtn) pauseBtn.onclick = togglePause;
-
-  // Panels
-  initUIPanels();
 
   // Myelin toggle
   const myelinToggle = document.getElementById("myelinToggle");
@@ -104,7 +100,7 @@ function draw() {
   background(15, 17, 21);
 
   // =====================================================
-  // UPDATE PHASE (AUTHORITATIVE)
+  // UPDATE PHASE
   // =====================================================
   if (!state.paused) {
     state.time += state.dt;
@@ -112,11 +108,11 @@ function draw() {
     updateHemodynamics();
     updateBloodContents();
     updateSupplyWaves();
-    updatePressureWaves(); // 🔑 REQUIRED
+    updatePressureWaves();
   }
 
   // =====================================================
-  // DRAW ARTERY (SCREEN SPACE — NO CAMERA)
+  // DRAW ARTERY (SCREEN SPACE)
   // =====================================================
   drawArtery();
 
@@ -154,7 +150,6 @@ function draw() {
     updateSynapticCoupling();
   }
 
-  // ---- Render views ----
   switch (state.mode) {
     case "overview":
       drawOverview(state);
@@ -197,32 +192,13 @@ function togglePause() {
 }
 
 // =====================================================
-// COLLAPSIBLE UI PANELS
+// PANEL TOGGLING (EDGE TABS)
 // =====================================================
-function initUIPanels() {
-  const instructions = document.getElementById("instructions");
-  if (instructions) {
-    instructions.classList.add("panel", "left", "open");
+function togglePanel(id) {
+  const panel = document.getElementById(id);
+  if (!panel) return;
 
-    const btn = document.createElement("button");
-    btn.className = "panel-toggle";
-    btn.innerText = "☰";
-    btn.onclick = () => instructions.classList.toggle("open");
-
-    instructions.appendChild(btn);
-  }
-
-  const observations = document.getElementById("observations");
-  if (observations) {
-    observations.classList.add("panel", "bottom", "open");
-
-    const btn = document.createElement("button");
-    btn.className = "panel-toggle";
-    btn.innerText = "▲";
-    btn.onclick = () => observations.classList.toggle("open");
-
-    observations.appendChild(btn);
-  }
+  panel.classList.toggle("open");
 }
 
 // =====================================================
