@@ -22,10 +22,19 @@ const vesicles = [];
 function spawnVesicleBurst(bouton, postsynaptic) {
 
   // --------------------------------------------------
-  // 🔑 TRIGGER ASTROCYTE RESPONSE (ONCE PER BURST)
-  // --------------------------------------------------
+  // 🔑 ASTROCYTE RESPONSE (ONCE PER BURST)
+// --------------------------------------------------
   if (typeof triggerAstrocyteResponse === "function") {
     triggerAstrocyteResponse();
+
+    // 🟣 GLIAL LOG (educational, non-spammy)
+    if (!state.paused && typeof logEvent === "function") {
+      logEvent(
+        "glial",
+        "Astrocyte detected neurotransmitter release at tripartite synapse",
+        "astrocyte"
+      );
+    }
   }
 
   // --------------------------------------------------
