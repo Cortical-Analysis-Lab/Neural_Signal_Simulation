@@ -33,6 +33,18 @@ function spawnAxonSpike() {
 
   // 🔑 If myelinated, hand off to saltatory engine
   if (window.myelinEnabled && typeof spawnMyelinAP === "function") {
+
+    if (
+      !state.paused &&
+      typeof logEvent === "function"
+    ) {
+      logEvent(
+        "system",
+        "Action potential enters myelinated axon (saltatory conduction)",
+        "axon"
+      );
+    }
+
     spawnMyelinAP();
     return;
   }
@@ -41,6 +53,17 @@ function spawnAxonSpike() {
   if (axonSpikes.length > 0) {
     const last = axonSpikes[axonSpikes.length - 1];
     if (last.phase < 0.1) return;
+  }
+
+  if (
+    !state.paused &&
+    typeof logEvent === "function"
+  ) {
+    logEvent(
+      "neural",
+      "Action potential propagates down unmyelinated axon",
+      "axon"
+    );
   }
 
   axonSpikes.push({ phase: 0 });
@@ -57,6 +80,18 @@ function updateAxonSpikes() {
 
     // Enter terminal region → split into branches
     if (s.phase >= AXON_TERMINAL_START) {
+
+      if (
+        !state.paused &&
+        typeof logEvent === "function"
+      ) {
+        logEvent(
+          "neural",
+          "Action potential reaches axon terminals",
+          "terminal"
+        );
+      }
+
       spawnTerminalSpikes();
       axonSpikes.splice(i, 1);
     }
@@ -95,6 +130,17 @@ function updateTerminalDots() {
       // =================================================
       // 🩸 METABOLIC CONSUMPTION + SUPPLY SIGNAL
       // =================================================
+      if (
+        !state.paused &&
+        typeof logEvent === "function"
+      ) {
+        logEvent(
+          "vascular",
+          "Neural firing increases local metabolic demand",
+          "neurovascular"
+        );
+      }
+
       if (typeof extractOxygenNearNeuron1 === "function") {
         extractOxygenNearNeuron1();
       }
