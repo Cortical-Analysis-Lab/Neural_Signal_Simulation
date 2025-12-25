@@ -117,7 +117,7 @@ button:hover {
   background: rgba(30, 34, 44, 0.95);
   color: #eaeaea;
   font-weight: 600;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
   cursor: pointer;
   z-index: 50;
 
@@ -126,22 +126,25 @@ button:hover {
   justify-content: center;
 
   user-select: none;
-  transition: background 0.25s ease;
+  transition:
+    background 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
 .edge-tab:hover {
   background: rgba(60, 120, 255, 0.9);
+  box-shadow: 0 0 12px rgba(90, 140, 255, 0.35);
 }
 
 /* =====================================================
-   🔑 FIXED INSTRUCTIONS TAB (TRUE VERTICAL TEXT)
+   INSTRUCTIONS TAB — TRUE VERTICAL
    ===================================================== */
 .edge-tab.instructions {
   top: 50%;
   left: 0;
 
   width: 44px;
-  height: 180px;
+  height: 200px;
 
   writing-mode: vertical-rl;
   text-orientation: mixed;
@@ -152,13 +155,14 @@ button:hover {
 }
 
 /* =====================================================
-   OBSERVATIONS TAB (BOTTOM)
+   OBSERVATIONS TAB — BOTTOM
    ===================================================== */
 .edge-tab.observations {
   left: 50%;
   bottom: 0;
+
   height: 36px;
-  padding: 8px 24px;
+  padding: 8px 26px;
 
   transform: translateX(-50%);
   border-radius: 10px 10px 0 0;
@@ -190,5 +194,10 @@ button:hover {
 
   .panel.bottom {
     padding: 10px 14px;
+  }
+
+  .edge-tab.instructions {
+    height: 160px;
+    font-size: 12px;
   }
 }
