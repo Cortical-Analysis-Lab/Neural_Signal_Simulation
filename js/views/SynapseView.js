@@ -3,13 +3,17 @@ console.log("🔬 SynapseView loaded");
 // =====================================================
 // SYNAPSE VIEW — FOCUSED, INTERACTIVE SANDBOX
 // =====================================================
-// • Camera pre-positioned on entry
+// • Camera positioning handled externally (main.js)
+// • Uses synapseFocus (event-based OR user-selected)
 // • Functionally isolated from Overview
-// • User-modifiable synaptic parameters
+// • Ready for user manipulation of synaptic parameters
 // =====================================================
 
 function drawSynapseView(state) {
 
+  // ---------------------------------------------------
+  // No synapse selected yet
+  // ---------------------------------------------------
   if (!window.synapseFocus) {
     drawNoSynapseMessage();
     return;
@@ -20,7 +24,7 @@ function drawSynapseView(state) {
   push();
   translate(s.x, s.y);
 
-  drawSynapticCleftHalo();
+  drawSynapticCleftHalo(s);
   drawPresynapticTerminalDetail(s);
   drawPostsynapticSpineDetail(s);
   drawAstrocyteEndfeetDetail(s);
@@ -29,7 +33,7 @@ function drawSynapseView(state) {
 }
 
 // =====================================================
-// FALLBACK MESSAGE
+// FALLBACK MESSAGE (NO SYNAPSE SELECTED)
 // =====================================================
 function drawNoSynapseMessage() {
   push();
@@ -38,7 +42,7 @@ function drawNoSynapseMessage() {
   textAlign(CENTER, CENTER);
   textSize(16);
   text(
-    "No active synapse to inspect.\nTrigger a spike first.",
+    "Click a synapse to inspect\nor trigger a spike first",
     camera.x,
     camera.y
   );
@@ -46,61 +50,103 @@ function drawNoSynapseMessage() {
 }
 
 // =====================================================
-// VISUAL COMPONENTS (DETAIL LEVEL)
+// SYNAPTIC CLEFT VISUAL
 // =====================================================
-function drawSynapticCleftHalo() {
+function drawSynapticCleftHalo(s) {
   noFill();
-  stroke(160, 210, 255, 140);
+  stroke(160, 210, 255, 150);
   strokeWeight(2);
-  ellipse(0, 0, 20, 20);
+
+  ellipse(0, 0, 22, 22);
+
+  // Teaching cue: label
+  fill(160, 210, 255);
+  noStroke();
+  textSize(10);
+  textAlign(CENTER, TOP);
+  text("Synaptic cleft", 0, 16);
 }
 
+// =====================================================
+// PRESYNAPTIC TERMINAL (DETAIL)
+// =====================================================
 function drawPresynapticTerminalDetail(s) {
   push();
-  translate(-26, 0);
+  translate(-28, 0);
 
+  // Terminal body
   fill(170, 190, 255);
   noStroke();
-  ellipse(0, 0, 48, 48);
+  ellipse(0, 0, 50, 50);
 
   // Active zone
   fill(120, 140, 220);
-  rect(18, -14, 6, 28, 3);
+  rect(20, -14, 6, 28, 3);
 
   // Vesicle pool (static for now)
   fill(240);
   for (let i = 0; i < 6; i++) {
     ellipse(
-      random(-8, 8),
-      random(-10, 10),
+      random(-9, 9),
+      random(-11, 11),
       6,
       6
     );
   }
 
+  // Label
+  fill(200);
+  textSize(9);
+  textAlign(CENTER, TOP);
+  text("Presynaptic\nterminal", 0, 28);
+
   pop();
 }
 
+// =====================================================
+// POSTSYNAPTIC SPINE (DETAIL)
+// =====================================================
 function drawPostsynapticSpineDetail(s) {
   push();
-  translate(26, 0);
+  translate(28, 0);
 
+  // Spine head
   fill(200, 170, 170);
   noStroke();
-  ellipse(0, 0, 44, 44);
+  ellipse(0, 0, 46, 46);
 
+  // Receptors
   stroke(110);
   strokeWeight(2);
-  for (let y = -12; y <= 12; y += 6) {
-    line(-20, y, -14, y);
+  for (let y = -14; y <= 14; y += 7) {
+    line(-22, y, -15, y);
   }
+
+  // Label
+  fill(200);
+  noStroke();
+  textSize(9);
+  textAlign(CENTER, TOP);
+  text("Postsynaptic\nspine", 0, 28);
 
   pop();
 }
 
+// =====================================================
+// ASTROCYTIC END-FEET (TRIPARTITE SYNAPSE)
+// =====================================================
 function drawAstrocyteEndfeetDetail(s) {
+
   noFill();
-  stroke(130, 210, 170, 100);
+  stroke(130, 210, 170, 110);
   strokeWeight(6);
-  arc(0, 0, 120, 90, PI * 0.15, PI * 0.85);
+
+  arc(0, 0, 130, 95, PI * 0.15, PI * 0.85);
+
+  // Label
+  fill(170, 230, 200);
+  noStroke();
+  textSize(9);
+  textAlign(CENTER, BOTTOM);
+  text("Astrocytic endfeet", 0, -52);
 }
