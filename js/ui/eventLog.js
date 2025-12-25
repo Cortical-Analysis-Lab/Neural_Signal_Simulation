@@ -213,3 +213,11 @@ function drawNeuron2EPSPs() {
     pop();
   });
 }
+
+// -----------------------------------------------------
+// Public API
+// -----------------------------------------------------
+window.logEvent = logEvent;
+window.drawEventLog = drawEventLog;
+window.highlightTarget = highlightTarget;
+
