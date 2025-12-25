@@ -17,12 +17,14 @@
      EDGE TABS — ALWAYS VISIBLE CONTROLS
 ===================================================== -->
 
-<div class="edge-tab left"
+<!-- 🔑 FIX: class name now matches CSS -->
+<div class="edge-tab instructions"
      onclick="togglePanel('instructions')">
   Instructions
 </div>
 
-<div class="edge-tab bottom"
+<!-- 🔑 FIX: class name now matches CSS -->
+<div class="edge-tab observations"
      onclick="togglePanel('observations')">
   Observations
 </div>
@@ -102,13 +104,9 @@
      SCRIPTS (LOAD EACH FILE ONCE)
 ===================================================== -->
 
-<!-- Constants -->
 <script src="js/constants/colors.js"></script>
-
-<!-- Signals (FOUNDATION FIRST) -->
 <script src="js/signals/hemodynamics.js"></script>
 
-<!-- Geometry -->
 <script src="js/geometry/neuronGeometry.js"></script>
 <script src="js/geometry/neuron2Geometry.js"></script>
 <script src="js/geometry/neuron3Geometry.js"></script>
@@ -118,7 +116,6 @@
 <script src="js/geometry/artery.js"></script>
 <script src="js/geometry/bloodContents.js"></script>
 
-<!-- Signals -->
 <script src="js/signals/psp.js"></script>
 <script src="js/signals/soma.js"></script>
 <script src="js/signals/voltageTrace.js"></script>
@@ -127,15 +124,12 @@
 <script src="js/signals/myelinAP.js"></script>
 <script src="js/signals/vesicleBurst.js"></script>
 
-<!-- Views -->
 <script src="js/views/Overview.js"></script>
 <script src="js/views/IonView.js"></script>
 <script src="js/views/SynapseView.js"></script>
 
-<!-- Interaction -->
 <script src="js/interaction/synapseInteraction.js"></script>
 
-<!-- Main loop (LAST, ONCE) -->
 <script src="js/main.js"></script>
 
 </body>
