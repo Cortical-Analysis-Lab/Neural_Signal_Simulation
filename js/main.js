@@ -41,9 +41,26 @@ const camera = {
 };
 
 // =====================================================
-// SYNAPSE FOCUS CONTEXT (OPTIONAL, FUTURE USE)
+// SYNAPSE FOCUS CONTEXT (PERSISTENT)
 // =====================================================
 window.synapseFocus = null;
+
+// =====================================================
+// SET SYNAPSE FOCUS FROM WORLD COORDS
+// =====================================================
+function setSynapseFocusFromWorld(x, y) {
+
+  window.synapseFocus = {
+    x,
+    y,
+    releaseProb: 0.9,
+    diffusionDelay: 10
+  };
+
+  console.log(
+    `📍 Synapse focus set (world coords): x=${x.toFixed(2)}, y=${y.toFixed(2)}`
+  );
+}
 
 // =====================================================
 // MODE SWITCHING
@@ -58,7 +75,15 @@ function setMode(mode) {
   }
 
   else if (mode === "synapse") {
-    camera.targetZoom = 4.0; // start zoomed-in
+
+    if (window.synapseFocus) {
+      camera.targetX = window.synapseFocus.x;
+      camera.targetY = window.synapseFocus.y;
+      camera.targetZoom = 5.0;
+    } else {
+      console.warn("⚠️ No synapse selected. Click one in Overview first.");
+      camera.targetZoom = 4.0;
+    }
   }
 
   else {
@@ -142,12 +167,12 @@ function setup() {
 }
 
 // =====================================================
-// DEBUG: CLICK TO SELECT WORLD-SPACE FOCUS POINT
+// CLICK TO SELECT SYNAPSE (OVERVIEW ONLY)
 // =====================================================
 function mousePressed() {
 
-  // Only active in Synapse View
-  if (state.mode !== "synapse") return;
+  // Only allow selection in Overview
+  if (state.mode !== "overview") return;
 
   // Convert screen → world coordinates
   const worldX =
@@ -155,14 +180,7 @@ function mousePressed() {
   const worldY =
     (mouseY - height / 2) / camera.zoom + camera.y;
 
-  console.log(
-    `📍 Synapse focus selected at world coords: x=${worldX.toFixed(2)}, y=${worldY.toFixed(2)}`
-  );
-
-  // Immediately zoom camera to this point
-  camera.targetX = worldX;
-  camera.targetY = worldY;
-  camera.targetZoom = 5.0;
+  setSynapseFocusFromWorld(worldX, worldY);
 }
 
 // =====================================================
@@ -173,7 +191,7 @@ function draw() {
 
   // =====================================================
   // UPDATE PHASE
-// =====================================================
+  // =====================================================
   if (!state.paused) {
     state.time += state.dt;
 
@@ -185,21 +203,21 @@ function draw() {
 
   // =====================================================
   // DRAW ARTERY (HIDE IN SYNAPSE VIEW)
-// =====================================================
+  // =====================================================
   if (state.mode !== "synapse") {
     drawArtery();
   }
 
   // =====================================================
   // CAMERA INTERPOLATION
-// =====================================================
+  // =====================================================
   camera.x    += (camera.targetX    - camera.x)    * camera.lerpSpeed;
   camera.y    += (camera.targetY    - camera.y)    * camera.lerpSpeed;
   camera.zoom += (camera.targetZoom - camera.zoom) * camera.lerpSpeed;
 
   // =====================================================
   // WORLD SPACE
-// =====================================================
+  // =====================================================
   push();
   translate(width / 2, height / 2);
   scale(camera.zoom);
@@ -235,6 +253,23 @@ function draw() {
       break;
   }
 
+  // -----------------------------------------------------
+  // Optional: show selected synapse marker in Overview
+  // -----------------------------------------------------
+  if (state.mode === "overview" && window.synapseFocus) {
+    push();
+    stroke(255, 200, 80);
+    strokeWeight(2);
+    noFill();
+    ellipse(
+      window.synapseFocus.x,
+      window.synapseFocus.y,
+      18,
+      18
+    );
+    pop();
+  }
+
   if (typeof drawHighlightOverlay === "function") {
     drawHighlightOverlay();
   }
@@ -243,7 +278,7 @@ function draw() {
 
   // =====================================================
   // UI OVERLAY
-// =====================================================
+  // =====================================================
   drawTimeReadout();
 
   if (typeof drawEventLog === "function") {
