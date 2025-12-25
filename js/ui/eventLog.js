@@ -1,7 +1,13 @@
 // =====================================================
-// EVENT LOG — METABOLIC SUMMARY
+// EVENT LOG — METABOLIC SUMMARY (MULTI-LINE)
 // =====================================================
-console.log("🧾 eventLog.js loaded (metabolic summary mode)");
+console.log("🧾 eventLog.js loaded (metabolic summary, 3–5 lines)");
+
+// -----------------------------------------------------
+// Configuration
+// -----------------------------------------------------
+const MAX_SUMMARY_LINES = 5;   // show last 3–5 summaries
+const DECAY_RATE = 0.985;
 
 // -----------------------------------------------------
 // Semantic colors
@@ -14,26 +20,24 @@ const EVENT_COLORS = {
 };
 
 // -----------------------------------------------------
-// Internal metabolic state (ACCUMULATED)
+// Internal metabolic accumulators
 // -----------------------------------------------------
 const metabolicState = {
   neuralDemand: 0,
   vascularSupply: 0,
-  glialActivity: 0,
-  lastSummary: ""
+  glialActivity: 0
 };
 
 // -----------------------------------------------------
-// Tunable decay (per frame-ish updates)
+// Rolling summary buffer (THIS is what is displayed)
 // -----------------------------------------------------
-const DECAY_RATE = 0.985;
+const summaryLog = [];
 
 // -----------------------------------------------------
-// Public: register low-level events (ACCUMULATE ONLY)
+// Public: accumulate low-level events ONLY
 // -----------------------------------------------------
-function logEvent(type, message, target = null) {
+function logEvent(type) {
 
-  // Accumulate signals — NOT messages
   switch (type) {
     case "neural":
       metabolicState.neuralDemand += 1;
@@ -67,33 +71,20 @@ function generateMetabolicSummary() {
   const v = metabolicState.vascularSupply;
   const g = metabolicState.glialActivity;
 
-  // ---- Priority logic (teaching-first) ----
   if (n < 0.3 && v < 0.3 && g < 0.3) {
-    return {
-      text: "Baseline metabolic activity",
-      color: EVENT_COLORS.low
-    };
+    return { text: "Baseline metabolic activity", color: EVENT_COLORS.low };
   }
 
   if (n > 1.5 && v < n * 0.7) {
-    return {
-      text: "Elevated neural demand detected",
-      color: EVENT_COLORS.neural
-    };
+    return { text: "Elevated neural metabolic demand", color: EVENT_COLORS.neural };
   }
 
   if (v > n && v > 1.0) {
-    return {
-      text: "Neurovascular coupling increasing metabolic supply",
-      color: EVENT_COLORS.vascular
-    };
+    return { text: "Neurovascular coupling increasing supply", color: EVENT_COLORS.vascular };
   }
 
   if (g > 0.8) {
-    return {
-      text: "Astrocytes coordinating metabolic support",
-      color: EVENT_COLORS.glial
-    };
+    return { text: "Astrocytes coordinating metabolic support", color: EVENT_COLORS.glial };
   }
 
   return {
@@ -103,33 +94,46 @@ function generateMetabolicSummary() {
 }
 
 // -----------------------------------------------------
-// Public: draw SINGLE-LINE log
+// Public: draw MULTI-LINE summary log
 // -----------------------------------------------------
 function drawEventLog() {
   const container = document.getElementById("event-log");
   if (!container) return;
 
-  // Toggle controls visibility ONLY
+  // 🔑 Toggle controls VISIBILITY only
   if (!window.loggingEnabled) {
-    container.classList.add("hidden");
+    container.style.display = "none";
     return;
-  } else {
-    container.classList.remove("hidden");
   }
+  container.style.display = "block";
 
-  // Update state
+  // Update internal state
   decayMetabolicState();
   const summary = generateMetabolicSummary();
 
-  // Avoid DOM churn if text unchanged
-  if (summary.text === metabolicState.lastSummary) return;
-  metabolicState.lastSummary = summary.text;
+  // Prevent duplicate consecutive lines
+  const last = summaryLog[summaryLog.length - 1];
+  if (!last || last.text !== summary.text) {
+    summaryLog.push(summary);
 
+    if (summaryLog.length > MAX_SUMMARY_LINES) {
+      summaryLog.shift();
+    }
+  }
+
+  // Render summaries
   container.innerHTML = `
-    <div class="event-line" style="color:${summary.color}">
-      • ${summary.text}
+    <div class="event-window">
+      <div class="event-title">Metabolic Status</div>
+      ${summaryLog.map(s => `
+        <div class="event-line" style="color:${s.color}">
+          • ${s.text}
+        </div>
+      `).join("")}
     </div>
   `;
+
+  container.scrollTop = container.scrollHeight;
 }
 
 // -----------------------------------------------------
@@ -153,6 +157,6 @@ function drawHighlightOverlay() {
 // -----------------------------------------------------
 // Public API
 // -----------------------------------------------------
-window.logEvent              = logEvent;
-window.drawEventLog          = drawEventLog;
-window.drawHighlightOverlay  = drawHighlightOverlay;
+window.logEvent             = logEvent;
+window.drawEventLog         = drawEventLog;
+window.drawHighlightOverlay = drawHighlightOverlay;
