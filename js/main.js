@@ -41,6 +41,26 @@ const camera = {
 };
 
 // =====================================================
+// 🔑 SYNAPSE CAMERA TARGETING (NEW)
+// =====================================================
+function focusCameraOnActiveSynapse() {
+  if (
+    !window.activeSynapticClefts ||
+    window.activeSynapticClefts.length === 0
+  ) return;
+
+  // Use most recent synaptic cleft
+  const cleft =
+    window.activeSynapticClefts[
+      window.activeSynapticClefts.length - 1
+    ];
+
+  camera.targetX = cleft.x;
+  camera.targetY = cleft.y;
+  camera.targetZoom = 4.0; // strong zoom for teaching
+}
+
+// =====================================================
 // MODE SWITCHING
 // =====================================================
 function setMode(mode) {
@@ -50,7 +70,14 @@ function setMode(mode) {
     camera.targetX = 0;
     camera.targetY = 0;
     camera.targetZoom = 1.2;
-  } else {
+  }
+
+  else if (mode === "synapse") {
+    // 🔑 Zoom to real biological synapse
+    focusCameraOnActiveSynapse();
+  }
+
+  else {
     camera.targetZoom = 2.5;
   }
 
@@ -152,7 +179,7 @@ function draw() {
 
   // =====================================================
   // DRAW ARTERY (SCREEN SPACE)
-  // =====================================================
+// =====================================================
   drawArtery();
 
   // =====================================================
