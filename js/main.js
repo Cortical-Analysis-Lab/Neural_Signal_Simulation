@@ -7,8 +7,8 @@ const state = {
   time: 0,
   dt: 16.67,
   paused: false,
-  mode: "overview",        // overview | ion | synapse
-  transition: null         // null | "toSynapse"
+  mode: "overview",          // overview | ion | synapse
+  transition: null           // null | "toSynapse" | "toOverview"
 };
 
 // -----------------------------------------------------
@@ -34,15 +34,20 @@ const camera = {
   y: 0,
   zoom: 1,
 
+  startX: 0,
+  startY: 0,
+  startZoom: 1,
+
   targetX: 0,
   targetY: 0,
   targetZoom: 1,
 
-  lerpSpeed: 0.08
+  t: 0,                 // transition progress
+  duration: 120         // frames
 };
 
 // =====================================================
-// 🔒 LOCKED SYNAPSE FOCUS (SINGLE SOURCE OF TRUTH)
+// 🔒 LOCKED SYNAPSE FOCUS (BIOLOGICAL ANCHOR)
 // =====================================================
 window.synapseFocus = {
   x: 272.08,
@@ -52,68 +57,62 @@ window.synapseFocus = {
 };
 
 // =====================================================
-// SYNAPSE TRANSITION PARAMETERS
+// EASING FUNCTION (SMOOTHSTEP)
 // =====================================================
-const SYNAPSE_ZOOM_TARGET = {
-  x: window.synapseFocus.x,
-  y: window.synapseFocus.y,
-  zoom: 5.0
-};
-
-const SYNAPSE_TRANSITION_SPEED = 0.035;
-const SYNAPSE_EPSILON = 0.02;
+function easeInOut(t) {
+  return t * t * (3 - 2 * t);
+}
 
 // =====================================================
-// MODE SWITCHING
+// BEGIN CAMERA TRANSITION
 // =====================================================
-function setMode(mode) {
+function beginTransition(targetMode) {
 
-  // ----------------------------
-  // OVERVIEW
-  // ----------------------------
-  if (mode === "overview") {
-    state.mode = "overview";
-    state.transition = null;
+  camera.startX = camera.x;
+  camera.startY = camera.y;
+  camera.startZoom = camera.zoom;
 
+  if (targetMode === "synapse") {
+    camera.targetX = window.synapseFocus.x;
+    camera.targetY = window.synapseFocus.y;
+    camera.targetZoom = 5.0;
+    state.transition = "toSynapse";
+  }
+
+  if (targetMode === "overview") {
     camera.targetX = 0;
     camera.targetY = 0;
     camera.targetZoom = 1.2;
-    camera.lerpSpeed = 0.08;
+    state.transition = "toOverview";
   }
 
-  // ----------------------------
-  // SYNAPSE (DEFERRED TRANSITION)
-  // ----------------------------
-  else if (mode === "synapse") {
+  camera.t = 0;
+  safeLog("system", `Transitioning to ${targetMode}…`);
+}
 
-    // 🔑 Do NOT switch modes yet
-    state.transition = "toSynapse";
+// =====================================================
+// MODE SWITCHING (ENTRY POINT)
+// =====================================================
+function setMode(mode) {
 
-    camera.targetX = SYNAPSE_ZOOM_TARGET.x;
-    camera.targetY = SYNAPSE_ZOOM_TARGET.y;
-    camera.targetZoom = SYNAPSE_ZOOM_TARGET.zoom;
-
-    camera.lerpSpeed = SYNAPSE_TRANSITION_SPEED;
-
-    safeLog("system", "Zooming into synapse…");
+  if (mode === "synapse") {
+    beginTransition("synapse");
     return;
   }
 
-  // ----------------------------
-  // ION
-  // ----------------------------
-  else {
-    state.mode = mode;
-    camera.targetZoom = 2.5;
+  if (mode === "overview") {
+    beginTransition("overview");
+    return;
   }
+
+  // Ion view (no transition yet)
+  state.mode = mode;
+  camera.targetZoom = 2.5;
 
   updateOverviewUI();
-
   if (typeof updateUIPanelContent === "function") {
-    updateUIPanelContent(state.mode);
+    updateUIPanelContent(mode);
   }
-
-  safeLog("system", `Switched to ${state.mode} view`);
 }
 
 // =====================================================
@@ -137,37 +136,23 @@ function setup() {
   initNeuron3();
   initAstrocyte();
 
-  setMode("overview");
+  state.mode = "overview";
 
-  // ----------------------
-  // Pause button
-  // ----------------------
+  // UI wiring preserved
   const pauseBtn = document.getElementById("pauseBtn");
   if (pauseBtn) pauseBtn.onclick = togglePause;
 
-  // ----------------------
-  // Myelin toggle
-  // ----------------------
   const myelinToggle = document.getElementById("myelinToggle");
   if (myelinToggle) {
     myelinToggle.checked = window.myelinEnabled;
-
     myelinToggle.addEventListener("change", () => {
       window.myelinEnabled = myelinToggle.checked;
-      safeLog(
-        "system",
-        `Myelin ${window.myelinEnabled ? "enabled" : "disabled"}`
-      );
     });
   }
 
-  // ----------------------
-  // Logging toggle
-  // ----------------------
   const logToggle = document.getElementById("logToggle");
   if (logToggle) {
     logToggle.checked = false;
-
     logToggle.addEventListener("change", () => {
       window.loggingEnabled = logToggle.checked;
       if (typeof setEventLogOpen === "function") {
@@ -177,7 +162,6 @@ function setup() {
   }
 
   updateOverviewUI();
-
   if (typeof updateUIPanelContent === "function") {
     updateUIPanelContent(state.mode);
   }
@@ -189,79 +173,69 @@ function setup() {
 function draw() {
   background(15, 17, 21);
 
-  // =====================================================
-  // UPDATE PHASE
-  // =====================================================
-  if (!state.paused) {
-    state.time += state.dt;
+  const transitioning = state.transition !== null;
 
+  // ---------------------------------------------------
+  // UPDATE PHASE (FREEZE DURING TRANSITION)
+  // ---------------------------------------------------
+  if (!state.paused && !transitioning) {
+    state.time += state.dt;
     updateHemodynamics();
     updateBloodContents();
     updateSupplyWaves();
     updatePressureWaves();
   }
 
-  // =====================================================
-  // DRAW ARTERY (HIDE IN SYNAPSE VIEW)
-  // =====================================================
+  // ---------------------------------------------------
+  // CAMERA TRANSITION
+  // ---------------------------------------------------
+  if (transitioning) {
+
+    camera.t++;
+    const u = constrain(camera.t / camera.duration, 0, 1);
+    const e = easeInOut(u);
+
+    camera.x = lerp(camera.startX, camera.targetX, e);
+    camera.y = lerp(camera.startY, camera.targetY, e);
+    camera.zoom = lerp(camera.startZoom, camera.targetZoom, e);
+
+    if (u >= 1) {
+      state.mode =
+        state.transition === "toSynapse" ? "synapse" : "overview";
+      state.transition = null;
+
+      updateOverviewUI();
+      if (typeof updateUIPanelContent === "function") {
+        updateUIPanelContent(state.mode);
+      }
+
+      safeLog("system", `Entered ${state.mode} view`);
+    }
+  }
+
+  // ---------------------------------------------------
+  // DRAW ARTERY (NOT IN SYNAPSE)
+  // ---------------------------------------------------
   if (state.mode !== "synapse") {
     drawArtery();
   }
 
-  // =====================================================
-  // CAMERA INTERPOLATION
-  // =====================================================
-  camera.x    += (camera.targetX    - camera.x)    * camera.lerpSpeed;
-  camera.y    += (camera.targetY    - camera.y)    * camera.lerpSpeed;
-  camera.zoom += (camera.targetZoom - camera.zoom) * camera.lerpSpeed;
-
-  // =====================================================
-  // HANDLE SYNAPSE TRANSITION COMPLETION
-  // =====================================================
-  if (state.transition === "toSynapse") {
-
-    const dz = abs(camera.zoom - camera.targetZoom);
-    const dx = abs(camera.x - camera.targetX);
-    const dy = abs(camera.y - camera.targetY);
-
-    if (dz < SYNAPSE_EPSILON && dx < 0.5 && dy < 0.5) {
-
-      camera.x = camera.targetX;
-      camera.y = camera.targetY;
-      camera.zoom = camera.targetZoom;
-      camera.lerpSpeed = 0.08;
-
-      state.transition = null;
-      state.mode = "synapse";
-
-      updateOverviewUI();
-      if (typeof updateUIPanelContent === "function") {
-        updateUIPanelContent("synapse");
-      }
-
-      safeLog("system", "Entered synapse view");
-    }
-  }
-
-  // =====================================================
+  // ---------------------------------------------------
   // WORLD SPACE
-  // =====================================================
+  // ---------------------------------------------------
   push();
   translate(width / 2, height / 2);
   scale(camera.zoom);
   translate(-camera.x, -camera.y);
 
-  if (!state.paused) {
+  if (!state.paused && !transitioning) {
     updateSynapseHover();
     updateEPSPs();
     updateSoma();
     updateVoltageTrace();
 
-    if (window.myelinEnabled) {
-      updateMyelinAPs();
-    } else {
-      updateAxonSpikes();
-    }
+    if (window.myelinEnabled) updateMyelinAPs();
+    else updateAxonSpikes();
 
     updateTerminalDots();
     updateVesicles();
@@ -269,86 +243,49 @@ function draw() {
     updateSynapticCoupling();
   }
 
-  switch (state.mode) {
-    case "overview":
-      drawOverview(state);
-      break;
-    case "ion":
-      drawIonView(state);
-      break;
-    case "synapse":
-      drawSynapseView(state);
-      break;
-  }
-
-  if (typeof drawHighlightOverlay === "function") {
-    drawHighlightOverlay();
-  }
+  if (state.mode === "overview") drawOverview(state);
+  if (state.mode === "ion") drawIonView(state);
+  if (state.mode === "synapse") drawSynapseView(state);
 
   pop();
 
-  // =====================================================
+  // ---------------------------------------------------
   // UI OVERLAY
-  // =====================================================
+  // ---------------------------------------------------
   drawTimeReadout();
-
-  if (typeof drawEventLog === "function") {
-    drawEventLog();
-  }
+  if (typeof drawEventLog === "function") drawEventLog();
 }
 
 // =====================================================
 // UI HELPERS
 // =====================================================
 function drawTimeReadout() {
-  push();
   fill(220);
   noStroke();
   textSize(14);
   textAlign(RIGHT, TOP);
   text(`t = ${state.time.toFixed(0)} ms`, width - 20, 20);
-  pop();
 }
 
 function togglePause() {
   state.paused = !state.paused;
-
-  const pauseBtn = document.getElementById("pauseBtn");
-  if (pauseBtn) {
-    pauseBtn.innerText = state.paused ? "Resume" : "Pause";
-  }
-
-  safeLog(
-    "system",
-    state.paused ? "Simulation paused" : "Simulation resumed"
-  );
 }
 
-// =====================================================
-// PANEL TOGGLING
-// =====================================================
 function togglePanel(id) {
   const panel = document.getElementById(id);
   if (panel) panel.classList.toggle("open");
 }
 
-// =====================================================
-// RESPONSIVE CANVAS
-// =====================================================
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
   initArtery();
 }
 
-// =====================================================
-// MODE-DEPENDENT UI VISIBILITY
-// =====================================================
 function updateOverviewUI() {
-  const myelinUI = document.getElementById("myelinToggleContainer");
-  const logUI    = document.getElementById("logToggleContainer");
-
   const visible = state.mode === "overview";
+  const myelinUI = document.getElementById("myelinToggleContainer");
+  const logUI = document.getElementById("logToggleContainer");
 
   if (myelinUI) myelinUI.style.display = visible ? "flex" : "none";
-  if (logUI)    logUI.style.display    = visible ? "flex" : "none";
+  if (logUI) logUI.style.display = visible ? "flex" : "none";
 }
