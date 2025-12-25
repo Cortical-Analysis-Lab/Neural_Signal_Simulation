@@ -4,10 +4,11 @@
 // ✔ Text-based molecules (HbO2, Hb, Glu, H2O, O2)
 // ✔ O2 only appears after HbO2 dissociation
 // ✔ Heartbeat-locked transport
-// ✔ Perivascular accumulation before delivery
+// ✔ Perivascular accumulation (expanded)
+// ✔ Free-floating CSF motion
 // =====================================================
 
-console.log("🩸 bloodContents v3.1 (perivascular reservoir) loaded");
+console.log("🩸 bloodContents v3.2 (expanded perivascular + CSF) loaded");
 
 // -----------------------------------------------------
 // GLOBAL STORAGE (RELOAD SAFE)
@@ -52,7 +53,6 @@ const EXIT_LANE_THRESHOLD = 0.42;
 const BBB_T_MIN = 0.35;
 const BBB_T_MAX = 0.65;
 
-// 🔑 Increased baseline probabilities (educational clarity)
 const AQP4_PROB_BASE  = 0.030;
 const GLUT1_PROB_BASE = 0.022;
 const O2_PROB_BASE    = 0.018;
@@ -66,11 +66,14 @@ const METABOLIC_MULTIPLIER    = 5.0;
 let metabolicBoostUntil = 0;
 
 // -----------------------------------------------------
-// CSF / PERIVASCULAR MOTION
+// PERIVASCULAR / CSF FEEL
 // -----------------------------------------------------
 
-const CSF_DRIFT = 0.0225;
-const PERIVASCULAR_DRIFT = 0.006;
+const PERIVASCULAR_OFFSET   = 18;
+const PERIVASCULAR_DRIFT    = 0.006;
+
+const CSF_JITTER            = 0.35;
+const CSF_DIRECTIONAL_GAIN  = 0.65;
 
 // -----------------------------------------------------
 // INITIALIZE
@@ -101,7 +104,6 @@ function initBloodContents() {
         tTarget: t0,
         lane: random(LANE_MIN, LANE_MAX),
 
-        // 🔑 Explicit state
         state: "intravascular",
 
         x: 0,
@@ -147,7 +149,7 @@ function updateBloodContents() {
   const beat = now - lastBeatTime >= BEAT_INTERVAL;
   if (beat) lastBeatTime = now;
 
-  // Intravascular flow
+  // Intravascular motion
   if (beat) {
     for (const p of bloodParticles) {
       if (p.state !== "intravascular") continue;
@@ -178,7 +180,6 @@ function updateBloodContents() {
     if (p.type === "water"   && random() < AQP4_PROB)  allow = true;
     if (p.type === "glucose" && random() < GLUT1_PROB) allow = true;
 
-    // HbO2 → O2 dissociation
     if (p.type === "rbcOxy" && random() < O2_PROB) {
       p.type  = "oxygen";
       p.label = "O₂";
@@ -191,17 +192,18 @@ function updateBloodContents() {
     const pos = getArteryPoint(p.t, p.lane);
     if (!pos) continue;
 
-    // 🔑 Enter perivascular space
+    // 🔑 Push outward into perivascular space
+    const nx = p.lane > 0 ? 1 : -1;
+
     p.state = "perivascular";
-    p.x = pos.x;
+    p.x = pos.x + nx * PERIVASCULAR_OFFSET;
     p.y = pos.y;
 
-    const dir = p.lane > 0 ? 1 : -1;
-    p.vx = dir * PERIVASCULAR_DRIFT;
-    p.vy = random(-0.01, 0.01);
+    p.vx = nx * PERIVASCULAR_DRIFT;
+    p.vy = random(-0.02, 0.02);
   }
 
-  // ---------------- PERIVASCULAR → CSF / NEURON ----------------
+  // ---------------- PERIVASCULAR / CSF ----------------
   const somaX = width / 2;
   const somaY = height / 2;
 
@@ -209,26 +211,36 @@ function updateBloodContents() {
     const p = bloodParticles[i];
     if (p.state !== "perivascular") continue;
 
-    // H2O: local diffusion, delayed fade
+    // H2O: local diffusion, fade later
     if (p.type === "water") {
-      p.x += p.vx;
-      p.y += p.vy;
+      p.x += p.vx + random(-CSF_JITTER, CSF_JITTER);
+      p.y += p.vy + random(-CSF_JITTER, CSF_JITTER);
 
-      p.alpha -= 0.6;
+      p.alpha -= 0.5;
       if (p.alpha <= 0) bloodParticles.splice(i, 1);
       continue;
     }
 
-    // O2 / Glucose: heartbeat-locked delivery
+    // O2 / Glucose: heartbeat-driven but floaty
     if (beat) {
       const dx = somaX - p.x;
       const dy = somaY - p.y;
       const d  = sqrt(dx * dx + dy * dy) || 1;
 
-      p.x += (dx / d) * 6;
-      p.y += (dy / d) * 6;
+      p.vx =
+        (dx / d) * CSF_DIRECTIONAL_GAIN * 6 +
+        random(-CSF_JITTER, CSF_JITTER);
 
-      if (d < 20) bloodParticles.splice(i, 1);
+      p.vy =
+        (dy / d) * CSF_DIRECTIONAL_GAIN * 6 +
+        random(-CSF_JITTER, CSF_JITTER);
+    }
+
+    p.x += p.vx;
+    p.y += p.vy;
+
+    if (dist(p.x, p.y, somaX, somaY) < 20) {
+      bloodParticles.splice(i, 1);
     }
   }
 }
