@@ -64,47 +64,29 @@ button:hover {
   backdrop-filter: blur(6px);
 }
 
-/* Toggle button */
-.panel-toggle {
-  position: absolute;
-  background: rgba(255, 255, 255, 0.08);
-  border: none;
-  color: #eee;
-  font-size: 14px;
-  padding: 4px 8px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.panel-toggle:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
 /* =====================================================
-   PANEL LABELS (NEW)
+   PANEL TABS (INTERACTIVE LABELS)
    ===================================================== */
-.panel-label {
+.panel-tab {
+  position: absolute;
+  background: rgba(30, 34, 44, 0.95);
+  color: #eaeaea;
   font-weight: 600;
   letter-spacing: 0.5px;
-  color: rgba(255, 255, 255, 0.85);
-  pointer-events: none;
+  cursor: pointer;
+  user-select: none;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  transition:
+    background 0.25s ease,
+    transform 0.35s ease;
 }
 
-/* Vertical label (Instructions) */
-.panel-label.vertical {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%) rotate(-90deg);
-  transform-origin: center;
-  opacity: 0.85;
-}
-
-/* Horizontal label (Observations) */
-.panel-label.horizontal {
-  position: absolute;
-  top: -28px;
-  left: 14px;
-  opacity: 0.9;
+.panel-tab:hover {
+  background: rgba(60, 120, 255, 0.9);
 }
 
 /* =====================================================
@@ -114,27 +96,34 @@ button:hover {
   top: 80px;
   left: 12px;
   width: 270px;
-  height: calc(100vh - 96px);   /* 🔑 full usable height */
+  height: calc(100vh - 96px);
   padding: 14px 16px;
   font-size: 13px;
   line-height: 1.45;
   overflow-y: auto;
 }
 
-/* Place vertical tag just outside panel */
-.panel.left .panel-label.vertical {
-  left: -38px;
+/* Vertical clickable tab */
+.panel.left .panel-tab.vertical {
+  top: 50%;
+  left: -42px;
+
+  width: 42px;
+  height: 160px;
+
+  transform: translateY(-50%) rotate(-90deg);
+  transform-origin: center;
+
+  border-radius: 8px 8px 0 0;
 }
 
-/* Collapse left panel fully offscreen */
+/* Keep tab visible when collapsed */
 .panel.left:not(.open) {
   transform: translateX(-100%);
 }
 
-/* Toggle button placement */
-.panel.left .panel-toggle {
-  top: 10px;
-  right: -28px;
+.panel.left:not(.open) .panel-tab.vertical {
+  left: 0;
 }
 
 /* Content styles */
@@ -182,7 +171,7 @@ button:hover {
   bottom: 12px;
   left: 50%;
   transform: translateX(-50%);
-  width: calc(100vw - 48px);   /* 🔑 full-width expansion */
+  width: calc(100vw - 48px);
   max-width: none;
 
   padding: 12px 18px;
@@ -190,16 +179,25 @@ button:hover {
   text-align: left;
 }
 
-/* Collapse bottom → fully offscreen */
+/* Horizontal clickable tab */
+.panel.bottom .panel-tab.horizontal {
+  top: -34px;
+  left: 50%;
+
+  height: 34px;
+  padding: 6px 20px;
+
+  transform: translateX(-50%);
+  border-radius: 8px 8px 0 0;
+}
+
+/* Collapse bottom fully offscreen (tab remains) */
 .panel.bottom:not(.open) {
   transform: translate(-50%, 100%);
 }
 
-/* Toggle button placement */
-.panel.bottom .panel-toggle {
-  top: -26px;
-  left: 50%;
-  transform: translateX(-50%);
+.panel.bottom:not(.open) .panel-tab.horizontal {
+  top: -34px;
 }
 
 /* Content */
