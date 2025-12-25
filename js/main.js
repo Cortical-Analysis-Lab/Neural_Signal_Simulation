@@ -14,12 +14,12 @@ const state = {
 // Global Toggles
 // -----------------------------------------------------
 window.myelinEnabled  = false;
-window.loggingEnabled = false;
+window.loggingEnabled = false; // 🔑 START OFF
 
 // -----------------------------------------------------
 // SAFE LOGGING WRAPPER (prevents crashes)
 // -----------------------------------------------------
-function safeLog(type, message, target = null) {
+function safeLog(type, message = null, target = null) {
   if (typeof logEvent === "function") {
     logEvent(type, message, target);
   }
@@ -98,8 +98,10 @@ function setup() {
   const myelinToggle = document.getElementById("myelinToggle");
   if (myelinToggle) {
     myelinToggle.checked = window.myelinEnabled;
+
     myelinToggle.addEventListener("change", () => {
       window.myelinEnabled = myelinToggle.checked;
+
       safeLog(
         "system",
         `Myelin ${window.myelinEnabled ? "enabled" : "disabled"}`
@@ -108,17 +110,18 @@ function setup() {
   }
 
   // ----------------------
-  // Logging toggle
+  // Logging toggle (POPUP CONTROL)
   // ----------------------
   const logToggle = document.getElementById("logToggle");
   if (logToggle) {
-    logToggle.checked = window.loggingEnabled;
+    logToggle.checked = false; // 🔑 START CLOSED
+
     logToggle.addEventListener("change", () => {
       window.loggingEnabled = logToggle.checked;
-      safeLog(
-        "system",
-        `Event logging ${window.loggingEnabled ? "enabled" : "disabled"}`
-      );
+
+      if (typeof setEventLogOpen === "function") {
+        setEventLogOpen(logToggle.checked);
+      }
     });
   }
 
@@ -197,7 +200,7 @@ function draw() {
       break;
   }
 
-  // 🔑 Highlight overlays from log clicks
+  // 🔑 Highlight overlays (from log system)
   if (typeof drawHighlightOverlay === "function") {
     drawHighlightOverlay();
   }
@@ -210,7 +213,7 @@ function draw() {
   drawTimeReadout();
 
   if (typeof drawEventLog === "function") {
-    drawEventLog(state.time);
+    drawEventLog();
   }
 }
 
