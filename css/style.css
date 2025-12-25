@@ -11,6 +11,16 @@ html, body {
 }
 
 /* =====================================================
+   CANVAS (CRITICAL FIX)
+   ===================================================== */
+canvas {
+  position: fixed !important;
+  inset: 0;
+  z-index: 1;
+  pointer-events: auto;
+}
+
+/* =====================================================
    TOP UI BAR
    ===================================================== */
 #ui {
@@ -58,17 +68,17 @@ button:hover {
   background: rgba(20, 22, 28, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
-  z-index: 15;
+  z-index: 40;
 
   transition: transform 0.35s ease;
   backdrop-filter: blur(6px);
 }
 
 /* =====================================================
-   PANEL TABS (INTERACTIVE LABELS)
+   PANEL TABS (INTERACTIVE LABELS — FIXED)
    ===================================================== */
 .panel-tab {
-  position: absolute;
+  position: fixed;              /* 🔑 FIX: not inside transformed parent */
   background: rgba(30, 34, 44, 0.95);
   color: #eaeaea;
   font-weight: 600;
@@ -80,9 +90,10 @@ button:hover {
   align-items: center;
   justify-content: center;
 
-  transition:
-    background 0.25s ease,
-    transform 0.35s ease;
+  z-index: 50;                  /* 🔑 ABOVE CANVAS */
+  pointer-events: auto;         /* 🔑 CLICKABLE */
+
+  transition: background 0.25s ease;
 }
 
 .panel-tab:hover {
@@ -103,27 +114,23 @@ button:hover {
   overflow-y: auto;
 }
 
-/* Vertical clickable tab */
-.panel.left .panel-tab.vertical {
+/* Vertical clickable tab (ALWAYS VISIBLE) */
+.panel-tab.vertical {
   top: 50%;
-  left: -42px;
+  left: 0;
 
-  width: 42px;
-  height: 160px;
+  width: 44px;
+  height: 180px;
 
   transform: translateY(-50%) rotate(-90deg);
   transform-origin: center;
 
-  border-radius: 8px 8px 0 0;
+  border-radius: 10px 10px 0 0;
 }
 
-/* Keep tab visible when collapsed */
+/* Collapse panel only (tab unaffected) */
 .panel.left:not(.open) {
   transform: translateX(-100%);
-}
-
-.panel.left:not(.open) .panel-tab.vertical {
-  left: 0;
 }
 
 /* Content styles */
@@ -179,25 +186,21 @@ button:hover {
   text-align: left;
 }
 
-/* Horizontal clickable tab */
-.panel.bottom .panel-tab.horizontal {
-  top: -34px;
+/* Horizontal clickable tab (ALWAYS VISIBLE) */
+.panel-tab.horizontal {
+  bottom: 0;
   left: 50%;
 
-  height: 34px;
-  padding: 6px 20px;
+  height: 36px;
+  padding: 8px 22px;
 
   transform: translateX(-50%);
-  border-radius: 8px 8px 0 0;
+  border-radius: 10px 10px 0 0;
 }
 
-/* Collapse bottom fully offscreen (tab remains) */
+/* Collapse panel only (tab unaffected) */
 .panel.bottom:not(.open) {
   transform: translate(-50%, 100%);
-}
-
-.panel.bottom:not(.open) .panel-tab.horizontal {
-  top: -34px;
 }
 
 /* Content */
