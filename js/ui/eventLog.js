@@ -4,6 +4,11 @@
 console.log("🧾 eventLog.js loaded");
 
 // -----------------------------------------------------
+// Configuration
+// -----------------------------------------------------
+const MAX_EVENTS = 12; // scrollable, visually shows ~3–4
+
+// -----------------------------------------------------
 // Event colors (semantic)
 // -----------------------------------------------------
 const EVENT_COLORS = {
@@ -19,25 +24,34 @@ const EVENT_COLORS = {
 const eventLog = [];
 
 // -----------------------------------------------------
-// Public: log an event
+// Public: log an event (DOES NOT CARE if UI hidden)
 // -----------------------------------------------------
 function logEvent(type, message, target = null) {
-  if (!window.loggingEnabled) return;
-  if (state?.paused) return;
-
   eventLog.push({
     type,
     message,
     target
   });
+
+  if (eventLog.length > MAX_EVENTS) {
+    eventLog.shift();
+  }
 }
 
 // -----------------------------------------------------
-// Public: draw log UI (scrollable)
+// Public: draw log UI (visibility controlled here)
 // -----------------------------------------------------
 function drawEventLog() {
   const container = document.getElementById("event-log");
-  if (!container || !window.loggingEnabled) return;
+  if (!container) return;
+
+  // 🔑 Toggle controls VISIBILITY, not logging
+  if (!window.loggingEnabled) {
+    container.classList.add("hidden");
+    return;
+  } else {
+    container.classList.remove("hidden");
+  }
 
   container.innerHTML = eventLog.map(evt => {
     const color = EVENT_COLORS[evt.type] || "#ccc";
@@ -51,17 +65,15 @@ function drawEventLog() {
     `;
   }).join("");
 
-  // Always keep newest events visible
+  // Always scroll to newest
   container.scrollTop = container.scrollHeight;
 }
 
 // -----------------------------------------------------
-// Public: highlight helper (called by log clicks)
+// Public: highlight helper (log click → visual cue)
 // -----------------------------------------------------
 function highlightTarget(target) {
-  if (!target) return;
-
-  console.log("🎯 Highlight target:", target);
+  if (!target || typeof state === "undefined") return;
 
   const duration = 600;
 
@@ -85,9 +97,11 @@ function highlightTarget(target) {
 }
 
 // -----------------------------------------------------
-// Optional: highlight overlay renderer
+// Optional: highlight overlay renderer (SAFE)
 // -----------------------------------------------------
 function drawHighlightOverlay() {
+  if (typeof state === "undefined") return;
+
   push();
   noFill();
   strokeWeight(3);
@@ -103,7 +117,7 @@ function drawHighlightOverlay() {
 // -----------------------------------------------------
 // Public API (GLOBAL, SINGLE SOURCE OF TRUTH)
 // -----------------------------------------------------
-window.logEvent             = logEvent;
-window.drawEventLog         = drawEventLog;
-window.highlightTarget      = highlightTarget;
-window.drawHighlightOverlay = drawHighlightOverlay;
+window.logEvent              = logEvent;
+window.drawEventLog          = drawEventLog;
+window.highlightTarget       = highlightTarget;
+window.drawHighlightOverlay  = drawHighlightOverlay;
