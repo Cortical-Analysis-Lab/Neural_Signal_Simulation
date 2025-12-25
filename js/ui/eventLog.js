@@ -1,23 +1,28 @@
 // =====================================================
-// EVENT LOG — METABOLIC SUMMARY (MULTI-LINE)
+// EVENT LOG — METABOLIC SUMMARY (MULTI-LINE POPUP)
 // =====================================================
 console.log("🧾 eventLog.js loaded (metabolic summary, 3–5 lines)");
 
 // -----------------------------------------------------
 // Configuration
 // -----------------------------------------------------
-const MAX_SUMMARY_LINES = 5;   // show last 3–5 summaries
+const MAX_SUMMARY_LINES = 5;    // visible lines
 const DECAY_RATE = 0.985;
 
 // -----------------------------------------------------
 // Semantic colors
 // -----------------------------------------------------
 const EVENT_COLORS = {
-  low:      "#b0b0b0", // baseline / system
-  neural:   "#ffd966", // elevated demand
-  vascular: "#ff6f6f", // increased supply
+  low:      "#b0b0b0", // baseline
+  neural:   "#ffd966", // elevated neural demand
+  vascular: "#ff6f6f", // increased vascular supply
   glial:    "#b58cff"  // astrocytic coordination
 };
+
+// -----------------------------------------------------
+// Window state (visibility only)
+// -----------------------------------------------------
+let isLogOpen = false;
 
 // -----------------------------------------------------
 // Internal metabolic accumulators
@@ -29,7 +34,7 @@ const metabolicState = {
 };
 
 // -----------------------------------------------------
-// Rolling summary buffer (THIS is what is displayed)
+// Rolling summary buffer (DISPLAYED CONTENT)
 // -----------------------------------------------------
 const summaryLog = [];
 
@@ -37,7 +42,6 @@ const summaryLog = [];
 // Public: accumulate low-level events ONLY
 // -----------------------------------------------------
 function logEvent(type) {
-
   switch (type) {
     case "neural":
       metabolicState.neuralDemand += 1;
@@ -66,7 +70,6 @@ function decayMetabolicState() {
 // Internal: generate ONE meaningful sentence
 // -----------------------------------------------------
 function generateMetabolicSummary() {
-
   const n = metabolicState.neuralDemand;
   const v = metabolicState.vascularSupply;
   const g = metabolicState.glialActivity;
@@ -80,7 +83,7 @@ function generateMetabolicSummary() {
   }
 
   if (v > n && v > 1.0) {
-    return { text: "Neurovascular coupling increasing supply", color: EVENT_COLORS.vascular };
+    return { text: "Neurovascular coupling increasing metabolic supply", color: EVENT_COLORS.vascular };
   }
 
   if (g > 0.8) {
@@ -94,20 +97,21 @@ function generateMetabolicSummary() {
 }
 
 // -----------------------------------------------------
-// Public: draw MULTI-LINE summary log
+// Public: draw MULTI-LINE summary popup
 // -----------------------------------------------------
 function drawEventLog() {
   const container = document.getElementById("event-log");
   if (!container) return;
 
-  // 🔑 Toggle controls VISIBILITY only
-  if (!window.loggingEnabled) {
-    container.style.display = "none";
+  // Visibility is controlled HERE (not by logging)
+  if (!isLogOpen) {
+    container.classList.add("hidden");
     return;
   }
-  container.style.display = "block";
 
-  // Update internal state
+  container.classList.remove("hidden");
+
+  // Update metabolic state
   decayMetabolicState();
   const summary = generateMetabolicSummary();
 
@@ -121,7 +125,7 @@ function drawEventLog() {
     }
   }
 
-  // Render summaries
+  // Render popup content
   container.innerHTML = `
     <div class="event-window">
       <div class="event-title">Metabolic Status</div>
@@ -137,7 +141,14 @@ function drawEventLog() {
 }
 
 // -----------------------------------------------------
-// Optional: highlight overlay renderer (unchanged)
+// Public: toggle popup window (called from main.js)
+// -----------------------------------------------------
+function setEventLogOpen(open) {
+  isLogOpen = open;
+}
+
+// -----------------------------------------------------
+// Optional: highlight overlay renderer (SAFE)
 // -----------------------------------------------------
 function drawHighlightOverlay() {
   if (typeof state === "undefined") return;
@@ -155,8 +166,9 @@ function drawHighlightOverlay() {
 }
 
 // -----------------------------------------------------
-// Public API
+// Public API (SINGLE SOURCE OF TRUTH)
 // -----------------------------------------------------
-window.logEvent             = logEvent;
-window.drawEventLog         = drawEventLog;
+window.logEvent         = logEvent;
+window.drawEventLog     = drawEventLog;
+window.setEventLogOpen  = setEventLogOpen;
 window.drawHighlightOverlay = drawHighlightOverlay;
