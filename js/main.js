@@ -7,8 +7,8 @@ const state = {
   time: 0,
   dt: 16.67,
   paused: false,
-  mode: "overview",          // overview | ion | synapse
-  transition: null           // null | "toSynapse" | "toOverview"
+  mode: "overview",          
+  transition: null           // null | toSynapse | toOverviewFade | toOverviewZoom
 };
 
 // -----------------------------------------------------
@@ -21,33 +21,24 @@ window.loggingEnabled = false;
 // SAFE LOGGING WRAPPER
 // -----------------------------------------------------
 function safeLog(type, message = null, target = null) {
-  if (typeof logEvent === "function") {
-    logEvent(type, message, target);
-  }
+  if (typeof logEvent === "function") logEvent(type, message, target);
 }
 
 // =====================================================
 // CAMERA STATE (WORLD SPACE ONLY)
 // =====================================================
 const camera = {
-  x: 0,
-  y: 0,
-  zoom: 1,
+  x: 0, y: 0, zoom: 1,
 
-  startX: 0,
-  startY: 0,
-  startZoom: 1,
-
-  targetX: 0,
-  targetY: 0,
-  targetZoom: 1,
+  startX: 0, startY: 0, startZoom: 1,
+  targetX: 0, targetY: 0, targetZoom: 1,
 
   t: 0,
-  duration: 120            // frames (overview → synapse)
+  duration: 120
 };
 
 // =====================================================
-// 🔒 LOCKED SYNAPSE FOCUS (BIOLOGICAL ANCHOR)
+// 🔒 LOCKED SYNAPSE FOCUS
 // =====================================================
 window.synapseFocus = {
   x: 272.08,
@@ -57,39 +48,46 @@ window.synapseFocus = {
 };
 
 // =====================================================
-// EASING FUNCTION (SMOOTHSTEP)
+// EASING FUNCTION
 // =====================================================
 function easeInOut(t) {
   return t * t * (3 - 2 * t);
 }
 
 // =====================================================
-// BEGIN CAMERA TRANSITION
+// BEGIN TRANSITION
 // =====================================================
 function beginTransition(targetMode) {
 
   camera.startX = camera.x;
   camera.startY = camera.y;
   camera.startZoom = camera.zoom;
+  camera.t = 0;
 
+  // ----------------------------
+  // OVERVIEW → SYNAPSE
+  // ----------------------------
   if (targetMode === "synapse") {
-    camera.targetX = window.synapseFocus.x;
-    camera.targetY = window.synapseFocus.y;
+    camera.targetX = synapseFocus.x;
+    camera.targetY = synapseFocus.y;
     camera.targetZoom = 5.0;
     camera.duration = 120;
     state.transition = "toSynapse";
+    safeLog("system", "Zooming into synapse…");
+    return;
   }
 
+  // ----------------------------
+  // SYNAPSE → OVERVIEW (FADE ONLY)
+  // ----------------------------
   if (targetMode === "overview") {
-    camera.targetX = 0;
-    camera.targetY = 0;
-    camera.targetZoom = 1.2;
-    camera.duration = 240;   // 🔑 half speed back
-    state.transition = "toOverview";
+    camera.targetX = camera.x;       // stay zoomed in
+    camera.targetY = camera.y;
+    camera.targetZoom = camera.zoom;
+    camera.duration = 90;
+    state.transition = "toOverviewFade";
+    safeLog("system", "Returning to overview…");
   }
-
-  camera.t = 0;
-  safeLog("system", `Transitioning to ${targetMode}…`);
 }
 
 // =====================================================
@@ -167,7 +165,7 @@ function draw() {
 
   // ---------------------------------------------------
   // UPDATE PHASE (FROZEN DURING TRANSITION)
-  // ---------------------------------------------------
+// ---------------------------------------------------
   if (!state.paused && !transitioning) {
     state.time += state.dt;
     updateHemodynamics();
@@ -178,7 +176,7 @@ function draw() {
 
   // ---------------------------------------------------
   // CAMERA TRANSITION
-  // ---------------------------------------------------
+// ---------------------------------------------------
   if (transitioning) {
 
     camera.t++;
@@ -189,29 +187,51 @@ function draw() {
     camera.y = lerp(camera.startY, camera.targetY, e);
     camera.zoom = lerp(camera.startZoom, camera.targetZoom, e);
 
-    // 🔑 Switch mode ONLY after fade completes
     if (u >= 1) {
-      state.mode =
-        state.transition === "toSynapse" ? "synapse" : "overview";
-      state.transition = null;
+
+      // ▶ Enter synapse
+      if (state.transition === "toSynapse") {
+        state.mode = "synapse";
+        state.transition = null;
+      }
+
+      // ▶ Fade complete → switch to overview, begin zoom-out
+      else if (state.transition === "toOverviewFade") {
+        state.mode = "overview";
+
+        camera.startX = camera.x;
+        camera.startY = camera.y;
+        camera.startZoom = camera.zoom;
+
+        camera.targetX = 0;
+        camera.targetY = 0;
+        camera.targetZoom = 1.2;
+        camera.duration = 240; // half speed
+        camera.t = 0;
+
+        state.transition = "toOverviewZoom";
+      }
+
+      // ▶ Zoom-out complete
+      else if (state.transition === "toOverviewZoom") {
+        state.transition = null;
+      }
 
       updateOverviewUI();
       if (typeof updateUIPanelContent === "function") {
         updateUIPanelContent(state.mode);
       }
-
-      safeLog("system", `Entered ${state.mode} view`);
     }
   }
 
   // ---------------------------------------------------
   // DRAW ARTERY (NOT IN SYNAPSE)
-  // ---------------------------------------------------
+// ---------------------------------------------------
   if (state.mode !== "synapse") drawArtery();
 
   // ---------------------------------------------------
   // WORLD SPACE
-  // ---------------------------------------------------
+// ---------------------------------------------------
   push();
   translate(width / 2, height / 2);
   scale(camera.zoom);
@@ -239,25 +259,27 @@ function draw() {
   pop();
 
   // ---------------------------------------------------
-  // FADE OVERLAY (SCREEN SPACE)
-  // ---------------------------------------------------
+  // FADE OVERLAY
+// ---------------------------------------------------
   if (transitioning) {
     const u = constrain(camera.t / camera.duration, 0, 1);
-    const alpha =
-      state.transition === "toSynapse"
-        ? map(u, 0.3, 1.0, 0, 220, true)
-        : map(u, 0.0, 0.6, 220, 0, true);
+    let alpha = 0;
 
-    push();
+    if (state.transition === "toSynapse") {
+      alpha = map(u, 0.3, 1.0, 0, 220, true);
+    }
+    else if (state.transition === "toOverviewFade") {
+      alpha = map(u, 0.0, 1.0, 0, 220);
+    }
+    else if (state.transition === "toOverviewZoom") {
+      alpha = map(u, 0.0, 0.4, 220, 0, true);
+    }
+
     noStroke();
     fill(0, alpha);
     rect(0, 0, width, height);
-    pop();
   }
 
-  // ---------------------------------------------------
-  // UI OVERLAY
-  // ---------------------------------------------------
   drawTimeReadout();
   if (typeof drawEventLog === "function") drawEventLog();
 }
