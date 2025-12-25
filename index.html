@@ -17,13 +17,11 @@
      EDGE TABS — ALWAYS VISIBLE CONTROLS
 ===================================================== -->
 
-<!-- 🔑 FIX: class name now matches CSS -->
 <div class="edge-tab instructions"
      onclick="togglePanel('instructions')">
   Instructions
 </div>
 
-<!-- 🔑 FIX: class name now matches CSS -->
 <div class="edge-tab observations"
      onclick="togglePanel('observations')">
   Observations
@@ -33,7 +31,6 @@
      INSTRUCTIONS PANEL (LEFT)
 ===================================================== -->
 <div id="instructions" class="panel left open">
-
   <div class="panel-content">
     <h2>Neuron Simulator</h2>
 
@@ -67,62 +64,65 @@
      OBSERVATIONS PANEL (BOTTOM)
 ===================================================== -->
 <div id="observations" class="panel bottom open">
-
   <div class="panel-content">
     <ul>
-    <li>
-      Small postsynaptic potentials (PSPs) may decay before reaching the soma,
-      especially when synapses are weak or distant.
-    </li>
-  
-    <li>
-      Large or cooperative excitatory PSPs can summate and drive the membrane
-      potential toward action potential threshold.
-    </li>
-  
-    <li>
-      Inhibitory PSPs counteract depolarization and can suppress action potential
-      generation even in the presence of excitation.
-    </li>
-  
-    <li>
-      Multiple synapses interact dynamically, allowing competition or cooperation
-      across dendritic branches.
-    </li>
-  
-    <li>
-      Astrocytes respond to synaptic activity, reflecting their role in sensing
-      neurotransmitter release and modulating local signaling.
-    </li>
-  
-    <li>
-      Neural firing increases metabolic demand, triggering activity-dependent
-      neurovascular coupling.
-    </li>
-  
-    <li>
-      Blood vessels respond to neural activity with pulsatile flow and pressure
-      waves linked to the heartbeat.
-    </li>
-  
-    <li>
-      Oxygen dissociates from hemoglobin and, along with glucose, accumulates in
-      the perivascular space before delivery.
-    </li>
-  
-    <li>
-      Transport across the blood–brain barrier is selective and activity-dependent,
-      conceptually reflecting channels such as AQP4 (water) and GLUT1 (glucose).
-    </li>
-  
-    <li>
-      Following neuronal firing, increased oxygen and glucose availability supports
-      sustained signaling and recovery of membrane potential.
-    </li>
-  </ul>
+      <li>
+        Small postsynaptic potentials (PSPs) may decay before reaching the soma,
+        especially when synapses are weak or distant.
+      </li>
 
+      <li>
+        Large or cooperative excitatory PSPs can summate and drive the membrane
+        potential toward action potential threshold.
+      </li>
+
+      <li>
+        Inhibitory PSPs counteract depolarization and can suppress action potential
+        generation even in the presence of excitation.
+      </li>
+
+      <li>
+        Multiple synapses interact dynamically, allowing competition or cooperation
+        across dendritic branches.
+      </li>
+
+      <li>
+        Astrocytes respond to synaptic activity, reflecting their role in sensing
+        neurotransmitter release and modulating local signaling.
+      </li>
+
+      <li>
+        Neural firing increases metabolic demand, triggering activity-dependent
+        neurovascular coupling.
+      </li>
+
+      <li>
+        Blood vessels respond to neural activity with pulsatile flow and pressure
+        waves linked to the heartbeat.
+      </li>
+
+      <li>
+        Oxygen dissociates from hemoglobin and, along with glucose, accumulates in
+        the perivascular space before delivery.
+      </li>
+
+      <li>
+        Transport across the blood–brain barrier is selective and activity-dependent,
+        conceptually reflecting channels such as AQP4 (water) and GLUT1 (glucose).
+      </li>
+
+      <li>
+        Following neuronal firing, increased oxygen and glucose availability supports
+        sustained signaling and recovery of membrane potential.
+      </li>
+    </ul>
   </div>
 </div>
+
+<!-- =====================================================
+     EVENT LOG — WHAT JUST HAPPENED?
+===================================================== -->
+<div id="event-log"></div>
 
 <!-- =====================================================
      TOP UI BAR
@@ -140,6 +140,11 @@
       <input type="checkbox" id="myelinToggle" />
       <span>Myelin</span>
     </label>
+
+    <label class="toggle" id="logToggleContainer">
+      <input type="checkbox" id="logToggle" checked />
+      <span>Log</span>
+    </label>
   </div>
 </div>
 
@@ -148,6 +153,7 @@
 ===================================================== -->
 
 <script src="js/constants/colors.js"></script>
+
 <script src="js/signals/hemodynamics.js"></script>
 
 <script src="js/geometry/neuronGeometry.js"></script>
