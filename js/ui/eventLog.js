@@ -4,11 +4,6 @@
 console.log("🧾 eventLog.js loaded");
 
 // -----------------------------------------------------
-// Configuration
-// -----------------------------------------------------
-const MAX_EVENTS = 6;
-
-// -----------------------------------------------------
 // Event colors (semantic)
 // -----------------------------------------------------
 const EVENT_COLORS = {
@@ -33,24 +28,18 @@ function logEvent(type, message, target = null) {
   eventLog.push({
     type,
     message,
-    target,
-    time: state.time
+    target
   });
-
-  if (eventLog.length > MAX_EVENTS) {
-    eventLog.shift();
-  }
 }
 
 // -----------------------------------------------------
-// Public: draw log UI
+// Public: draw log UI (scrollable)
 // -----------------------------------------------------
-function drawEventLog(now = 0) {
+function drawEventLog() {
   const container = document.getElementById("event-log");
   if (!container || !window.loggingEnabled) return;
 
   container.innerHTML = eventLog.map(evt => {
-    const age = Math.max(0, now - evt.time);
     const color = EVENT_COLORS[evt.type] || "#ccc";
 
     return `
@@ -58,12 +47,12 @@ function drawEventLog(now = 0) {
            style="color:${color}"
            onclick="highlightTarget('${evt.target || ""}')">
         • ${evt.message}
-        <span style="opacity:0.55">
-          (~${Math.round(age)} ms ago)
-        </span>
       </div>
     `;
   }).join("");
+
+  // Always keep newest events visible
+  container.scrollTop = container.scrollHeight;
 }
 
 // -----------------------------------------------------
@@ -74,7 +63,6 @@ function highlightTarget(target) {
 
   console.log("🎯 Highlight target:", target);
 
-  // Simple time-based flags (consumed by drawHighlightOverlay)
   const duration = 600;
 
   switch (target) {
@@ -97,7 +85,7 @@ function highlightTarget(target) {
 }
 
 // -----------------------------------------------------
-// Public: overlay renderer (optional, safe)
+// Optional: highlight overlay renderer
 // -----------------------------------------------------
 function drawHighlightOverlay() {
   push();
@@ -113,9 +101,9 @@ function drawHighlightOverlay() {
 }
 
 // -----------------------------------------------------
-// Public API
+// Public API (GLOBAL, SINGLE SOURCE OF TRUTH)
 // -----------------------------------------------------
-window.logEvent            = logEvent;
-window.drawEventLog        = drawEventLog;
-window.highlightTarget     = highlightTarget;
+window.logEvent             = logEvent;
+window.drawEventLog         = drawEventLog;
+window.highlightTarget      = highlightTarget;
 window.drawHighlightOverlay = drawHighlightOverlay;
