@@ -1,4 +1,4 @@
-console.log("🔬 SynapseView — biologically corrected tripartite morphology loaded");
+console.log("🔬 SynapseView — biologically correct + scaled geometry loaded");
 
 // =====================================================
 // COLORS (FROM colors.js WITH FALLBACKS)
@@ -7,15 +7,24 @@ const NEURON_YELLOW = window.COLORS?.neuron ?? [245, 225, 140];
 const ASTRO_PURPLE  = window.COLORS?.astrocyte ?? [185, 145, 220];
 
 // =====================================================
-// SYNAPSE VIEW — STRUCTURAL OUTLINES ONLY
+// SYNAPSE SCALE (🔑 SINGLE SOURCE OF TRUTH)
 // =====================================================
-// World-space origin (0,0) = synaptic cleft center
+// Geometry is intentionally small because camera zoom is high
+const SYNAPSE_SCALE = 0.33;   // ≈ 3× smaller
+
+// =====================================================
+// SYNAPSE VIEW — STRUCTURAL OUTLINES ONLY
 // =====================================================
 function drawSynapseView() {
   if (!window.synapseFocus) return;
 
   push();
+
+  // Anchor to synapse in WORLD space
   translate(window.synapseFocus.x, window.synapseFocus.y);
+
+  // 🔑 Apply local synapse scaling
+  scale(SYNAPSE_SCALE);
 
   strokeWeight(6);
   strokeJoin(ROUND);
@@ -63,7 +72,7 @@ function drawAstrocyticEndfoot() {
 }
 
 // =====================================================
-// PRESYNAPTIC TERMINAL (RIGHT — OBLONG, FLAT LEFT FACE)
+// PRESYNAPTIC TERMINAL (RIGHT — OBLONG, FLAT CLEF FACE)
 // =====================================================
 function drawPresynapticTerminal() {
   push();
@@ -76,7 +85,6 @@ function drawPresynapticTerminal() {
   curveVertex( 140, -60);
   curveVertex( 140, -60);
 
-  // Rounded outer edge
   curveVertex( 110, -95);
   curveVertex(  40, -115);
   curveVertex( -30, -100);
@@ -86,7 +94,6 @@ function drawPresynapticTerminal() {
   curveVertex(-100,   0);
   curveVertex( -90,  40);
 
-  // Rounded bottom
   curveVertex( -30, 100);
   curveVertex(  40, 115);
   curveVertex( 110,  95);
@@ -99,7 +106,7 @@ function drawPresynapticTerminal() {
 }
 
 // =====================================================
-// POSTSYNAPTIC TERMINAL (LEFT — OBLONG, FLAT RIGHT FACE)
+// POSTSYNAPTIC TERMINAL (LEFT — MIRRORED)
 // =====================================================
 function drawPostsynapticTerminal() {
   push();
@@ -112,7 +119,6 @@ function drawPostsynapticTerminal() {
   curveVertex(-140, -60);
   curveVertex(-140, -60);
 
-  // Rounded outer edge
   curveVertex(-110, -95);
   curveVertex( -40, -115);
   curveVertex(  30, -100);
@@ -122,7 +128,6 @@ function drawPostsynapticTerminal() {
   curveVertex( 100,   0);
   curveVertex(  90,  40);
 
-  // Rounded bottom
   curveVertex(  30, 100);
   curveVertex( -40, 115);
   curveVertex(-110,  95);
