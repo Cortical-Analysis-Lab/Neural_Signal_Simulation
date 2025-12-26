@@ -1,4 +1,4 @@
-console.log("🔬 SynapseView — corrected inward alignment loaded");
+console.log("🔬 SynapseView — neurons brought inward (2×)");
 
 // =====================================================
 // COLORS (FROM colors.js WITH FALLBACKS)
@@ -28,7 +28,7 @@ function drawSynapseView() {
   // Astrocyte (LOCKED — unchanged)
   drawAstrocyticEndfoot();
 
-  // Neuronal membranes (inward-aligned)
+  // Neuronal membranes (moved inward)
   drawPresynapticTerminal();
   drawPostsynapticTerminal();
 
@@ -67,13 +67,13 @@ function drawAstrocyticEndfoot() {
 }
 
 // =====================================================
-// PRESYNAPTIC TERMINAL (RIGHT — INWARD, FLATTENED FACE)
+// PRESYNAPTIC TERMINAL (RIGHT — MOVED INWARD)
 // =====================================================
 function drawPresynapticTerminal() {
   push();
 
-  // 🔑 Move inward so inner face aligns with astrocyte edge
-  translate(190, 0); // was 260
+  // 🔑 Previously 190 → now 95 (2× closer)
+  translate(95, 0);
 
   stroke(...NEURON_YELLOW);
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
@@ -88,7 +88,7 @@ function drawPresynapticTerminal() {
   curveVertex( 265,   55);
   curveVertex( 230,  110);
 
-  // Inner flattened synaptic face (aligned near x ≈ 170)
+  // Inner flattened synaptic face
   curveVertex( 170,   90);
   curveVertex( 145,   45);
   curveVertex( 140,    0);
@@ -104,13 +104,13 @@ function drawPresynapticTerminal() {
 }
 
 // =====================================================
-// POSTSYNAPTIC TERMINAL (LEFT — INWARD, FLATTENED FACE)
+// POSTSYNAPTIC TERMINAL (LEFT — MOVED INWARD)
 // =====================================================
 function drawPostsynapticTerminal() {
   push();
 
-  // 🔑 Symmetric inward positioning
-  translate(-190, 0); // was -260
+  // 🔑 Previously -190 → now -95
+  translate(-95, 0);
 
   stroke(...NEURON_YELLOW);
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
