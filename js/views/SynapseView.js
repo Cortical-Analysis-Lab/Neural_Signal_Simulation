@@ -1,15 +1,12 @@
-console.log("🔬 SynapseView — structural tripartite synapse loaded");
+console.log("🔬 SynapseView — rounded tripartite synapse (structural)");
 
 // =====================================================
-// SYNAPSE VIEW — STRUCTURAL OUTLINES ONLY
+// SYNAPSE VIEW — BIOLOGICALLY ROUNDED STRUCTURE
 // =====================================================
-// ✔ Camera-centered on synapseFocus
-// ✔ Yellow pre/post synaptic membranes
-// ✔ Purple astrocytic endfoot (above cleft)
+// ✔ Soft neuronal yellow (matches overview neurons)
+// ✔ Soft astrocytic purple (matches overview astrocytes)
+// ✔ Rounded, flattened membranes
 // ✔ Clear extracellular gaps
-// ✘ No particles
-// ✘ No bars
-// ✘ No receptors
 // =====================================================
 
 function drawSynapseView() {
@@ -17,107 +14,97 @@ function drawSynapseView() {
   if (!window.synapseFocus) return;
 
   push();
-
-  // ---------------------------------------------------
-  // Anchor synapse geometry to camera focus
-  // ---------------------------------------------------
   translate(window.synapseFocus.x, window.synapseFocus.y);
 
-  strokeWeight(6);
+  strokeWeight(7);
   strokeJoin(ROUND);
   strokeCap(ROUND);
   noFill();
 
   drawAstrocyticEndfoot();
-  drawPresynapticTerminal();
-  drawPostsynapticTerminal();
+  drawPresynapticMembrane();
+  drawPostsynapticMembrane();
 
   pop();
 }
 
-
 // =====================================================
-// ASTROCYTIC ENDFOOT (PURPLE, ABOVE SYNAPSE)
+// ASTROCYTIC ENDFOOT — ROUNDED, FLATTENED CAP (PURPLE)
 // =====================================================
 function drawAstrocyticEndfoot() {
 
+  // Matches overview astrocyte tone
+  stroke(185, 145, 220);
+
   push();
-  translate(0, -220);
-  stroke(170, 120, 210); // glial purple
+  translate(0, -210);
 
   beginShape();
-  vertex(-280, -60);
-  vertex(-180, -130);
-  vertex( -60, -160);
-  vertex(  60, -160);
-  vertex( 180, -130);
-  vertex( 280,  -60);
-  vertex( 260,   40);
-  vertex( 160,   90);
-  vertex(  40,  120);
-  vertex( -40,  120);
-  vertex(-160,   90);
-  vertex(-260,   40);
-  endShape(CLOSE);
-
-  // Endfoot projection toward synapse (STOPPED SHORT)
-  beginShape();
-  vertex(-70, 120);
-  vertex( 70, 120);
-  vertex( 40, 170);
-  vertex(  0, 190);
-  vertex(-40, 170);
+  curveVertex(-300, -40);
+  curveVertex(-260, -110);
+  curveVertex(-160, -160);
+  curveVertex(   0, -180);
+  curveVertex( 160, -160);
+  curveVertex( 260, -110);
+  curveVertex( 300,  -40);
+  curveVertex( 240,   40);
+  curveVertex( 120,   85);
+  curveVertex(   0,  100);
+  curveVertex(-120,   85);
+  curveVertex(-240,   40);
+  curveVertex(-300,  -40);
   endShape(CLOSE);
 
   pop();
 }
 
+// =====================================================
+// PRESYNAPTIC MEMBRANE — RIGHT, CONCAVE, YELLOW
+// =====================================================
+function drawPresynapticMembrane() {
 
-// =====================================================
-// PRESYNAPTIC TERMINAL (RIGHT, YELLOW, FLATTENED)
-// =====================================================
-function drawPresynapticTerminal() {
+  // Matches overview neuron yellow
+  stroke(245, 225, 140);
 
   push();
-  translate(220, 0);
-  stroke(240, 220, 120); // neuronal yellow
+  translate(230, 0);
 
   beginShape();
-  vertex( 160, -90);
-  vertex( 100, -150);
-  vertex( -40, -130);
-  vertex(-120,  -40);
-  vertex(-140,    0);
-  vertex(-120,   40);
-  vertex( -40,  130);
-  vertex( 100,  150);
-  vertex( 160,   90);
-  endShape(CLOSE);
+  curveVertex( 150, -120);
+  curveVertex( 110, -160);
+  curveVertex(  20, -140);
+  curveVertex( -40,  -70);
+  curveVertex( -55,    0);
+  curveVertex( -40,   70);
+  curveVertex(  20,  140);
+  curveVertex( 110,  160);
+  curveVertex( 150,  120);
+  endShape();
 
   pop();
 }
 
+// =====================================================
+// POSTSYNAPTIC MEMBRANE — LEFT, CONCAVE, YELLOW
+// =====================================================
+function drawPostsynapticMembrane() {
 
-// =====================================================
-// POSTSYNAPTIC TERMINAL (LEFT, YELLOW, FLATTENED)
-// =====================================================
-function drawPostsynapticTerminal() {
+  stroke(245, 225, 140);
 
   push();
-  translate(-220, 0);
-  stroke(240, 220, 120); // neuronal yellow
+  translate(-230, 0);
 
   beginShape();
-  vertex(-160, -90);
-  vertex(-100, -150);
-  vertex(  40, -130);
-  vertex( 120,  -40);
-  vertex( 140,    0);
-  vertex( 120,   40);
-  vertex(  40,  130);
-  vertex(-100,  150);
-  vertex(-160,   90);
-  endShape(CLOSE);
+  curveVertex(-150, -120);
+  curveVertex(-110, -160);
+  curveVertex( -20, -140);
+  curveVertex(  40,  -70);
+  curveVertex(  55,    0);
+  curveVertex(  40,   70);
+  curveVertex( -20,  140);
+  curveVertex(-110,  160);
+  curveVertex(-150,  120);
+  endShape();
 
   pop();
 }
