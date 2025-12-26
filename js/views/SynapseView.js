@@ -1,4 +1,4 @@
-console.log("🔬 SynapseView — rotated T neurons (clean junction fix)");
+console.log("🔬 SynapseView — rotated T neurons (bounded rounding, stable)");
 
 // =====================================================
 // COLORS
@@ -12,10 +12,9 @@ const ASTRO_PURPLE  = window.COLORS?.astrocyte ?? [185, 145, 220];
 const SYNAPSE_SCALE = 0.28;
 
 // =====================================================
-// TUNABLE ROUNDING (THIS FIX)
+// ROUNDING CONTROL (SAFE)
 // =====================================================
-// Increase up to ~60 for very soft / near-circular transitions
-const STEM_JOIN_RADIUS = 28;
+const CORNER_RADIUS = 80;
 
 // =====================================================
 // MAIN VIEW
@@ -33,8 +32,8 @@ function drawSynapseView() {
 
   drawAstrocyticEndfoot();
 
-  drawTNeuron(+140, 55, +1); // presynaptic
-  drawTNeuron(-140, 55, -1); // postsynaptic
+  drawTNeuron(+140, 55, +1);
+  drawTNeuron(-140, 55, -1);
 
   pop();
 }
@@ -71,7 +70,7 @@ function drawAstrocyticEndfoot() {
 }
 
 // =====================================================
-// ROTATED CAPITAL T — CLEANED STEM/BODY JUNCTION
+// ROTATED CAPITAL T — FIXED TOP STEM FILLET ONLY
 // =====================================================
 function drawTNeuron(x, y, dir) {
   push();
@@ -81,42 +80,71 @@ function drawTNeuron(x, y, dir) {
   stroke(...NEURON_YELLOW);
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
 
-  const stemLength = 280;
-  const stemHalf   = 40;
+  // ---- GEOMETRY ----
+  const STEM_FAR  = 2000;
+  const stemHalf = 40;
 
-  const barHalf    = 140;
-  const barThick   = 340;
+  const barHalf  = 140;
+  const barThick = 340;
+
+  // ---- SAFE CLAMPING ----
+  const rStem = min(CORNER_RADIUS, stemHalf);
+  const rBar  = min(CORNER_RADIUS, barHalf);
 
   beginShape();
 
-  // ---- TOP STEM (FLAT)
-  curveVertex(stemLength, -stemHalf);
-  curveVertex(stemLength, -stemHalf);
-  curveVertex(barThick / 2, -stemHalf);
+  // =========================
+  // TOP STEM (FLAT)
+  // =========================
+  vertex(STEM_FAR, -stemHalf);
+  vertex(barThick / 2 - rStem, -stemHalf);
 
-  // ---- SMOOTH TRANSITION (FIXED AREA)
-  curveVertex(
-    barThick / 2 - STEM_JOIN_RADIUS,
-    -stemHalf - STEM_JOIN_RADIUS
+  // ✅ FIXED: lateral fillet into bar (no upward hook)
+  quadraticVertex(
+    barThick / 2, -stemHalf,
+    barThick / 2, -stemHalf + rStem
   );
 
-  // ---- OUTER BODY
-  curveVertex(barThick / 2, -barHalf);
-  curveVertex(0, -barHalf);
-  curveVertex(0, 0);
-  curveVertex(0, +barHalf);
-  curveVertex(barThick / 2, +barHalf);
+  // =========================
+  // TOP BAR (FLAT)
+  // =========================
+  vertex(barThick / 2, -barHalf + rBar);
 
-  // ---- MIRROR TRANSITION (BOTTOM)
-  curveVertex(
-    barThick / 2 - STEM_JOIN_RADIUS,
-    +stemHalf + STEM_JOIN_RADIUS
+  quadraticVertex(
+    barThick / 2, -barHalf,
+    barThick / 2 - rBar, -barHalf
   );
 
-  // ---- BOTTOM STEM (FLAT)
-  curveVertex(barThick / 2, +stemHalf);
-  curveVertex(stemLength, +stemHalf);
-  curveVertex(stemLength, +stemHalf);
+  vertex(rBar, -barHalf);
+
+  // =========================
+  // SYNAPTIC FACE (FLAT)
+  // =========================
+  quadraticVertex(0, -barHalf, 0, -barHalf + rBar);
+  vertex(0, barHalf - rBar);
+  quadraticVertex(0, barHalf, rBar, barHalf);
+
+  // =========================
+  // BOTTOM BAR
+  // =========================
+  vertex(barThick / 2 - rBar, barHalf);
+
+  quadraticVertex(
+    barThick / 2, barHalf,
+    barThick / 2, barHalf - rBar
+  );
+
+  // =========================
+  // BOTTOM STEM (UNCHANGED)
+  // =========================
+  vertex(barThick / 2, stemHalf + rStem);
+
+  quadraticVertex(
+    barThick / 2, stemHalf,
+    barThick / 2 + rStem, stemHalf
+  );
+
+  vertex(STEM_FAR, stemHalf);
 
   endShape(CLOSE);
 
