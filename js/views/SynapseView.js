@@ -1,4 +1,4 @@
-console.log("🔬 SynapseView — rotated T neurons (bounded rounding, stable)");
+console.log("🔬 SynapseView — rotated T neurons (nub-free fillets, final)");
 
 // =====================================================
 // COLORS
@@ -12,14 +12,10 @@ const ASTRO_PURPLE  = window.COLORS?.astrocyte ?? [185, 145, 220];
 const SYNAPSE_SCALE = 0.28;
 
 // =====================================================
-// ROUNDING CONTROL (SAFE)
+// ROUNDING CONTROL (SAFE, TUNABLE)
+// Increase toward barHalf to approach circular geometry
 // =====================================================
 const CORNER_RADIUS = 80;
-
-// =====================================================
-// NEURON ↕ VERTICAL OFFSET (GAP CONTROL)
-// =====================================================
-const NEURON_Y_OFFSET = 40; // increase to widen astrocyte gap
 
 // =====================================================
 // MAIN VIEW
@@ -37,9 +33,9 @@ function drawSynapseView() {
 
   drawAstrocyticEndfoot();
 
-  // ⬇ shifted neurons downward uniformly
-  drawTNeuron(+140, 55 + NEURON_Y_OFFSET, +1);
-  drawTNeuron(-140, 55 + NEURON_Y_OFFSET, -1);
+  // ↓ Shift neurons DOWN to create astrocyte gap
+  drawTNeuron(+140, 120, +1);
+  drawTNeuron(-140, 120, -1);
 
   pop();
 }
@@ -76,7 +72,7 @@ function drawAstrocyticEndfoot() {
 }
 
 // =====================================================
-// ROTATED CAPITAL T — MIRROR-SAFE STEM CONNECTION
+// ROTATED CAPITAL T — NUB-FREE, TANGENT FILLETS
 // =====================================================
 function drawTNeuron(x, y, dir) {
   push();
@@ -86,29 +82,39 @@ function drawTNeuron(x, y, dir) {
   stroke(...NEURON_YELLOW);
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
 
+  // ---- GEOMETRY ----
   const STEM_FAR  = 2000;
   const stemHalf = 40;
 
   const barHalf  = 140;
   const barThick = 340;
 
+  // ---- SAFE CLAMPING ----
   const rStem = min(CORNER_RADIUS, stemHalf);
   const rBar  = min(CORNER_RADIUS, barHalf);
 
   beginShape();
 
   // =========================
-  // TOP STEM
+  // TOP STEM (FLAT)
   // =========================
   vertex(STEM_FAR, -stemHalf);
-  vertex(barThick / 2, -stemHalf);
+  vertex(barThick / 2 - rStem, -stemHalf);
 
-  // Vertical drop (no hook, mirror-safe)
+  // =========================
+  // SMOOTH STEM → BAR FILLET (NO NUB)
+  // Tangent-aligned curve
+  // =========================
+  quadraticVertex(
+    barThick / 2, -stemHalf,
+    barThick / 2, -stemHalf - rStem
+  );
+
+  // =========================
+  // TOP BAR (FLAT)
+  // =========================
   vertex(barThick / 2, -barHalf + rBar);
 
-  // =========================
-  // TOP BAR
-  // =========================
   quadraticVertex(
     barThick / 2, -barHalf,
     barThick / 2 - rBar, -barHalf
@@ -127,15 +133,17 @@ function drawTNeuron(x, y, dir) {
   // BOTTOM BAR
   // =========================
   vertex(barThick / 2 - rBar, barHalf);
+
   quadraticVertex(
     barThick / 2, barHalf,
     barThick / 2, barHalf - rBar
   );
 
   // =========================
-  // BOTTOM STEM
+  // BOTTOM STEM (SYMMETRIC)
   // =========================
   vertex(barThick / 2, stemHalf + rStem);
+
   quadraticVertex(
     barThick / 2, stemHalf,
     barThick / 2 + rStem, stemHalf
