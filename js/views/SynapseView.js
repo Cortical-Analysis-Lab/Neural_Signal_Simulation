@@ -1,11 +1,10 @@
-console.log("🔬 SynapseView — single-outline neurons (clean topology)");
+console.log("🔬 SynapseView — T-geometry neurons loaded");
 
 // =====================================================
 // COLORS (FROM colors.js WITH FALLBACKS)
 // =====================================================
 const NEURON_YELLOW = window.COLORS?.neuron ?? [245, 225, 140];
 const ASTRO_PURPLE  = window.COLORS?.astrocyte ?? [185, 145, 220];
-const OUTLINE_BLUE  = [120, 170, 255];
 
 // =====================================================
 // SYNAPSE SCALE (DO NOT CHANGE)
@@ -13,7 +12,7 @@ const OUTLINE_BLUE  = [120, 170, 255];
 const SYNAPSE_SCALE = 0.28;
 
 // =====================================================
-// SYNAPSE VIEW — STRUCTURAL OUTLINES ONLY
+// SYNAPSE VIEW — STRUCTURAL ONLY
 // =====================================================
 function drawSynapseView() {
   if (!window.synapseFocus) return;
@@ -24,29 +23,25 @@ function drawSynapseView() {
 
   strokeJoin(ROUND);
   strokeCap(ROUND);
+  strokeWeight(6);
 
   drawAstrocyticEndfoot();
 
-  // ---- PRESYNAPTIC
-  drawPresynapticFill();
-  drawPresynapticOutline();
-
-  // ---- POSTSYNAPTIC
-  drawPostsynapticFill();
-  drawPostsynapticOutline();
+  // T-shaped neurons
+  drawTNeuron( 120, 55,  1); // presynaptic (right)
+  drawTNeuron(-120, 55, -1); // postsynaptic (left)
 
   pop();
 }
 
 // =====================================================
-// ASTROCYTIC ENDFOOT (LOCKED — UNCHANGED)
+// ASTROCYTIC ENDFOOT (UNCHANGED)
 // =====================================================
 function drawAstrocyticEndfoot() {
   push();
   translate(0, -120);
 
   stroke(...ASTRO_PURPLE);
-  strokeWeight(6);
   fill(ASTRO_PURPLE[0], ASTRO_PURPLE[1], ASTRO_PURPLE[2], 45);
 
   beginShape();
@@ -71,123 +66,42 @@ function drawAstrocyticEndfoot() {
 }
 
 // =====================================================
-// PRESYNAPTIC — FILL (NO STROKE)
+// GENERIC T-SHAPED NEURON
 // =====================================================
-function drawPresynapticFill() {
+// dir = +1 → faces left (presynaptic)
+// dir = -1 → faces right (postsynaptic)
+// =====================================================
+function drawTNeuron(x, y, dir) {
   push();
-  translate(95, 55);
+  translate(x, y);
+  scale(dir, 1);
 
-  noStroke();
-  fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 30);
+  stroke(...NEURON_YELLOW);
+  fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
+
+  // Dimensions (tuned to your current scale)
+  const stemLength = 360;
+  const stemWidth  = 80;
+  const barLength  = 220;
+  const barWidth   = 60;
 
   beginShape();
-  vertex(600, -40);
-  vertex(260, -40);
 
-  curveVertex(260, -160);
-  curveVertex(300,  -80);
-  curveVertex(320,    0);
-  curveVertex(300,   80);
-  curveVertex(260,  160);
+  // ---- STEM (vertical part of T, going backward)
+  vertex( stemLength, -stemWidth/2);
+  vertex( barLength/2, -stemWidth/2);
+  vertex( barLength/2, -barWidth/2);
 
-  vertex(180,  140);
-  vertex(150,   80);
-  vertex(150,    0);
-  vertex(150,  -80);
-  vertex(180, -140);
+  // ---- TOP BAR (synaptic face — vertical line)
+  vertex( 0, -barWidth/2);
+  vertex( 0,  barWidth/2);
 
-  vertex(260, -160);
-  vertex(260,  40);
-  vertex(600,  40);
+  // ---- BOTTOM BAR
+  vertex( barLength/2,  barWidth/2);
+  vertex( barLength/2,  stemWidth/2);
+  vertex( stemLength,   stemWidth/2);
+
   endShape(CLOSE);
-
-  pop();
-}
-
-// =====================================================
-// PRESYNAPTIC — OUTER OUTLINE ONLY
-// =====================================================
-function drawPresynapticOutline() {
-  push();
-  translate(95, 55);
-
-  noFill();
-  stroke(...OUTLINE_BLUE);
-  strokeWeight(6);
-
-  beginShape();
-  vertex(600, -40);
-  vertex(260, -40);
-
-  curveVertex(260, -160);
-  curveVertex(300,  -80);
-  curveVertex(320,    0);
-  curveVertex(300,   80);
-  curveVertex(260,  160);
-
-  vertex(600,  40);
-  endShape();
-
-  pop();
-}
-
-// =====================================================
-// POSTSYNAPTIC — FILL (NO STROKE)
-// =====================================================
-function drawPostsynapticFill() {
-  push();
-  translate(-95, 55);
-
-  noStroke();
-  fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 30);
-
-  beginShape();
-  vertex(-600, -40);
-  vertex(-260, -40);
-
-  curveVertex(-260, -160);
-  curveVertex(-300,  -80);
-  curveVertex(-320,    0);
-  curveVertex(-300,   80);
-  curveVertex(-260,  160);
-
-  vertex(-180,  140);
-  vertex(-150,   80);
-  vertex(-150,    0);
-  vertex(-150,  -80);
-  vertex(-180, -140);
-
-  vertex(-260, -160);
-  vertex(-260,  40);
-  vertex(-600,  40);
-  endShape(CLOSE);
-
-  pop();
-}
-
-// =====================================================
-// POSTSYNAPTIC — OUTER OUTLINE ONLY
-// =====================================================
-function drawPostsynapticOutline() {
-  push();
-  translate(-95, 55);
-
-  noFill();
-  stroke(...OUTLINE_BLUE);
-  strokeWeight(6);
-
-  beginShape();
-  vertex(-600, -40);
-  vertex(-260, -40);
-
-  curveVertex(-260, -160);
-  curveVertex(-300,  -80);
-  curveVertex(-320,    0);
-  curveVertex(-300,   80);
-  curveVertex(-260,  160);
-
-  vertex(-600,  40);
-  endShape();
 
   pop();
 }
