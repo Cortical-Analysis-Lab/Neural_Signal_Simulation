@@ -28,7 +28,7 @@ function drawSynapseView() {
   // Astrocyte (LOCKED — unchanged)
   drawAstrocyticEndfoot();
 
-  // Neuronal membranes (taller + lower)
+  // Neuronal membranes (taller + lowered)
   drawPresynapticTerminal();
   drawPostsynapticTerminal();
 
@@ -36,7 +36,7 @@ function drawSynapseView() {
 }
 
 // =====================================================
-// ASTROCYTIC ENDFOOT (UNCHANGED)
+// ASTROCYTIC ENDFOOT (UNCHANGED — DO NOT TOUCH)
 // =====================================================
 function drawAstrocyticEndfoot() {
   push();
@@ -72,7 +72,7 @@ function drawAstrocyticEndfoot() {
 function drawPresynapticTerminal() {
   push();
 
-  // 🔑 inward + downward shift
+  // inward + downward shift
   translate(95, 55);
 
   stroke(...NEURON_YELLOW);
@@ -80,23 +80,23 @@ function drawPresynapticTerminal() {
 
   beginShape();
 
-  // Outer bulging edge (taller)
-  curveVertex( 230, -170);
-  curveVertex( 230, -170);
-  curveVertex( 265,  -85);
-  curveVertex( 280,    0);
-  curveVertex( 265,   85);
-  curveVertex( 230,  170);
+  // Outer bulging edge (distal axonal side)
+  curveVertex( 230, -180);
+  curveVertex( 230, -180);
+  curveVertex( 270,  -90);
+  curveVertex( 290,    0);
+  curveVertex( 270,   90);
+  curveVertex( 230,  180);
 
-  // Inner flattened synaptic face (elongated)
-  curveVertex( 170,  135);
-  curveVertex( 145,   70);
+  // Inner flattened synaptic face
+  curveVertex( 170,  145);
+  curveVertex( 145,   75);
   curveVertex( 140,    0);
-  curveVertex( 145,  -70);
-  curveVertex( 170, -135);
+  curveVertex( 145,  -75);
+  curveVertex( 170, -145);
 
-  curveVertex( 230, -170);
-  curveVertex( 230, -170);
+  curveVertex( 230, -180);
+  curveVertex( 230, -180);
 
   endShape(CLOSE);
 
@@ -109,7 +109,7 @@ function drawPresynapticTerminal() {
 function drawPostsynapticTerminal() {
   push();
 
-  // 🔑 inward + downward shift
+  // inward + downward shift
   translate(-95, 55);
 
   stroke(...NEURON_YELLOW);
@@ -117,23 +117,23 @@ function drawPostsynapticTerminal() {
 
   beginShape();
 
-  // Outer bulging edge
-  curveVertex(-230, -170);
-  curveVertex(-230, -170);
-  curveVertex(-265,  -85);
-  curveVertex(-280,    0);
-  curveVertex(-265,   85);
-  curveVertex(-230,  170);
+  // Outer bulging edge (distal dendritic side)
+  curveVertex(-230, -180);
+  curveVertex(-230, -180);
+  curveVertex(-270,  -90);
+  curveVertex(-290,    0);
+  curveVertex(-270,   90);
+  curveVertex(-230,  180);
 
   // Inner flattened synaptic face
-  curveVertex(-170,  135);
-  curveVertex(-145,   70);
+  curveVertex(-170,  145);
+  curveVertex(-145,   75);
   curveVertex(-140,    0);
-  curveVertex(-145,  -70);
-  curveVertex(-170, -135);
+  curveVertex(-145,  -75);
+  curveVertex(-170, -145);
 
-  curveVertex(-230, -170);
-  curveVertex(-230, -170);
+  curveVertex(-230, -180);
+  curveVertex(-230, -180);
 
   endShape(CLOSE);
 
