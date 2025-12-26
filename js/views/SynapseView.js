@@ -1,4 +1,4 @@
-console.log("🔬 SynapseView — TRUE rotated T neurons");
+console.log("🔬 SynapseView — TRUE rotated T neurons (short stem, wide bar)");
 
 // =====================================================
 // COLORS
@@ -27,8 +27,8 @@ function drawSynapseView() {
 
   drawAstrocyticEndfoot();
 
-  drawTNeuron(+140, 55, +1); // presynaptic (faces left)
-  drawTNeuron(-140, 55, -1); // postsynaptic (faces right)
+  drawTNeuron(+140, 55, +1); // presynaptic
+  drawTNeuron(-140, 55, -1); // postsynaptic
 
   pop();
 }
@@ -65,7 +65,7 @@ function drawAstrocyticEndfoot() {
 }
 
 // =====================================================
-// TRUE CAPITAL T (ROTATED)
+// TRUE CAPITAL T (ROTATED) — MODIFIED GEOMETRY
 // =====================================================
 function drawTNeuron(x, y, dir) {
   push();
@@ -75,30 +75,25 @@ function drawTNeuron(x, y, dir) {
   stroke(...NEURON_YELLOW);
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
 
-  // Dimensions
-  const stemLength = 360;
+  // ---- UPDATED DIMENSIONS ----
+  const stemLength = 180;   // ↓ 2× shorter
   const stemHalf   = 40;
 
-  const barHalf    = 140;
+  const barHalf    = 700;   // ↑ 5× wider
   const barThick   = 60;
-
-  /*
-     Geometry is defined as a true capital T,
-     then rotated conceptually by layout.
-  */
 
   beginShape();
 
-  // ---- STEM (backward neurite)
+  // Stem (neurite)
   vertex(stemLength, -stemHalf);
   vertex(barThick / 2, -stemHalf);
   vertex(barThick / 2, -barHalf);
 
-  // ---- TOP BAR (synaptic face)
+  // Synaptic face (wide vertical bar)
   vertex(0, -barHalf);
   vertex(0, +barHalf);
 
-  // ---- BOTTOM BAR
+  // Bottom return
   vertex(barThick / 2, +barHalf);
   vertex(barThick / 2, +stemHalf);
   vertex(stemLength, +stemHalf);
