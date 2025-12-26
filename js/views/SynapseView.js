@@ -17,6 +17,11 @@ const SYNAPSE_SCALE = 0.28;
 const CORNER_RADIUS = 80;
 
 // =====================================================
+// NEURON ↕ VERTICAL OFFSET (GAP CONTROL)
+// =====================================================
+const NEURON_Y_OFFSET = 40; // increase to widen astrocyte gap
+
+// =====================================================
 // MAIN VIEW
 // =====================================================
 function drawSynapseView() {
@@ -32,8 +37,9 @@ function drawSynapseView() {
 
   drawAstrocyticEndfoot();
 
-  drawTNeuron(+140, 55, +1);
-  drawTNeuron(-140, 55, -1);
+  // ⬇ shifted neurons downward uniformly
+  drawTNeuron(+140, 55 + NEURON_Y_OFFSET, +1);
+  drawTNeuron(-140, 55 + NEURON_Y_OFFSET, -1);
 
   pop();
 }
@@ -70,9 +76,6 @@ function drawAstrocyticEndfoot() {
 }
 
 // =====================================================
-// ROTATED CAPITAL T — CLEAN, MIRROR-SAFE FILLETS
-// =====================================================
-// =====================================================
 // ROTATED CAPITAL T — MIRROR-SAFE STEM CONNECTION
 // =====================================================
 function drawTNeuron(x, y, dir) {
@@ -94,15 +97,18 @@ function drawTNeuron(x, y, dir) {
 
   beginShape();
 
+  // =========================
   // TOP STEM
+  // =========================
   vertex(STEM_FAR, -stemHalf);
   vertex(barThick / 2, -stemHalf);
 
-  // ✅ FIX: vertical transition only (mirror safe)
+  // Vertical drop (no hook, mirror-safe)
   vertex(barThick / 2, -barHalf + rBar);
 
+  // =========================
   // TOP BAR
-  vertex(barThick / 2, -barHalf + rBar);
+  // =========================
   quadraticVertex(
     barThick / 2, -barHalf,
     barThick / 2 - rBar, -barHalf
@@ -110,19 +116,25 @@ function drawTNeuron(x, y, dir) {
 
   vertex(rBar, -barHalf);
 
+  // =========================
   // SYNAPTIC FACE
+  // =========================
   quadraticVertex(0, -barHalf, 0, -barHalf + rBar);
   vertex(0, barHalf - rBar);
   quadraticVertex(0, barHalf, rBar, barHalf);
 
+  // =========================
   // BOTTOM BAR
+  // =========================
   vertex(barThick / 2 - rBar, barHalf);
   quadraticVertex(
     barThick / 2, barHalf,
     barThick / 2, barHalf - rBar
   );
 
+  // =========================
   // BOTTOM STEM
+  // =========================
   vertex(barThick / 2, stemHalf + rStem);
   quadraticVertex(
     barThick / 2, stemHalf,
@@ -134,4 +146,3 @@ function drawTNeuron(x, y, dir) {
   endShape(CLOSE);
   pop();
 }
-
