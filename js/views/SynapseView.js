@@ -70,7 +70,7 @@ function drawAstrocyticEndfoot() {
 }
 
 // =====================================================
-// ROTATED CAPITAL T — FIXED TOP STEM FILLET ONLY
+// ROTATED CAPITAL T — CLEAN, MIRROR-SAFE FILLETS
 // =====================================================
 function drawTNeuron(x, y, dir) {
   push();
@@ -99,26 +99,26 @@ function drawTNeuron(x, y, dir) {
   vertex(STEM_FAR, -stemHalf);
   vertex(barThick / 2 - rStem, -stemHalf);
 
-  // ✅ FIXED: lateral fillet into bar (no upward hook)
+  // ✅ Correct stem → bar fillet
   quadraticVertex(
     barThick / 2, -stemHalf,
     barThick / 2 - dir * rStem, -stemHalf + rStem
   );
 
   // =========================
-  // TOP BAR (FLAT)
+  // TOP BAR (FLAT, NO HOOK)
   // =========================
   vertex(barThick / 2, -barHalf + rBar);
 
   quadraticVertex(
-    barThick / 2, -stemHalf,
-    barThick / 2 - dir * rStem, -stemHalf + rStem
+    barThick / 2, -barHalf,
+    barThick / 2 - rBar, -barHalf
   );
 
   vertex(rBar, -barHalf);
 
   // =========================
-  // SYNAPTIC FACE (FLAT)
+  // SYNAPTIC FACE
   // =========================
   quadraticVertex(0, -barHalf, 0, -barHalf + rBar);
   vertex(0, barHalf - rBar);
@@ -135,7 +135,7 @@ function drawTNeuron(x, y, dir) {
   );
 
   // =========================
-  // BOTTOM STEM (UNCHANGED)
+  // BOTTOM STEM
   // =========================
   vertex(barThick / 2, stemHalf + rStem);
 
