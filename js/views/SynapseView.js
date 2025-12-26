@@ -1,4 +1,4 @@
-console.log("🔬 SynapseView — terminal branches added");
+console.log("🔬 SynapseView — tubular neurite continuations loaded");
 
 // =====================================================
 // COLORS (FROM colors.js WITH FALLBACKS)
@@ -28,9 +28,9 @@ function drawSynapseView() {
   // Astrocyte (LOCKED)
   drawAstrocyticEndfoot();
 
-  // Terminal branches (BEHIND neurons)
-  drawPresynapticBranches();
-  drawPostsynapticBranches();
+  // Neurite continuations (behind)
+  drawPresynapticTube();
+  drawPostsynapticTube();
 
   // Neuronal membranes
   drawPresynapticTerminal();
@@ -133,61 +133,49 @@ function drawPostsynapticTerminal() {
 }
 
 // =====================================================
-// TERMINAL BRANCHES — PRESYNAPTIC (RIGHT, BEHIND)
+// PRESYNAPTIC NEURITE TUBE (STRAIGHT BACK)
 // =====================================================
-function drawPresynapticBranches() {
+function drawPresynapticTube() {
   push();
   translate(95, 55);
 
-  stroke(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 120);
-  noFill();
-  strokeWeight(4);
+  stroke(...NEURON_YELLOW);
+  fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 30);
 
-  // Upper branch
   beginShape();
-  curveVertex(240, -140);
-  curveVertex(240, -140);
-  curveVertex(300, -220);
-  curveVertex(360, -260);
-  endShape();
-
-  // Lower branch
-  beginShape();
-  curveVertex(240, 140);
-  curveVertex(240, 140);
-  curveVertex(300, 220);
-  curveVertex(360, 260);
-  endShape();
+  curveVertex(300, -45);
+  curveVertex(300, -45);
+  curveVertex(420, -40);
+  curveVertex(520, -30);
+  curveVertex(520,  30);
+  curveVertex(420,  40);
+  curveVertex(300,  45);
+  curveVertex(300,  45);
+  endShape(CLOSE);
 
   pop();
 }
 
 // =====================================================
-// TERMINAL BRANCHES — POSTSYNAPTIC (LEFT, BEHIND)
+// POSTSYNAPTIC NEURITE TUBE (STRAIGHT BACK)
 // =====================================================
-function drawPostsynapticBranches() {
+function drawPostsynapticTube() {
   push();
   translate(-95, 55);
 
-  stroke(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 120);
-  noFill();
-  strokeWeight(4);
+  stroke(...NEURON_YELLOW);
+  fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 30);
 
-  // Upper branch
   beginShape();
-  curveVertex(-240, -140);
-  curveVertex(-240, -140);
-  curveVertex(-300, -220);
-  curveVertex(-360, -260);
-  endShape();
-
-  // Lower branch
-  beginShape();
-  curveVertex(-240, 140);
-  curveVertex(-240, 140);
-  curveVertex(-300, 220);
-  curveVertex(-360, 260);
-  endShape();
+  curveVertex(-300, -45);
+  curveVertex(-300, -45);
+  curveVertex(-420, -40);
+  curveVertex(-520, -30);
+  curveVertex(-520,  30);
+  curveVertex(-420,  40);
+  curveVertex(-300,  45);
+  curveVertex(-300,  45);
+  endShape(CLOSE);
 
   pop();
 }
