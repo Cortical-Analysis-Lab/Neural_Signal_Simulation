@@ -1,20 +1,28 @@
 console.log("🔬 SynapseView — refined tripartite synapse loaded");
 
 // =====================================================
-// SYNAPSE VIEW — STRUCTURAL OUTLINES ONLY (REFINED)
+// SAFE COLOR ACCESS (from colors.js)
 // =====================================================
-// ✔ Rounded, flattened pre/post synaptic terminals
-// ✔ Single continuous astrocytic endfoot (no blob)
-// ✔ Correct spacing & cleft gap
-// ✔ Uses overview neuron & astrocyte colors
-// =====================================================
+const SYN_COLORS = (() => {
+  if (window.COLORS) return window.COLORS;
+  if (window.colors) return window.colors;
 
+  console.warn("⚠️ SynapseView: colors not found, using fallback");
+  return {
+    neuron: [240, 220, 140],
+    astrocyte: [185, 155, 220]
+  };
+})();
+
+// =====================================================
+// SYNAPSE VIEW — STRUCTURAL OUTLINES ONLY
+// =====================================================
 function drawSynapseView() {
   if (!window.synapseFocus) return;
 
   push();
 
-  // Anchor to synapse focus in world space
+  // Anchor geometry to synapse focus
   translate(window.synapseFocus.x, window.synapseFocus.y);
 
   strokeWeight(6);
@@ -30,24 +38,25 @@ function drawSynapseView() {
 }
 
 // =====================================================
-// ASTROCYTIC ENDFOOT (PURPLE, SMOOTH, NO BLOB)
+// ASTROCYTIC ENDFOOT (PURPLE, SMOOTH, NO EXTRA BLOB)
 // =====================================================
 function drawAstrocyticEndfoot() {
   push();
   translate(0, -210);
 
-  stroke(colors.astrocyte); // from color.js
+  stroke(...SYN_COLORS.astrocyte);
 
+  // Main endfoot arc
   beginShape();
   vertex(-360, -40);
   bezierVertex(-260, -120, -140, -160,   0, -160);
   bezierVertex( 140, -160,  260, -120, 360, -40);
   endShape();
 
-  // Gentle downward contact toward cleft
+  // Shallow downward contact (single, clean)
   beginShape();
-  vertex(-80, -40);
-  bezierVertex(-40, 40, 40, 40, 80, -40);
+  vertex(-90, -40);
+  bezierVertex(-45, 35, 45, 35, 90, -40);
   endShape();
 
   pop();
@@ -60,7 +69,7 @@ function drawPresynapticTerminal() {
   push();
   translate(260, 0);
 
-  stroke(colors.neuron);
+  stroke(...SYN_COLORS.neuron);
 
   beginShape();
   vertex( 220, -60);
@@ -79,7 +88,7 @@ function drawPostsynapticTerminal() {
   push();
   translate(-260, 0);
 
-  stroke(colors.neuron);
+  stroke(...SYN_COLORS.neuron);
 
   beginShape();
   vertex(-220, -60);
