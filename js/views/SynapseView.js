@@ -1,4 +1,4 @@
-console.log("🔬 SynapseView — neurons brought inward (2×)");
+console.log("🔬 SynapseView — neurons stretched & lowered");
 
 // =====================================================
 // COLORS (FROM colors.js WITH FALLBACKS)
@@ -28,7 +28,7 @@ function drawSynapseView() {
   // Astrocyte (LOCKED — unchanged)
   drawAstrocyticEndfoot();
 
-  // Neuronal membranes (moved inward)
+  // Neuronal membranes (taller + lower)
   drawPresynapticTerminal();
   drawPostsynapticTerminal();
 
@@ -67,36 +67,36 @@ function drawAstrocyticEndfoot() {
 }
 
 // =====================================================
-// PRESYNAPTIC TERMINAL (RIGHT — MOVED INWARD)
+// PRESYNAPTIC TERMINAL (RIGHT — TALLER & LOWERED)
 // =====================================================
 function drawPresynapticTerminal() {
   push();
 
-  // 🔑 Previously 190 → now 95 (2× closer)
-  translate(95, 0);
+  // 🔑 inward + downward shift
+  translate(95, 55);
 
   stroke(...NEURON_YELLOW);
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
 
   beginShape();
 
-  // Outer bulging edge
-  curveVertex( 230, -110);
-  curveVertex( 230, -110);
-  curveVertex( 265,  -55);
+  // Outer bulging edge (taller)
+  curveVertex( 230, -170);
+  curveVertex( 230, -170);
+  curveVertex( 265,  -85);
   curveVertex( 280,    0);
-  curveVertex( 265,   55);
-  curveVertex( 230,  110);
+  curveVertex( 265,   85);
+  curveVertex( 230,  170);
 
-  // Inner flattened synaptic face
-  curveVertex( 170,   90);
-  curveVertex( 145,   45);
+  // Inner flattened synaptic face (elongated)
+  curveVertex( 170,  135);
+  curveVertex( 145,   70);
   curveVertex( 140,    0);
-  curveVertex( 145,  -45);
-  curveVertex( 170,  -90);
+  curveVertex( 145,  -70);
+  curveVertex( 170, -135);
 
-  curveVertex( 230, -110);
-  curveVertex( 230, -110);
+  curveVertex( 230, -170);
+  curveVertex( 230, -170);
 
   endShape(CLOSE);
 
@@ -104,13 +104,13 @@ function drawPresynapticTerminal() {
 }
 
 // =====================================================
-// POSTSYNAPTIC TERMINAL (LEFT — MOVED INWARD)
+// POSTSYNAPTIC TERMINAL (LEFT — TALLER & LOWERED)
 // =====================================================
 function drawPostsynapticTerminal() {
   push();
 
-  // 🔑 Previously -190 → now -95
-  translate(-95, 0);
+  // 🔑 inward + downward shift
+  translate(-95, 55);
 
   stroke(...NEURON_YELLOW);
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
@@ -118,22 +118,22 @@ function drawPostsynapticTerminal() {
   beginShape();
 
   // Outer bulging edge
-  curveVertex(-230, -110);
-  curveVertex(-230, -110);
-  curveVertex(-265,  -55);
+  curveVertex(-230, -170);
+  curveVertex(-230, -170);
+  curveVertex(-265,  -85);
   curveVertex(-280,    0);
-  curveVertex(-265,   55);
-  curveVertex(-230,  110);
+  curveVertex(-265,   85);
+  curveVertex(-230,  170);
 
   // Inner flattened synaptic face
-  curveVertex(-170,   90);
-  curveVertex(-145,   45);
+  curveVertex(-170,  135);
+  curveVertex(-145,   70);
   curveVertex(-140,    0);
-  curveVertex(-145,  -45);
-  curveVertex(-170,  -90);
+  curveVertex(-145,  -70);
+  curveVertex(-170, -135);
 
-  curveVertex(-230, -110);
-  curveVertex(-230, -110);
+  curveVertex(-230, -170);
+  curveVertex(-230, -170);
 
   endShape(CLOSE);
 
