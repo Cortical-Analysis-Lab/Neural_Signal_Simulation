@@ -12,6 +12,12 @@ const ASTRO_PURPLE  = window.COLORS?.astrocyte ?? [185, 145, 220];
 const SYNAPSE_SCALE = 0.28;
 
 // =====================================================
+// MERGE ANCHORS (CRITICAL FIX)
+// =====================================================
+const MERGE_TOP    = -120;
+const MERGE_BOTTOM =  120;
+
+// =====================================================
 // SYNAPSE VIEW — STRUCTURAL OUTLINES ONLY
 // =====================================================
 function drawSynapseView() {
@@ -64,7 +70,7 @@ function drawAstrocyticEndfoot() {
 }
 
 // =====================================================
-// PRESYNAPTIC NEURON (RIGHT — SINGLE OUTLINE)
+// PRESYNAPTIC NEURON (RIGHT — CLEAN TOPOLOGY)
 // =====================================================
 function drawPresynapticNeuron() {
   push();
@@ -75,16 +81,16 @@ function drawPresynapticNeuron() {
 
   beginShape();
 
-  // ---- TOP NEURITE WALL (OPEN BACK)
+  // ---- TOP NEURITE WALL (OPEN)
   vertex(600, -40);
   vertex(260, -40);
 
-  // ---- BOUTON OUTER CURVE
-  curveVertex(260, -160);
+  // ---- TOP MERGE INTO BOUTON
+  curveVertex(260, MERGE_TOP);
   curveVertex(300,  -80);
   curveVertex(320,    0);
   curveVertex(300,   80);
-  curveVertex(260,  160);
+  curveVertex(260, MERGE_BOTTOM);
 
   // ---- SYNAPTIC FACE
   vertex(180,  140);
@@ -93,10 +99,10 @@ function drawPresynapticNeuron() {
   vertex(150,  -80);
   vertex(180, -140);
 
-  // ---- BOUTON INNER CURVE BACK TO NEURITE
-  curveVertex(260, -160);
+  // ---- RETURN TO TOP MERGE (NOT SAME POINT)
+  curveVertex(260, MERGE_TOP);
 
-  // ---- BOTTOM NEURITE WALL (OPEN BACK)
+  // ---- BOTTOM NEURITE WALL (OPEN)
   vertex(260,  40);
   vertex(600,  40);
 
@@ -105,7 +111,7 @@ function drawPresynapticNeuron() {
 }
 
 // =====================================================
-// POSTSYNAPTIC NEURON (LEFT — SINGLE OUTLINE)
+// POSTSYNAPTIC NEURON (LEFT — CLEAN TOPOLOGY)
 // =====================================================
 function drawPostsynapticNeuron() {
   push();
@@ -116,16 +122,16 @@ function drawPostsynapticNeuron() {
 
   beginShape();
 
-  // ---- TOP NEURITE WALL (OPEN BACK)
+  // ---- TOP NEURITE WALL (OPEN)
   vertex(-600, -40);
   vertex(-260, -40);
 
-  // ---- BOUTON OUTER CURVE
-  curveVertex(-260, -160);
+  // ---- TOP MERGE INTO BOUTON
+  curveVertex(-260, MERGE_TOP);
   curveVertex(-300,  -80);
   curveVertex(-320,    0);
   curveVertex(-300,   80);
-  curveVertex(-260,  160);
+  curveVertex(-260, MERGE_BOTTOM);
 
   // ---- SYNAPTIC FACE
   vertex(-180,  140);
@@ -134,10 +140,10 @@ function drawPostsynapticNeuron() {
   vertex(-150,  -80);
   vertex(-180, -140);
 
-  // ---- BOUTON INNER CURVE BACK TO NEURITE
-  curveVertex(-260, -160);
+  // ---- RETURN TO TOP MERGE (NOT SAME POINT)
+  curveVertex(-260, MERGE_TOP);
 
-  // ---- BOTTOM NEURITE WALL (OPEN BACK)
+  // ---- BOTTOM NEURITE WALL (OPEN)
   vertex(-260,  40);
   vertex(-600,  40);
 
