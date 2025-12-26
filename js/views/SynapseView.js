@@ -18,6 +18,9 @@ function drawSynapseView() {
 
   push();
 
+  // 🔑 THIS WAS MISSING — re-anchor to camera focus
+  translate(window.synapseFocus.x, window.synapseFocus.y);
+
   strokeWeight(5);
   strokeJoin(ROUND);
   strokeCap(ROUND);
@@ -28,6 +31,7 @@ function drawSynapseView() {
 
   pop();
 }
+
 
 // =====================================================
 // ASTROCYTIC ENDFOOT (PURPLE, ABOVE CLEFT)
