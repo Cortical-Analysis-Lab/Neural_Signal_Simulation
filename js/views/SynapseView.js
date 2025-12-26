@@ -1,4 +1,4 @@
-console.log("🔬 SynapseView — unified membrane morphology loaded");
+console.log("🔬 SynapseView — scaled endfoot morphology loaded");
 
 // =====================================================
 // COLORS (FROM colors.js WITH FALLBACKS)
@@ -7,102 +7,119 @@ const NEURON_YELLOW = window.COLORS?.neuron ?? [245, 225, 140];
 const ASTRO_PURPLE  = window.COLORS?.astrocyte ?? [185, 145, 220];
 
 // =====================================================
+// GLOBAL SCALE (TRUE 3× REDUCTION)
+// =====================================================
+const SYNAPSE_SCALE = 0.33;
+
+// =====================================================
 // SYNAPSE VIEW — STRUCTURAL OUTLINES ONLY
 // =====================================================
 // World-space origin (0,0) = synaptic cleft center
-// All components share membrane morphology
 // =====================================================
 function drawSynapseView() {
   if (!window.synapseFocus) return;
 
   push();
   translate(window.synapseFocus.x, window.synapseFocus.y);
+  scale(SYNAPSE_SCALE);
 
   strokeWeight(6);
   strokeJoin(ROUND);
   strokeCap(ROUND);
 
-  // Astrocyte above
+  // Astrocytic endfoot (above)
   drawMembrane({
     x: 0,
-    y: -95,
+    y: -90,
     w: 300,
-    h: 130,
-    flatten: 0.85,
+    h: 140,
+    flatten: 0.9,
+    cleftSide: "bottom",
     color: ASTRO_PURPLE,
     alpha: 45
   });
 
-  // Presynaptic (right)
+  // Presynaptic endfoot (right)
   drawMembrane({
-    x: 130,
+    x: 135,
     y: 0,
-    w: 240,
-    h: 110,
-    flatten: 0.55,
+    w: 260,
+    h: 120,
+    flatten: 0.25,          // 🔑 very flat at cleft
+    cleftSide: "left",
     color: NEURON_YELLOW,
     alpha: 35
   });
 
-  // Postsynaptic (left)
+  // Postsynaptic endfoot (left)
   drawMembrane({
-    x: -130,
+    x: -135,
     y: 0,
-    w: 240,
-    h: 110,
-    flatten: 0.55,
+    w: 260,
+    h: 120,
+    flatten: 0.25,
+    cleftSide: "right",
     color: NEURON_YELLOW,
-    alpha: 35,
-    flipX: true
+    alpha: 35
   });
 
   pop();
 }
 
 // =====================================================
-// GENERIC MEMBRANE SHAPE (ROUNDED, FLATTENED)
+// GENERIC MEMBRANE / ENDFOOT SHAPE
 // =====================================================
 function drawMembrane({
   x = 0,
   y = 0,
   w = 200,
   h = 100,
-  flatten = 0.6,
+  flatten = 0.4,
+  cleftSide = "none", // left | right | top | bottom
   color = [255, 255, 255],
-  alpha = 40,
-  flipX = false
+  alpha = 40
 }) {
   push();
   translate(x, y);
-  if (flipX) scale(-1, 1);
 
   stroke(...color);
   fill(color[0], color[1], color[2], alpha);
 
   const hw = w / 2;
   const hh = h / 2;
-  const f  = flatten;
+
+  // Flattening bias toward cleft
+  const flat = flatten;
+  const round = 1.0;
 
   beginShape();
-  curveVertex(-hw, -hh * f);
-  curveVertex(-hw, -hh * f);
 
-  curveVertex(-hw * 0.6, -hh);
-  curveVertex(-hw * 0.2, -hh * 1.1);
-  curveVertex(0,        -hh * 1.15);
-  curveVertex(hw * 0.2, -hh * 1.1);
-  curveVertex(hw * 0.6, -hh);
-  curveVertex(hw,       -hh * f);
+  // TOP
+  curveVertex(-hw * round, -hh * (cleftSide === "top" ? flat : round));
+  curveVertex(-hw * round, -hh * (cleftSide === "top" ? flat : round));
+  curveVertex(-hw * 0.4,   -hh * round);
+  curveVertex(0,           -hh * round);
+  curveVertex(hw * 0.4,    -hh * round);
+  curveVertex(hw * round,  -hh * (cleftSide === "top" ? flat : round));
 
-  curveVertex(hw * 0.9,  hh * 0.2);
-  curveVertex(hw * 0.4,  hh * 0.55);
-  curveVertex(0,         hh * 0.65);
-  curveVertex(-hw * 0.4, hh * 0.55);
-  curveVertex(-hw * 0.9, hh * 0.2);
+  // RIGHT
+  curveVertex(hw * (cleftSide === "right" ? flat : round), -hh * 0.2);
+  curveVertex(hw * (cleftSide === "right" ? flat : round),  hh * 0.2);
 
-  curveVertex(-hw, -hh * f);
-  curveVertex(-hw, -hh * f);
+  // BOTTOM
+  curveVertex(hw * round,  hh * (cleftSide === "bottom" ? flat : round));
+  curveVertex(hw * 0.4,    hh * round);
+  curveVertex(0,           hh * round);
+  curveVertex(-hw * 0.4,   hh * round);
+  curveVertex(-hw * round, hh * (cleftSide === "bottom" ? flat : round));
+
+  // LEFT
+  curveVertex(-hw * (cleftSide === "left" ? flat : round),  hh * 0.2);
+  curveVertex(-hw * (cleftSide === "left" ? flat : round), -hh * 0.2);
+
+  curveVertex(-hw * round, -hh * (cleftSide === "top" ? flat : round));
+  curveVertex(-hw * round, -hh * (cleftSide === "top" ? flat : round));
+
   endShape(CLOSE);
-
   pop();
 }
