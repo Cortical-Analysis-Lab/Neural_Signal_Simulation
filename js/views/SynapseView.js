@@ -1,4 +1,4 @@
-console.log("🔬 SynapseView — biologically correct + scaled geometry loaded");
+console.log("🔬 SynapseView — edge-anchored neuronal membranes loaded");
 
 // =====================================================
 // COLORS (FROM colors.js WITH FALLBACKS)
@@ -7,10 +7,9 @@ const NEURON_YELLOW = window.COLORS?.neuron ?? [245, 225, 140];
 const ASTRO_PURPLE  = window.COLORS?.astrocyte ?? [185, 145, 220];
 
 // =====================================================
-// SYNAPSE SCALE (🔑 SINGLE SOURCE OF TRUTH)
+// SYNAPSE SCALE (DO NOT CHANGE)
 // =====================================================
-// Geometry is intentionally small because camera zoom is high
-const SYNAPSE_SCALE = 0.33;   // ≈ 3× smaller
+const SYNAPSE_SCALE = 0.33;
 
 // =====================================================
 // SYNAPSE VIEW — STRUCTURAL OUTLINES ONLY
@@ -19,18 +18,17 @@ function drawSynapseView() {
   if (!window.synapseFocus) return;
 
   push();
-
-  // Anchor to synapse in WORLD space
   translate(window.synapseFocus.x, window.synapseFocus.y);
-
-  // 🔑 Apply local synapse scaling
   scale(SYNAPSE_SCALE);
 
   strokeWeight(6);
   strokeJoin(ROUND);
   strokeCap(ROUND);
 
+  // Astrocyte (LOCKED — do not change)
   drawAstrocyticEndfoot();
+
+  // Neuronal membranes
   drawPresynapticTerminal();
   drawPostsynapticTerminal();
 
@@ -38,7 +36,7 @@ function drawSynapseView() {
 }
 
 // =====================================================
-// ASTROCYTIC ENDFOOT (LAMINAR, ABOVE SYNAPSE)
+// ASTROCYTIC ENDFOOT (UNCHANGED)
 // =====================================================
 function drawAstrocyticEndfoot() {
   push();
@@ -50,20 +48,17 @@ function drawAstrocyticEndfoot() {
   beginShape();
   curveVertex(-220, -30);
   curveVertex(-220, -30);
-
   curveVertex(-160, -90);
   curveVertex( -60, -120);
   curveVertex(   0, -125);
   curveVertex(  60, -120);
   curveVertex( 160,  -90);
-
   curveVertex( 220,  -30);
   curveVertex( 200,   20);
   curveVertex( 120,   55);
   curveVertex(   0,   65);
   curveVertex(-120,   55);
   curveVertex(-200,   20);
-
   curveVertex(-220, -30);
   curveVertex(-220, -30);
   endShape(CLOSE);
@@ -72,68 +67,74 @@ function drawAstrocyticEndfoot() {
 }
 
 // =====================================================
-// PRESYNAPTIC TERMINAL (RIGHT — OBLONG, FLAT CLEF FACE)
+// PRESYNAPTIC TERMINAL (RIGHT — EDGE-ANCHORED)
 // =====================================================
 function drawPresynapticTerminal() {
   push();
-  translate(150, 0);
+
+  // 🔑 Push membrane toward screen edge
+  translate(260, 0);
 
   stroke(...NEURON_YELLOW);
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
 
   beginShape();
-  curveVertex( 140, -60);
-  curveVertex( 140, -60);
 
-  curveVertex( 110, -95);
-  curveVertex(  40, -115);
-  curveVertex( -30, -100);
+  // Outer bulging edge (off-screen direction)
+  curveVertex( 260, -140);
+  curveVertex( 260, -140);
+  curveVertex( 300,  -60);
+  curveVertex( 320,    0);
+  curveVertex( 300,   60);
+  curveVertex( 260,  140);
 
-  // Flattened cleft face
-  curveVertex( -90, -40);
-  curveVertex(-100,   0);
-  curveVertex( -90,  40);
+  // Inner flattened synaptic face
+  curveVertex( 160,  110);
+  curveVertex( 120,   60);
+  curveVertex( 110,    0);
+  curveVertex( 120,  -60);
+  curveVertex( 160, -110);
 
-  curveVertex( -30, 100);
-  curveVertex(  40, 115);
-  curveVertex( 110,  95);
+  curveVertex( 260, -140);
+  curveVertex( 260, -140);
 
-  curveVertex( 140,  60);
-  curveVertex( 140, -60);
   endShape(CLOSE);
 
   pop();
 }
 
 // =====================================================
-// POSTSYNAPTIC TERMINAL (LEFT — MIRRORED)
+// POSTSYNAPTIC TERMINAL (LEFT — EDGE-ANCHORED)
 // =====================================================
 function drawPostsynapticTerminal() {
   push();
-  translate(-150, 0);
+
+  // 🔑 Push membrane toward screen edge
+  translate(-260, 0);
 
   stroke(...NEURON_YELLOW);
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
 
   beginShape();
-  curveVertex(-140, -60);
-  curveVertex(-140, -60);
 
-  curveVertex(-110, -95);
-  curveVertex( -40, -115);
-  curveVertex(  30, -100);
+  // Outer bulging edge
+  curveVertex(-260, -140);
+  curveVertex(-260, -140);
+  curveVertex(-300,  -60);
+  curveVertex(-320,    0);
+  curveVertex(-300,   60);
+  curveVertex(-260,  140);
 
-  // Flattened cleft face
-  curveVertex(  90, -40);
-  curveVertex( 100,   0);
-  curveVertex(  90,  40);
+  // Inner flattened synaptic face
+  curveVertex(-160,  110);
+  curveVertex(-120,   60);
+  curveVertex(-110,    0);
+  curveVertex(-120,  -60);
+  curveVertex(-160, -110);
 
-  curveVertex(  30, 100);
-  curveVertex( -40, 115);
-  curveVertex(-110,  95);
+  curveVertex(-260, -140);
+  curveVertex(-260, -140);
 
-  curveVertex(-140,  60);
-  curveVertex(-140, -60);
   endShape(CLOSE);
 
   pop();
