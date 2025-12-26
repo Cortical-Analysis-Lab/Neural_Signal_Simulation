@@ -1,4 +1,4 @@
-console.log("🔬 SynapseView — TRUE rotated T neurons (flat bar, offscreen stem)");
+console.log("🔬 SynapseView — rotated T neurons (flat bar, reduced rounding)");
 
 // =====================================================
 // COLORS
@@ -22,7 +22,7 @@ function drawSynapseView() {
   scale(SYNAPSE_SCALE);
 
   strokeWeight(6);
-  strokeJoin(ROUND);
+  strokeJoin(ROUND);   // subtle rounding only at corners
   strokeCap(ROUND);
 
   drawAstrocyticEndfoot();
@@ -65,7 +65,7 @@ function drawAstrocyticEndfoot() {
 }
 
 // =====================================================
-// TRUE CAPITAL T (ROTATED) — FLAT TOP BAR, OFFSCREEN STEM
+// ROTATED CAPITAL T — FLAT BAR, LOW ROUNDING
 // =====================================================
 function drawTNeuron(x, y, dir) {
   push();
@@ -75,8 +75,8 @@ function drawTNeuron(x, y, dir) {
   stroke(...NEURON_YELLOW);
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
 
-  // ---- DIMENSIONS (MINIMALLY MODIFIED) ----
-  const STEM_FAR  = 2000; // pushes stem to screen edge
+  // ---- DIMENSIONS ----
+  const STEM_FAR  = 2000; // exits screen
   const stemHalf = 40;
 
   const barHalf  = 140;
@@ -84,28 +84,23 @@ function drawTNeuron(x, y, dir) {
 
   beginShape();
 
-  // Curve continuity anchor
-  curveVertex(STEM_FAR, -stemHalf);
-
   // ---- TOP STEM
-  curveVertex(STEM_FAR, -stemHalf);
-  curveVertex(barThick / 2, -stemHalf);
+  vertex(STEM_FAR, -stemHalf);
+  vertex(barThick / 2, -stemHalf);
 
-  // ---- FLAT TOP BAR EDGE (KEY FIX)
+  // ---- FLAT TOP BAR (NO CURVATURE)
   vertex(barThick / 2, -barHalf);
   vertex(0,            -barHalf);
 
   // ---- SYNAPTIC FACE
-  curveVertex(0, 0);
-  curveVertex(0, +barHalf);
+  vertex(0, +barHalf);
 
-  // ---- ROUND BACK INTO STEM
-  curveVertex(barThick / 2, +barHalf);
-  curveVertex(barThick / 2, +stemHalf);
+  // ---- FLAT BOTTOM BAR
+  vertex(barThick / 2, +barHalf);
 
   // ---- BOTTOM STEM
-  curveVertex(STEM_FAR, +stemHalf);
-  curveVertex(STEM_FAR, +stemHalf);
+  vertex(barThick / 2, +stemHalf);
+  vertex(STEM_FAR,     +stemHalf);
 
   endShape(CLOSE);
 
