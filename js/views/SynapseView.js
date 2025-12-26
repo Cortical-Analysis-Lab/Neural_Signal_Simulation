@@ -1,16 +1,12 @@
-console.log("🔬 SynapseView — corrected scale & alignment loaded");
+console.log("🔬 SynapseView — refined tripartite synapse loaded");
 
 // =====================================================
-// COLORS (FROM color.js WITH FALLBACKS)
+// SYNAPSE VIEW — STRUCTURAL OUTLINES ONLY (REFINED)
 // =====================================================
-const NEURON_YELLOW = window.COLORS?.neuron ?? [245, 225, 140];
-const ASTRO_PURPLE  = window.COLORS?.astrocyte ?? [185, 145, 220];
-
-// =====================================================
-// SYNAPSE VIEW — STRUCTURAL OUTLINES ONLY
-// =====================================================
-// World-space origin (0,0) = synaptic cleft center
-// Geometry scaled for microscope zoom
+// ✔ Rounded, flattened pre/post synaptic terminals
+// ✔ Single continuous astrocytic endfoot (no blob)
+// ✔ Correct spacing & cleft gap
+// ✔ Uses overview neuron & astrocyte colors
 // =====================================================
 
 function drawSynapseView() {
@@ -18,12 +14,13 @@ function drawSynapseView() {
 
   push();
 
-  // 🔑 THIS WAS MISSING — re-anchor to camera focus
+  // Anchor to synapse focus in world space
   translate(window.synapseFocus.x, window.synapseFocus.y);
 
-  strokeWeight(5);
+  strokeWeight(6);
   strokeJoin(ROUND);
   strokeCap(ROUND);
+  noFill();
 
   drawAstrocyticEndfoot();
   drawPresynapticTerminal();
@@ -32,94 +29,64 @@ function drawSynapseView() {
   pop();
 }
 
-
 // =====================================================
-// ASTROCYTIC ENDFOOT (PURPLE, ABOVE CLEFT)
+// ASTROCYTIC ENDFOOT (PURPLE, SMOOTH, NO BLOB)
 // =====================================================
 function drawAstrocyticEndfoot() {
-  stroke(...ASTRO_PURPLE);
-  fill(ASTRO_PURPLE[0], ASTRO_PURPLE[1], ASTRO_PURPLE[2], 40);
-
   push();
-  translate(0, -120);
+  translate(0, -210);
+
+  stroke(colors.astrocyte); // from color.js
 
   beginShape();
-  curveVertex(-120, -20);
-  curveVertex( -80, -60);
-  curveVertex( -30, -80);
-  curveVertex(   0, -85);
-  curveVertex(  30, -80);
-  curveVertex(  80, -60);
-  curveVertex( 120, -20);
-  curveVertex( 110,  20);
-  curveVertex(  60,  45);
-  curveVertex(   0,  55);
-  curveVertex( -60,  45);
-  curveVertex(-110,  20);
-  curveVertex(-120, -20);
-  endShape(CLOSE);
+  vertex(-360, -40);
+  bezierVertex(-260, -120, -140, -160,   0, -160);
+  bezierVertex( 140, -160,  260, -120, 360, -40);
+  endShape();
 
-  // Endfoot process (stops before cleft)
+  // Gentle downward contact toward cleft
   beginShape();
-  curveVertex(-20,  55);
-  curveVertex( 20,  55);
-  curveVertex( 15,  75);
-  curveVertex(  0,  85);
-  curveVertex(-15,  75);
-  curveVertex(-20,  55);
-  endShape(CLOSE);
+  vertex(-80, -40);
+  bezierVertex(-40, 40, 40, 40, 80, -40);
+  endShape();
 
   pop();
 }
 
 // =====================================================
-// PRESYNAPTIC TERMINAL (RIGHT, YELLOW)
+// PRESYNAPTIC TERMINAL (RIGHT, FLATTENED & WIDE)
 // =====================================================
 function drawPresynapticTerminal() {
-  stroke(...NEURON_YELLOW);
-  fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
-
   push();
-  translate(95, 0);
+  translate(260, 0);
+
+  stroke(colors.neuron);
 
   beginShape();
-  curveVertex( 60, -35);
-  curveVertex( 40, -55);
-  curveVertex( -5, -50);
-  curveVertex(-35, -15);
-  curveVertex(-42,   0);
-  curveVertex(-35,  15);
-  curveVertex( -5,  50);
-  curveVertex( 40,  55);
-  curveVertex( 60,  35);
-  curveVertex( 60, -35);
-  endShape(CLOSE);
+  vertex( 220, -60);
+  bezierVertex( 140, -120, -40, -120, -180, -40);
+  bezierVertex(-220,   0,  -220,   0, -180,  40);
+  bezierVertex( -40, 120,  140, 120, 220,  60);
+  endShape();
 
   pop();
 }
 
 // =====================================================
-// POSTSYNAPTIC TERMINAL (LEFT, YELLOW)
+// POSTSYNAPTIC TERMINAL (LEFT, FLATTENED & WIDE)
 // =====================================================
 function drawPostsynapticTerminal() {
-  stroke(...NEURON_YELLOW);
-  fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
-
   push();
-  translate(-95, 0);
+  translate(-260, 0);
+
+  stroke(colors.neuron);
 
   beginShape();
-  curveVertex(-60, -35);
-  curveVertex(-40, -55);
-  curveVertex(  5, -50);
-  curveVertex( 35, -15);
-  curveVertex( 42,   0);
-  curveVertex( 35,  15);
-  curveVertex(  5,  50);
-  curveVertex(-40,  55);
-  curveVertex(-60,  35);
-  curveVertex(-60, -35);
-  endShape(CLOSE);
+  vertex(-220, -60);
+  bezierVertex(-140, -120,  40, -120, 180, -40);
+  bezierVertex( 220,   0,  220,   0, 180,  40);
+  bezierVertex(  40, 120, -140, 120, -220, 60);
+  endShape();
 
   pop();
 }
