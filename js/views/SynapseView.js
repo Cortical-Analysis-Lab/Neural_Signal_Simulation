@@ -1,4 +1,4 @@
-console.log("🔬 SynapseView — edge-anchored neuronal membranes loaded");
+console.log("🔬 SynapseView — scaled + membrane-aligned loaded");
 
 // =====================================================
 // COLORS (FROM colors.js WITH FALLBACKS)
@@ -7,9 +7,9 @@ const NEURON_YELLOW = window.COLORS?.neuron ?? [245, 225, 140];
 const ASTRO_PURPLE  = window.COLORS?.astrocyte ?? [185, 145, 220];
 
 // =====================================================
-// SYNAPSE SCALE (DO NOT CHANGE)
+// SYNAPSE GEOMETRY SCALE
 // =====================================================
-const SYNAPSE_SCALE = 0.33;
+const GLOBAL_SCALE = 0.66; // 🔑 ~1.5× smaller than before
 
 // =====================================================
 // SYNAPSE VIEW — STRUCTURAL OUTLINES ONLY
@@ -19,16 +19,16 @@ function drawSynapseView() {
 
   push();
   translate(window.synapseFocus.x, window.synapseFocus.y);
-  scale(SYNAPSE_SCALE);
+  scale(GLOBAL_SCALE);
 
   strokeWeight(6);
   strokeJoin(ROUND);
   strokeCap(ROUND);
 
-  // Astrocyte (LOCKED — do not change)
+  // Astrocyte (LOCKED — do not modify shape)
   drawAstrocyticEndfoot();
 
-  // Neuronal membranes
+  // Neurons aligned to astrocyte boundary
   drawPresynapticTerminal();
   drawPostsynapticTerminal();
 
@@ -67,36 +67,37 @@ function drawAstrocyticEndfoot() {
 }
 
 // =====================================================
-// PRESYNAPTIC TERMINAL (RIGHT — EDGE-ANCHORED)
+// PRESYNAPTIC TERMINAL (RIGHT — ALIGNED TO ASTROCYTE)
 // =====================================================
 function drawPresynapticTerminal() {
   push();
 
-  // 🔑 Push membrane toward screen edge
-  translate(260, 0);
+  // 🔑 Move inward so inner face aligns with astrocyte edge
+  // Astrocyte edge ≈ ±160–180 in X after curvature
+  translate(190, 0);
 
   stroke(...NEURON_YELLOW);
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
 
   beginShape();
 
-  // Outer bulging edge (off-screen direction)
-  curveVertex( 260, -140);
-  curveVertex( 260, -140);
-  curveVertex( 300,  -60);
-  curveVertex( 320,    0);
-  curveVertex( 300,   60);
-  curveVertex( 260,  140);
+  // Outer bulge (away from cleft)
+  curveVertex( 260, -120);
+  curveVertex( 260, -120);
+  curveVertex( 290,  -60);
+  curveVertex( 300,    0);
+  curveVertex( 290,   60);
+  curveVertex( 260,  120);
 
   // Inner flattened synaptic face
-  curveVertex( 160,  110);
-  curveVertex( 120,   60);
-  curveVertex( 110,    0);
-  curveVertex( 120,  -60);
-  curveVertex( 160, -110);
+  curveVertex( 180,  100);
+  curveVertex( 150,   55);
+  curveVertex( 145,    0);
+  curveVertex( 150,  -55);
+  curveVertex( 180, -100);
 
-  curveVertex( 260, -140);
-  curveVertex( 260, -140);
+  curveVertex( 260, -120);
+  curveVertex( 260, -120);
 
   endShape(CLOSE);
 
@@ -104,36 +105,34 @@ function drawPresynapticTerminal() {
 }
 
 // =====================================================
-// POSTSYNAPTIC TERMINAL (LEFT — EDGE-ANCHORED)
+// POSTSYNAPTIC TERMINAL (LEFT — ALIGNED TO ASTROCYTE)
 // =====================================================
 function drawPostsynapticTerminal() {
   push();
 
-  // 🔑 Push membrane toward screen edge
-  translate(-260, 0);
+  // Symmetric inward positioning
+  translate(-190, 0);
 
   stroke(...NEURON_YELLOW);
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
 
   beginShape();
 
-  // Outer bulging edge
-  curveVertex(-260, -140);
-  curveVertex(-260, -140);
-  curveVertex(-300,  -60);
-  curveVertex(-320,    0);
-  curveVertex(-300,   60);
-  curveVertex(-260,  140);
+  curveVertex(-260, -120);
+  curveVertex(-260, -120);
+  curveVertex(-290,  -60);
+  curveVertex(-300,    0);
+  curveVertex(-290,   60);
+  curveVertex(-260,  120);
 
-  // Inner flattened synaptic face
-  curveVertex(-160,  110);
-  curveVertex(-120,   60);
-  curveVertex(-110,    0);
-  curveVertex(-120,  -60);
-  curveVertex(-160, -110);
+  curveVertex(-180,  100);
+  curveVertex(-150,   55);
+  curveVertex(-145,    0);
+  curveVertex(-150,  -55);
+  curveVertex(-180, -100);
 
-  curveVertex(-260, -140);
-  curveVertex(-260, -140);
+  curveVertex(-260, -120);
+  curveVertex(-260, -120);
 
   endShape(CLOSE);
 
