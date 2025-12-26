@@ -76,11 +76,11 @@ function drawTNeuron(x, y, dir) {
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
 
   // ---- UPDATED DIMENSIONS ----
-  const stemLength = 240;   // ↓ 2× shorter
+  const stemLength = 280;   // ↓ 2× shorter
   const stemHalf   = 40;
 
   const barHalf    = 140;   // ↑ 5× wider
-  const barThick   = 300;
+  const barThick   = 340;
 
   beginShape();
 
