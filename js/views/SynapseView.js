@@ -1,4 +1,4 @@
-console.log("🔬 SynapseView — neurons stretched & lowered");
+console.log("🔬 SynapseView — terminal branches added");
 
 // =====================================================
 // COLORS (FROM colors.js WITH FALLBACKS)
@@ -25,10 +25,14 @@ function drawSynapseView() {
   strokeJoin(ROUND);
   strokeCap(ROUND);
 
-  // Astrocyte (LOCKED — unchanged)
+  // Astrocyte (LOCKED)
   drawAstrocyticEndfoot();
 
-  // Neuronal membranes (taller + lowered)
+  // Terminal branches (BEHIND neurons)
+  drawPresynapticBranches();
+  drawPostsynapticBranches();
+
+  // Neuronal membranes
   drawPresynapticTerminal();
   drawPostsynapticTerminal();
 
@@ -36,7 +40,7 @@ function drawSynapseView() {
 }
 
 // =====================================================
-// ASTROCYTIC ENDFOOT (UNCHANGED — DO NOT TOUCH)
+// ASTROCYTIC ENDFOOT (UNCHANGED)
 // =====================================================
 function drawAstrocyticEndfoot() {
   push();
@@ -67,20 +71,16 @@ function drawAstrocyticEndfoot() {
 }
 
 // =====================================================
-// PRESYNAPTIC TERMINAL (RIGHT — TALLER & LOWERED)
+// PRESYNAPTIC TERMINAL (RIGHT)
 // =====================================================
 function drawPresynapticTerminal() {
   push();
-
-  // inward + downward shift
   translate(95, 55);
 
   stroke(...NEURON_YELLOW);
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
 
   beginShape();
-
-  // Outer bulging edge (distal axonal side)
   curveVertex( 230, -180);
   curveVertex( 230, -180);
   curveVertex( 270,  -90);
@@ -88,7 +88,6 @@ function drawPresynapticTerminal() {
   curveVertex( 270,   90);
   curveVertex( 230,  180);
 
-  // Inner flattened synaptic face
   curveVertex( 170,  145);
   curveVertex( 145,   75);
   curveVertex( 140,    0);
@@ -97,27 +96,22 @@ function drawPresynapticTerminal() {
 
   curveVertex( 230, -180);
   curveVertex( 230, -180);
-
   endShape(CLOSE);
 
   pop();
 }
 
 // =====================================================
-// POSTSYNAPTIC TERMINAL (LEFT — TALLER & LOWERED)
+// POSTSYNAPTIC TERMINAL (LEFT)
 // =====================================================
 function drawPostsynapticTerminal() {
   push();
-
-  // inward + downward shift
   translate(-95, 55);
 
   stroke(...NEURON_YELLOW);
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
 
   beginShape();
-
-  // Outer bulging edge (distal dendritic side)
   curveVertex(-230, -180);
   curveVertex(-230, -180);
   curveVertex(-270,  -90);
@@ -125,7 +119,6 @@ function drawPostsynapticTerminal() {
   curveVertex(-270,   90);
   curveVertex(-230,  180);
 
-  // Inner flattened synaptic face
   curveVertex(-170,  145);
   curveVertex(-145,   75);
   curveVertex(-140,    0);
@@ -134,8 +127,67 @@ function drawPostsynapticTerminal() {
 
   curveVertex(-230, -180);
   curveVertex(-230, -180);
-
   endShape(CLOSE);
+
+  pop();
+}
+
+// =====================================================
+// TERMINAL BRANCHES — PRESYNAPTIC (RIGHT, BEHIND)
+// =====================================================
+function drawPresynapticBranches() {
+  push();
+  translate(95, 55);
+
+  stroke(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 120);
+  noFill();
+  strokeWeight(4);
+
+  // Upper branch
+  beginShape();
+  curveVertex(240, -140);
+  curveVertex(240, -140);
+  curveVertex(300, -220);
+  curveVertex(360, -260);
+  endShape();
+
+  // Lower branch
+  beginShape();
+  curveVertex(240, 140);
+  curveVertex(240, 140);
+  curveVertex(300, 220);
+  curveVertex(360, 260);
+  endShape();
+
+  pop();
+}
+
+// =====================================================
+// TERMINAL BRANCHES — POSTSYNAPTIC (LEFT, BEHIND)
+// =====================================================
+function drawPostsynapticBranches() {
+  push();
+  translate(-95, 55);
+
+  stroke(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 120);
+  noFill();
+  strokeWeight(4);
+
+  // Upper branch
+  beginShape();
+  curveVertex(-240, -140);
+  curveVertex(-240, -140);
+  curveVertex(-300, -220);
+  curveVertex(-360, -260);
+  endShape();
+
+  // Lower branch
+  beginShape();
+  curveVertex(-240, 140);
+  curveVertex(-240, 140);
+  curveVertex(-300, 220);
+  curveVertex(-360, 260);
+  endShape();
 
   pop();
 }
