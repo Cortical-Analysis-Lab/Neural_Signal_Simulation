@@ -1,4 +1,4 @@
-console.log("🔬 SynapseView — rotated T neurons (tunable rounded corners)");
+console.log("🔬 SynapseView — rotated T neurons (bounded rounding, stable)");
 
 // =====================================================
 // COLORS
@@ -12,13 +12,9 @@ const ASTRO_PURPLE  = window.COLORS?.astrocyte ?? [185, 145, 220];
 const SYNAPSE_SCALE = 0.28;
 
 // =====================================================
-// ROUNDING CONTROL (🔥 THIS IS THE KNOB 🔥)
+// ROUNDING CONTROL (SAFE)
 // =====================================================
-const CORNER_RADIUS = 120;
-// 0   → sharp corners
-// 40  → subtle rounding
-// 140 → pill-like
-// 300 → corners disappear → near-circle
+const CORNER_RADIUS = 80;
 
 // =====================================================
 // MAIN VIEW
@@ -36,8 +32,8 @@ function drawSynapseView() {
 
   drawAstrocyticEndfoot();
 
-  drawTNeuron(+140, 55, +1); // presynaptic
-  drawTNeuron(-140, 55, -1); // postsynaptic
+  drawTNeuron(+140, 55, +1);
+  drawTNeuron(-140, 55, -1);
 
   pop();
 }
@@ -74,7 +70,7 @@ function drawAstrocyticEndfoot() {
 }
 
 // =====================================================
-// ROTATED CAPITAL T — ROUNDED OUTER BORDER
+// ROTATED CAPITAL T — BOUNDED FILLET ROUNDING
 // =====================================================
 function drawTNeuron(x, y, dir) {
   push();
@@ -84,51 +80,69 @@ function drawTNeuron(x, y, dir) {
   stroke(...NEURON_YELLOW);
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
 
-  // ---- BASE GEOMETRY ----
+  // ---- GEOMETRY ----
   const STEM_FAR  = 2000;
   const stemHalf = 40;
 
   const barHalf  = 140;
   const barThick = 340;
 
-  const R = CORNER_RADIUS;
+  // ---- SAFE CLAMPING ----
+  const rStem = min(CORNER_RADIUS, stemHalf);
+  const rBar  = min(CORNER_RADIUS, barHalf);
 
   beginShape();
 
-  // ---- TOP STEM → BAR CORNER
+  // =========================
+  // TOP STEM
+  // =========================
   vertex(STEM_FAR, -stemHalf);
-  vertex(barThick / 2 - R, -stemHalf);
+  vertex(barThick / 2 - rStem, -stemHalf);
+
   quadraticVertex(
     barThick / 2, -stemHalf,
-    barThick / 2, -stemHalf - R
+    barThick / 2, -stemHalf - rStem
   );
 
-  // ---- TOP BAR (FLAT)
-  vertex(barThick / 2, -barHalf + R);
+  // =========================
+  // TOP BAR (FLAT)
+  // =========================
+  vertex(barThick / 2, -barHalf + rBar);
+
   quadraticVertex(
     barThick / 2, -barHalf,
-    barThick / 2 - R, -barHalf
+    barThick / 2 - rBar, -barHalf
   );
-  vertex(R, -barHalf);
 
-  // ---- SYNAPTIC FACE (LEFT EDGE)
-  quadraticVertex(0, -barHalf, 0, -barHalf + R);
-  vertex(0, barHalf - R);
-  quadraticVertex(0, barHalf, R, barHalf);
+  vertex(rBar, -barHalf);
 
-  // ---- BOTTOM BAR
-  vertex(barThick / 2 - R, barHalf);
+  // =========================
+  // SYNAPTIC FACE (FLAT)
+  // =========================
+  quadraticVertex(0, -barHalf, 0, -barHalf + rBar);
+  vertex(0, barHalf - rBar);
+  quadraticVertex(0, barHalf, rBar, barHalf);
+
+  // =========================
+  // BOTTOM BAR
+  // =========================
+  vertex(barThick / 2 - rBar, barHalf);
+
   quadraticVertex(
     barThick / 2, barHalf,
-    barThick / 2, barHalf - R
-  );
-  vertex(barThick / 2, stemHalf + R);
-  quadraticVertex(
-    barThick / 2, stemHalf,
-    barThick / 2 + R, stemHalf
+    barThick / 2, barHalf - rBar
   );
 
-  // ---- BOTTOM STEM
+  // =========================
+  // BOTTOM STEM
+  // =========================
+  vertex(barThick / 2, stemHalf + rStem);
+
+  quadraticVertex(
+    barThick / 2, stemHalf,
+    barThick / 2 + rStem, stemHalf
+  );
+
   vertex(STEM_FAR, stemHalf);
 
   endShape(CLOSE);
