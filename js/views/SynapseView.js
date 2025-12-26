@@ -1,4 +1,4 @@
-console.log("🔬 SynapseView — unified continuous neurites loaded");
+console.log("🔬 SynapseView — cleaned continuous neurites");
 
 // =====================================================
 // COLORS (FROM colors.js WITH FALLBACKS)
@@ -25,10 +25,7 @@ function drawSynapseView() {
   strokeJoin(ROUND);
   strokeCap(ROUND);
 
-  // Astrocyte (LOCKED)
   drawAstrocyticEndfoot();
-
-  // Unified neurons (tube + terminal merged)
   drawPresynapticNeuron();
   drawPostsynapticNeuron();
 
@@ -67,7 +64,7 @@ function drawAstrocyticEndfoot() {
 }
 
 // =====================================================
-// PRESYNAPTIC NEURON (RIGHT — CONTINUOUS)
+// PRESYNAPTIC NEURON (RIGHT — CLEAN)
 // =====================================================
 function drawPresynapticNeuron() {
   push();
@@ -78,16 +75,18 @@ function drawPresynapticNeuron() {
 
   beginShape();
 
-  // Top edge: neurite → terminal
+  // Neurite (top edge → terminal)
   curveVertex(520, -30);
   curveVertex(520, -30);
   curveVertex(420, -40);
   curveVertex(300, -45);
-  curveVertex(230, -180);
-  curveVertex(270,  -90);
-  curveVertex(290,    0);
-  curveVertex(270,   90);
-  curveVertex(230,  180);
+
+  // Terminal outer membrane
+  curveVertex(240, -160);
+  curveVertex(280,  -80);
+  curveVertex(300,    0);
+  curveVertex(280,   80);
+  curveVertex(240,  160);
 
   // Inner synaptic face
   curveVertex(170,  145);
@@ -96,8 +95,8 @@ function drawPresynapticNeuron() {
   curveVertex(145,  -75);
   curveVertex(170, -145);
 
-  // Bottom edge: terminal → neurite
-  curveVertex(230, -180);
+  // Return along bottom edge (smooth, no crossing)
+  curveVertex(240, -160);
   curveVertex(300,  45);
   curveVertex(420,  40);
   curveVertex(520,  30);
@@ -108,7 +107,7 @@ function drawPresynapticNeuron() {
 }
 
 // =====================================================
-// POSTSYNAPTIC NEURON (LEFT — CONTINUOUS)
+// POSTSYNAPTIC NEURON (LEFT — CLEAN)
 // =====================================================
 function drawPostsynapticNeuron() {
   push();
@@ -119,16 +118,18 @@ function drawPostsynapticNeuron() {
 
   beginShape();
 
-  // Top edge
+  // Neurite
   curveVertex(-520, -30);
   curveVertex(-520, -30);
   curveVertex(-420, -40);
   curveVertex(-300, -45);
-  curveVertex(-230, -180);
-  curveVertex(-270,  -90);
-  curveVertex(-290,    0);
-  curveVertex(-270,   90);
-  curveVertex(-230,  180);
+
+  // Terminal outer membrane
+  curveVertex(-240, -160);
+  curveVertex(-280,  -80);
+  curveVertex(-300,    0);
+  curveVertex(-280,   80);
+  curveVertex(-240,  160);
 
   // Inner synaptic face
   curveVertex(-170,  145);
@@ -137,8 +138,8 @@ function drawPostsynapticNeuron() {
   curveVertex(-145,  -75);
   curveVertex(-170, -145);
 
-  // Bottom edge
-  curveVertex(-230, -180);
+  // Bottom return
+  curveVertex(-240, -160);
   curveVertex(-300,  45);
   curveVertex(-420,  40);
   curveVertex(-520,  30);
