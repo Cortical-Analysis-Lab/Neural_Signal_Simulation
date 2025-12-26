@@ -1,4 +1,4 @@
-console.log("🔬 SynapseView — rotated T neurons (nub-free fillets, final)");
+console.log("🔬 SynapseView — rotated T neurons (nub-free, stroke-safe)");
 
 // =====================================================
 // COLORS
@@ -33,7 +33,7 @@ function drawSynapseView() {
 
   drawAstrocyticEndfoot();
 
-  // ↓ Shift neurons DOWN to create astrocyte gap
+  // Shift neurons DOWN to create astrocyte gap
   drawTNeuron(+140, 120, +1);
   drawTNeuron(-140, 120, -1);
 
@@ -72,7 +72,7 @@ function drawAstrocyticEndfoot() {
 }
 
 // =====================================================
-// ROTATED CAPITAL T — NUB-FREE, TANGENT FILLETS
+// ROTATED CAPITAL T — NUB-FREE, STROKE-SAFE
 // =====================================================
 function drawTNeuron(x, y, dir) {
   push();
@@ -82,39 +82,31 @@ function drawTNeuron(x, y, dir) {
   stroke(...NEURON_YELLOW);
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
 
-  // ---- GEOMETRY ----
   const STEM_FAR  = 2000;
   const stemHalf = 40;
 
   const barHalf  = 140;
   const barThick = 340;
 
-  // ---- SAFE CLAMPING ----
   const rStem = min(CORNER_RADIUS, stemHalf);
   const rBar  = min(CORNER_RADIUS, barHalf);
 
   beginShape();
 
   // =========================
-  // TOP STEM (FLAT)
+  // TOP STEM (HORIZONTAL)
   // =========================
   vertex(STEM_FAR, -stemHalf);
-  vertex(barThick / 2 - rStem, -stemHalf);
+  vertex(barThick / 2, -stemHalf);
 
   // =========================
-  // SMOOTH STEM → BAR FILLET (NO NUB)
-  // Tangent-aligned curve
-  // =========================
-  quadraticVertex(
-    barThick / 2, -stemHalf,
-    barThick / 2, -stemHalf - rStem
-  );
-
-  // =========================
-  // TOP BAR (FLAT)
+  // DROP VERTICALLY (NO CURVE)
   // =========================
   vertex(barThick / 2, -barHalf + rBar);
 
+  // =========================
+  // TOP BAR FILLET
+  // =========================
   quadraticVertex(
     barThick / 2, -barHalf,
     barThick / 2 - rBar, -barHalf
@@ -140,15 +132,9 @@ function drawTNeuron(x, y, dir) {
   );
 
   // =========================
-  // BOTTOM STEM (SYMMETRIC)
+  // BOTTOM STEM
   // =========================
-  vertex(barThick / 2, stemHalf + rStem);
-
-  quadraticVertex(
-    barThick / 2, stemHalf,
-    barThick / 2 + rStem, stemHalf
-  );
-
+  vertex(barThick / 2, stemHalf);
   vertex(STEM_FAR, stemHalf);
 
   endShape(CLOSE);
