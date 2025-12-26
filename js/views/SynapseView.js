@@ -1,4 +1,4 @@
-console.log("🔬 SynapseView — rotated T neurons (flat bar, reduced rounding)");
+console.log("🔬 SynapseView — rotated T neurons (tunable rounded corners)");
 
 // =====================================================
 // COLORS
@@ -12,6 +12,15 @@ const ASTRO_PURPLE  = window.COLORS?.astrocyte ?? [185, 145, 220];
 const SYNAPSE_SCALE = 0.28;
 
 // =====================================================
+// ROUNDING CONTROL (🔥 THIS IS THE KNOB 🔥)
+// =====================================================
+const CORNER_RADIUS = 120;
+// 0   → sharp corners
+// 40  → subtle rounding
+// 140 → pill-like
+// 300 → corners disappear → near-circle
+
+// =====================================================
 // MAIN VIEW
 // =====================================================
 function drawSynapseView() {
@@ -22,7 +31,7 @@ function drawSynapseView() {
   scale(SYNAPSE_SCALE);
 
   strokeWeight(6);
-  strokeJoin(ROUND);   // subtle rounding only at corners
+  strokeJoin(ROUND);
   strokeCap(ROUND);
 
   drawAstrocyticEndfoot();
@@ -65,7 +74,7 @@ function drawAstrocyticEndfoot() {
 }
 
 // =====================================================
-// ROTATED CAPITAL T — FLAT BAR, LOW ROUNDING
+// ROTATED CAPITAL T — ROUNDED OUTER BORDER
 // =====================================================
 function drawTNeuron(x, y, dir) {
   push();
@@ -75,32 +84,52 @@ function drawTNeuron(x, y, dir) {
   stroke(...NEURON_YELLOW);
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
 
-  // ---- DIMENSIONS ----
-  const STEM_FAR  = 2000; // exits screen
+  // ---- BASE GEOMETRY ----
+  const STEM_FAR  = 2000;
   const stemHalf = 40;
 
   const barHalf  = 140;
   const barThick = 340;
 
+  const R = CORNER_RADIUS;
+
   beginShape();
 
-  // ---- TOP STEM
+  // ---- TOP STEM → BAR CORNER
   vertex(STEM_FAR, -stemHalf);
-  vertex(barThick / 2, -stemHalf);
+  vertex(barThick / 2 - R, -stemHalf);
+  quadraticVertex(
+    barThick / 2, -stemHalf,
+    barThick / 2, -stemHalf - R
+  );
 
-  // ---- FLAT TOP BAR (NO CURVATURE)
-  vertex(barThick / 2, -barHalf);
-  vertex(0,            -barHalf);
+  // ---- TOP BAR (FLAT)
+  vertex(barThick / 2, -barHalf + R);
+  quadraticVertex(
+    barThick / 2, -barHalf,
+    barThick / 2 - R, -barHalf
+  );
+  vertex(R, -barHalf);
 
-  // ---- SYNAPTIC FACE
-  vertex(0, +barHalf);
+  // ---- SYNAPTIC FACE (LEFT EDGE)
+  quadraticVertex(0, -barHalf, 0, -barHalf + R);
+  vertex(0, barHalf - R);
+  quadraticVertex(0, barHalf, R, barHalf);
 
-  // ---- FLAT BOTTOM BAR
-  vertex(barThick / 2, +barHalf);
+  // ---- BOTTOM BAR
+  vertex(barThick / 2 - R, barHalf);
+  quadraticVertex(
+    barThick / 2, barHalf,
+    barThick / 2, barHalf - R
+  );
+  vertex(barThick / 2, stemHalf + R);
+  quadraticVertex(
+    barThick / 2, stemHalf,
+    barThick / 2 + R, stemHalf
+  );
 
   // ---- BOTTOM STEM
-  vertex(barThick / 2, +stemHalf);
-  vertex(STEM_FAR,     +stemHalf);
+  vertex(STEM_FAR, stemHalf);
 
   endShape(CLOSE);
 
