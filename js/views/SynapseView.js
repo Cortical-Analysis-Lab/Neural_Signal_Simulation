@@ -79,8 +79,8 @@ function drawTNeuron(x, y, dir) {
   const stemLength = 180;   // ↓ 2× shorter
   const stemHalf   = 40;
 
-  const barHalf    = 700;   // ↑ 5× wider
-  const barThick   = 60;
+  const barHalf    = 140;   // ↑ 5× wider
+  const barThick   = 300;
 
   beginShape();
 
