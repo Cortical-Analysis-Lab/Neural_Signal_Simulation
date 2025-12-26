@@ -9,7 +9,7 @@ const ASTRO_PURPLE  = window.COLORS?.astrocyte ?? [185, 145, 220];
 // =====================================================
 // SYNAPSE SCALE (DO NOT CHANGE)
 // =====================================================
-const SYNAPSE_SCALE = 0.33;
+const SYNAPSE_SCALE = 0.28;
 
 // =====================================================
 // SYNAPSE VIEW — STRUCTURAL OUTLINES ONLY
