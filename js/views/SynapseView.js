@@ -1,4 +1,4 @@
-console.log("🔬 SynapseView — neurites trimmed + bouton offset (visible fix)");
+console.log("🔬 SynapseView — single-outline neurons (clean topology)");
 
 // =====================================================
 // COLORS (FROM colors.js WITH FALLBACKS)
@@ -10,10 +10,6 @@ const ASTRO_PURPLE  = window.COLORS?.astrocyte ?? [185, 145, 220];
 // SYNAPSE SCALE (DO NOT CHANGE)
 // =====================================================
 const SYNAPSE_SCALE = 0.28;
-
-// Junction plane (KEY FIX)
-const NEURITE_END   = 250;
-const BOUTON_START  = 270;
 
 // =====================================================
 // SYNAPSE VIEW — STRUCTURAL OUTLINES ONLY
@@ -68,76 +64,82 @@ function drawAstrocyticEndfoot() {
 }
 
 // =====================================================
-// PRESYNAPTIC NEURON (RIGHT — VISIBLE GAP FIX)
+// PRESYNAPTIC NEURON (RIGHT — SINGLE OUTLINE)
 // =====================================================
 function drawPresynapticNeuron() {
   push();
   translate(95, 55);
 
   stroke(...NEURON_YELLOW);
+  fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 30);
 
-  // ---- NEURITE (ENDS BEFORE BOUTON)
-  fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 25);
   beginShape();
+
+  // ---- TOP NEURITE WALL (OPEN BACK)
   vertex(600, -40);
-  vertex(NEURITE_END, -40);
-  vertex(NEURITE_END,  40);
-  vertex(600,  40);
-  endShape(CLOSE);
+  vertex(260, -40);
 
-  // ---- BOUTON (STARTS AFTER GAP)
-  fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
-  beginShape();
-
-  curveVertex(BOUTON_START, -160);
+  // ---- BOUTON OUTER CURVE
+  curveVertex(260, -160);
   curveVertex(300,  -80);
   curveVertex(320,    0);
   curveVertex(300,   80);
-  curveVertex(BOUTON_START, 160);
+  curveVertex(260,  160);
 
+  // ---- SYNAPTIC FACE
   vertex(180,  140);
   vertex(150,   80);
   vertex(150,    0);
   vertex(150,  -80);
   vertex(180, -140);
 
+  // ---- BOUTON INNER CURVE BACK TO NEURITE
+  curveVertex(260, -160);
+
+  // ---- BOTTOM NEURITE WALL (OPEN BACK)
+  vertex(260,  40);
+  vertex(600,  40);
+
   endShape(CLOSE);
   pop();
 }
 
 // =====================================================
-// POSTSYNAPTIC NEURON (LEFT — VISIBLE GAP FIX)
+// POSTSYNAPTIC NEURON (LEFT — SINGLE OUTLINE)
 // =====================================================
 function drawPostsynapticNeuron() {
   push();
   translate(-95, 55);
 
   stroke(...NEURON_YELLOW);
+  fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 30);
 
-  // ---- NEURITE (ENDS BEFORE BOUTON)
-  fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 25);
   beginShape();
+
+  // ---- TOP NEURITE WALL (OPEN BACK)
   vertex(-600, -40);
-  vertex(-NEURITE_END, -40);
-  vertex(-NEURITE_END,  40);
-  vertex(-600,  40);
-  endShape(CLOSE);
+  vertex(-260, -40);
 
-  // ---- BOUTON (STARTS AFTER GAP)
-  fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
-  beginShape();
-
-  curveVertex(-BOUTON_START, -160);
+  // ---- BOUTON OUTER CURVE
+  curveVertex(-260, -160);
   curveVertex(-300,  -80);
   curveVertex(-320,    0);
   curveVertex(-300,   80);
-  curveVertex(-BOUTON_START, 160);
+  curveVertex(-260,  160);
 
+  // ---- SYNAPTIC FACE
   vertex(-180,  140);
   vertex(-150,   80);
   vertex(-150,    0);
   vertex(-150,  -80);
   vertex(-180, -140);
+
+  // ---- BOUTON INNER CURVE BACK TO NEURITE
+  curveVertex(-260, -160);
+
+  // ---- BOTTOM NEURITE WALL (OPEN BACK)
+  vertex(-260,  40);
+  vertex(-600,  40);
 
   endShape(CLOSE);
   pop();
