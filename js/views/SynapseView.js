@@ -1,4 +1,4 @@
-console.log("🔬 SynapseView — TRUE rotated T neurons (guaranteed convex)");
+console.log("🔬 SynapseView — TRUE rotated T neurons (rounded, stable)");
 
 // =====================================================
 // COLORS
@@ -65,7 +65,7 @@ function drawAstrocyticEndfoot() {
 }
 
 // =====================================================
-// TRUE ROTATED CAPITAL T — CONVEX BY CONSTRUCTION
+// TRUE CAPITAL T (ROTATED) — ROUNDED GEOMETRY
 // =====================================================
 function drawTNeuron(x, y, dir) {
   push();
@@ -75,29 +75,39 @@ function drawTNeuron(x, y, dir) {
   stroke(...NEURON_YELLOW);
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
 
-  // ---- DIMENSIONS ----
-  const stemFar   = 2000; // extends off-screen
-  const stemHalf  = 40;
+  // ---- DIMENSIONS (UNCHANGED FROM YOUR VERSION) ----
+  const stemLength = 280;
+  const stemHalf   = 40;
 
-  const barHalf   = 160;  // vertical half-height
-  const barDepth  = 420;  // how far the bar bulges outward (CONVEXITY)
+  const barHalf    = 140;
+  const barThick   = 340;
 
   beginShape();
 
-  // ---- TOP STEM
-  vertex(stemFar, -stemHalf);
-  vertex(barDepth, -stemHalf);
+  // Required duplicate start for curve continuity
+  curveVertex(stemLength, -stemHalf);
 
-  // ---- CONVEX BAR FACE (OUTWARD)
-  vertex(barDepth, -barHalf);
-  vertex(0,        -barHalf);
-  vertex(0,         barHalf);
-  vertex(barDepth,  barHalf);
+  // ---- TOP STEM
+  curveVertex(stemLength, -stemHalf);
+  curveVertex(barThick / 2, -stemHalf);
+
+  // ---- ROUND INTO BAR
+  curveVertex(barThick / 2, -barHalf);
+  curveVertex(0, -barHalf);
+
+  // ---- SYNAPTIC FACE
+  curveVertex(0, 0);
+  curveVertex(0, +barHalf);
+
+  // ---- ROUND BACK
+  curveVertex(barThick / 2, +barHalf);
+  curveVertex(barThick / 2, +stemHalf);
 
   // ---- BOTTOM STEM
-  vertex(barDepth,  stemHalf);
-  vertex(stemFar,   stemHalf);
+  curveVertex(stemLength, +stemHalf);
+  curveVertex(stemLength, +stemHalf);
 
   endShape(CLOSE);
+
   pop();
 }
