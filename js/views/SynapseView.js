@@ -1,4 +1,4 @@
-console.log("🔬 SynapseView — filled open neurites, trimmed at bouton");
+console.log("🔬 SynapseView — neurites trimmed flush at bouton opening");
 
 // =====================================================
 // COLORS (FROM colors.js WITH FALLBACKS)
@@ -64,7 +64,7 @@ function drawAstrocyticEndfoot() {
 }
 
 // =====================================================
-// PRESYNAPTIC NEURON (RIGHT)
+// PRESYNAPTIC NEURON (RIGHT — CLEAN TRIM)
 // =====================================================
 function drawPresynapticNeuron() {
   push();
@@ -72,13 +72,13 @@ function drawPresynapticNeuron() {
 
   stroke(...NEURON_YELLOW);
 
-  // ---- NEURITE (FILLED OPEN TUBE, TRIMMED)
+  // ---- NEURITE (FILLED, FLUSH CUT)
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 25);
   beginShape();
-  vertex(600, -40);   // back top
-  vertex(260, -40);   // front top (STOP before bouton)
-  vertex(260,  40);   // front bottom
-  vertex(600,  40);   // back bottom
+  vertex(600, -40);
+  vertex(260, -40);   // STOP EXACTLY AT OPENING
+  vertex(260,  40);
+  vertex(600,  40);
   endShape(CLOSE);
 
   // ---- BOUTON (OPEN BACK)
@@ -102,7 +102,7 @@ function drawPresynapticNeuron() {
 }
 
 // =====================================================
-// POSTSYNAPTIC NEURON (LEFT)
+// POSTSYNAPTIC NEURON (LEFT — CLEAN TRIM)
 // =====================================================
 function drawPostsynapticNeuron() {
   push();
@@ -110,13 +110,13 @@ function drawPostsynapticNeuron() {
 
   stroke(...NEURON_YELLOW);
 
-  // ---- NEURITE (FILLED OPEN TUBE, TRIMMED)
+  // ---- NEURITE (FILLED, FLUSH CUT)
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 25);
   beginShape();
-  vertex(-600, -40);  // back top
-  vertex(-260, -40);  // front top (STOP before bouton)
-  vertex(-260,  40);  // front bottom
-  vertex(-600,  40);  // back bottom
+  vertex(-600, -40);
+  vertex(-260, -40);  // STOP EXACTLY AT OPENING
+  vertex(-260,  40);
+  vertex(-600,  40);
   endShape(CLOSE);
 
   // ---- BOUTON (OPEN BACK)
