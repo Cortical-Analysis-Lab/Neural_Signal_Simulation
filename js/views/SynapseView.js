@@ -75,7 +75,7 @@ function drawPresynapticNeuron() {
 
   beginShape();
 
-  // Neurite top edge — straight back
+  // Neurite (top edge)
   vertex(600, -40);
   vertex(260, -40);
 
@@ -86,14 +86,14 @@ function drawPresynapticNeuron() {
   curveVertex(300,   80);
   curveVertex(260,  160);
 
-  // Synaptic face (flattened)
-  curveVertex(180,  145);
-  curveVertex(155,   75);
-  curveVertex(150,    0);
-  curveVertex(155,  -75);
-  curveVertex(180, -145);
+  // Synaptic face (flat, no loop)
+  vertex(180,  140);
+  vertex(150,   80);
+  vertex(150,    0);
+  vertex(150,  -80);
+  vertex(180, -140);
 
-  // Return to neurite bottom edge
+  // Close back to neurite
   curveVertex(260, -160);
   vertex(260,  40);
   vertex(600,  40);
@@ -114,7 +114,7 @@ function drawPostsynapticNeuron() {
 
   beginShape();
 
-  // Neurite top edge — straight back
+  // Neurite (top edge)
   vertex(-600, -40);
   vertex(-260, -40);
 
@@ -125,14 +125,14 @@ function drawPostsynapticNeuron() {
   curveVertex(-300,   80);
   curveVertex(-260,  160);
 
-  // Synaptic face (flattened)
-  curveVertex(-180,  145);
-  curveVertex(-155,   75);
-  curveVertex(-150,    0);
-  curveVertex(-155,  -75);
-  curveVertex(-180, -145);
+  // Synaptic face (flat, mirrored)
+  vertex(-180,  140);
+  vertex(-150,   80);
+  vertex(-150,    0);
+  vertex(-150,  -80);
+  vertex(-180, -140);
 
-  // Return to neurite bottom edge
+  // Close back to neurite
   curveVertex(-260, -160);
   vertex(-260,  40);
   vertex(-600,  40);
