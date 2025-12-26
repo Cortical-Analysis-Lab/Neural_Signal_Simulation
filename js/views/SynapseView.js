@@ -1,4 +1,4 @@
-console.log("🔬 SynapseView — neurites trimmed flush at bouton opening");
+console.log("🔬 SynapseView — neurites trimmed + bouton offset (visible fix)");
 
 // =====================================================
 // COLORS (FROM colors.js WITH FALLBACKS)
@@ -10,6 +10,10 @@ const ASTRO_PURPLE  = window.COLORS?.astrocyte ?? [185, 145, 220];
 // SYNAPSE SCALE (DO NOT CHANGE)
 // =====================================================
 const SYNAPSE_SCALE = 0.28;
+
+// Junction plane (KEY FIX)
+const NEURITE_END   = 250;
+const BOUTON_START  = 270;
 
 // =====================================================
 // SYNAPSE VIEW — STRUCTURAL OUTLINES ONLY
@@ -64,7 +68,7 @@ function drawAstrocyticEndfoot() {
 }
 
 // =====================================================
-// PRESYNAPTIC NEURON (RIGHT — CLEAN TRIM)
+// PRESYNAPTIC NEURON (RIGHT — VISIBLE GAP FIX)
 // =====================================================
 function drawPresynapticNeuron() {
   push();
@@ -72,24 +76,24 @@ function drawPresynapticNeuron() {
 
   stroke(...NEURON_YELLOW);
 
-  // ---- NEURITE (FILLED, FLUSH CUT)
+  // ---- NEURITE (ENDS BEFORE BOUTON)
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 25);
   beginShape();
   vertex(600, -40);
-  vertex(260, -40);   // STOP EXACTLY AT OPENING
-  vertex(260,  40);
+  vertex(NEURITE_END, -40);
+  vertex(NEURITE_END,  40);
   vertex(600,  40);
   endShape(CLOSE);
 
-  // ---- BOUTON (OPEN BACK)
+  // ---- BOUTON (STARTS AFTER GAP)
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
   beginShape();
 
-  curveVertex(260, -160);
+  curveVertex(BOUTON_START, -160);
   curveVertex(300,  -80);
   curveVertex(320,    0);
   curveVertex(300,   80);
-  curveVertex(260,  160);
+  curveVertex(BOUTON_START, 160);
 
   vertex(180,  140);
   vertex(150,   80);
@@ -102,7 +106,7 @@ function drawPresynapticNeuron() {
 }
 
 // =====================================================
-// POSTSYNAPTIC NEURON (LEFT — CLEAN TRIM)
+// POSTSYNAPTIC NEURON (LEFT — VISIBLE GAP FIX)
 // =====================================================
 function drawPostsynapticNeuron() {
   push();
@@ -110,24 +114,24 @@ function drawPostsynapticNeuron() {
 
   stroke(...NEURON_YELLOW);
 
-  // ---- NEURITE (FILLED, FLUSH CUT)
+  // ---- NEURITE (ENDS BEFORE BOUTON)
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 25);
   beginShape();
   vertex(-600, -40);
-  vertex(-260, -40);  // STOP EXACTLY AT OPENING
-  vertex(-260,  40);
+  vertex(-NEURITE_END, -40);
+  vertex(-NEURITE_END,  40);
   vertex(-600,  40);
   endShape(CLOSE);
 
-  // ---- BOUTON (OPEN BACK)
+  // ---- BOUTON (STARTS AFTER GAP)
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
   beginShape();
 
-  curveVertex(-260, -160);
+  curveVertex(-BOUTON_START, -160);
   curveVertex(-300,  -80);
   curveVertex(-320,    0);
   curveVertex(-300,   80);
-  curveVertex(-260,  160);
+  curveVertex(-BOUTON_START, 160);
 
   vertex(-180,  140);
   vertex(-150,   80);
