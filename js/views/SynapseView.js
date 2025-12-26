@@ -1,113 +1,127 @@
-console.log("🔬 SynapseView — STRUCTURAL TRIPARTITE OUTLINE loaded");
+console.log("🔬 SynapseView (clean structural outline) loaded");
 
 // =====================================================
-// SYNAPSE VIEW — STRUCTURE ONLY (NO DYNAMICS)
+// SYNAPSE VIEW — STRUCTURAL OUTLINES ONLY
 // =====================================================
-// Goal:
-// • Match canonical tripartite synapse diagram (image 3)
-// • Vertical orientation
-// • Outlines only
-// • No particles, no animation, no labels
+// ✔ Zoomed out 3×
+// ✔ Yellow pre & post synaptic terminals (flattened)
+// ✔ Blue astrocytic endfoot (sheet-like)
+// ✔ Clear extracellular gaps
+// ✘ No bars
+// ✘ No particles
+// ✘ No receptors
+// ✘ No labels
 // =====================================================
 
-function drawSynapseView(state) {
 
-  if (!window.synapseFocus) {
-    drawNoSynapseMessage();
-    return;
-  }
+// =====================================================
+// GLOBAL SCALE (ZOOMED OUT)
+// =====================================================
+const SYN_SCALE = 0.33;
 
-  const s = window.synapseFocus;
 
+// =====================================================
+// ENTRY POINT
+// =====================================================
+function drawSynapseView() {
   push();
-  translate(s.x, s.y);
+  scale(SYN_SCALE);
 
-  drawAstrocyticProcessOutline();
-  drawPresynapticOutline();
-  drawSynapticCleftOutline();
-  drawPostsynapticOutline();
+  noFill();
+  strokeWeight(4);
+  strokeJoin(ROUND);
+  strokeCap(ROUND);
+
+  drawAstrocyticEndfoot();
+  drawPresynapticTerminal();
+  drawPostsynapticTerminal();
 
   pop();
 }
 
+
 // =====================================================
-// FALLBACK
+// ASTROCYTIC ENDFOOT (BLUE, ABOVE, SHEET-LIKE)
 // =====================================================
-function drawNoSynapseMessage() {
+function drawAstrocyticEndfoot() {
+
   push();
-  fill(180);
-  noStroke();
-  textAlign(CENTER, CENTER);
-  textSize(18);
-  text("No synapse selected", camera.x, camera.y);
+  translate(0, -260);
+  stroke(120, 170, 210); // astrocyte blue
+
+  beginShape();
+  vertex(-360, -60);
+  vertex(-260, -120);
+  vertex(-120, -150);
+  vertex( 120, -150);
+  vertex( 260, -120);
+  vertex( 360,  -60);
+  vertex( 320,   20);
+  vertex( 220,   80);
+  vertex( 100,  110);
+  vertex( -80,  110);
+  vertex(-220,   80);
+  vertex(-320,   20);
+  endShape(CLOSE);
+
+  // Endfoot projection toward synapse (STOPPED SHORT → GAP)
+  beginShape();
+  vertex(-80,  110);
+  vertex( 80,  110);
+  vertex( 60,  190);
+  vertex(  0,  220);
+  vertex(-60,  190);
+  endShape(CLOSE);
+
   pop();
 }
 
+
 // =====================================================
-// PRESYNAPTIC TERMINAL (TOP)
+// PRESYNAPTIC TERMINAL (YELLOW, FLATTENED)
 // =====================================================
-function drawPresynapticOutline() {
+function drawPresynapticTerminal() {
 
-  const y = -140;
+  push();
+  translate(260, 0);
+  stroke(235, 215, 120); // neuron yellow
 
-  noFill();
-  stroke(140, 170, 230);
-  strokeWeight(4);
+  beginShape();
+  vertex( 200, -80);
+  vertex( 120, -140);
+  vertex( -40, -120);
+  vertex(-120,  -40);
+  vertex(-140,    0);
+  vertex(-120,   40);
+  vertex( -40,  120);
+  vertex( 120,  140);
+  vertex( 200,   80);
+  endShape(CLOSE);
 
-  // Bouton body
-  ellipse(0, y, 240, 170);
-
-  // Active zone (flat membrane)
-  strokeWeight(6);
-  line(-70, y + 70, 70, y + 70);
+  pop();
 }
 
-// =====================================================
-// SYNAPTIC CLEFT (THIN GAP)
-// =====================================================
-function drawSynapticCleftOutline() {
-
-  const y = -30;
-
-  noFill();
-  stroke(120);
-  strokeWeight(3);
-
-  rect(-90, y, 180, 12, 6);
-}
 
 // =====================================================
-// POSTSYNAPTIC SPINE (BOTTOM)
+// POSTSYNAPTIC TERMINAL (YELLOW, FLATTENED)
 // =====================================================
-function drawPostsynapticOutline() {
+function drawPostsynapticTerminal() {
 
-  const y = 110;
+  push();
+  translate(-260, 0);
+  stroke(235, 215, 120); // neuron yellow
 
-  noFill();
-  stroke(190, 150, 150);
-  strokeWeight(4);
+  beginShape();
+  vertex(-200, -80);
+  vertex(-120, -140);
+  vertex(  40, -120);
+  vertex( 120,  -40);
+  vertex( 140,    0);
+  vertex( 120,   40);
+  vertex(  40,  120);
+  vertex(-120,  140);
+  vertex(-200,   80);
+  endShape(CLOSE);
 
-  // Spine head
-  ellipse(0, y, 210, 150);
-
-  // Postsynaptic density (PSD)
-  strokeWeight(6);
-  line(-70, y - 75, 70, y - 75);
-}
-
-// =====================================================
-// ASTROCYTIC PROCESS (ABOVE + WRAPPING)
-// =====================================================
-function drawAstrocyticProcessOutline() {
-
-  noFill();
-  stroke(120, 200, 160);
-  strokeWeight(6);
-
-  // Overhead astrocytic process
-  arc(0, -210, 320, 160, 0, PI);
-
-  // Lateral processes (ensheathment)
-  arc(-150, -30, 180, 280, -HALF_PI, HALF_PI);
-  arc(150, -30, 180, 280, HALF_PI, PI + HALF_PI);
+  pop();
 }
