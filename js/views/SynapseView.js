@@ -1,4 +1,4 @@
-console.log("🔬 SynapseView — TRUE rotated T neurons (rounded, stable)");
+console.log("🔬 SynapseView — TRUE rotated T neurons (edge-reaching, convex top)");
 
 // =====================================================
 // COLORS
@@ -65,7 +65,7 @@ function drawAstrocyticEndfoot() {
 }
 
 // =====================================================
-// TRUE CAPITAL T (ROTATED) — ROUNDED GEOMETRY
+// TRUE ROTATED CAPITAL T — FIXED GEOMETRY
 // =====================================================
 function drawTNeuron(x, y, dir) {
   push();
@@ -75,39 +75,40 @@ function drawTNeuron(x, y, dir) {
   stroke(...NEURON_YELLOW);
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
 
-  // ---- DIMENSIONS (UNCHANGED FROM YOUR VERSION) ----
-  const stemLength = 280;
-  const stemHalf   = 40;
+  // ---- DIMENSIONS ----
+  const stemFar   = 2000; // extends well past screen edge
+  const stemHalf  = 40;
 
-  const barHalf    = 140;
-  const barThick   = 340;
+  const barHalf   = 140;
+  const barThick  = 340;
+
+  const convexOut = 40;  // convex bulge amount
 
   beginShape();
 
-  // Required duplicate start for curve continuity
-  curveVertex(stemLength, -stemHalf);
+  // duplicate start for curve continuity
+  curveVertex(stemFar, -stemHalf);
 
   // ---- TOP STEM
-  curveVertex(stemLength, -stemHalf);
-  curveVertex(barThick / 2, -stemHalf);
+  curveVertex(stemFar, -stemHalf);
+  curveVertex(barThick / 2 + convexOut, -stemHalf);
 
-  // ---- ROUND INTO BAR
-  curveVertex(barThick / 2, -barHalf);
+  // ---- CONVEX TOP TRANSITION
+  curveVertex(barThick / 2 + convexOut, -barHalf);
   curveVertex(0, -barHalf);
 
   // ---- SYNAPTIC FACE
   curveVertex(0, 0);
   curveVertex(0, +barHalf);
 
-  // ---- ROUND BACK
-  curveVertex(barThick / 2, +barHalf);
-  curveVertex(barThick / 2, +stemHalf);
+  // ---- CONVEX BOTTOM TRANSITION
+  curveVertex(barThick / 2 + convexOut, +barHalf);
+  curveVertex(barThick / 2 + convexOut, +stemHalf);
 
   // ---- BOTTOM STEM
-  curveVertex(stemLength, +stemHalf);
-  curveVertex(stemLength, +stemHalf);
+  curveVertex(stemFar, +stemHalf);
+  curveVertex(stemFar, +stemHalf);
 
   endShape(CLOSE);
-
   pop();
 }
