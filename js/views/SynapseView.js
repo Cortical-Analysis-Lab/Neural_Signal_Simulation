@@ -1,4 +1,4 @@
-console.log("🔬 SynapseView — tubular neurite continuations loaded");
+console.log("🔬 SynapseView — unified continuous neurites loaded");
 
 // =====================================================
 // COLORS (FROM colors.js WITH FALLBACKS)
@@ -28,13 +28,9 @@ function drawSynapseView() {
   // Astrocyte (LOCKED)
   drawAstrocyticEndfoot();
 
-  // Neurite continuations (behind)
-  drawPresynapticTube();
-  drawPostsynapticTube();
-
-  // Neuronal membranes
-  drawPresynapticTerminal();
-  drawPostsynapticTerminal();
+  // Unified neurons (tube + terminal merged)
+  drawPresynapticNeuron();
+  drawPostsynapticNeuron();
 
   pop();
 }
@@ -71,9 +67,9 @@ function drawAstrocyticEndfoot() {
 }
 
 // =====================================================
-// PRESYNAPTIC TERMINAL (RIGHT)
+// PRESYNAPTIC NEURON (RIGHT — CONTINUOUS)
 // =====================================================
-function drawPresynapticTerminal() {
+function drawPresynapticNeuron() {
   push();
   translate(95, 55);
 
@@ -81,30 +77,40 @@ function drawPresynapticTerminal() {
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
 
   beginShape();
-  curveVertex( 230, -180);
-  curveVertex( 230, -180);
-  curveVertex( 270,  -90);
-  curveVertex( 290,    0);
-  curveVertex( 270,   90);
-  curveVertex( 230,  180);
 
-  curveVertex( 170,  145);
-  curveVertex( 145,   75);
-  curveVertex( 140,    0);
-  curveVertex( 145,  -75);
-  curveVertex( 170, -145);
+  // Top edge: neurite → terminal
+  curveVertex(520, -30);
+  curveVertex(520, -30);
+  curveVertex(420, -40);
+  curveVertex(300, -45);
+  curveVertex(230, -180);
+  curveVertex(270,  -90);
+  curveVertex(290,    0);
+  curveVertex(270,   90);
+  curveVertex(230,  180);
 
-  curveVertex( 230, -180);
-  curveVertex( 230, -180);
+  // Inner synaptic face
+  curveVertex(170,  145);
+  curveVertex(145,   75);
+  curveVertex(140,    0);
+  curveVertex(145,  -75);
+  curveVertex(170, -145);
+
+  // Bottom edge: terminal → neurite
+  curveVertex(230, -180);
+  curveVertex(300,  45);
+  curveVertex(420,  40);
+  curveVertex(520,  30);
+  curveVertex(520,  30);
+
   endShape(CLOSE);
-
   pop();
 }
 
 // =====================================================
-// POSTSYNAPTIC TERMINAL (LEFT)
+// POSTSYNAPTIC NEURON (LEFT — CONTINUOUS)
 // =====================================================
-function drawPostsynapticTerminal() {
+function drawPostsynapticNeuron() {
   push();
   translate(-95, 55);
 
@@ -112,70 +118,32 @@ function drawPostsynapticTerminal() {
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
 
   beginShape();
-  curveVertex(-230, -180);
+
+  // Top edge
+  curveVertex(-520, -30);
+  curveVertex(-520, -30);
+  curveVertex(-420, -40);
+  curveVertex(-300, -45);
   curveVertex(-230, -180);
   curveVertex(-270,  -90);
   curveVertex(-290,    0);
   curveVertex(-270,   90);
   curveVertex(-230,  180);
 
+  // Inner synaptic face
   curveVertex(-170,  145);
   curveVertex(-145,   75);
   curveVertex(-140,    0);
   curveVertex(-145,  -75);
   curveVertex(-170, -145);
 
+  // Bottom edge
   curveVertex(-230, -180);
-  curveVertex(-230, -180);
-  endShape(CLOSE);
-
-  pop();
-}
-
-// =====================================================
-// PRESYNAPTIC NEURITE TUBE (STRAIGHT BACK)
-// =====================================================
-function drawPresynapticTube() {
-  push();
-  translate(95, 55);
-
-  stroke(...NEURON_YELLOW);
-  fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 30);
-
-  beginShape();
-  curveVertex(300, -45);
-  curveVertex(300, -45);
-  curveVertex(420, -40);
-  curveVertex(520, -30);
-  curveVertex(520,  30);
-  curveVertex(420,  40);
-  curveVertex(300,  45);
-  curveVertex(300,  45);
-  endShape(CLOSE);
-
-  pop();
-}
-
-// =====================================================
-// POSTSYNAPTIC NEURITE TUBE (STRAIGHT BACK)
-// =====================================================
-function drawPostsynapticTube() {
-  push();
-  translate(-95, 55);
-
-  stroke(...NEURON_YELLOW);
-  fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 30);
-
-  beginShape();
-  curveVertex(-300, -45);
-  curveVertex(-300, -45);
-  curveVertex(-420, -40);
-  curveVertex(-520, -30);
-  curveVertex(-520,  30);
+  curveVertex(-300,  45);
   curveVertex(-420,  40);
-  curveVertex(-300,  45);
-  curveVertex(-300,  45);
-  endShape(CLOSE);
+  curveVertex(-520,  30);
+  curveVertex(-520,  30);
 
+  endShape(CLOSE);
   pop();
 }
