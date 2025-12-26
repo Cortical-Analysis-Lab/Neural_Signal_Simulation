@@ -99,14 +99,14 @@ function drawTNeuron(x, y, dir) {
   vertex(STEM_FAR, -stemHalf);
   vertex(barThick / 2 - rStem, -stemHalf);
 
-  // ✅ Correct stem → bar fillet
+  // ✅ FIXED: direction-neutral fillet (NO dir here)
   quadraticVertex(
     barThick / 2, -stemHalf,
-    barThick / 2 - dir * rStem, -stemHalf + rStem
+    barThick / 2 - rStem, -stemHalf + rStem
   );
 
   // =========================
-  // TOP BAR (FLAT, NO HOOK)
+  // TOP BAR (FLAT)
   // =========================
   vertex(barThick / 2, -barHalf + rBar);
 
