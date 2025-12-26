@@ -1,4 +1,4 @@
-console.log("🔬 SynapseView — open neurites & open-back boutons");
+console.log("🔬 SynapseView — filled open neurites, trimmed at bouton");
 
 // =====================================================
 // COLORS (FROM colors.js WITH FALLBACKS)
@@ -33,7 +33,7 @@ function drawSynapseView() {
 }
 
 // =====================================================
-// ASTROCYTIC ENDFOOT (LOCKED — DO NOT MODIFY)
+// ASTROCYTIC ENDFOOT (LOCKED)
 // =====================================================
 function drawAstrocyticEndfoot() {
   push();
@@ -64,39 +64,33 @@ function drawAstrocyticEndfoot() {
 }
 
 // =====================================================
-// PRESYNAPTIC NEURON (RIGHT — OPEN NEURITE + OPEN BACK)
+// PRESYNAPTIC NEURON (RIGHT)
 // =====================================================
 function drawPresynapticNeuron() {
   push();
   translate(95, 55);
 
   stroke(...NEURON_YELLOW);
-  noFill();
 
-  // ---- NEURITE (OPEN TUBE — TOP EDGE)
+  // ---- NEURITE (FILLED OPEN TUBE, TRIMMED)
+  fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 25);
   beginShape();
-  vertex(600, -40);
-  vertex(260, -40);
-  endShape();
-
-  // ---- NEURITE (OPEN TUBE — BOTTOM EDGE)
-  beginShape();
-  vertex(600, 40);
-  vertex(260, 40);
-  endShape();
+  vertex(600, -40);   // back top
+  vertex(260, -40);   // front top (STOP before bouton)
+  vertex(260,  40);   // front bottom
+  vertex(600,  40);   // back bottom
+  endShape(CLOSE);
 
   // ---- BOUTON (OPEN BACK)
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
   beginShape();
 
-  // Outer curved contour
   curveVertex(260, -160);
   curveVertex(300,  -80);
   curveVertex(320,    0);
   curveVertex(300,   80);
   curveVertex(260,  160);
 
-  // Flattened synaptic face
   vertex(180,  140);
   vertex(150,   80);
   vertex(150,    0);
@@ -108,39 +102,33 @@ function drawPresynapticNeuron() {
 }
 
 // =====================================================
-// POSTSYNAPTIC NEURON (LEFT — OPEN NEURITE + OPEN BACK)
+// POSTSYNAPTIC NEURON (LEFT)
 // =====================================================
 function drawPostsynapticNeuron() {
   push();
   translate(-95, 55);
 
   stroke(...NEURON_YELLOW);
-  noFill();
 
-  // ---- NEURITE (OPEN TUBE — TOP EDGE)
+  // ---- NEURITE (FILLED OPEN TUBE, TRIMMED)
+  fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 25);
   beginShape();
-  vertex(-600, -40);
-  vertex(-260, -40);
-  endShape();
-
-  // ---- NEURITE (OPEN TUBE — BOTTOM EDGE)
-  beginShape();
-  vertex(-600, 40);
-  vertex(-260, 40);
-  endShape();
+  vertex(-600, -40);  // back top
+  vertex(-260, -40);  // front top (STOP before bouton)
+  vertex(-260,  40);  // front bottom
+  vertex(-600,  40);  // back bottom
+  endShape(CLOSE);
 
   // ---- BOUTON (OPEN BACK)
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
   beginShape();
 
-  // Outer curved contour
   curveVertex(-260, -160);
   curveVertex(-300,  -80);
   curveVertex(-320,    0);
   curveVertex(-300,   80);
   curveVertex(-260,  160);
 
-  // Flattened synaptic face
   vertex(-180,  140);
   vertex(-150,   80);
   vertex(-150,    0);
