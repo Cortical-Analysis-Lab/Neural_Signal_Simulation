@@ -99,7 +99,7 @@ function drawTNeuron(x, y, dir) {
   vertex(barThick / 2, -stemHalf);
 
   // ✅ FIX: vertical transition only (mirror safe)
-  vertex(barThick / 2, -stemHalf + rStem);
+  vertex(barThick / 2, -barHalf + rBar);
 
   // TOP BAR
   vertex(barThick / 2, -barHalf + rBar);
