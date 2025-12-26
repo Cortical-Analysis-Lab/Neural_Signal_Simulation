@@ -1,15 +1,10 @@
-console.log("🔬 SynapseView — scaled endfoot morphology loaded");
+console.log("🔬 SynapseView — biologically corrected tripartite morphology loaded");
 
 // =====================================================
 // COLORS (FROM colors.js WITH FALLBACKS)
 // =====================================================
 const NEURON_YELLOW = window.COLORS?.neuron ?? [245, 225, 140];
 const ASTRO_PURPLE  = window.COLORS?.astrocyte ?? [185, 145, 220];
-
-// =====================================================
-// GLOBAL SCALE (TRUE 3× REDUCTION)
-// =====================================================
-const SYNAPSE_SCALE = 0.33;
 
 // =====================================================
 // SYNAPSE VIEW — STRUCTURAL OUTLINES ONLY
@@ -21,105 +16,120 @@ function drawSynapseView() {
 
   push();
   translate(window.synapseFocus.x, window.synapseFocus.y);
-  scale(SYNAPSE_SCALE);
 
   strokeWeight(6);
   strokeJoin(ROUND);
   strokeCap(ROUND);
 
-  // Astrocytic endfoot (above)
-  drawMembrane({
-    x: 0,
-    y: -90,
-    w: 300,
-    h: 140,
-    flatten: 0.9,
-    cleftSide: "bottom",
-    color: ASTRO_PURPLE,
-    alpha: 45
-  });
-
-  // Presynaptic endfoot (right)
-  drawMembrane({
-    x: 135,
-    y: 0,
-    w: 260,
-    h: 120,
-    flatten: 0.25,          // 🔑 very flat at cleft
-    cleftSide: "left",
-    color: NEURON_YELLOW,
-    alpha: 35
-  });
-
-  // Postsynaptic endfoot (left)
-  drawMembrane({
-    x: -135,
-    y: 0,
-    w: 260,
-    h: 120,
-    flatten: 0.25,
-    cleftSide: "right",
-    color: NEURON_YELLOW,
-    alpha: 35
-  });
+  drawAstrocyticEndfoot();
+  drawPresynapticTerminal();
+  drawPostsynapticTerminal();
 
   pop();
 }
 
 // =====================================================
-// GENERIC MEMBRANE / ENDFOOT SHAPE
+// ASTROCYTIC ENDFOOT (LAMINAR, ABOVE SYNAPSE)
 // =====================================================
-function drawMembrane({
-  x = 0,
-  y = 0,
-  w = 200,
-  h = 100,
-  flatten = 0.4,
-  cleftSide = "none", // left | right | top | bottom
-  color = [255, 255, 255],
-  alpha = 40
-}) {
+function drawAstrocyticEndfoot() {
   push();
-  translate(x, y);
+  translate(0, -120);
 
-  stroke(...color);
-  fill(color[0], color[1], color[2], alpha);
-
-  const hw = w / 2;
-  const hh = h / 2;
-
-  // Flattening bias toward cleft
-  const flat = flatten;
-  const round = 1.0;
+  stroke(...ASTRO_PURPLE);
+  fill(ASTRO_PURPLE[0], ASTRO_PURPLE[1], ASTRO_PURPLE[2], 45);
 
   beginShape();
+  curveVertex(-220, -30);
+  curveVertex(-220, -30);
 
-  // TOP
-  curveVertex(-hw * round, -hh * (cleftSide === "top" ? flat : round));
-  curveVertex(-hw * round, -hh * (cleftSide === "top" ? flat : round));
-  curveVertex(-hw * 0.4,   -hh * round);
-  curveVertex(0,           -hh * round);
-  curveVertex(hw * 0.4,    -hh * round);
-  curveVertex(hw * round,  -hh * (cleftSide === "top" ? flat : round));
+  curveVertex(-160, -90);
+  curveVertex( -60, -120);
+  curveVertex(   0, -125);
+  curveVertex(  60, -120);
+  curveVertex( 160,  -90);
 
-  // RIGHT
-  curveVertex(hw * (cleftSide === "right" ? flat : round), -hh * 0.2);
-  curveVertex(hw * (cleftSide === "right" ? flat : round),  hh * 0.2);
+  curveVertex( 220,  -30);
+  curveVertex( 200,   20);
+  curveVertex( 120,   55);
+  curveVertex(   0,   65);
+  curveVertex(-120,   55);
+  curveVertex(-200,   20);
 
-  // BOTTOM
-  curveVertex(hw * round,  hh * (cleftSide === "bottom" ? flat : round));
-  curveVertex(hw * 0.4,    hh * round);
-  curveVertex(0,           hh * round);
-  curveVertex(-hw * 0.4,   hh * round);
-  curveVertex(-hw * round, hh * (cleftSide === "bottom" ? flat : round));
-
-  // LEFT
-  curveVertex(-hw * (cleftSide === "left" ? flat : round),  hh * 0.2);
-  curveVertex(-hw * (cleftSide === "left" ? flat : round), -hh * 0.2);
-
-  curveVertex(-hw * round, -hh * (cleftSide === "top" ? flat : round));
-  curveVertex(-hw * round, -hh * (cleftSide === "top" ? flat : round));
-
+  curveVertex(-220, -30);
+  curveVertex(-220, -30);
   endShape(CLOSE);
+
+  pop();
+}
+
+// =====================================================
+// PRESYNAPTIC TERMINAL (RIGHT — OBLONG, FLAT LEFT FACE)
+// =====================================================
+function drawPresynapticTerminal() {
+  push();
+  translate(150, 0);
+
+  stroke(...NEURON_YELLOW);
+  fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
+
+  beginShape();
+  curveVertex( 140, -60);
+  curveVertex( 140, -60);
+
+  // Rounded outer edge
+  curveVertex( 110, -95);
+  curveVertex(  40, -115);
+  curveVertex( -30, -100);
+
+  // Flattened cleft face
+  curveVertex( -90, -40);
+  curveVertex(-100,   0);
+  curveVertex( -90,  40);
+
+  // Rounded bottom
+  curveVertex( -30, 100);
+  curveVertex(  40, 115);
+  curveVertex( 110,  95);
+
+  curveVertex( 140,  60);
+  curveVertex( 140, -60);
+  endShape(CLOSE);
+
+  pop();
+}
+
+// =====================================================
+// POSTSYNAPTIC TERMINAL (LEFT — OBLONG, FLAT RIGHT FACE)
+// =====================================================
+function drawPostsynapticTerminal() {
+  push();
+  translate(-150, 0);
+
+  stroke(...NEURON_YELLOW);
+  fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
+
+  beginShape();
+  curveVertex(-140, -60);
+  curveVertex(-140, -60);
+
+  // Rounded outer edge
+  curveVertex(-110, -95);
+  curveVertex( -40, -115);
+  curveVertex(  30, -100);
+
+  // Flattened cleft face
+  curveVertex(  90, -40);
+  curveVertex( 100,   0);
+  curveVertex(  90,  40);
+
+  // Rounded bottom
+  curveVertex(  30, 100);
+  curveVertex( -40, 115);
+  curveVertex(-110,  95);
+
+  curveVertex(-140,  60);
+  curveVertex(-140, -60);
+  endShape(CLOSE);
+
   pop();
 }
