@@ -72,6 +72,9 @@ function drawAstrocyticEndfoot() {
 // =====================================================
 // ROTATED CAPITAL T — CLEAN, MIRROR-SAFE FILLETS
 // =====================================================
+// =====================================================
+// ROTATED CAPITAL T — MIRROR-SAFE STEM CONNECTION
+// =====================================================
 function drawTNeuron(x, y, dir) {
   push();
   translate(x, y);
@@ -80,36 +83,26 @@ function drawTNeuron(x, y, dir) {
   stroke(...NEURON_YELLOW);
   fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
 
-  // ---- GEOMETRY ----
   const STEM_FAR  = 2000;
   const stemHalf = 40;
 
   const barHalf  = 140;
   const barThick = 340;
 
-  // ---- SAFE CLAMPING ----
   const rStem = min(CORNER_RADIUS, stemHalf);
   const rBar  = min(CORNER_RADIUS, barHalf);
 
   beginShape();
 
-  // =========================
-  // TOP STEM (FLAT)
-  // =========================
+  // TOP STEM
   vertex(STEM_FAR, -stemHalf);
-  vertex(barThick / 2 - rStem, -stemHalf);
+  vertex(barThick / 2, -stemHalf);
 
-  // ✅ FIXED: direction-neutral fillet (NO dir here)
-  quadraticVertex(
-    barThick / 2, -stemHalf,
-    barThick / 2 - rStem, -stemHalf + rStem
-  );
+  // ✅ FIX: vertical transition only (mirror safe)
+  vertex(barThick / 2, -stemHalf + rStem);
 
-  // =========================
-  // TOP BAR (FLAT)
-  // =========================
+  // TOP BAR
   vertex(barThick / 2, -barHalf + rBar);
-
   quadraticVertex(
     barThick / 2, -barHalf,
     barThick / 2 - rBar, -barHalf
@@ -117,28 +110,20 @@ function drawTNeuron(x, y, dir) {
 
   vertex(rBar, -barHalf);
 
-  // =========================
   // SYNAPTIC FACE
-  // =========================
   quadraticVertex(0, -barHalf, 0, -barHalf + rBar);
   vertex(0, barHalf - rBar);
   quadraticVertex(0, barHalf, rBar, barHalf);
 
-  // =========================
   // BOTTOM BAR
-  // =========================
   vertex(barThick / 2 - rBar, barHalf);
-
   quadraticVertex(
     barThick / 2, barHalf,
     barThick / 2, barHalf - rBar
   );
 
-  // =========================
   // BOTTOM STEM
-  // =========================
   vertex(barThick / 2, stemHalf + rStem);
-
   quadraticVertex(
     barThick / 2, stemHalf,
     barThick / 2 + rStem, stemHalf
@@ -147,6 +132,6 @@ function drawTNeuron(x, y, dir) {
   vertex(STEM_FAR, stemHalf);
 
   endShape(CLOSE);
-
   pop();
 }
+
