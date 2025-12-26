@@ -102,7 +102,7 @@ function drawTNeuron(x, y, dir) {
   // ✅ FIXED: lateral fillet into bar (no upward hook)
   quadraticVertex(
     barThick / 2, -stemHalf,
-    barThick / 2, -stemHalf + rStem
+    barThick / 2 - dir * rStem, -stemHalf + rStem
   );
 
   // =========================
