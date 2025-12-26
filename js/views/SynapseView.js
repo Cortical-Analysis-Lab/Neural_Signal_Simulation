@@ -111,8 +111,8 @@ function drawTNeuron(x, y, dir) {
   vertex(barThick / 2, -barHalf + rBar);
 
   quadraticVertex(
-    barThick / 2, -barHalf,
-    barThick / 2 - rBar, -barHalf
+    barThick / 2, -stemHalf,
+    barThick / 2 - dir * rStem, -stemHalf + rStem
   );
 
   vertex(rBar, -barHalf);
