@@ -5,7 +5,7 @@ console.log("🔬 SynapseView — orchestrator loaded");
 // =====================================================
 
 // Visual scale of synapse geometry
-const SYNAPSE_SCALE = 0.28;
+const SYNAPSE_SCALE = 1.45;
 
 // Screen anchor (fraction of canvas size)
 const SYNAPSE_SCREEN_X = 0.5;
