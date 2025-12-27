@@ -28,22 +28,23 @@ function drawSynapseView() {
   if (!window.synapseFocus) return;
 
   push();
-
-  // 🔑 WORLD-SPACE OFFSET FIRST
-  translate(window.synapseFocus.x, window.synapseFocus.y + NEURON_WORLD_Y_OFFSET);
+  translate(window.synapseFocus.x, window.synapseFocus.y);
   scale(SYNAPSE_SCALE);
 
   strokeWeight(6);
   strokeJoin(ROUND);
   strokeCap(ROUND);
 
+  // Astrocyte stays fixed
   drawAstrocyticEndfoot();
 
-  drawTNeuron(+140, 120, +1);
-  drawTNeuron(-140, 120, -1);
+  // Neurons move independently
+  drawTNeuron(+140, 90, +1);  // ↑ closer to astrocyte
+  drawTNeuron(-140, 90, -1);
 
   pop();
 }
+
 
 // =====================================================
 // ASTROCYTE — TRUE NUB-FREE PATH
