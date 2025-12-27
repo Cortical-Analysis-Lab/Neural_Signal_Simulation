@@ -52,7 +52,7 @@ function drawSynapseView() {
 // =====================================================
 function drawAstrocyticEndfoot() {
   push();
-  translate(0, -120);
+  translate(0, -100);
 
   stroke(...ASTRO_PURPLE);
   fill(ASTRO_PURPLE[0], ASTRO_PURPLE[1], ASTRO_PURPLE[2], 45);
