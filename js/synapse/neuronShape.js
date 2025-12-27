@@ -1,32 +1,30 @@
-console.log("🧩 tNeuronShape loaded");
+console.log("🧠 neuronShape.js loaded");
 
 // =====================================================
-// ROTATED CAPITAL T — STROKE-SAFE GEOMETRY ONLY
+// PURE NEURON SHAPE — NO WORLD TRANSFORMS
+// Used by preSynapse.js and postSynapse.js
 // =====================================================
-function drawTNeuronShape(dir) {
+function drawNeuronShape(dir = 1) {
   push();
   scale(dir, 1);
 
-  stroke(...NEURON_YELLOW);
-  fill(NEURON_YELLOW[0], NEURON_YELLOW[1], NEURON_YELLOW[2], 35);
+  stroke(...window.COLORS?.neuron ?? [245, 225, 140]);
+  fill(245, 225, 140, 35);
 
   const STEM_FAR  = 2000;
   const stemHalf = 40;
   const barHalf  = 140;
   const barThick = 340;
-
-  const rBar = min(CORNER_RADIUS, barHalf);
+  const rBar     = min(80, barHalf);
 
   beginShape();
 
   // Stem (open)
   vertex(STEM_FAR, -stemHalf);
   vertex(barThick / 2, -stemHalf);
-
-  // Vertical drop (no curve → no nub)
   vertex(barThick / 2, -barHalf + rBar);
 
-  // Top bar fillet
+  // Top bar
   quadraticVertex(
     barThick / 2, -barHalf,
     barThick / 2 - rBar, -barHalf
