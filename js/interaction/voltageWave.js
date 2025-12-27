@@ -6,19 +6,54 @@ console.log("⚡ voltageWave interaction loaded");
 let apActive   = false;
 let apPhase    = 0;
 let apSpeed    = 0.015;
-let apDuration = 1.2;   // total cycles before decay
+let apDuration = 1.2;
 let apTimer    = 0;
 
 // =====================================================
-// KEYBOARD TRIGGER (SPACE BAR)
+// USER-DEFINED CONDUCTION PATH (DEBUG → HARD-CODE LATER)
 // =====================================================
+window.apPath = [];
+window.captureAPPath = false;
+
+// -----------------------------------------------------
+// TOGGLE PATH CAPTURE MODE (press "P")
+// -----------------------------------------------------
 window.addEventListener("keydown", (e) => {
+
+  // Start AP
   if (e.code === "Space" && !apActive) {
     apActive = true;
     apPhase  = 0;
     apTimer  = 0;
   }
+
+  // Toggle capture mode
+  if (e.key === "p") {
+    captureAPPath = !captureAPPath;
+    console.log(`🟢 AP path capture ${captureAPPath ? "ON" : "OFF"}`);
+    if (captureAPPath) {
+      window.apPath = [];
+      console.log("📍 Click to define AP conduction path…");
+    }
+  }
 });
+
+// -----------------------------------------------------
+// CLICK TO ADD PATH POINTS (WORLD → LOCAL SPACE)
+// -----------------------------------------------------
+function mousePressed() {
+  if (!captureAPPath) return;
+
+  // Convert screen → world → synapse-local
+  const wx = (mouseX - width / 2) / camera.zoom + camera.x;
+  const wy = (mouseY - height / 2) / camera.zoom + camera.y;
+
+  window.apPath.push({ x: wx, y: wy });
+
+  console.log(
+    `📌 Point ${window.apPath.length}: { x: ${wx.toFixed(1)}, y: ${wy.toFixed(1)} }`
+  );
+}
 
 // =====================================================
 // UPDATE (CALLED FROM draw loop)
@@ -38,46 +73,42 @@ function updateVoltageWave() {
 }
 
 // =====================================================
-// DRAW TRAVELING MEMBRANE WAVE (PRESYNAPTIC ONLY)
+// DRAW TRAVELING MEMBRANE WAVE (DIRECTED PATH)
 // =====================================================
 function drawVoltageWave(path, {
-  side = 1,            // +1 or -1
-  length = 0.14,       // % of perimeter
+  side = 1,
+  length = 0.18,
   thickness = 6,
   offset = 4
 } = {}) {
 
-  if (!apActive || !path || path.length < 2) return;
+  const activePath = path ?? window.apPath;
+  if (!apActive || !activePath || activePath.length < 2) return;
 
   push();
   noFill();
   blendMode(ADD);
 
-  const total = path.length;
+  const total = activePath.length;
 
-  // ---------------------------------------------------
-  // 🔑 PHASE OFFSET — opposite sides start opposite
-  // ---------------------------------------------------
+  // Opposite membrane sides start opposite
   const phaseOffset = side === 1 ? 0.0 : 0.5;
   const start = Math.floor(((apPhase + phaseOffset) % 1) * total);
-
-  const span = Math.max(2, Math.floor(length * total));
+  const span  = Math.max(2, Math.floor(length * total));
 
   for (let i = 0; i < span; i++) {
-    const idx = (start + i) % total;
-    const p1 = path[idx];
-    const p2 = path[(idx + 1) % total];
 
-    // Tangent
+    const idx = Math.min(start + i, total - 2);
+    const p1 = activePath[idx];
+    const p2 = activePath[idx + 1];
+
     const dx = p2.x - p1.x;
     const dy = p2.y - p1.y;
     const mag = Math.hypot(dx, dy) || 1;
 
-    // Normal (membrane offset)
     const nx = -dy / mag;
     const ny =  dx / mag;
 
-    // ---- Alpha (never disappears)
     const alpha = Math.max(90, map(i, 0, span, 220, 60));
 
     const x1 = p1.x + nx * offset * side;
@@ -85,12 +116,12 @@ function drawVoltageWave(path, {
     const x2 = p2.x + nx * offset * side;
     const y2 = p2.y + ny * offset * side;
 
-    // ---- Soft halo
+    // Halo
     stroke(80, 255, 120, alpha * 0.35);
     strokeWeight(thickness + 6);
     line(x1, y1, x2, y2);
 
-    // ---- Bright core
+    // Core
     stroke(120, 255, 160, alpha);
     strokeWeight(thickness);
     line(x1, y1, x2, y2);
