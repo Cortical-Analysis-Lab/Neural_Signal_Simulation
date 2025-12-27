@@ -54,8 +54,14 @@ function drawVoltageWave(path, {
   blendMode(ADD);
 
   const total = path.length;
-  const start = Math.floor(apPhase * total);
-  const span  = Math.max(2, Math.floor(length * total));
+
+  // ---------------------------------------------------
+  // 🔑 PHASE OFFSET — opposite sides start opposite
+  // ---------------------------------------------------
+  const phaseOffset = side === 1 ? 0.0 : 0.5;
+  const start = Math.floor(((apPhase + phaseOffset) % 1) * total);
+
+  const span = Math.max(2, Math.floor(length * total));
 
   for (let i = 0; i < span; i++) {
     const idx = (start + i) % total;
@@ -71,16 +77,16 @@ function drawVoltageWave(path, {
     const nx = -dy / mag;
     const ny =  dx / mag;
 
-    // ---- Alpha (clamped so it never disappears)
-    const alpha = Math.max(80, map(i, 0, span, 220, 60));
+    // ---- Alpha (never disappears)
+    const alpha = Math.max(90, map(i, 0, span, 220, 60));
 
     const x1 = p1.x + nx * offset * side;
     const y1 = p1.y + ny * offset * side;
     const x2 = p2.x + nx * offset * side;
     const y2 = p2.y + ny * offset * side;
 
-    // ---- Soft glow (halo)
-    stroke(80, 255, 120, alpha * 0.4);
+    // ---- Soft halo
+    stroke(80, 255, 120, alpha * 0.35);
     strokeWeight(thickness + 6);
     line(x1, y1, x2, y2);
 
