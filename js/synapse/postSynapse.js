@@ -15,7 +15,7 @@ function drawPostSynapse() {
   scale(+1, 1);
 
   // Draw neuron body
-  drawtNeuronShape(+1);
+  drawTNeuronShape(+1);
 
   // ---------------------------------------------------
   // 🔑 PSD RECEPTORS — ON SYNAPTIC FACE
