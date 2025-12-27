@@ -17,10 +17,9 @@ const SYNAPSE_SCALE = 0.28;
 const CORNER_RADIUS = 80;
 
 // =====================================================
-// LAYOUT CONTROL (WORLD SPACE — BEFORE SCALE)
+// LAYOUT CONTROL (WORLD SPACE — NOT SCALED)
 // =====================================================
-const NEURON_Y_OFFSET = -40;   // ↑ raise neurons toward astrocyte
-const ASTRO_Y_OFFSET  = -140;  // astrocyte vertical position
+const NEURON_WORLD_Y_OFFSET = -40; // ↑ raise neurons toward astrocyte
 
 // =====================================================
 // MAIN VIEW
@@ -29,35 +28,45 @@ function drawSynapseView() {
   if (!window.synapseFocus) return;
 
   push();
+
+  // ---------------------------------------------------
+  // WORLD SPACE (layout happens HERE)
+  // ---------------------------------------------------
   translate(window.synapseFocus.x, window.synapseFocus.y);
+
+  // 🔑 APPLY NEURON OFFSET IN WORLD SPACE
+  translate(0, NEURON_WORLD_Y_OFFSET);
+
+  // ---------------------------------------------------
+  // GEOMETRY SCALE (visual only)
+  // ---------------------------------------------------
   scale(SYNAPSE_SCALE);
 
   strokeWeight(6);
   strokeJoin(ROUND);
   strokeCap(ROUND);
 
-  // Astrocyte (fixed)
+  // Astrocyte stays fixed relative to synapse focus
   drawAstrocyticEndfoot();
 
-  // Neurons (independently movable)
-  drawTNeuron(+140, 95 + NEURON_Y_OFFSET, +1);
-  drawTNeuron(-140, 95 + NEURON_Y_OFFSET, -1);
+  // Neurons inherit world-space offset
+  drawTNeuron(+140, 75, +1);
+  drawTNeuron(-140, 75, -1);
 
   pop();
 }
 
 // =====================================================
-// ASTROCYTE — OPEN PATH (NUB-FREE)
+// ASTROCYTE — TRUE NUB-FREE PATH
 // =====================================================
 function drawAstrocyticEndfoot() {
   push();
-  translate(0, ASTRO_Y_OFFSET);
+  translate(0, -140);
 
   stroke(...ASTRO_PURPLE);
   fill(ASTRO_PURPLE[0], ASTRO_PURPLE[1], ASTRO_PURPLE[2], 45);
 
   beginShape();
-
   curveVertex(-200, -10);
   curveVertex(-220, -30);
   curveVertex(-160, -90);
@@ -72,17 +81,16 @@ function drawAstrocyticEndfoot() {
   curveVertex(-120, 55);
   curveVertex(-200, 20);
 
-  // smooth return — NO CLOSE JOIN
+  // smooth return — no CLOSE join
   curveVertex(-220, -30);
   curveVertex(-200, -10);
 
-  endShape(); // ⛔ intentionally NOT CLOSED
-
+  endShape(); // intentionally OPEN
   pop();
 }
 
 // =====================================================
-// ROTATED CAPITAL T — STROKE-SAFE, MIRROR-SAFE
+// ROTATED CAPITAL T — STROKE-SAFE
 // =====================================================
 function drawTNeuron(x, y, dir) {
   push();
