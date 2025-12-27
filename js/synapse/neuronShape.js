@@ -50,6 +50,3 @@ function drawTNeuronShape(dir = 1) {
   endShape(CLOSE);
   pop();
 }
-
-  return path;
-}
