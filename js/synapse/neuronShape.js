@@ -4,7 +4,7 @@ console.log("🧠 neuronShape.js loaded");
 // PURE NEURON SHAPE — NO WORLD TRANSFORMS
 // Used by preSynapse.js and postSynapse.js
 // =====================================================
-function drawNeuronShape(dir = 1) {
+function drawTNeuronShape(dir = 1) {
   push();
   scale(dir, 1);
 
