@@ -51,41 +51,5 @@ function drawTNeuronShape(dir = 1) {
   pop();
 }
 
-// =====================================================
-// MEMBRANE-ONLY OUTLINE PATH (FOR VOLTAGE WAVES)
-// Closed, smooth, no STEM_FAR jumps
-// =====================================================
-function getTNeuronOutlinePath(dir = 1, steps = 120) {
-
-  const barHalf  = 140;
-  const barThick = 340;
-  const rBar     = min(80, barHalf);
-
-  const cx = (barThick / 2 - rBar);
-  const cyTop = -barHalf + rBar;
-  const cyBot =  barHalf - rBar;
-
-  const path = [];
-
-  for (let i = 0; i < steps; i++) {
-    const t = i / steps;
-    const a = TWO_PI * t;
-
-    let x, y;
-
-    // ---- Upper semicircle
-    if (a < PI) {
-      x = cx + cos(a + PI) * rBar;
-      y = cyTop + sin(a + PI) * rBar;
-    }
-    // ---- Lower semicircle
-    else {
-      x = cx + cos(a) * rBar;
-      y = cyBot + sin(a) * rBar;
-    }
-
-    path.push({ x: x * dir, y });
-  }
-
   return path;
 }
