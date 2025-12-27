@@ -12,7 +12,7 @@ function drawPostSynapse() {
   scale(+1, 1);
 
   // Draw neuron body
-  drawNeuronShape(+1);
+  drawTNeuronShape(+1);
 
   // ==================================================
   // PSD RECEPTORS — EMBEDDED IN SYNAPTIC FACE
