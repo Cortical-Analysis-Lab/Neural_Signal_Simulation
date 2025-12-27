@@ -1,30 +1,29 @@
 console.log("🔬 SynapseView — orchestrator loaded");
 
 // =====================================================
-// SCALE & LAYOUT (WORLD SPACE ONLY)
+// SCALE & SCREEN-LOCKED LAYOUT
 // =====================================================
 const SYNAPSE_SCALE = 0.28;
 
-// World-space vertical offset applied BEFORE scaling
-// (moves neurons relative to astrocyte without distortion)
-const NEURON_WORLD_Y_OFFSET = -40;
+// Screen anchor (tablet+ invariant)
+const SYNAPSE_SCREEN_X = 0.5;   // center horizontally
+const SYNAPSE_SCREEN_Y = 0.55;  // slightly below center
 
 // =====================================================
 // MAIN VIEW — ORCHESTRATOR ONLY
 // Geometry lives in submodules
 // =====================================================
 function drawSynapseView() {
-  if (!window.synapseFocus) return;
 
   push();
 
   // =================================================
-  // WORLD SPACE (ABSOLUTE POSITIONING)
+  // FIXED SCREEN SPACE (NO WORLD DRIFT)
   // =================================================
-  translate(window.synapseFocus.x, window.synapseFocus.y);
-
-  // Move neurons closer to astrocyte without scaling artifacts
-  translate(0, NEURON_WORLD_Y_OFFSET);
+  translate(
+    width  * SYNAPSE_SCREEN_X,
+    height * SYNAPSE_SCREEN_Y
+  );
 
   // =================================================
   // VISUAL SCALE (APPLIED ONCE)
@@ -42,10 +41,10 @@ function drawSynapseView() {
   // Astrocytic endfoot (cleft boundary)
   drawAstrocyteSynapse();
 
-  // Presynaptic terminal (right side)
+  // Presynaptic terminal (LEFT → releases transmitter)
   drawPreSynapse();
 
-  // Postsynaptic terminal + PSD receptors (left side)
+  // Postsynaptic terminal (RIGHT → PSD + receptors)
   drawPostSynapse();
 
   pop();
