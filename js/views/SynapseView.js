@@ -40,8 +40,8 @@ function drawSynapseView() {
   drawAstrocyticEndfoot();
 
   // Neurons (independently movable)
-  drawTNeuron(+140, 75 + NEURON_Y_OFFSET, +1);
-  drawTNeuron(-140, 75 + NEURON_Y_OFFSET, -1);
+  drawTNeuron(+140, 95 + NEURON_Y_OFFSET, +1);
+  drawTNeuron(-140, 95 + NEURON_Y_OFFSET, -1);
 
   pop();
 }
