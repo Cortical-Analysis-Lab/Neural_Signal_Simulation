@@ -1,4 +1,4 @@
-console.log("🔬 SynapseView — rotated T neurons (nub-free, stroke-safe)");
+console.log("🔬 SynapseView — rotated T neurons (stroke-clean, physiology-ready)");
 
 // =====================================================
 // COLORS
@@ -13,9 +13,13 @@ const SYNAPSE_SCALE = 0.28;
 
 // =====================================================
 // ROUNDING CONTROL (SAFE, TUNABLE)
-// Increase toward barHalf to approach circular geometry
 // =====================================================
 const CORNER_RADIUS = 80;
+
+// =====================================================
+// LAYOUT CONTROL
+// =====================================================
+const NEURON_Y_OFFSET = 95; // ↑ raise neurons closer to astrocyte
 
 // =====================================================
 // MAIN VIEW
@@ -33,15 +37,14 @@ function drawSynapseView() {
 
   drawAstrocyticEndfoot();
 
-  // Shift neurons DOWN to create astrocyte gap
-  drawTNeuron(+140, 120, +1);
-  drawTNeuron(-140, 120, -1);
+  drawTNeuron(+140, NEURON_Y_OFFSET, +1);
+  drawTNeuron(-140, NEURON_Y_OFFSET, -1);
 
   pop();
 }
 
 // =====================================================
-// ASTROCYTE (UNCHANGED)
+// ASTROCYTE — STROKE-CLEAN (NUB REMOVED)
 // =====================================================
 function drawAstrocyticEndfoot() {
   push();
@@ -51,8 +54,11 @@ function drawAstrocyticEndfoot() {
   fill(ASTRO_PURPLE[0], ASTRO_PURPLE[1], ASTRO_PURPLE[2], 45);
 
   beginShape();
+
+  // Proper lead-in (no duplicate control point)
+  curveVertex(-200, -10);
   curveVertex(-220, -30);
-  curveVertex(-220, -30);
+
   curveVertex(-160, -90);
   curveVertex(-60, -120);
   curveVertex(0, -125);
@@ -64,10 +70,12 @@ function drawAstrocyticEndfoot() {
   curveVertex(0, 65);
   curveVertex(-120, 55);
   curveVertex(-200, 20);
-  curveVertex(-220, -30);
-  curveVertex(-220, -30);
-  endShape(CLOSE);
 
+  // Proper lead-out
+  curveVertex(-220, -30);
+  curveVertex(-200, -10);
+
+  endShape(CLOSE);
   pop();
 }
 
@@ -93,20 +101,14 @@ function drawTNeuron(x, y, dir) {
 
   beginShape();
 
-  // =========================
-  // TOP STEM (HORIZONTAL)
-  // =========================
+  // TOP STEM
   vertex(STEM_FAR, -stemHalf);
   vertex(barThick / 2, -stemHalf);
 
-  // =========================
-  // DROP VERTICALLY (NO CURVE)
-  // =========================
+  // Vertical drop (stroke-safe)
   vertex(barThick / 2, -barHalf + rBar);
 
-  // =========================
-  // TOP BAR FILLET
-  // =========================
+  // Top bar fillet
   quadraticVertex(
     barThick / 2, -barHalf,
     barThick / 2 - rBar, -barHalf
@@ -114,26 +116,19 @@ function drawTNeuron(x, y, dir) {
 
   vertex(rBar, -barHalf);
 
-  // =========================
-  // SYNAPTIC FACE
-  // =========================
+  // Synaptic face
   quadraticVertex(0, -barHalf, 0, -barHalf + rBar);
   vertex(0, barHalf - rBar);
   quadraticVertex(0, barHalf, rBar, barHalf);
 
-  // =========================
-  // BOTTOM BAR
-  // =========================
+  // Bottom bar
   vertex(barThick / 2 - rBar, barHalf);
-
   quadraticVertex(
     barThick / 2, barHalf,
     barThick / 2, barHalf - rBar
   );
 
-  // =========================
-  // BOTTOM STEM
-  // =========================
+  // Bottom stem
   vertex(barThick / 2, stemHalf);
   vertex(STEM_FAR, stemHalf);
 
