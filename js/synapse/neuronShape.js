@@ -50,3 +50,49 @@ function drawTNeuronShape(dir = 1) {
   endShape(CLOSE);
   pop();
 }
+
+function getTNeuronOutlinePath(dir = 1, resolution = 6) {
+
+  const STEM_FAR  = 2000;
+  const stemHalf = 40;
+  const barHalf  = 140;
+  const barThick = 340;
+  const rBar     = min(80, barHalf);
+
+  const path = [];
+
+  function add(x, y) {
+    path.push({ x: x * dir, y });
+  }
+
+  function arc(cx, cy, r, a0, a1) {
+    for (let a = a0; a <= a1; a += (a1 - a0) / resolution) {
+      add(cx + cos(a) * r, cy + sin(a) * r);
+    }
+  }
+
+  // ---- Stem top
+  add(STEM_FAR, -stemHalf);
+  add(barThick / 2, -stemHalf);
+
+  // ---- Top right corner
+  arc(barThick / 2 - rBar, -barHalf + rBar, rBar, -HALF_PI, PI);
+
+  // ---- Synaptic face
+  add(0, -barHalf + rBar);
+  add(0, barHalf - rBar);
+
+  // ---- Bottom left corner
+  arc(rBar, barHalf - rBar, rBar, PI, HALF_PI);
+
+  // ---- Bottom bar
+  add(barThick / 2 - rBar, barHalf);
+  add(barThick / 2, barHalf - rBar);
+
+  // ---- Stem bottom
+  add(barThick / 2, stemHalf);
+  add(STEM_FAR, stemHalf);
+
+  return path;
+}
+
