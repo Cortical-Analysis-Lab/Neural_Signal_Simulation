@@ -3,7 +3,7 @@ console.log("🔬 SynapseView — orchestrator loaded");
 // =====================================================
 // SCREEN-SPACE LAYOUT (TABLET+ STABLE)
 // =====================================================
-const SYNAPSE_SCALE = 1;
+const SYNAPSE_SCALE = 1.25;
 
 // Fixed screen anchor (does not drift with resolution)
 const SYNAPSE_SCREEN_X = 0.5;
