@@ -264,7 +264,7 @@ function draw() {
   // ---------------------------------------------------
   // FADE OVERLAY
 // ---------------------------------------------------
-  if (transitioning) {
+  if (transitioning && state.mode !== "synapse") {
     const u = constrain(camera.t / camera.duration, 0, 1);
     let alpha = 0;
 
