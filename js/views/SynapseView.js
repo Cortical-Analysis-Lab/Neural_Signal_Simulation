@@ -39,8 +39,8 @@ function drawSynapseView() {
   drawAstrocyticEndfoot();
 
   // Neurons move independently
-  drawTNeuron(+140, 90, +1);  // ↑ closer to astrocyte
-  drawTNeuron(-140, 90, -1);
+  drawTNeuron(+140, 110, +1);  // ↑ closer to astrocyte
+  drawTNeuron(-140, 125, -1);
 
   pop();
 }
