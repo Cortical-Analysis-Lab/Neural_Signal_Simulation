@@ -1,32 +1,28 @@
 console.log("🟡 postSynapse loaded");
 
 // =====================================================
-// POSTSYNAPTIC NEURON (RIGHT SIDE)
+// POSTSYNAPTIC NEURON
+// Geometry ONLY — no positioning logic here
 // =====================================================
 function drawPostSynapse() {
   push();
 
-  // ---------------------------------------------------
-  // Position of RIGHT neuron (postsynaptic)
-  // ---------------------------------------------------
-  translate(+140, 75);
-
-  // Face neuron toward cleft (LEFT)
+  // Face neuron toward synaptic cleft (LEFT)
+  // (SynapseView places this on the RIGHT side)
   scale(+1, 1);
 
   // Draw neuron body
-  drawTNeuronShape(+1);
+  drawNeuronShape(+1);
 
-  // ---------------------------------------------------
-  // 🔑 PSD RECEPTORS — ON SYNAPTIC FACE
-  // ---------------------------------------------------
+  // ==================================================
+  // PSD RECEPTORS — EMBEDDED IN SYNAPTIC FACE
+  // ==================================================
   push();
 
-  // Move receptors onto the flat synaptic face
-  // (tuned for your T-geometry)
+  // Small inset onto flat synaptic membrane
+  // (tuned to your T-geometry)
   translate(8, 0);
 
-  // Draw receptors
   drawPSDReceptors();
 
   pop();
