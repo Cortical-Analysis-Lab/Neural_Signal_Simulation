@@ -21,49 +21,42 @@ const NEURON_Y = 75;
 // MAIN VIEW
 // =====================================================
 function drawSynapseView() {
-
   push();
 
-  // -----------------------------------------------
-  // RESET CAMERA / WORLD
-  // -----------------------------------------------
+  // 🔒 Reset camera/world transforms
   resetMatrix();
 
-  // -----------------------------------------------
-  // SCREEN-SPACE ANCHOR
-  // -----------------------------------------------
+  // Anchor synapse consistently on screen
   translate(
     width  * SYNAPSE_SCREEN_X,
     height * SYNAPSE_SCREEN_Y
   );
 
-  // -----------------------------------------------
-  // DIAGRAM SCALE
-  // -----------------------------------------------
+  // Visual scale
   scale(SYNAPSE_SCALE);
 
   strokeWeight(6);
   strokeJoin(ROUND);
   strokeCap(ROUND);
 
-  // -----------------------------------------------
-  // ASTROCYTE (UNCHANGED, ABOVE CLEFT)
-  // -----------------------------------------------
+  // ==============================
+  // ASTROCYTE (fixed, above cleft)
+  // ==============================
   drawAstrocyteSynapse();
 
-  // -----------------------------------------------
+  // ==============================
   // PRESYNAPTIC NEURON (LEFT)
-  // -----------------------------------------------
+  // ==============================
   push();
-  translate(-140 - HALF_GAP, NEURON_Y);
+  translate(PRE_X, NEURON_Y);
   drawPreSynapse();
   pop();
 
-  // -----------------------------------------------
+  // ==============================
   // POSTSYNAPTIC NEURON (RIGHT)
-  // -----------------------------------------------
+  // ==============================
   push();
-  translate(+140 + HALF_GAP, NEURON_Y);
+  translate(POST_X, NEURON_Y);
   drawPostSynapse();
   pop();
 
