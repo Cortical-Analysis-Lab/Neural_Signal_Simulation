@@ -51,10 +51,12 @@ function drawTNeuronShape(dir = 1) {
   pop();
 }
 
-function getTNeuronOutlinePath(dir = 1, resolution = 6) {
+// =====================================================
+// MEMBRANE-ONLY OUTLINE PATH (FOR VOLTAGE WAVES)
+// Closed, smooth, no STEM_FAR jumps
+// =====================================================
+function getTNeuronOutlinePath(dir = 1, steps = 48) {
 
-  const STEM_FAR  = 2000;
-  const stemHalf = 40;
   const barHalf  = 140;
   const barThick = 340;
   const rBar     = min(80, barHalf);
@@ -65,34 +67,37 @@ function getTNeuronOutlinePath(dir = 1, resolution = 6) {
     path.push({ x: x * dir, y });
   }
 
-  function arc(cx, cy, r, a0, a1) {
-    for (let a = a0; a <= a1; a += (a1 - a0) / resolution) {
-      add(cx + cos(a) * r, cy + sin(a) * r);
-    }
+  // -------------------------------
+  // TOP ROUNDED MEMBRANE
+  // -------------------------------
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const a = PI + t * PI; // left → right
+
+    add(
+      (barThick / 2 - rBar) + cos(a) * rBar,
+      -barHalf + rBar + sin(a) * rBar
+    );
   }
 
-  // ---- Stem top
-  add(STEM_FAR, -stemHalf);
-  add(barThick / 2, -stemHalf);
-
-  // ---- Top right corner
-  arc(barThick / 2 - rBar, -barHalf + rBar, rBar, -HALF_PI, PI);
-
-  // ---- Synaptic face
+  // -------------------------------
+  // SYNAPTIC FACE (VERTICAL)
+  // -------------------------------
   add(0, -barHalf + rBar);
-  add(0, barHalf - rBar);
+  add(0,  barHalf - rBar);
 
-  // ---- Bottom left corner
-  arc(rBar, barHalf - rBar, rBar, PI, HALF_PI);
+  // -------------------------------
+  // BOTTOM ROUNDED MEMBRANE
+  // -------------------------------
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const a = 0 + t * PI; // right → left
 
-  // ---- Bottom bar
-  add(barThick / 2 - rBar, barHalf);
-  add(barThick / 2, barHalf - rBar);
-
-  // ---- Stem bottom
-  add(barThick / 2, stemHalf);
-  add(STEM_FAR, stemHalf);
+    add(
+      (barThick / 2 - rBar) + cos(a) * rBar,
+      barHalf - rBar + sin(a) * rBar
+    );
+  }
 
   return path;
 }
-
