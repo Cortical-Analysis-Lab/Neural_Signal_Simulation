@@ -38,7 +38,7 @@ function updateVoltageWave() {
 }
 
 // =====================================================
-// DRAW TRAVELING MEMBRANE WAVE
+// DRAW TRAVELING MEMBRANE WAVE (PRESYNAPTIC ONLY)
 // =====================================================
 function drawVoltageWave(path, {
   side = 1,            // +1 or -1
@@ -55,7 +55,7 @@ function drawVoltageWave(path, {
 
   const total = path.length;
   const start = Math.floor(apPhase * total);
-  const span  = Math.floor(length * total);
+  const span  = Math.max(2, Math.floor(length * total));
 
   for (let i = 0; i < span; i++) {
     const idx = (start + i) % total;
@@ -71,17 +71,23 @@ function drawVoltageWave(path, {
     const nx = -dy / mag;
     const ny =  dx / mag;
 
-    const alpha = map(i, 0, span, 220, 30);
+    // ---- Alpha (clamped so it never disappears)
+    const alpha = Math.max(80, map(i, 0, span, 220, 60));
 
-    stroke(80, 255, 120, alpha);
+    const x1 = p1.x + nx * offset * side;
+    const y1 = p1.y + ny * offset * side;
+    const x2 = p2.x + nx * offset * side;
+    const y2 = p2.y + ny * offset * side;
+
+    // ---- Soft glow (halo)
+    stroke(80, 255, 120, alpha * 0.4);
+    strokeWeight(thickness + 6);
+    line(x1, y1, x2, y2);
+
+    // ---- Bright core
+    stroke(120, 255, 160, alpha);
     strokeWeight(thickness);
-
-    line(
-      p1.x + nx * offset * side,
-      p1.y + ny * offset * side,
-      p2.x + nx * offset * side,
-      p2.y + ny * offset * side
-    );
+    line(x1, y1, x2, y2);
   }
 
   blendMode(BLEND);
