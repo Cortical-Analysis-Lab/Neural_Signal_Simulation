@@ -31,7 +31,6 @@
      INSTRUCTIONS PANEL (LEFT)
 ===================================================== -->
 <div id="instructions" class="panel left">
-  <!-- 🔑 Content is injected dynamically -->
   <div class="panel-content" id="instructions-content"></div>
 </div>
 
@@ -39,12 +38,11 @@
      OBSERVATIONS PANEL (BOTTOM)
 ===================================================== -->
 <div id="observations" class="panel bottom">
-  <!-- 🔑 Content is injected dynamically -->
   <div class="panel-content" id="observations-content"></div>
 </div>
 
 <!-- =====================================================
-     EVENT LOG — WHAT JUST HAPPENED?
+     EVENT LOG
 ===================================================== -->
 <div id="event-log" aria-live="polite"></div>
 
@@ -76,14 +74,20 @@
      SCRIPTS (LOAD ORDER MATTERS)
 ===================================================== -->
 
-<!-- Constants -->
+<!-- =====================================================
+     CONSTANTS
+===================================================== -->
 <script src="js/constants/colors.js"></script>
 
-<!-- UI -->
+<!-- =====================================================
+     UI
+===================================================== -->
 <script src="js/ui/eventLog.js"></script>
 <script src="js/ui/panelContent.js"></script>
 
-<!-- Signals -->
+<!-- =====================================================
+     SIGNALS
+===================================================== -->
 <script src="js/signals/hemodynamics.js"></script>
 <script src="js/signals/psp.js"></script>
 <script src="js/signals/soma.js"></script>
@@ -93,7 +97,9 @@
 <script src="js/signals/myelinAP.js"></script>
 <script src="js/signals/vesicleBurst.js"></script>
 
-<!-- Geometry -->
+<!-- =====================================================
+     GEOMETRY (OVERVIEW / WORLD)
+===================================================== -->
 <script src="js/geometry/neuronGeometry.js"></script>
 <script src="js/geometry/neuron2Geometry.js"></script>
 <script src="js/geometry/neuron3Geometry.js"></script>
@@ -102,18 +108,39 @@
 <script src="js/geometry/axonPath.js"></script>
 <script src="js/geometry/artery.js"></script>
 <script src="js/geometry/bloodContents.js"></script>
-<script src="js/geometry/psdReceptors.js"></script>
 
+<!-- =====================================================
+     SYNAPSE MODULES (ORDER IS CRITICAL)
+===================================================== -->
 
-<!-- Views -->
+<!-- Shared neuron shape -->
+<script src="js/synapse/neuronShape.js"></script>
+
+<!-- Astrocyte synapse geometry -->
+<script src="js/synapse/astrocyteSynapse.js"></script>
+
+<!-- Pre / Post synaptic specializations -->
+<script src="js/synapse/preSynapse.js"></script>
+<script src="js/synapse/postSynapse.js"></script>
+
+<!-- PSD receptors -->
+<script src="js/synapse/psdReceptors.js"></script>
+
+<!-- =====================================================
+     VIEWS
+===================================================== -->
 <script src="js/views/Overview.js"></script>
 <script src="js/views/IonView.js"></script>
 <script src="js/views/SynapseView.js"></script>
 
-<!-- Interaction -->
+<!-- =====================================================
+     INTERACTION
+===================================================== -->
 <script src="js/interaction/synapseInteraction.js"></script>
 
-<!-- Main (LAST) -->
+<!-- =====================================================
+     MAIN (ALWAYS LAST)
+===================================================== -->
 <script src="js/main.js"></script>
 
 </body>
