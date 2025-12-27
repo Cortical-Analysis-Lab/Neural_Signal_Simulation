@@ -12,6 +12,6 @@ const CORNER_RADIUS = 80;
 function drawPreSynapse() {
   push();
   translate(+140, 75);
-  drawTNeuronShape(+1);
+  drawTNeuronShape(-1);
   pop();
 }
