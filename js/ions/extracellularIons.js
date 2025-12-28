@@ -41,7 +41,7 @@ const HALO_NA_RELAX = 0.95;
 const HALO_K_RELAX  = 0.80;
 
 // Bilateral Na⁺ copy motion
-const NA_COPY_SPEED = 0.10;   // geometric convergence
+const NA_COPY_SPEED = 0.01;   // geometric convergence
 const NA_COPY_LIFE  = 16;
 const NA_CENTER_EPS = 3;      // vanish at centerline
 
