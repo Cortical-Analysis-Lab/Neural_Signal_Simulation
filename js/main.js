@@ -169,8 +169,7 @@ function draw() {
   if (!state.paused && !transitioning) {
     state.time += state.dt;
     
-    updateVoltageWave();
-    
+  
     updateHemodynamics();
     updateBloodContents();
     updateSupplyWaves();
