@@ -1,6 +1,6 @@
 // =====================================================
 // EXTRACELLULAR IONS — Na⁺ / K⁺ (ECS + AXON)
-// Teaching-first, artery-excluded ECS (slow, readable)
+// Teaching-first, artery-excluded ECS (authoritative)
 // =====================================================
 console.log("🧂 extracellularIons loaded");
 
@@ -13,17 +13,13 @@ window.ecsIons = window.ecsIons || {
   NaFlux: [],
   KFlux: [],
   AxonNaFlux: [],
-  AxonKFlux: [],
-  AxonNaPool: []   // 👈 fixed Na⁺ near axon
+  AxonKFlux: []
 };
 
 // -----------------------------------------------------
 // COUNTS
 // -----------------------------------------------------
-const ECS_ION_COUNTS = {
-  Na: 260,
-  K: 160
-};
+const ECS_ION_COUNTS = { Na: 260, K: 160 };
 
 // -----------------------------------------------------
 // VISUALS
@@ -32,29 +28,34 @@ const ION_TEXT_SIZE = { Na: 10, K: 11 };
 const ION_ALPHA    = { Na: 170, K: 185 };
 
 const ION_COLOR = {
-  Na: [245, 215, 90],    // yellow
-  K:  [255, 140, 190]   // pink
+  Na: [245, 215, 90],   // yellow
+  K:  [255, 140, 190]  // pink
 };
 
 // -----------------------------------------------------
-// MOTION PARAMETERS
+// SOMA PARAMETERS (LOCKED)
 // -----------------------------------------------------
-const NA_FLUX_SPEED     = 0.9;    // 🔒 soma Na⁺ (locked)
+const NA_FLUX_SPEED     = 0.9;
 const NA_FLUX_LIFETIME  = 80;
 const NA_SPAWN_RADIUS   = 140;
 
-// 🔒 K⁺ (unchanged)
 const K_FLUX_SPEED      = 2.2;
 const K_FLUX_LIFETIME   = 160;
 const K_SPAWN_RADIUS    = 28;
 const ION_VEL_DECAY     = 0.965;
 
-// 🔑 AXON Na⁺ (MATCH K⁺ SPEED)
-const AXON_NA_SPEED     = 2.2;
-const AXON_NA_LIFETIME  = 70;
+// -----------------------------------------------------
+// AXON PARAMETERS (RESTORED)
+// -----------------------------------------------------
+const AXON_NA_SPEED     = 1.8;
+const AXON_NA_LIFETIME  = 26;
+
+const AXON_K_SPEED      = 2.0;   // ✔ ballistic but readable
+const AXON_K_LIFETIME   = 120;   // ✔ long trailing cloud
+const AXON_K_DECAY      = 0.97;  // ✔ gentle slowdown
 
 // =====================================================
-// INITIALIZATION — BASELINE ECS + AXON Na⁺ POOL
+// INITIALIZATION — BASELINE ECS
 // =====================================================
 function initExtracellularIons() {
 
@@ -64,7 +65,6 @@ function initExtracellularIons() {
   ecsIons.KFlux.length  = 0;
   ecsIons.AxonNaFlux.length = 0;
   ecsIons.AxonKFlux.length  = 0;
-  ecsIons.AxonNaPool.length = 0;
 
   const b = {
     xmin: -width * 0.9,
@@ -73,44 +73,22 @@ function initExtracellularIons() {
     ymax:  height * 0.9
   };
 
-  function validECSPosition(x, y) {
-    return !(x < -width * 0.33 || abs(x) < 240 && abs(y - height * 0.28) < 130);
-  }
-
   function spawnIon(type) {
-    let tries = 0;
-    while (tries++ < 1200) {
-      const x = random(b.xmin, b.xmax);
-      const y = random(b.ymin, b.ymax);
-      if (!validECSPosition(x, y)) continue;
-      ecsIons[type].push({ x, y, phase: random(TWO_PI) });
-      return;
-    }
+    ecsIons[type].push({
+      x: random(b.xmin, b.xmax),
+      y: random(b.ymin, b.ymax),
+      phase: random(TWO_PI)
+    });
   }
 
   for (let i = 0; i < ECS_ION_COUNTS.Na; i++) spawnIon("Na");
   for (let i = 0; i < ECS_ION_COUNTS.K;  i++) spawnIon("K");
 
-  // ---------------------------------------------------
-  // FIXED Na⁺ POOL NEAR AXON (STATIC ECS)
-  // ---------------------------------------------------
-  if (neuron?.axon?.path) {
-    neuron.axon.path.forEach(p => {
-      if (random() < 0.25) {
-        ecsIons.AxonNaPool.push({
-          x: p.x + random(-14, 14),
-          y: p.y + random(-14, 14),
-          phase: random(TWO_PI)
-        });
-      }
-    });
-  }
-
-  console.log("🧂 ECS baseline + axon Na⁺ pool initialized");
+  console.log("🧂 ECS baseline ions initialized");
 }
 
 // =====================================================
-// SOMA ION FLUX (UNCHANGED)
+// SOMA FLUX (APPROVED — DO NOT TOUCH)
 // =====================================================
 function triggerNaInfluxNeuron1() {
   for (let i = 0; i < 14; i++) {
@@ -136,99 +114,95 @@ function triggerKEffluxNeuron1() {
 }
 
 // =====================================================
-// AXON Na⁺ FLUX (DIRECTIONAL — KEY FIX)
+// AXON FLUX — RESTORED DIRECTIONAL MODEL
 // =====================================================
-function triggerAxonNaInflux(x, y, dx, dy) {
-
-  const d = max(1, sqrt(dx*dx + dy*dy));
-
+function triggerAxonNaInflux(x, y, nx, ny) {
   ecsIons.AxonNaFlux.push({
     x,
     y,
-    vx: (dx / d) * AXON_NA_SPEED,
-    vy: (dy / d) * AXON_NA_SPEED,
+    vx: -nx * AXON_NA_SPEED,
+    vy: -ny * AXON_NA_SPEED,
     life: AXON_NA_LIFETIME
   });
 }
 
+// 🔑 THIS IS THE FIX
+function triggerAxonKEfflux(x, y, nx, ny) {
+  ecsIons.AxonKFlux.push({
+    x,
+    y,
+    vx: nx * AXON_K_SPEED,
+    vy: ny * AXON_K_SPEED,
+    life: AXON_K_LIFETIME
+  });
+}
+
 window.triggerAxonNaInflux = triggerAxonNaInflux;
+window.triggerAxonKEfflux = triggerAxonKEfflux;
 
 // =====================================================
-// DRAWING — ECS + SOMA + AXON
+// DRAWING
 // =====================================================
 function drawExtracellularIons() {
   push();
   textAlign(CENTER, CENTER);
   noStroke();
 
-  // -------------------------
-  // BASELINE Na⁺
-  // -------------------------
+  // ---- BASELINE ----
   fill(...ION_COLOR.Na, 120);
   textSize(ION_TEXT_SIZE.Na);
-  ecsIons.Na.forEach(p => {
-    const wob = sin(state.time * 0.0018 + p.phase) * 0.4;
-    text("Na⁺", p.x + wob, p.y - wob);
-  });
+  ecsIons.Na.forEach(p =>
+    text("Na⁺",
+      p.x + sin(state.time * 0.0018 + p.phase) * 0.4,
+      p.y - sin(state.time * 0.0018 + p.phase) * 0.4)
+  );
 
-  // -------------------------
-  // BASELINE K⁺
-  // -------------------------
   fill(...ION_COLOR.K, 130);
   textSize(ION_TEXT_SIZE.K);
-  ecsIons.K.forEach(p => {
-    const wob = cos(state.time * 0.0016 + p.phase) * 0.35;
-    text("K⁺", p.x - wob, p.y + wob);
-  });
+  ecsIons.K.forEach(p =>
+    text("K⁺",
+      p.x - cos(state.time * 0.0016 + p.phase) * 0.35,
+      p.y + cos(state.time * 0.0016 + p.phase) * 0.35)
+  );
 
-  // -------------------------
-  // AXON Na⁺ POOL (STATIC)
-  // -------------------------
-  fill(...ION_COLOR.Na, 150);
-  ecsIons.AxonNaPool.forEach(p => {
-    const wob = sin(state.time * 0.002 + p.phase) * 0.25;
-    text("Na⁺", p.x + wob, p.y - wob);
-  });
-
-  // -------------------------
-  // SOMA Na⁺ FLUX
-  // -------------------------
+  // ---- SOMA Na⁺ ----
   fill(...ION_COLOR.Na, ION_ALPHA.Na);
   ecsIons.NaFlux = ecsIons.NaFlux.filter(p => {
     p.life--;
-    const dx = -p.x;
-    const dy = -p.y;
-    const d  = max(1, sqrt(dx*dx + dy*dy));
-    p.x += (dx / d) * NA_FLUX_SPEED;
-    p.y += (dy / d) * NA_FLUX_SPEED;
+    const d = max(1, sqrt(p.x*p.x + p.y*p.y));
+    p.x += (-p.x / d) * NA_FLUX_SPEED;
+    p.y += (-p.y / d) * NA_FLUX_SPEED;
     text("Na⁺", p.x, p.y);
     return p.life > 0;
   });
 
-  // -------------------------
-  // SOMA K⁺ FLUX (UNCHANGED)
-  // -------------------------
+  // ---- SOMA K⁺ ----
   ecsIons.KFlux = ecsIons.KFlux.filter(p => {
     p.life--;
-    p.x += p.vx;
-    p.y += p.vy;
-    p.vx *= ION_VEL_DECAY;
-    p.vy *= ION_VEL_DECAY;
-    const a = map(p.life, 0, K_FLUX_LIFETIME, 0, ION_ALPHA.K);
-    fill(...ION_COLOR.K, a);
+    p.x += p.vx; p.y += p.vy;
+    p.vx *= ION_VEL_DECAY; p.vy *= ION_VEL_DECAY;
+    fill(...ION_COLOR.K, map(p.life, 0, K_FLUX_LIFETIME, 0, ION_ALPHA.K));
     text("K⁺", p.x, p.y);
     return p.life > 0;
   });
 
-  // -------------------------
-  // AXON Na⁺ FLUX (FAST, DIRECTIONAL)
-  // -------------------------
-  fill(...ION_COLOR.Na, 170);
+  // ---- AXON Na⁺ ----
+  fill(...ION_COLOR.Na, 150);
   ecsIons.AxonNaFlux = ecsIons.AxonNaFlux.filter(p => {
     p.life--;
-    p.x += p.vx;
-    p.y += p.vy;
+    p.x += p.vx; p.y += p.vy;
     text("Na⁺", p.x, p.y);
+    return p.life > 0;
+  });
+
+  // ---- AXON K⁺ (RESTORED PERFECT VERSION) ----
+  ecsIons.AxonKFlux = ecsIons.AxonKFlux.filter(p => {
+    p.life--;
+    p.x += p.vx; p.y += p.vy;
+    p.vx *= AXON_K_DECAY;
+    p.vy *= AXON_K_DECAY;
+    fill(...ION_COLOR.K, map(p.life, 0, AXON_K_LIFETIME, 0, ION_ALPHA.K));
+    text("K⁺", p.x, p.y);
     return p.life > 0;
   });
 
