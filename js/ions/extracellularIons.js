@@ -94,19 +94,26 @@ function pointNearAxons(x, y) {
 
 // ---- Artery + NVU (HARD EXCLUSION COLUMN) ----
 function pointNearArtery(x, y) {
-  if (!window.arteryPath?.length) return false;
+  // Artery is a vertical NVU column centered near the left side
+  // Define a hard exclusion band in WORLD SPACE
 
-  for (let p of arteryPath) {
-    const dx = abs(x - p.x);
-    const dy = abs(y - p.y);
+  const arteryCenterX = arteryPath?.[0]?.x ?? -width * 0.35;
 
-    // Covers lumen + wall + pericytes + astrocytes
-    if (dx < BASE_WALL_OFFSET + 120 && dy < 140) {
-      return true;
-    }
-  }
-  return false;
+  // Horizontal half-width of entire NVU column
+  const arteryHalfWidth = BASE_WALL_OFFSET + 150;
+
+  // Vertical span (essentially full height)
+  const arteryTop    = -height;
+  const arteryBottom =  height;
+
+  return (
+    x > arteryCenterX - arteryHalfWidth &&
+    x < arteryCenterX + arteryHalfWidth &&
+    y > arteryTop &&
+    y < arteryBottom
+  );
 }
+
 
 // ---- Voltage trace (screen-anchored region) ----
 function pointNearVoltageTrace(x, y) {
