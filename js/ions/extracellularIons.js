@@ -22,9 +22,9 @@ const AXON_STATIC_NA_COUNT = 8;
 const AXON_STATIC_K_COUNT  = 4;
 
 // -----------------------------------------------------
-// 🔧 HALO CONTROLS (ONLY TUNING YOU NEED)
+// 🔧 HALO CONTROLS
 // -----------------------------------------------------
-const AXON_HALO_RADIUS    = 16; // 14–18 sweet spot
+const AXON_HALO_RADIUS    = 16;
 const AXON_HALO_THICKNESS = 4;
 
 // -----------------------------------------------------
@@ -39,7 +39,7 @@ const ION_COLOR = {
 };
 
 // -----------------------------------------------------
-// SOMA PARAMETERS (LOCKED)
+// SOMA PARAMETERS (LOCKED / RESTORED)
 // -----------------------------------------------------
 const NA_FLUX_SPEED     = 0.9;
 const NA_FLUX_LIFETIME  = 80;
@@ -119,7 +119,6 @@ function initExtracellularIons() {
 
       for (let i = 0; i < count; i++) {
 
-        // evenly spaced along path
         const t   = i / count;
         const idx = floor(t * (path.length - 2));
 
@@ -130,11 +129,8 @@ function initExtracellularIons() {
         const ty = p2.y - p1.y;
         const len = max(1, sqrt(tx*tx + ty*ty));
 
-        // unit normal
         const nx = -ty / len;
         const ny =  tx / len;
-
-        // bilateral placement
         const side = i % 2 === 0 ? 1 : -1;
 
         const r = random(
@@ -154,18 +150,44 @@ function initExtracellularIons() {
     spawnAxonStatic("AxonKStatic",  AXON_STATIC_K_COUNT);
   }
 
-  console.log("🧂 ECS + axon halo initialized (even spacing)");
+  console.log("🧂 ECS + axon halo initialized");
 }
 
 // =====================================================
-// DRAWING — STATIC ONLY
+// 🧠 SOMA ION FLUX (RESTORED — UNCHANGED BEHAVIOR)
+// =====================================================
+function triggerNaInfluxNeuron1() {
+  for (let i = 0; i < 14; i++) {
+    ecsIons.NaFlux.push({
+      x: random(-NA_SPAWN_RADIUS, NA_SPAWN_RADIUS),
+      y: random(-NA_SPAWN_RADIUS, NA_SPAWN_RADIUS),
+      life: NA_FLUX_LIFETIME
+    });
+  }
+}
+
+function triggerKEffluxNeuron1() {
+  for (let i = 0; i < 16; i++) {
+    const a = random(TWO_PI);
+    ecsIons.KFlux.push({
+      x: random(-K_SPAWN_RADIUS, K_SPAWN_RADIUS),
+      y: random(-K_SPAWN_RADIUS, K_SPAWN_RADIUS),
+      vx: cos(a) * K_FLUX_SPEED,
+      vy: sin(a) * K_FLUX_SPEED,
+      life: K_FLUX_LIFETIME
+    });
+  }
+}
+
+// =====================================================
+// DRAWING — ECS + AXON HALO + SOMA FLUX
 // =====================================================
 function drawExtracellularIons() {
   push();
   textAlign(CENTER, CENTER);
   noStroke();
 
-  // ECS baseline
+  // ---- ECS baseline ----
   fill(...ION_COLOR.Na, 120);
   textSize(ION_TEXT_SIZE.Na);
   ecsIons.Na.forEach(p =>
@@ -182,7 +204,7 @@ function drawExtracellularIons() {
       p.y + cos(state.time * 0.0016 + p.phase) * 0.35)
   );
 
-  // Axon halo
+  // ---- AXON HALO ----
   fill(...ION_COLOR.Na, 150);
   ecsIons.AxonNaStatic.forEach(p =>
     text("Na⁺",
@@ -196,6 +218,29 @@ function drawExtracellularIons() {
       p.x - sin(state.time * 0.002 + p.phase) * 0.3,
       p.y + cos(state.time * 0.002 + p.phase) * 0.3)
   );
+
+  // ---- 🧠 SOMA Na⁺ INFLUX ----
+  fill(...ION_COLOR.Na, ION_ALPHA.Na);
+  ecsIons.NaFlux = ecsIons.NaFlux.filter(p => {
+    p.life--;
+    const d = max(1, sqrt(p.x*p.x + p.y*p.y));
+    p.x += (-p.x / d) * NA_FLUX_SPEED;
+    p.y += (-p.y / d) * NA_FLUX_SPEED;
+    text("Na⁺", p.x, p.y);
+    return p.life > 0;
+  });
+
+  // ---- 🧠 SOMA K⁺ EFFLUX ----
+  ecsIons.KFlux = ecsIons.KFlux.filter(p => {
+    p.life--;
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vx *= ION_VEL_DECAY;
+    p.vy *= ION_VEL_DECAY;
+    fill(...ION_COLOR.K, map(p.life, 0, K_FLUX_LIFETIME, 0, ION_ALPHA.K));
+    text("K⁺", p.x, p.y);
+    return p.life > 0;
+  });
 
   pop();
 }
