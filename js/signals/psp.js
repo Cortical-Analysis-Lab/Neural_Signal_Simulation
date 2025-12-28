@@ -6,8 +6,8 @@ console.log("psp loaded");
 // -----------------------------------------------------
 // Active postsynaptic potentials (global PSP engine)
 // -----------------------------------------------------
-const epsps = [];   // neuron 1 + neuron 3 PSPs
-const epsps2 = [];  // neuron 2 EPSPs (visual only for now)
+const epsps  = [];   // neuron 1 + neuron 3 PSPs
+const epsps2 = [];   // neuron 2 EPSPs (visual only for now)
 
 // -----------------------------------------------------
 // Spawn a PSP from a synapse (generic, neuron 1 legacy)
@@ -109,8 +109,36 @@ function updateEPSPs() {
       const sourceNeuron =
         e.synapseId === "neuron3" ? 3 : 1;
 
+      // -------------------------------
+      // Electrical effect on soma
+      // -------------------------------
       addEPSPToSoma(e.baseAmplitude, e.type, sourceNeuron);
 
+      // -------------------------------
+      // Ion dynamics (Neuron 1 ONLY)
+      // -------------------------------
+      if (sourceNeuron === 1) {
+
+        // EPSP → Na⁺ influx
+        if (
+          e.type === "exc" &&
+          typeof triggerNaInfluxNeuron1 === "function"
+        ) {
+          triggerNaInfluxNeuron1();
+        }
+
+        // IPSP → K⁺ efflux
+        if (
+          e.type === "inh" &&
+          typeof triggerKEffluxNeuron1 === "function"
+        ) {
+          triggerKEffluxNeuron1();
+        }
+      }
+
+      // -------------------------------
+      // Logging
+      // -------------------------------
       if (
         !state.paused &&
         typeof logEvent === "function"
@@ -170,8 +198,10 @@ function drawEPSPs() {
     const x = lerp(p0.x, p1.x, t);
     const y = lerp(p0.y, p1.y, t);
 
-    const strength = map(e.amplitude, 6, 30, 0.4, 1.2, true);
-    const w = map(e.baseAmplitude, 6, 30, 3, 12) * strength;
+    const strength =
+      map(e.amplitude, 6, 30, 0.4, 1.2, true);
+    const w =
+      map(e.baseAmplitude, 6, 30, 3, 12) * strength;
 
     const c =
       e.type === "exc"
