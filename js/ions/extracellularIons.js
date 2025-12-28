@@ -1,11 +1,11 @@
 // =====================================================
 // EXTRACELLULAR IONS — Na⁺ / K⁺ (ECS ONLY)
-// Balanced ECS with neuron-biased sampling
+// Teaching-first, artery-excluded ECS
 // =====================================================
 console.log("🧂 extracellularIons loaded");
 
 // -----------------------------------------------------
-// GLOBAL STORAGE
+// GLOBAL STORAGE (RELOAD SAFE)
 // -----------------------------------------------------
 window.ecsIons = window.ecsIons || { Na: [], K: [] };
 
@@ -24,7 +24,7 @@ const ION_TEXT_SIZE = { Na: 10, K: 11 };
 const ION_ALPHA    = { Na: 150, K: 170 };
 
 // =====================================================
-// ECS WORLD BOUNDS (FULL DOMAIN)
+// ECS WORLD BOUNDS — ARTERY THIRD REMOVED
 // =====================================================
 function getECSBounds() {
   return {
@@ -38,6 +38,11 @@ function getECSBounds() {
 // =====================================================
 // EXCLUSION TESTS
 // =====================================================
+
+// ---- HARD ARTERY EXCLUSION (LEFT THIRD) ----
+function pointInArteryThird(x) {
+  return x < -width * 0.33;
+}
 
 // ---- Neuron somas ----
 function pointNearSomas(x, y) {
@@ -77,21 +82,6 @@ function pointNearAxons(x, y) {
   return false;
 }
 
-// ---- Artery corridor (distance-to-path, NOT column) ----
-function pointInsideArteryCorridor(x, y) {
-  if (!window.arteryPath) return false;
-
-  for (let p of arteryPath) {
-    if (
-      abs(x - p.x) < BASE_WALL_OFFSET + 120 &&
-      abs(y - p.y) < 90
-    ) {
-      return true;
-    }
-  }
-  return false;
-}
-
 // ---- Voltage trace ----
 function pointNearVoltageTrace(x, y) {
   return (
@@ -100,13 +90,13 @@ function pointNearVoltageTrace(x, y) {
   );
 }
 
-// ---- Master validity ----
+// ---- MASTER ECS VALIDITY ----
 function validECSPosition(x, y) {
   return !(
+    pointInArteryThird(x) ||
     pointNearSomas(x, y) ||
     pointNearDendrites(x, y) ||
     pointNearAxons(x, y) ||
-    pointInsideArteryCorridor(x, y) ||
     pointNearVoltageTrace(x, y)
   );
 }
@@ -135,7 +125,7 @@ function initExtracellularIons() {
   function spawnIon(type) {
     let tries = 0;
 
-    while (tries++ < 1400) {
+    while (tries++ < 1600) {
       const x = random(b.xmin, b.xmax);
       const y = random(b.ymin, b.ymax);
 
