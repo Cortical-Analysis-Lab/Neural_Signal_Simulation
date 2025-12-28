@@ -34,10 +34,7 @@ function spawnAxonSpike() {
   // 🔑 If myelinated, hand off to saltatory engine
   if (window.myelinEnabled && typeof spawnMyelinAP === "function") {
 
-    if (
-      !state.paused &&
-      typeof logEvent === "function"
-    ) {
+    if (!state.paused && typeof logEvent === "function") {
       logEvent(
         "system",
         "Action potential enters myelinated axon (saltatory conduction)",
@@ -55,10 +52,7 @@ function spawnAxonSpike() {
     if (last.phase < 0.1) return;
   }
 
-  if (
-    !state.paused &&
-    typeof logEvent === "function"
-  ) {
+  if (!state.paused && typeof logEvent === "function") {
     logEvent(
       "neural",
       "Action potential propagates down unmyelinated axon",
@@ -75,26 +69,33 @@ function spawnAxonSpike() {
 function updateAxonSpikes() {
 
   for (let i = axonSpikes.length - 1; i >= 0; i--) {
+
     const s = axonSpikes[i];
     s.phase += AXON_CONDUCTION_SPEED;
 
     // =================================================
-    // 🧂 AXON ION FLUX (UNMYELINATED ONLY)
+    // 🧂 AXON ION FLUX (KEY FIX: DIRECTIONAL)
     // =================================================
-    if (!window.myelinEnabled) {
+    if (!window.myelinEnabled && neuron?.axon?.path) {
 
-      const p = getAxonPoint(s.phase);
+      const p1 = getAxonPoint(s.phase);
+      const p2 = getAxonPoint(
+        Math.min(s.phase + 0.02, 1)
+      );
 
-      // ---- Na⁺ influx at wavefront ----
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+
+      // ---- Na⁺ influx at wavefront (FORWARD) ----
       if (typeof triggerAxonNaInflux === "function") {
-        triggerAxonNaInflux(p.x, p.y);
+        triggerAxonNaInflux(p1.x, p1.y, dx, dy);
       }
 
-      // ---- K⁺ efflux just behind ----
+      // ---- K⁺ efflux slightly behind ----
       if (typeof triggerAxonKEfflux === "function") {
         triggerAxonKEfflux(
-          p.x - 8,
-          p.y + random(-5, 5)
+          p1.x - dx * 0.6,
+          p1.y - dy * 0.6
         );
       }
     }
@@ -103,10 +104,7 @@ function updateAxonSpikes() {
     // Enter terminal region → split into branches
     if (s.phase >= AXON_TERMINAL_START) {
 
-      if (
-        !state.paused &&
-        typeof logEvent === "function"
-      ) {
+      if (!state.paused && typeof logEvent === "function") {
         logEvent(
           "neural",
           "Action potential reaches axon terminals",
@@ -139,6 +137,7 @@ function spawnTerminalSpikes() {
 function updateTerminalDots() {
 
   for (let i = terminalSpikes.length - 1; i >= 0; i--) {
+
     const ts = terminalSpikes[i];
     ts.t += TERMINAL_CONDUCTION_SPEED;
 
@@ -152,10 +151,7 @@ function updateTerminalDots() {
       // =================================================
       // 🩸 METABOLIC CONSUMPTION + SUPPLY SIGNAL
       // =================================================
-      if (
-        !state.paused &&
-        typeof logEvent === "function"
-      ) {
+      if (!state.paused && typeof logEvent === "function") {
         logEvent(
           "vascular",
           "Neural firing increases local metabolic demand",
@@ -176,14 +172,14 @@ function updateTerminalDots() {
       }
       // =================================================
 
-      // ---- Visual bouton depolarization (NO chemistry) ----
+      // ---- Visual bouton depolarization ----
       terminalGlows.push({
         x: bouton.x,
         y: bouton.y,
         life: TERMINAL_GLOW_LIFETIME
       });
 
-      // ---- Chemical synapse handoff ONLY ----
+      // ---- Chemical synapse handoff ----
       if (typeof triggerSynapticRelease === "function") {
         triggerSynapticRelease(bouton);
       }
@@ -206,7 +202,7 @@ function updateTerminalDots() {
 // -----------------------------------------------------
 function drawAxonSpikes() {
 
-  // ---- Axon AP wavefront (UNMYELINATED ONLY) ----
+  // ---- Axon AP wavefront ----
   if (!window.myelinEnabled) {
     axonSpikes.forEach(s => {
       const p = getAxonPoint(s.phase);
@@ -220,6 +216,7 @@ function drawAxonSpikes() {
 
   // ---- Terminal branch AP fragments ----
   terminalSpikes.forEach(ts => {
+
     const b = ts.branch;
 
     const x = bezierPoint(
@@ -247,6 +244,7 @@ function drawAxonSpikes() {
 
   // ---- Bouton depolarization glow ----
   terminalGlows.forEach(g => {
+
     const a = map(
       g.life,
       0,
