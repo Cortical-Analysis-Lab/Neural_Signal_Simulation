@@ -1,6 +1,9 @@
 // =====================================================
 // DRAW TRAVELING MEMBRANE WAVES (BIDIRECTIONAL, NO LOOP)
 // =====================================================
+// =====================================================
+// DRAW TRAVELING MEMBRANE WAVES (BIDIRECTIONAL, NO LOOP)
+// =====================================================
 function drawVoltageWave(path, {
   side = 1,
   length = 0.18,
@@ -9,7 +12,7 @@ function drawVoltageWave(path, {
 } = {}) {
 
   const activePath = path ?? window.apPath;
-  if (!apActive || !activePath || activePath.length < 2) return;
+  if (!window.apActive || !activePath || activePath.length < 2) return;
 
   push();
   noFill();
@@ -21,7 +24,7 @@ function drawVoltageWave(path, {
   // ---------------------------------------------------
   // PHASE → INDEX MAPPING (NO WRAP)
   // ---------------------------------------------------
-  const forwardHead  = Math.floor(apPhase * halfIndex);
+  const forwardHead  = Math.floor(window.apPhase * halfIndex);
   const backwardHead = total - 1 - forwardHead;
 
   const span = Math.max(2, Math.floor(length * total));
