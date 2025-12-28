@@ -1,15 +1,10 @@
 console.log("🟡 preSynapse loaded");
 
 // =====================================================
-// COLORS & GEOMETRY
-// =====================================================
-const NEURON_YELLOW = window.COLORS?.neuron ?? [245, 225, 140];
-
-// =====================================================
-// PRESYNAPTIC AP CONDUCTION PATH (LOCAL, UNFLIPPED)
+// PRESYNAPTIC AP CONDUCTION PATH (NEURON-LOCAL)
 // Shaft → cap (user-selected)
 // =====================================================
-const PRESYNAPTIC_AP_PATH_RAW = [
+const PRESYNAPTIC_AP_PATH = [
   { x: 153.1, y:  4.7 },
   { x: 170.5, y: -5.1 },
   { x: 181.1, y: -20.5 },
@@ -26,26 +21,30 @@ const PRESYNAPTIC_AP_PATH_RAW = [
 ];
 
 // =====================================================
-// MIRROR PATH TO MATCH drawTNeuronShape(-1)
+// TRANSFORM AP PATH → MATCH NEURON GEOMETRY
 // =====================================================
-function mirrorXPath(path) {
-  return path.map(p => ({ x: -p.x, y: p.y }));
+function getPresynapticAPPath() {
+  const DIR = -1;              // matches drawTNeuronShape(-1)
+  const MEMBRANE_OFFSET = 0;   // adjust later if needed
+
+  return PRESYNAPTIC_AP_PATH.map(p => ({
+    x: p.x * DIR,
+    y: p.y + MEMBRANE_OFFSET
+  }));
 }
 
-const PRESYNAPTIC_AP_PATH = mirrorXPath(PRESYNAPTIC_AP_PATH_RAW);
-
 // =====================================================
-// PRESYNAPTIC NEURON (GEOMETRY + AP)
+// PRESYNAPTIC NEURON (GEOMETRY + DEBUG AP DOTS)
 // =====================================================
 function drawPreSynapse() {
   push();
 
-  // ---- Geometry (mirrored)
+  // ---- Neuron geometry (already flipped internally)
   drawTNeuronShape(-1);
 
-  // ---- Action potential (uses mirrored path)
-  drawVoltageWave(PRESYNAPTIC_AP_PATH, { side: +1 });
-  drawVoltageWave(PRESYNAPTIC_AP_PATH, { side: -1 });
+  // ---- AP debug dots (now correctly transformed)
+  const apPath = getPresynapticAPPath();
+  drawVoltageWave(apPath);
 
   pop();
 }
