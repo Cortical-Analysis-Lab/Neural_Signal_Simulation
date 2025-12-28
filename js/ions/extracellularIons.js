@@ -23,9 +23,9 @@ window.ecsIons = {
 const ECS_ION_COUNTS = { Na: 260, K: 160 };
 
 // ★ NEW — axon-adjacent baseline counts
-const AXON_STATIC_NA_COUNT = 90;
-const AXON_STATIC_K_COUNT  = 30;
-const AXON_STATIC_OFFSET  = 6;
+const AXON_STATIC_NA_COUNT = 28;
+const AXON_STATIC_K_COUNT  = 8;
+const AXON_STATIC_OFFSET  = 2;
 
 // -----------------------------------------------------
 // VISUALS
