@@ -24,8 +24,8 @@ const AXON_STATIC_K_COUNT  = 4;
 // -----------------------------------------------------
 // 🔧 HALO CONTROLS (ONLY TUNING YOU NEED)
 // -----------------------------------------------------
-const AXON_HALO_RADIUS     = 16; // 14–18 sweet spot
-const AXON_HALO_THICKNESS  = 4;
+const AXON_HALO_RADIUS    = 16; // 14–18 sweet spot
+const AXON_HALO_THICKNESS = 4;
 
 // -----------------------------------------------------
 // VISUALS
@@ -76,7 +76,7 @@ function validECS(x, y) {
 }
 
 // =====================================================
-// INITIALIZATION — ECS + AXON HALO (BILATERAL)
+// INITIALIZATION — ECS + AXON HALO (EVENLY SPACED)
 // =====================================================
 function initExtracellularIons() {
 
@@ -110,52 +110,55 @@ function initExtracellularIons() {
   for (let i = 0; i < ECS_ION_COUNTS.K;  i++) spawnECSIon("K");
 
   // ------------------
-  // AXON STATIC HALO (BILATERAL NORMALS)
+  // AXON STATIC HALO — EVEN DISTRIBUTION
   // ------------------
   if (neuron?.axon?.path) {
 
     function spawnAxonStatic(type, count) {
-    const path = neuron.axon.path;
-  
-    for (let i = 0; i < count; i++) {
-  
-      const idx = floor(random(path.length - 1));
-      const p1  = path[idx];
-      const p2  = path[idx + 1];
-  
-      const tx = p2.x - p1.x;
-      const ty = p2.y - p1.y;
-      const len = max(1, sqrt(tx*tx + ty*ty));
-  
-      // unit normal
-      const nx = -ty / len;
-      const ny =  tx / len;
-  
-      // 🔑 bilateral placement
-      const side = random() < 0.5 ? 1 : -1;
-  
-      const r = random(
-        AXON_HALO_RADIUS,
-        AXON_HALO_RADIUS + AXON_HALO_THICKNESS
-      );
-  
-      ecsIons[type].push({
-        x: p1.x + nx * r * side,
-        y: p1.y + ny * r * side,
-        phase: random(TWO_PI)
-      });
+      const path = neuron.axon.path;
+
+      for (let i = 0; i < count; i++) {
+
+        // evenly spaced along path
+        const t   = i / count;
+        const idx = floor(t * (path.length - 2));
+
+        const p1 = path[idx];
+        const p2 = path[idx + 1];
+
+        const tx = p2.x - p1.x;
+        const ty = p2.y - p1.y;
+        const len = max(1, sqrt(tx*tx + ty*ty));
+
+        // unit normal
+        const nx = -ty / len;
+        const ny =  tx / len;
+
+        // bilateral placement
+        const side = i % 2 === 0 ? 1 : -1;
+
+        const r = random(
+          AXON_HALO_RADIUS,
+          AXON_HALO_RADIUS + AXON_HALO_THICKNESS
+        );
+
+        ecsIons[type].push({
+          x: p1.x + nx * r * side,
+          y: p1.y + ny * r * side,
+          phase: random(TWO_PI)
+        });
+      }
     }
-  }
 
     spawnAxonStatic("AxonNaStatic", AXON_STATIC_NA_COUNT);
     spawnAxonStatic("AxonKStatic",  AXON_STATIC_K_COUNT);
   }
 
-  console.log("🧂 ECS + axon halo initialized (bilateral)");
+  console.log("🧂 ECS + axon halo initialized (even spacing)");
 }
 
 // =====================================================
-// DRAWING — STATIC ONLY (FLUX UNCHANGED ELSEWHERE)
+// DRAWING — STATIC ONLY
 // =====================================================
 function drawExtracellularIons() {
   push();
