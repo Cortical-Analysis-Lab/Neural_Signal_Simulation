@@ -37,15 +37,15 @@ const ION_COLOR = {
 // MOTION PARAMETERS
 // (Na⁺ LOCKED — K⁺ RESTORED)
 // -----------------------------------------------------
-const NA_FLUX_SPEED     = 0.9;   // 🔒 DO NOT CHANGE
-const NA_FLUX_LIFETIME = 80;
-const NA_SPAWN_RADIUS  = 140;
+const NA_FLUX_SPEED     = 0.9;    // 🔒 DO NOT CHANGE
+const NA_FLUX_LIFETIME  = 80;
+const NA_SPAWN_RADIUS   = 140;
 
 // 🔥 Restored K⁺ behavior
-const K_FLUX_SPEED     = 2.2;    // ⬅ pushed much farther
-const K_FLUX_LIFETIME = 160;    // ⬅ longer visible travel
-const K_SPAWN_RADIUS  = 28;
-const ION_VEL_DECAY   = 0.965;  // ⬅ slower decay = farther spread
+const K_FLUX_SPEED      = 2.2;    // pushed farther
+const K_FLUX_LIFETIME   = 160;    // longer visible travel
+const K_SPAWN_RADIUS    = 28;
+const ION_VEL_DECAY     = 0.965;  // slower decay → farther spread
 
 // =====================================================
 // ECS WORLD BOUNDS — ARTERY THIRD REMOVED
@@ -94,7 +94,8 @@ function initExtracellularIons() {
       if (!validECSPosition(x, y)) continue;
 
       ecsIons[type].push({
-        x, y,
+        x,
+        y,
         phase: random(TWO_PI)
       });
       return;
@@ -112,9 +113,10 @@ function initExtracellularIons() {
 // =====================================================
 
 // -----------------------------------------------------
-// EPSP → Na⁺ influx (DO NOT MODIFY)
+// EPSP → Na⁺ influx (GOOD VERSION — DO NOT MODIFY)
 // -----------------------------------------------------
 function triggerNaInfluxNeuron1() {
+
   for (let i = 0; i < 14; i++) {
     ecsIons.NaFlux.push({
       x: random(-NA_SPAWN_RADIUS, NA_SPAWN_RADIUS),
@@ -125,9 +127,10 @@ function triggerNaInfluxNeuron1() {
 }
 
 // -----------------------------------------------------
-// IPSP → K⁺ efflux (RESTORED)
+// IPSP → K⁺ efflux (RESTORED FAR EXPULSION)
 // -----------------------------------------------------
 function triggerKEffluxNeuron1() {
+
   for (let i = 0; i < 16; i++) {
     const a = random(TWO_PI);
     ecsIons.KFlux.push({
@@ -169,7 +172,7 @@ function drawExtracellularIons() {
   });
 
   // -------------------------
-  // Na⁺ FLUX (GOOD VERSION — UNCHANGED)
+  // Na⁺ FLUX (LONG, CLEAR SUCTION)
   // -------------------------
   fill(...ION_COLOR.Na, ION_ALPHA.Na);
   ecsIons.NaFlux = ecsIons.NaFlux.filter(p => {
@@ -188,7 +191,7 @@ function drawExtracellularIons() {
   });
 
   // -------------------------
-  // K⁺ FLUX (RESTORED FAR EXPULSION)
+  // K⁺ FLUX (FAR, SLOW, FADING)
   // -------------------------
   ecsIons.KFlux = ecsIons.KFlux.filter(p => {
 
