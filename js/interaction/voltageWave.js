@@ -1,6 +1,57 @@
+console.log("⚡ voltageWave interaction loaded");
+
 // =====================================================
-// DRAW TRAVELING MEMBRANE WAVES (BIDIRECTIONAL, NO LOOP)
+// GLOBAL AP STATE (EXPLICIT & SAFE)
 // =====================================================
+window.apActive   = false;
+window.apPhase    = 0;
+window.apSpeed    = 0.015;
+window.apDuration = 1.2;
+window.apTimer    = 0;
+
+// Optional user-captured path (fallback)
+window.apPath = window.apPath || [];
+
+// =====================================================
+// KEYBOARD TRIGGER — SPACEBAR STARTS AP
+// =====================================================
+window.addEventListener("keydown", (e) => {
+
+  if (e.code !== "Space") return;
+
+  // Prevent retrigger while active
+  if (window.apActive) return;
+
+  // Optional: only allow in synapse view
+  if (typeof state !== "undefined" && state.mode !== "synapse") return;
+
+  window.apActive = true;
+  window.apPhase  = 0;
+  window.apTimer  = 0;
+
+  console.log("⚡ Presynaptic AP triggered");
+});
+
+// =====================================================
+// UPDATE — ADVANCE AP PHASE (CALLED FROM SynapseView)
+// =====================================================
+function updateVoltageWave() {
+  if (!window.apActive) return;
+
+  window.apPhase += window.apSpeed;
+  window.apTimer += window.apSpeed;
+
+  // Clamp phase (no wraparound)
+  if (window.apPhase > 1) window.apPhase = 1;
+
+  // End AP after duration
+  if (window.apTimer >= window.apDuration) {
+    window.apActive = false;
+    window.apPhase  = 0;
+    window.apTimer  = 0;
+  }
+}
+
 // =====================================================
 // DRAW TRAVELING MEMBRANE WAVES (BIDIRECTIONAL, NO LOOP)
 // =====================================================
@@ -12,7 +63,12 @@ function drawVoltageWave(path, {
 } = {}) {
 
   const activePath = path ?? window.apPath;
-  if (!window.apActive || !activePath || activePath.length < 2) return;
+
+  if (
+    !window.apActive ||
+    !activePath ||
+    activePath.length < 2
+  ) return;
 
   push();
   noFill();
@@ -22,7 +78,7 @@ function drawVoltageWave(path, {
   const halfIndex = Math.floor(total / 2);
 
   // ---------------------------------------------------
-  // PHASE → INDEX MAPPING (NO WRAP)
+  // PHASE → INDEX (NO WRAP, BIDIRECTIONAL)
   // ---------------------------------------------------
   const forwardHead  = Math.floor(window.apPhase * halfIndex);
   const backwardHead = total - 1 - forwardHead;
@@ -58,7 +114,7 @@ function drawVoltageWave(path, {
       const nx = -dy / mag;
       const ny =  dx / mag;
 
-      // Fade as we approach midpoint
+      // Fade toward midpoint
       const fade = map(
         Math.abs(idx - halfIndex),
         halfIndex, 0,
