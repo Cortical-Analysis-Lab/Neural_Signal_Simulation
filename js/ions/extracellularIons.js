@@ -11,7 +11,7 @@ window.ecsIons = {
   Na: [], K: [],
   NaFlux: [], KFlux: [],
   AxonNaStatic: [], AxonKStatic: [],
-  AxonNaCopies: []   // ★ bilateral Na⁺ convergence copies
+  AxonNaCopies: []   // ★ bilateral Na⁺ → axon centerline
 };
 
 // -----------------------------------------------------
@@ -32,17 +32,18 @@ const AXON_HALO_THICKNESS = 4;
 // -----------------------------------------------------
 const HALO_AP_RADIUS = 28;
 
-// Static halo motion (minimal)
-const HALO_NA_PERTURB = 0.06;   // visual emphasis only
-const HALO_K_PUSH     = 1.6;    // strong outward plume
+// Static halo motion (visual only)
+const HALO_NA_PERTURB = 0.06;
+const HALO_K_PUSH     = 1.6;
 
 // Relaxation
 const HALO_NA_RELAX = 0.95;
 const HALO_K_RELAX  = 0.80;
 
 // Bilateral Na⁺ copy motion
-const NA_COPY_SPEED = 2.8;
+const NA_COPY_SPEED = 0.28;   // geometric convergence
 const NA_COPY_LIFE  = 16;
+const NA_CENTER_EPS = 3;      // vanish at centerline
 
 // -----------------------------------------------------
 // VISUALS
@@ -65,6 +66,28 @@ const K_FLUX_SPEED      = 2.2;
 const K_FLUX_LIFETIME   = 160;
 const K_SPAWN_RADIUS    = 28;
 const ION_VEL_DECAY     = 0.965;
+
+// =====================================================
+// GEOMETRY — closest point on axon centerline
+// =====================================================
+function closestPointOnAxon(x, y) {
+  if (!neuron?.axon?.path) return null;
+
+  let best = null;
+  let bestD = Infinity;
+
+  for (let i = 0; i < neuron.axon.path.length; i++) {
+    const p = neuron.axon.path[i];
+    const dx = p.x - x;
+    const dy = p.y - y;
+    const d2 = dx * dx + dy * dy;
+    if (d2 < bestD) {
+      bestD = d2;
+      best = p;
+    }
+  }
+  return best;
+}
 
 // =====================================================
 // INITIALIZATION
@@ -184,66 +207,28 @@ function drawExtracellularIons() {
   textSize(ION_TEXT_SIZE.K);
   ecsIons.K.forEach(p => text("K⁺", p.x, p.y));
 
-  // ------------------
-  // AP position + normal
-  // ------------------
   const apPhase = window.currentAxonAPPhase;
-  let apPos = null;
-  let nx = 0, ny = 0;
-
-  if (apPhase != null && neuron?.axon?.path) {
-    const idx = floor(apPhase * (neuron.axon.path.length - 2));
-    const p1  = neuron.axon.path[idx];
-    const p2  = neuron.axon.path[idx + 1];
-
-    apPos = p1;
-
-    const dx = p2.x - p1.x;
-    const dy = p2.y - p1.y;
-    const len = Math.hypot(dx, dy) || 1;
-
-    nx = -dy / len;
-    ny =  dx / len;
-  }
 
   // ------------------
-  // Na⁺ STATIC HALO + BILATERAL COPIES
+  // Na⁺ STATIC HALO + COPY SPAWN
   // ------------------
   fill(...ION_COLOR.Na, 150);
   ecsIons.AxonNaStatic.forEach(p => {
 
-    if (apPos && abs(apPhase - p.lastAPPhase) > 0.06) {
-
-      const dx = p.x0 - apPos.x;
-      const dy = p.y0 - apPos.y;
-      const d  = Math.hypot(dx, dy);
-
-      if (d < HALO_AP_RADIUS) {
-
-        // subtle highlight only
-        p.vx += -nx * HALO_NA_PERTURB;
-        p.vy += -ny * HALO_NA_PERTURB;
-
-        // ★ bilateral inward Na⁺ copies
-        ecsIons.AxonNaCopies.push({
-          x: p.x,
-          y: p.y,
-          vx: -nx * NA_COPY_SPEED,
-          vy: -ny * NA_COPY_SPEED,
-          life: NA_COPY_LIFE
-        });
-
-        p.lastAPPhase = apPhase;
-      }
+    if (apPhase != null && abs(apPhase - p.lastAPPhase) > 0.06) {
+      ecsIons.AxonNaCopies.push({
+        x: p.x,
+        y: p.y,
+        life: NA_COPY_LIFE
+      });
+      p.lastAPPhase = apPhase;
     }
 
-    // strong tether
+    // tether
     p.vx += (p.x0 - p.x) * 0.06;
     p.vy += (p.y0 - p.y) * 0.06;
-
     p.vx *= HALO_NA_RELAX;
     p.vy *= HALO_NA_RELAX;
-
     p.x += p.vx;
     p.y += p.vy;
 
@@ -251,14 +236,24 @@ function drawExtracellularIons() {
   });
 
   // ------------------
-  // Na⁺ CONVERGING COPIES
+  // Na⁺ COPIES → AXON CENTERLINE
   // ------------------
   ecsIons.AxonNaCopies = ecsIons.AxonNaCopies.filter(p => {
-    p.life--;
-    p.x += p.vx;
-    p.y += p.vy;
+
+    const target = closestPointOnAxon(p.x, p.y);
+    if (!target || --p.life <= 0) return false;
+
+    const dx = target.x - p.x;
+    const dy = target.y - p.y;
+    const d  = Math.hypot(dx, dy);
+
+    if (d < NA_CENTER_EPS) return false;
+
+    p.x += dx * NA_COPY_SPEED;
+    p.y += dy * NA_COPY_SPEED;
+
     text("Na⁺", p.x, p.y);
-    return p.life > 0;
+    return true;
   });
 
   // ------------------
@@ -267,24 +262,15 @@ function drawExtracellularIons() {
   fill(...ION_COLOR.K, 150);
   ecsIons.AxonKStatic.forEach(p => {
 
-    if (apPos) {
-      const dx = p.x0 - apPos.x;
-      const dy = p.y0 - apPos.y;
-      const d  = Math.hypot(dx, dy);
-
-      if (d < HALO_AP_RADIUS) {
-        p.vx += nx * HALO_K_PUSH;
-        p.vy += ny * HALO_K_PUSH;
-      }
+    if (apPhase != null) {
+      p.vx += (p.x - p.x0) * HALO_K_PUSH * 0.01;
+      p.vy += (p.y - p.y0) * HALO_K_PUSH * 0.01;
     }
 
-    // weak tether → plume persists
     p.vx += (p.x0 - p.x) * 0.008;
     p.vy += (p.y0 - p.y) * 0.008;
-
     p.vx *= HALO_K_RELAX;
     p.vy *= HALO_K_RELAX;
-
     p.x += p.vx;
     p.y += p.vy;
 
@@ -292,7 +278,7 @@ function drawExtracellularIons() {
   });
 
   // ------------------
-  // 🧠 SOMA Na⁺ INFLUX
+  // 🧠 SOMA Na⁺
   // ------------------
   fill(...ION_COLOR.Na, 170);
   ecsIons.NaFlux = ecsIons.NaFlux.filter(p => {
@@ -305,7 +291,7 @@ function drawExtracellularIons() {
   });
 
   // ------------------
-  // 🧠 SOMA K⁺ EFFLUX
+  // 🧠 SOMA K⁺
   // ------------------
   ecsIons.KFlux = ecsIons.KFlux.filter(p => {
     p.life--;
