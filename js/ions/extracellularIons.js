@@ -10,7 +10,8 @@ console.log("🧂 extracellularIons loaded");
 window.ecsIons = {
   Na: [], K: [],
   NaFlux: [], KFlux: [],
-  AxonNaStatic: [], AxonKStatic: []
+  AxonNaStatic: [], AxonKStatic: [],
+  AxonNaInward: [] // ★ NEW: transient Na⁺ copies
 };
 
 // -----------------------------------------------------
@@ -27,10 +28,14 @@ const AXON_HALO_RADIUS    = 16;
 const AXON_HALO_THICKNESS = 4;
 
 // --- AP → halo coupling ---
-const HALO_AP_RADIUS   = 28;   // distance of influence
-const HALO_NA_PUSH     = -0.6; // inward
-const HALO_K_PUSH      =  0.8; // outward
-const HALO_RELAX       =  0.88;
+const HALO_AP_RADIUS     = 28;
+const HALO_NA_PUSH       = -0.4;   // subtle (static)
+const HALO_K_PUSH        =  1.4;   // ★ stronger outward
+const HALO_RELAX         =  0.86;  // slower return
+
+// --- Na⁺ inward copies ---
+const AXON_NA_IN_SPEED   = 3.2;
+const AXON_NA_IN_LIFE    = 18;
 
 // -----------------------------------------------------
 // VISUALS
@@ -44,7 +49,7 @@ const ION_COLOR = {
 };
 
 // -----------------------------------------------------
-// SOMA PARAMETERS (LOCKED)
+// SOMA PARAMETERS (UNCHANGED)
 // -----------------------------------------------------
 const NA_FLUX_SPEED     = 0.9;
 const NA_FLUX_LIFETIME  = 80;
@@ -56,7 +61,7 @@ const K_SPAWN_RADIUS    = 28;
 const ION_VEL_DECAY     = 0.965;
 
 // =====================================================
-// INITIALIZATION — ECS + AXON HALO (EVENLY SPACED)
+// INITIALIZATION — ECS + AXON HALO
 // =====================================================
 function initExtracellularIons() {
 
@@ -73,22 +78,18 @@ function initExtracellularIons() {
   };
 
   function spawnECSIon(type) {
-    let tries = 0;
-    while (tries++ < 1400) {
-      ecsIons[type].push({
-        x: random(b.xmin, b.xmax),
-        y: random(b.ymin, b.ymax),
-        phase: random(TWO_PI)
-      });
-      return;
-    }
+    ecsIons[type].push({
+      x: random(b.xmin, b.xmax),
+      y: random(b.ymin, b.ymax),
+      phase: random(TWO_PI)
+    });
   }
 
   for (let i = 0; i < ECS_ION_COUNTS.Na; i++) spawnECSIon("Na");
   for (let i = 0; i < ECS_ION_COUNTS.K;  i++) spawnECSIon("K");
 
   // ------------------
-  // AXON STATIC HALO — EVEN + BILATERAL + REST STATE
+  // AXON STATIC HALO
   // ------------------
   if (neuron?.axon?.path) {
 
@@ -103,12 +104,12 @@ function initExtracellularIons() {
         const p1 = path[idx];
         const p2 = path[idx + 1];
 
-        const tx = p2.x - p1.x;
-        const ty = p2.y - p1.y;
-        const len = max(1, sqrt(tx*tx + ty*ty));
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const len = max(1, sqrt(dx*dx + dy*dy));
 
-        const nx = -ty / len;
-        const ny =  tx / len;
+        const nx = -dy / len;
+        const ny =  dx / len;
         const side = i % 2 === 0 ? 1 : -1;
 
         const r = random(
@@ -121,7 +122,7 @@ function initExtracellularIons() {
 
         ecsIons[type].push({
           x: x0, y: y0,
-          x0, y0,          // rest position
+          x0, y0,
           vx: 0, vy: 0,
           phase: random(TWO_PI)
         });
@@ -136,7 +137,7 @@ function initExtracellularIons() {
 }
 
 // =====================================================
-// 🧠 SOMA ION FLUX (UNCHANGED)
+// 🧠 SOMA FLUX (UNCHANGED)
 // =====================================================
 function triggerNaInfluxNeuron1() {
   for (let i = 0; i < 14; i++) {
@@ -162,7 +163,7 @@ function triggerKEffluxNeuron1() {
 }
 
 // =====================================================
-// DRAWING — ECS + HALO (AP-COUPLED) + SOMA FLUX
+// DRAWING — ECS + HALO + AXON + SOMA
 // =====================================================
 function drawExtracellularIons() {
   push();
@@ -186,14 +187,14 @@ function drawExtracellularIons() {
       p.y + cos(state.time * 0.0016 + p.phase) * 0.35)
   );
 
-  // ---- AXON HALO (AP-COUPLED) ----
+  // ---- AXON HALO (AP COUPLED) ----
   const apPhase = window.currentAxonAPPhase;
   const apPos =
     (apPhase != null && neuron?.axon?.path)
       ? neuron.axon.path[floor(apPhase * (neuron.axon.path.length - 1))]
       : null;
 
-  function updateHalo(p, pushStrength) {
+  function updateHalo(p, pushStrength, spawnNaCopy = false) {
 
     if (apPos) {
       const dx = p.x0 - apPos.x;
@@ -202,14 +203,25 @@ function drawExtracellularIons() {
 
       if (d < HALO_AP_RADIUS) {
         const f = 1 - d / HALO_AP_RADIUS;
+
         p.vx += (dx / max(d, 1)) * pushStrength * f;
         p.vy += (dy / max(d, 1)) * pushStrength * f;
+
+        // ★ spawn Na⁺ inward copy
+        if (spawnNaCopy) {
+          ecsIons.AxonNaInward.push({
+            x: p.x,
+            y: p.y,
+            vx: -(dx / max(d, 1)) * AXON_NA_IN_SPEED,
+            vy: -(dy / max(d, 1)) * AXON_NA_IN_SPEED,
+            life: AXON_NA_IN_LIFE
+          });
+        }
       }
     }
 
-    // relax back
-    p.vx += (p.x0 - p.x) * 0.04;
-    p.vy += (p.y0 - p.y) * 0.04;
+    p.vx += (p.x0 - p.x) * 0.03;
+    p.vy += (p.y0 - p.y) * 0.03;
 
     p.vx *= HALO_RELAX;
     p.vy *= HALO_RELAX;
@@ -218,19 +230,29 @@ function drawExtracellularIons() {
     p.y += p.vy;
   }
 
+  // ---- Na⁺ static + inward copies ----
   fill(...ION_COLOR.Na, 150);
   ecsIons.AxonNaStatic.forEach(p => {
-    updateHalo(p, HALO_NA_PUSH);
+    updateHalo(p, HALO_NA_PUSH, true);
     text("Na⁺", p.x, p.y);
   });
 
+  ecsIons.AxonNaInward = ecsIons.AxonNaInward.filter(p => {
+    p.life--;
+    p.x += p.vx;
+    p.y += p.vy;
+    text("Na⁺", p.x, p.y);
+    return p.life > 0;
+  });
+
+  // ---- K⁺ static (strong outward plume) ----
   fill(...ION_COLOR.K, 150);
   ecsIons.AxonKStatic.forEach(p => {
-    updateHalo(p, HALO_K_PUSH);
+    updateHalo(p, HALO_K_PUSH, false);
     text("K⁺", p.x, p.y);
   });
 
-  // ---- 🧠 SOMA Na⁺ ----
+  // ---- SOMA Na⁺ ----
   fill(...ION_COLOR.Na, ION_ALPHA.Na);
   ecsIons.NaFlux = ecsIons.NaFlux.filter(p => {
     p.life--;
@@ -241,7 +263,7 @@ function drawExtracellularIons() {
     return p.life > 0;
   });
 
-  // ---- 🧠 SOMA K⁺ ----
+  // ---- SOMA K⁺ ----
   ecsIons.KFlux = ecsIons.KFlux.filter(p => {
     p.life--;
     p.x += p.vx;
