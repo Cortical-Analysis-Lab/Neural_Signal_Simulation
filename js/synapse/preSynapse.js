@@ -21,30 +21,47 @@ const PRESYNAPTIC_AP_PATH = [
 ];
 
 // =====================================================
-// TRANSFORM AP PATH → MATCH NEURON GEOMETRY
-// =====================================================
-function getPresynapticAPPath() {
-  const DIR = -1;              // matches drawTNeuronShape(-1)
-  const MEMBRANE_OFFSET = 0;   // adjust later if needed
-
-  return PRESYNAPTIC_AP_PATH.map(p => ({
-    x: p.x * DIR,
-    y: p.y + MEMBRANE_OFFSET
-  }));
-}
-
-// =====================================================
-// PRESYNAPTIC NEURON (GEOMETRY + DEBUG AP DOTS)
+// PRESYNAPTIC NEURON (GEOMETRY + AP DOT DEBUG)
 // =====================================================
 function drawPreSynapse() {
   push();
 
-  // ---- Neuron geometry (already flipped internally)
-  drawTNeuronShape(-1);
+  // ---------------------------------------------------
+  // 🔑 APPLY FLIP ONCE — FOR EVERYTHING
+  // ---------------------------------------------------
+  scale(-1, 1);
 
-  // ---- AP debug dots (now correctly transformed)
-  const apPath = getPresynapticAPPath();
-  drawVoltageWave(apPath);
+  // ---- Draw neuron geometry (NO internal flip now)
+  drawTNeuronShape(1);
 
+  // ---- Draw flashing AP dots (same coordinate space)
+  drawAPDebugDots(PRESYNAPTIC_AP_PATH);
+
+  pop();
+}
+
+// =====================================================
+// DEBUG: FLASHING GREEN DOTS AT EACH AP COORDINATE
+// =====================================================
+function drawAPDebugDots(path) {
+  if (!window.apActive) return;
+
+  const pulse = 0.5 + 0.5 * sin(frameCount * 0.2);
+
+  push();
+  blendMode(ADD);
+  noStroke();
+
+  for (const p of path) {
+    // Halo
+    fill(80, 255, 120, 120 * pulse);
+    circle(p.x, p.y, 18);
+
+    // Core
+    fill(160, 255, 190, 220 * pulse);
+    circle(p.x, p.y, 6);
+  }
+
+  blendMode(BLEND);
   pop();
 }
