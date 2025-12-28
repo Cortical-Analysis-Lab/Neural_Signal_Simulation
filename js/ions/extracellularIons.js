@@ -32,17 +32,17 @@ const AXON_HALO_THICKNESS = 4;
 // -----------------------------------------------------
 const HALO_AP_RADIUS = 28;
 
-// Static halo motion (VERY subtle)
-const HALO_NA_PERTURB = 0.08;   // inward only
-const HALO_K_PUSH     = 1.8;    // strong outward plume
+// Motion strengths (BIOLOGICALLY CORRECT)
+const HALO_NA_PERTURB = 0.06;   // Na⁺ barely moves (channels open)
+const HALO_K_PUSH     = 1.9;    // K⁺ strongly expelled
 
 // Relaxation
-const HALO_NA_RELAX = 0.94;
-const HALO_K_RELAX  = 0.80;
+const HALO_NA_RELAX = 0.95;
+const HALO_K_RELAX  = 0.78;
 
-// Na⁺ influx copies (fast + brief)
-const AXON_NA_IN_SPEED = 3.8;
-const AXON_NA_IN_LIFE  = 18;
+// Na⁺ influx copies (fast, brief)
+const AXON_NA_IN_SPEED = 4.2;
+const AXON_NA_IN_LIFE  = 16;
 
 // -----------------------------------------------------
 // VISUALS
@@ -114,10 +114,8 @@ function initExtracellularIons() {
         const ty = p2.y - p1.y;
         const len = Math.hypot(tx, ty) || 1;
 
-        // membrane normal
         const nx = -ty / len;
         const ny =  tx / len;
-
         const side = i % 2 === 0 ? 1 : -1;
 
         const r = random(
@@ -162,30 +160,18 @@ function drawExtracellularIons() {
   ecsIons.K.forEach(p => text("K⁺", p.x, p.y));
 
   // ------------------
-  // AP position + membrane normal
+  // AP position
   // ------------------
   const apPhase = window.currentAxonAPPhase;
-  let axonNx = 0, axonNy = 0;
-  let apPos = null;
-
-  if (apPhase != null && neuron?.axon?.path) {
-
-    const idx = floor(apPhase * (neuron.axon.path.length - 2));
-    const p1  = neuron.axon.path[idx];
-    const p2  = neuron.axon.path[idx + 1];
-
-    apPos = p1;
-
-    const tx = p2.x - p1.x;
-    const ty = p2.y - p1.y;
-    const len = Math.hypot(tx, ty) || 1;
-
-    axonNx = -ty / len;
-    axonNy =  tx / len;
-  }
+  const apPos =
+    (apPhase != null && neuron?.axon?.path)
+      ? neuron.axon.path[
+          floor(apPhase * (neuron.axon.path.length - 1))
+        ]
+      : null;
 
   // ------------------
-  // Na⁺ HALO (INWARD ONLY)
+  // Na⁺ HALO (INWARD — CORRECT)
   // ------------------
   fill(...ION_COLOR.Na, 150);
   ecsIons.AxonNaStatic.forEach(p => {
@@ -197,18 +183,20 @@ function drawExtracellularIons() {
 
       if (d < HALO_AP_RADIUS && abs(apPhase - p.lastAPPhase) > 0.05) {
 
-        const f = 1 - d / HALO_AP_RADIUS;
+        // inward direction = toward rest position
+        const ix = p.x0 - p.x;
+        const iy = p.y0 - p.y;
+        const im = Math.hypot(ix, iy) || 1;
 
-        // slight inward bias along membrane normal
-        p.vx += -axonNx * HALO_NA_PERTURB * f;
-        p.vy += -axonNy * HALO_NA_PERTURB * f;
+        p.vx += (ix / im) * HALO_NA_PERTURB;
+        p.vy += (iy / im) * HALO_NA_PERTURB;
 
-        // TRUE Na⁺ influx copy (fast, disappears)
+        // fast Na⁺ influx copy
         ecsIons.AxonNaInward.push({
           x: p.x,
           y: p.y,
-          vx: -axonNx * AXON_NA_IN_SPEED,
-          vy: -axonNy * AXON_NA_IN_SPEED,
+          vx: (ix / im) * AXON_NA_IN_SPEED,
+          vy: (iy / im) * AXON_NA_IN_SPEED,
           life: AXON_NA_IN_LIFE
         });
 
@@ -241,28 +229,23 @@ function drawExtracellularIons() {
   });
 
   // ------------------
-  // K⁺ HALO (OUTWARD ONLY)
+  // K⁺ HALO (OUTWARD — CORRECT)
   // ------------------
   fill(...ION_COLOR.K, 150);
   ecsIons.AxonKStatic.forEach(p => {
 
     if (apPos) {
-      const dx = p.x0 - apPos.x;
-      const dy = p.y0 - apPos.y;
-      const d  = Math.hypot(dx, dy);
+      const ox = p.x - p.x0;
+      const oy = p.y - p.y0;
+      const om = Math.hypot(ox, oy) || 1;
 
-      if (d < HALO_AP_RADIUS) {
-        const f = 1 - d / HALO_AP_RADIUS;
-
-        // outward plume along membrane normal
-        p.vx += axonNx * HALO_K_PUSH * f;
-        p.vy += axonNy * HALO_K_PUSH * f;
-      }
+      p.vx += (ox / om) * HALO_K_PUSH;
+      p.vy += (oy / om) * HALO_K_PUSH;
     }
 
     // weak tether → plume persists
-    p.vx += (p.x0 - p.x) * 0.008;
-    p.vy += (p.y0 - p.y) * 0.008;
+    p.vx += (p.x0 - p.x) * 0.006;
+    p.vy += (p.y0 - p.y) * 0.006;
 
     p.vx *= HALO_K_RELAX;
     p.vy *= HALO_K_RELAX;
