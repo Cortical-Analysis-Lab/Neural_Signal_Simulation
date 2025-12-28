@@ -24,7 +24,7 @@ const AXON_STATIC_K_COUNT  = 8;
 // -----------------------------------------------------
 // 🔧 HALO CONTROLS (ONLY TUNING YOU NEED)
 // -----------------------------------------------------
-const AXON_HALO_RADIUS     = 16; // ← adjust this (14–18)
+const AXON_HALO_RADIUS     = 16; // 14–18 sweet spot
 const AXON_HALO_THICKNESS  = 4;
 
 // -----------------------------------------------------
@@ -76,7 +76,7 @@ function validECS(x, y) {
 }
 
 // =====================================================
-// INITIALIZATION — ECS + AXON HALO
+// INITIALIZATION — ECS + AXON HALO (BILATERAL)
 // =====================================================
 function initExtracellularIons() {
 
@@ -110,7 +110,7 @@ function initExtracellularIons() {
   for (let i = 0; i < ECS_ION_COUNTS.K;  i++) spawnECSIon("K");
 
   // ------------------
-  // AXON STATIC HALO (GLYPH-AWARE)
+  // AXON STATIC HALO (BILATERAL NORMALS)
   // ------------------
   if (neuron?.axon?.path) {
 
@@ -127,9 +127,12 @@ function initExtracellularIons() {
         const ty = p2.y - p1.y;
         const len = max(1, sqrt(tx*tx + ty*ty));
 
-        // normal
+        // unit normal
         const nx = -ty / len;
         const ny =  tx / len;
+
+        // 🔑 bilateral distribution
+        const side = random() < 0.5 ? -1 : 1;
 
         const r = random(
           AXON_HALO_RADIUS,
@@ -137,8 +140,8 @@ function initExtracellularIons() {
         );
 
         ecsIons[type].push({
-          x: p1.x + nx * r,
-          y: p1.y + ny * r,
+          x: p1.x + nx * r * side,
+          y: p1.y + ny * r * side,
           phase: random(TWO_PI)
         });
       }
@@ -148,67 +151,18 @@ function initExtracellularIons() {
     spawnAxonStatic("AxonKStatic",  AXON_STATIC_K_COUNT);
   }
 
-  console.log("🧂 ECS + axon halo initialized (glyph-aware)");
+  console.log("🧂 ECS + axon halo initialized (bilateral)");
 }
 
 // =====================================================
-// SOMA FLUX (UNCHANGED)
-// =====================================================
-function triggerNaInfluxNeuron1() {
-  for (let i = 0; i < 14; i++) {
-    ecsIons.NaFlux.push({
-      x: random(-NA_SPAWN_RADIUS, NA_SPAWN_RADIUS),
-      y: random(-NA_SPAWN_RADIUS, NA_SPAWN_RADIUS),
-      life: NA_FLUX_LIFETIME
-    });
-  }
-}
-
-function triggerKEffluxNeuron1() {
-  for (let i = 0; i < 16; i++) {
-    const a = random(TWO_PI);
-    ecsIons.KFlux.push({
-      x: random(-K_SPAWN_RADIUS, K_SPAWN_RADIUS),
-      y: random(-K_SPAWN_RADIUS, K_SPAWN_RADIUS),
-      vx: cos(a) * K_FLUX_SPEED,
-      vy: sin(a) * K_FLUX_SPEED,
-      life: K_FLUX_LIFETIME
-    });
-  }
-}
-
-// =====================================================
-// AXON FLUX
-// =====================================================
-function triggerAxonNaInflux(x, y, nx, ny) {
-  ecsIons.AxonNaFlux.push({
-    x, y,
-    vx: -nx * AXON_NA_SPEED,
-    vy: -ny * AXON_NA_SPEED,
-    life: AXON_NA_LIFETIME
-  });
-}
-
-function triggerAxonKEfflux(x, y, nx, ny) {
-  ecsIons.AxonKFlux.push({
-    x, y,
-    vx: nx * AXON_K_SPEED,
-    vy: ny * AXON_K_SPEED,
-    life: AXON_K_LIFETIME
-  });
-}
-
-window.triggerAxonNaInflux = triggerAxonNaInflux;
-window.triggerAxonKEfflux = triggerAxonKEfflux;
-
-// =====================================================
-// DRAWING
+// DRAWING — STATIC ONLY (FLUX UNCHANGED ELSEWHERE)
 // =====================================================
 function drawExtracellularIons() {
   push();
   textAlign(CENTER, CENTER);
   noStroke();
 
+  // ECS baseline
   fill(...ION_COLOR.Na, 120);
   textSize(ION_TEXT_SIZE.Na);
   ecsIons.Na.forEach(p =>
@@ -225,6 +179,7 @@ function drawExtracellularIons() {
       p.y + cos(state.time * 0.0016 + p.phase) * 0.35)
   );
 
+  // Axon halo
   fill(...ION_COLOR.Na, 150);
   ecsIons.AxonNaStatic.forEach(p =>
     text("Na⁺",
