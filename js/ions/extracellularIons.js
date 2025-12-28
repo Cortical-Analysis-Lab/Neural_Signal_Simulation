@@ -16,8 +16,8 @@ window.ecsIons = window.ecsIons || {
 // TUNABLE COUNTS (BIOLOGICAL BIAS)
 // -----------------------------------------------------
 const ECS_ION_COUNTS = {
-  Na: 260,   // higher extracellular abundance
-  K: 160    // lower, more localized
+  Na: 260,
+  K: 160
 };
 
 // -----------------------------------------------------
@@ -33,20 +33,33 @@ const ION_ALPHA = {
   K: 170
 };
 
-// -----------------------------------------------------
-// WORLD BOUNDS (FULL ECS DISPERSION)
-// -----------------------------------------------------
+// =====================================================
+// ECS BOUNDS — ARTERY REMOVED FROM DOMAIN
+// =====================================================
 function getECSBounds() {
+
+  const arteryCenterX =
+    arteryPath?.[0]?.x ?? -width * 0.35;
+
+  const arteryHalfWidth =
+    BASE_WALL_OFFSET + 170;
+
   return {
-    xmin: -width * 0.85,
-    xmax:  width * 0.85,
+    left: {
+      xmin: -width * 0.85,
+      xmax: arteryCenterX - arteryHalfWidth
+    },
+    right: {
+      xmin: arteryCenterX + arteryHalfWidth,
+      xmax:  width * 0.85
+    },
     ymin: -height * 0.85,
     ymax:  height * 0.85
   };
 }
 
 // =====================================================
-// EXCLUSION TESTS (CRITICAL)
+// EXCLUSION TESTS (NEURON + UI ONLY)
 // =====================================================
 
 // ---- Neuron somas ----
@@ -66,7 +79,7 @@ function pointNearSomas(x, y) {
   );
 }
 
-// ---- Dendrites (all neurons) ----
+// ---- Dendrites ----
 function pointNearDendrites(x, y) {
   const allBranches = [
     ...(neuron?.dendrites || []),
@@ -84,40 +97,16 @@ function pointNearDendrites(x, y) {
 
 // ---- Axons ----
 function pointNearAxons(x, y) {
-  if (neuron?.axon?.path) {
-    for (let p of neuron.axon.path) {
-      if (dist(x, y, p.x, p.y) < 18) return true;
-    }
+  if (!neuron?.axon?.path) return false;
+
+  for (let p of neuron.axon.path) {
+    if (dist(x, y, p.x, p.y) < 18) return true;
   }
   return false;
 }
 
-// ---- Artery + NVU (HARD EXCLUSION COLUMN) ----
-function pointNearArtery(x, y) {
-  // Artery is a vertical NVU column centered near the left side
-  // Define a hard exclusion band in WORLD SPACE
-
-  const arteryCenterX = arteryPath?.[0]?.x ?? -width * 0.35;
-
-  // Horizontal half-width of entire NVU column
-  const arteryHalfWidth = BASE_WALL_OFFSET + 150;
-
-  // Vertical span (essentially full height)
-  const arteryTop    = -height;
-  const arteryBottom =  height;
-
-  return (
-    x > arteryCenterX - arteryHalfWidth &&
-    x < arteryCenterX + arteryHalfWidth &&
-    y > arteryTop &&
-    y < arteryBottom
-  );
-}
-
-
-// ---- Voltage trace (screen-anchored region) ----
+// ---- Voltage trace ----
 function pointNearVoltageTrace(x, y) {
-  // Voltage trace sits bottom-center in world space
   const traceCenterX = 0;
   const traceCenterY = height * 0.28;
 
@@ -127,19 +116,18 @@ function pointNearVoltageTrace(x, y) {
   );
 }
 
-// ---- Master ECS validity test ----
+// ---- Master validity ----
 function validECSPosition(x, y) {
   return !(
     pointNearSomas(x, y) ||
     pointNearDendrites(x, y) ||
     pointNearAxons(x, y) ||
-    pointNearArtery(x, y) ||
     pointNearVoltageTrace(x, y)
   );
 }
 
 // =====================================================
-// INITIALIZATION
+// INITIALIZATION (NEURON-BIASED SAMPLING)
 // =====================================================
 function initExtracellularIons() {
 
@@ -151,17 +139,44 @@ function initExtracellularIons() {
   function spawnIon(type) {
     let attempts = 0;
 
-    while (attempts++ < 700) {
-      const x = random(bounds.xmin, bounds.xmax);
+    while (attempts++ < 900) {
+
+      // Randomly choose ECS side
+      const side = random() < 0.5
+        ? bounds.left
+        : bounds.right;
+
+      const x = random(side.xmin, side.xmax);
       const y = random(bounds.ymin, bounds.ymax);
 
       if (!validECSPosition(x, y)) continue;
+
+      // ------------------------------------
+      // Neuron proximity bias (ECS realism)
+      // ------------------------------------
+      const d1 = dist(x, y, 0, 0);
+      const d2 = neuron2?.soma
+        ? dist(x, y, neuron2.soma.x, neuron2.soma.y)
+        : Infinity;
+      const d3 = neuron3?.soma
+        ? dist(x, y, neuron3.soma.x, neuron3.soma.y)
+        : Infinity;
+
+      const d = min(d1, d2, d3);
+
+      const acceptProb = constrain(
+        map(d, 80, 420, 1.0, 0.18),
+        0.18, 1.0
+      );
+
+      if (random() > acceptProb) continue;
 
       ecsIons[type].push({
         x,
         y,
         phase: random(TWO_PI)
       });
+
       return;
     }
   }
@@ -175,7 +190,7 @@ function initExtracellularIons() {
 }
 
 // =====================================================
-// DRAWING (TEXT-BASED IONS)
+// DRAWING — TEXT-BASED IONS
 // =====================================================
 function drawExtracellularIons() {
   push();
@@ -183,7 +198,7 @@ function drawExtracellularIons() {
   noStroke();
 
   // -------------------------
-  // Na⁺ — diffuse, widespread
+  // Na⁺ — diffuse
   // -------------------------
   fill(120, 170, 255, ION_ALPHA.Na);
   textSize(ION_TEXT_SIZE.Na);
@@ -192,11 +207,7 @@ function drawExtracellularIons() {
     const wob =
       sin(state.time * 0.002 + p.phase) * 0.6;
 
-    text(
-      "Na⁺",
-      p.x + wob,
-      p.y - wob
-    );
+    text("Na⁺", p.x + wob, p.y - wob);
   });
 
   // -------------------------
@@ -209,24 +220,8 @@ function drawExtracellularIons() {
     const wob =
       cos(state.time * 0.002 + p.phase) * 0.4;
 
-    text(
-      "K⁺",
-      p.x - wob,
-      p.y + wob
-    );
+    text("K⁺", p.x - wob, p.y + wob);
   });
 
-  pop();
-}
-
-// =====================================================
-// OPTIONAL: DEBUG OVERLAY (OFF BY DEFAULT)
-// =====================================================
-function drawECSBoundsDebug() {
-  const b = getECSBounds();
-  push();
-  noFill();
-  stroke(255, 50);
-  rect(b.xmin, b.ymin, b.xmax - b.xmin, b.ymax - b.ymin);
   pop();
 }
