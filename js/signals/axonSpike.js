@@ -78,6 +78,28 @@ function updateAxonSpikes() {
     const s = axonSpikes[i];
     s.phase += AXON_CONDUCTION_SPEED;
 
+    // =================================================
+    // 🧂 AXON ION FLUX (UNMYELINATED ONLY)
+    // =================================================
+    if (!window.myelinEnabled) {
+
+      const p = getAxonPoint(s.phase);
+
+      // ---- Na⁺ influx at wavefront ----
+      if (typeof triggerAxonNaInflux === "function") {
+        triggerAxonNaInflux(p.x, p.y);
+      }
+
+      // ---- K⁺ efflux just behind ----
+      if (typeof triggerAxonKEfflux === "function") {
+        triggerAxonKEfflux(
+          p.x - 8,
+          p.y + random(-5, 5)
+        );
+      }
+    }
+    // =================================================
+
     // Enter terminal region → split into branches
     if (s.phase >= AXON_TERMINAL_START) {
 
