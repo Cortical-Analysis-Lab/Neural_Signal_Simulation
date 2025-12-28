@@ -1,6 +1,6 @@
 // =====================================================
 // EXTRACELLULAR IONS — Na⁺ / K⁺ (ECS ONLY)
-// Teaching-first, event-based ion flux
+// Teaching-first, artery-excluded ECS (slow, readable)
 // =====================================================
 console.log("🧂 extracellularIons loaded");
 
@@ -17,7 +17,10 @@ window.ecsIons = window.ecsIons || {
 // -----------------------------------------------------
 // COUNTS
 // -----------------------------------------------------
-const ECS_ION_COUNTS = { Na: 260, K: 160 };
+const ECS_ION_COUNTS = {
+  Na: 260,
+  K: 160
+};
 
 // -----------------------------------------------------
 // VISUALS
@@ -31,18 +34,20 @@ const ION_COLOR = {
 };
 
 // -----------------------------------------------------
-// FLUX PARAMETERS (FAST + OBVIOUS)
+// MOTION PARAMETERS (SLOW + CLEAR)
 // -----------------------------------------------------
-const NA_SUCTION_SPEED   = 3.8;
-const K_EXPULSION_SPEED  = 4.2;
+const NA_FLUX_SPEED       = 0.9;     // slow inward
+const K_FLUX_SPEED       = 1.1;     // slow outward
+const ION_VEL_DECAY      = 0.92;
 
-const NA_FLUX_LIFETIME   = 18;   // frames
-const K_FLUX_LIFETIME   = 40;
+const NA_FLUX_LIFETIME   = 80;      // frames
+const K_FLUX_LIFETIME   = 120;
 
-const K_EXPULSION_RADIUS = 20;
+const NA_SPAWN_RADIUS    = 140;
+const K_SPAWN_RADIUS    = 28;
 
 // =====================================================
-// ECS BOUNDS — ARTERY THIRD REMOVED
+// ECS WORLD BOUNDS — ARTERY THIRD REMOVED
 // =====================================================
 function getECSBounds() {
   return {
@@ -54,7 +59,7 @@ function getECSBounds() {
 }
 
 // =====================================================
-// EXCLUSION TESTS
+// EXCLUSION TESTS (STATIC ECS ONLY)
 // =====================================================
 function pointInArteryThird(x) {
   return x < -width * 0.33;
@@ -69,7 +74,7 @@ function validECSPosition(x, y) {
 }
 
 // =====================================================
-// INITIALIZATION — STATIC ECS ONLY
+// INITIALIZATION — BASELINE ECS
 // =====================================================
 function initExtracellularIons() {
 
@@ -102,41 +107,36 @@ function initExtracellularIons() {
 }
 
 // =====================================================
-// NEURON-1 ION FLUX EVENTS
+// NEURON-1 ION FLUX EVENTS (COPIES ONLY)
 // =====================================================
 
-// EPSP → Na⁺ influx (COPY ions, baseline remains)
+// EPSP → Na⁺ influx (copies, baseline untouched)
 function triggerNaInfluxNeuron1() {
-
-  // spawn burst of Na⁺ copies around soma
   for (let i = 0; i < 14; i++) {
     ecsIons.NaFlux.push({
-      x: random(-120, 120),
-      y: random(-120, 120),
+      x: random(-NA_SPAWN_RADIUS, NA_SPAWN_RADIUS),
+      y: random(-NA_SPAWN_RADIUS, NA_SPAWN_RADIUS),
       life: NA_FLUX_LIFETIME
     });
   }
 }
 
-// IPSP → K⁺ efflux (blast outward, then fade)
+// IPSP → K⁺ efflux (copies, fade out)
 function triggerKEffluxNeuron1() {
-
   for (let i = 0; i < 16; i++) {
-
-    const angle = random(TWO_PI);
-
+    const a = random(TWO_PI);
     ecsIons.KFlux.push({
-      x: random(-K_EXPULSION_RADIUS, K_EXPULSION_RADIUS),
-      y: random(-K_EXPULSION_RADIUS, K_EXPULSION_RADIUS),
-      vx: cos(angle) * K_EXPULSION_SPEED,
-      vy: sin(angle) * K_EXPULSION_SPEED,
+      x: random(-K_SPAWN_RADIUS, K_SPAWN_RADIUS),
+      y: random(-K_SPAWN_RADIUS, K_SPAWN_RADIUS),
+      vx: cos(a) * K_FLUX_SPEED,
+      vy: sin(a) * K_FLUX_SPEED,
       life: K_FLUX_LIFETIME
     });
   }
 }
 
 // =====================================================
-// DRAWING — STATIC + FLUX
+// DRAWING — BASELINE + FLUX
 // =====================================================
 function drawExtracellularIons() {
   push();
@@ -144,27 +144,27 @@ function drawExtracellularIons() {
   noStroke();
 
   // -------------------------
-  // STATIC Na⁺ (background)
+  // BASELINE Na⁺ (static ECS)
   // -------------------------
   fill(...ION_COLOR.Na, 120);
   textSize(ION_TEXT_SIZE.Na);
   ecsIons.Na.forEach(p => {
-    const wob = sin(state.time * 0.002 + p.phase) * 0.4;
+    const wob = sin(state.time * 0.0018 + p.phase) * 0.4;
     text("Na⁺", p.x + wob, p.y - wob);
   });
 
   // -------------------------
-  // STATIC K⁺ (background)
+  // BASELINE K⁺ (static ECS)
   // -------------------------
   fill(...ION_COLOR.K, 130);
   textSize(ION_TEXT_SIZE.K);
   ecsIons.K.forEach(p => {
-    const wob = cos(state.time * 0.002 + p.phase) * 0.3;
+    const wob = cos(state.time * 0.0016 + p.phase) * 0.35;
     text("K⁺", p.x - wob, p.y + wob);
   });
 
   // -------------------------
-  // Na⁺ FLUX (FAST INWARD)
+  // Na⁺ FLUX (slow inward)
   // -------------------------
   fill(...ION_COLOR.Na, ION_ALPHA.Na);
   ecsIons.NaFlux = ecsIons.NaFlux.filter(p => {
@@ -174,28 +174,28 @@ function drawExtracellularIons() {
     const dy = -p.y;
     const d  = max(1, sqrt(dx*dx + dy*dy));
 
-    p.x += (dx / d) * NA_SUCTION_SPEED;
-    p.y += (dy / d) * NA_SUCTION_SPEED;
+    p.x += (dx / d) * NA_FLUX_SPEED;
+    p.y += (dy / d) * NA_FLUX_SPEED;
 
     text("Na⁺", p.x, p.y);
-
     return p.life > 0;
   });
 
   // -------------------------
-  // K⁺ FLUX (FAST OUTWARD + FADE)
+  // K⁺ FLUX (slow outward + fade)
   // -------------------------
   ecsIons.KFlux = ecsIons.KFlux.filter(p => {
     p.life--;
 
     p.x += p.vx;
     p.y += p.vy;
+    p.vx *= ION_VEL_DECAY;
+    p.vy *= ION_VEL_DECAY;
 
-    const alpha = map(p.life, 0, K_FLUX_LIFETIME, 0, ION_ALPHA.K);
-    fill(...ION_COLOR.K, alpha);
+    const a = map(p.life, 0, K_FLUX_LIFETIME, 0, ION_ALPHA.K);
+    fill(...ION_COLOR.K, a);
 
     text("K⁺", p.x, p.y);
-
     return p.life > 0;
   });
 
