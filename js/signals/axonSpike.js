@@ -65,7 +65,7 @@ function spawnAxonSpike() {
 
   axonSpikes.push({
     phase: 0,
-    lastKEffluxPhase: -Infinity   // 🔑 gating state
+    lastKEffluxPhase: -Infinity
   });
 }
 
@@ -74,10 +74,16 @@ function spawnAxonSpike() {
 // -----------------------------------------------------
 function updateAxonSpikes() {
 
+  // Default: no active AP
+  window.currentAxonAPPhase = null;
+
   for (let i = axonSpikes.length - 1; i >= 0; i--) {
 
     const s = axonSpikes[i];
     s.phase += AXON_CONDUCTION_SPEED;
+
+    // 🔑 expose phase for extracellular halo coupling
+    window.currentAxonAPPhase = s.phase;
 
     // =================================================
     // 🧂 AXON ION FLUX (CORRECTED + GATED)
@@ -97,7 +103,7 @@ function updateAxonSpikes() {
       const tx = dx / mag;
       const ty = dy / mag;
 
-      // 🔑 Membrane normal (perpendicular)
+      // 🔑 Membrane normal
       const nx = -ty;
       const ny =  tx;
 
@@ -130,6 +136,9 @@ function updateAxonSpikes() {
 
     // Enter terminal region
     if (s.phase >= AXON_TERMINAL_START) {
+
+      // Clear coupling signal
+      window.currentAxonAPPhase = null;
 
       if (!state.paused && typeof logEvent === "function") {
         logEvent(
