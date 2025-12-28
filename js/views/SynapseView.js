@@ -31,6 +31,14 @@ function drawSynapseView() {
   resetMatrix();
 
   // ---------------------------------------------------
+  // ⚡ SYNAPSE-LOCAL PHYSIOLOGY UPDATE
+  // (APs only exist meaningfully here)
+  // ---------------------------------------------------
+  if (typeof updateVoltageWave === "function") {
+    updateVoltageWave();
+  }
+
+  // ---------------------------------------------------
   // SCREEN-RELATIVE ANCHOR
   // (stable across tablet & desktop sizes)
   // ---------------------------------------------------
