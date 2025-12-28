@@ -18,14 +18,14 @@ window.ecsIons = {
 // COUNTS
 // -----------------------------------------------------
 const ECS_ION_COUNTS = { Na: 260, K: 160 };
-
-// Axon-adjacent baseline counts
 const AXON_STATIC_NA_COUNT = 28;
 const AXON_STATIC_K_COUNT  = 8;
 
-// 🔧 ONLY TUNING CONTROLS
-const AXON_STATIC_MIN_OFFSET = 9;
-const AXON_STATIC_MAX_OFFSET = 13;
+// -----------------------------------------------------
+// 🔧 HALO CONTROLS (ONLY TUNING YOU NEED)
+// -----------------------------------------------------
+const AXON_HALO_RADIUS     = 16; // ← adjust this (14–18)
+const AXON_HALO_THICKNESS  = 4;
 
 // -----------------------------------------------------
 // VISUALS
@@ -76,7 +76,7 @@ function validECS(x, y) {
 }
 
 // =====================================================
-// INITIALIZATION — ECS + AXON STATIC HALO
+// INITIALIZATION — ECS + AXON HALO
 // =====================================================
 function initExtracellularIons() {
 
@@ -110,7 +110,7 @@ function initExtracellularIons() {
   for (let i = 0; i < ECS_ION_COUNTS.K;  i++) spawnECSIon("K");
 
   // ------------------
-  // AXON-ADJACENT STATIC (NORMAL OFFSET)
+  // AXON STATIC HALO (GLYPH-AWARE)
   // ------------------
   if (neuron?.axon?.path) {
 
@@ -127,13 +127,13 @@ function initExtracellularIons() {
         const ty = p2.y - p1.y;
         const len = max(1, sqrt(tx*tx + ty*ty));
 
-        // Normal vector
+        // normal
         const nx = -ty / len;
         const ny =  tx / len;
 
         const r = random(
-          AXON_STATIC_MIN_OFFSET,
-          AXON_STATIC_MAX_OFFSET
+          AXON_HALO_RADIUS,
+          AXON_HALO_RADIUS + AXON_HALO_THICKNESS
         );
 
         ecsIons[type].push({
@@ -148,7 +148,7 @@ function initExtracellularIons() {
     spawnAxonStatic("AxonKStatic",  AXON_STATIC_K_COUNT);
   }
 
-  console.log("🧂 ECS + axon halo initialized (normal-based)");
+  console.log("🧂 ECS + axon halo initialized (glyph-aware)");
 }
 
 // =====================================================
@@ -178,7 +178,7 @@ function triggerKEffluxNeuron1() {
 }
 
 // =====================================================
-// AXON FLUX — MEMBRANE-BOUND
+// AXON FLUX
 // =====================================================
 function triggerAxonNaInflux(x, y, nx, ny) {
   ecsIons.AxonNaFlux.push({
@@ -209,7 +209,6 @@ function drawExtracellularIons() {
   textAlign(CENTER, CENTER);
   noStroke();
 
-  // ---- ECS baseline ----
   fill(...ION_COLOR.Na, 120);
   textSize(ION_TEXT_SIZE.Na);
   ecsIons.Na.forEach(p =>
@@ -226,7 +225,6 @@ function drawExtracellularIons() {
       p.y + cos(state.time * 0.0016 + p.phase) * 0.35)
   );
 
-  // ---- AXON STATIC HALO ----
   fill(...ION_COLOR.Na, 150);
   ecsIons.AxonNaStatic.forEach(p =>
     text("Na⁺",
@@ -240,45 +238,6 @@ function drawExtracellularIons() {
       p.x - sin(state.time * 0.002 + p.phase) * 0.3,
       p.y + cos(state.time * 0.002 + p.phase) * 0.3)
   );
-
-  // ---- SOMA FLUX ----
-  fill(...ION_COLOR.Na, ION_ALPHA.Na);
-  ecsIons.NaFlux = ecsIons.NaFlux.filter(p => {
-    p.life--;
-    const d = max(1, sqrt(p.x*p.x + p.y*p.y));
-    p.x += (-p.x / d) * NA_FLUX_SPEED;
-    p.y += (-p.y / d) * NA_FLUX_SPEED;
-    text("Na⁺", p.x, p.y);
-    return p.life > 0;
-  });
-
-  ecsIons.KFlux = ecsIons.KFlux.filter(p => {
-    p.life--;
-    p.x += p.vx; p.y += p.vy;
-    p.vx *= ION_VEL_DECAY; p.vy *= ION_VEL_DECAY;
-    fill(...ION_COLOR.K, map(p.life, 0, K_FLUX_LIFETIME, 0, ION_ALPHA.K));
-    text("K⁺", p.x, p.y);
-    return p.life > 0;
-  });
-
-  // ---- AXON FLUX ----
-  fill(...ION_COLOR.Na, 150);
-  ecsIons.AxonNaFlux = ecsIons.AxonNaFlux.filter(p => {
-    p.life--;
-    p.x += p.vx; p.y += p.vy;
-    text("Na⁺", p.x, p.y);
-    return p.life > 0;
-  });
-
-  ecsIons.AxonKFlux = ecsIons.AxonKFlux.filter(p => {
-    p.life--;
-    p.x += p.vx; p.y += p.vy;
-    p.vx *= AXON_K_DECAY;
-    p.vy *= AXON_K_DECAY;
-    fill(...ION_COLOR.K, map(p.life, 0, AXON_K_LIFETIME, 0, ION_ALPHA.K));
-    text("K⁺", p.x, p.y);
-    return p.life > 0;
-  });
 
   pop();
 }
