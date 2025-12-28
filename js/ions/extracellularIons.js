@@ -8,12 +8,9 @@ console.log("🧂 extracellularIons loaded");
 // GLOBAL STORAGE
 // -----------------------------------------------------
 window.ecsIons = window.ecsIons || {
-  Na: [],
-  K: [],
-  NaFlux: [],
-  KFlux: [],
-  AxonNaFlux: [],
-  AxonKFlux: []
+  Na: [], K: [],
+  NaFlux: [], KFlux: [],
+  AxonNaFlux: [], AxonKFlux: []
 };
 
 // -----------------------------------------------------
@@ -28,8 +25,8 @@ const ION_TEXT_SIZE = { Na: 10, K: 11 };
 const ION_ALPHA    = { Na: 170, K: 185 };
 
 const ION_COLOR = {
-  Na: [245, 215, 90],   // yellow
-  K:  [255, 140, 190]  // pink
+  Na: [245, 215, 90],
+  K:  [255, 140, 190]
 };
 
 // -----------------------------------------------------
@@ -50,21 +47,31 @@ const ION_VEL_DECAY     = 0.965;
 const AXON_NA_SPEED     = 1.8;
 const AXON_NA_LIFETIME  = 26;
 
-const AXON_K_SPEED      = 2.0;   // ✔ ballistic but readable
-const AXON_K_LIFETIME   = 120;   // ✔ long trailing cloud
-const AXON_K_DECAY      = 0.97;  // ✔ gentle slowdown
+const AXON_K_SPEED      = 2.0;
+const AXON_K_LIFETIME   = 120;
+const AXON_K_DECAY      = 0.97;
 
 // =====================================================
-// INITIALIZATION — BASELINE ECS
+// 🔒 EXCLUSION RULES (AUTHORITATIVE)
+// =====================================================
+function inArteryThird(x) {
+  return x < -width * 0.33;
+}
+
+function inVoltageTrace(x, y) {
+  return abs(x) < 240 && abs(y - height * 0.28) < 130;
+}
+
+function validECS(x, y) {
+  return !(inArteryThird(x) || inVoltageTrace(x, y));
+}
+
+// =====================================================
+// INITIALIZATION — BASELINE ECS (EXCLUDED)
 // =====================================================
 function initExtracellularIons() {
 
-  ecsIons.Na.length = 0;
-  ecsIons.K.length  = 0;
-  ecsIons.NaFlux.length = 0;
-  ecsIons.KFlux.length  = 0;
-  ecsIons.AxonNaFlux.length = 0;
-  ecsIons.AxonKFlux.length  = 0;
+  Object.values(ecsIons).forEach(arr => arr.length = 0);
 
   const b = {
     xmin: -width * 0.9,
@@ -74,21 +81,27 @@ function initExtracellularIons() {
   };
 
   function spawnIon(type) {
-    ecsIons[type].push({
-      x: random(b.xmin, b.xmax),
-      y: random(b.ymin, b.ymax),
-      phase: random(TWO_PI)
-    });
+    let tries = 0;
+    while (tries++ < 1400) {
+      const x = random(b.xmin, b.xmax);
+      const y = random(b.ymin, b.ymax);
+      if (!validECS(x, y)) continue;
+
+      ecsIons[type].push({
+        x, y, phase: random(TWO_PI)
+      });
+      return;
+    }
   }
 
   for (let i = 0; i < ECS_ION_COUNTS.Na; i++) spawnIon("Na");
   for (let i = 0; i < ECS_ION_COUNTS.K;  i++) spawnIon("K");
 
-  console.log("🧂 ECS baseline ions initialized");
+  console.log("🧂 ECS baseline ions initialized (exclusions enforced)");
 }
 
 // =====================================================
-// SOMA FLUX (APPROVED — DO NOT TOUCH)
+// SOMA FLUX (UNCHANGED — APPROVED)
 // =====================================================
 function triggerNaInfluxNeuron1() {
   for (let i = 0; i < 14; i++) {
@@ -114,23 +127,24 @@ function triggerKEffluxNeuron1() {
 }
 
 // =====================================================
-// AXON FLUX — RESTORED DIRECTIONAL MODEL
+// AXON FLUX — EXCLUSION-AWARE
 // =====================================================
 function triggerAxonNaInflux(x, y, nx, ny) {
+  if (!validECS(x, y)) return;
+
   ecsIons.AxonNaFlux.push({
-    x,
-    y,
+    x, y,
     vx: -nx * AXON_NA_SPEED,
     vy: -ny * AXON_NA_SPEED,
     life: AXON_NA_LIFETIME
   });
 }
 
-// 🔑 THIS IS THE FIX
 function triggerAxonKEfflux(x, y, nx, ny) {
+  if (!validECS(x, y)) return;
+
   ecsIons.AxonKFlux.push({
-    x,
-    y,
+    x, y,
     vx: nx * AXON_K_SPEED,
     vy: ny * AXON_K_SPEED,
     life: AXON_K_LIFETIME
@@ -141,7 +155,7 @@ window.triggerAxonNaInflux = triggerAxonNaInflux;
 window.triggerAxonKEfflux = triggerAxonKEfflux;
 
 // =====================================================
-// DRAWING
+// DRAWING — EXCLUSION-SAFE
 // =====================================================
 function drawExtracellularIons() {
   push();
@@ -151,19 +165,21 @@ function drawExtracellularIons() {
   // ---- BASELINE ----
   fill(...ION_COLOR.Na, 120);
   textSize(ION_TEXT_SIZE.Na);
-  ecsIons.Na.forEach(p =>
+  ecsIons.Na.forEach(p => {
+    if (!validECS(p.x, p.y)) return;
     text("Na⁺",
       p.x + sin(state.time * 0.0018 + p.phase) * 0.4,
-      p.y - sin(state.time * 0.0018 + p.phase) * 0.4)
-  );
+      p.y - sin(state.time * 0.0018 + p.phase) * 0.4);
+  });
 
   fill(...ION_COLOR.K, 130);
   textSize(ION_TEXT_SIZE.K);
-  ecsIons.K.forEach(p =>
+  ecsIons.K.forEach(p => {
+    if (!validECS(p.x, p.y)) return;
     text("K⁺",
       p.x - cos(state.time * 0.0016 + p.phase) * 0.35,
-      p.y + cos(state.time * 0.0016 + p.phase) * 0.35)
-  );
+      p.y + cos(state.time * 0.0016 + p.phase) * 0.35);
+  });
 
   // ---- SOMA Na⁺ ----
   fill(...ION_COLOR.Na, ION_ALPHA.Na);
@@ -172,7 +188,7 @@ function drawExtracellularIons() {
     const d = max(1, sqrt(p.x*p.x + p.y*p.y));
     p.x += (-p.x / d) * NA_FLUX_SPEED;
     p.y += (-p.y / d) * NA_FLUX_SPEED;
-    text("Na⁺", p.x, p.y);
+    if (validECS(p.x, p.y)) text("Na⁺", p.x, p.y);
     return p.life > 0;
   });
 
@@ -181,8 +197,10 @@ function drawExtracellularIons() {
     p.life--;
     p.x += p.vx; p.y += p.vy;
     p.vx *= ION_VEL_DECAY; p.vy *= ION_VEL_DECAY;
-    fill(...ION_COLOR.K, map(p.life, 0, K_FLUX_LIFETIME, 0, ION_ALPHA.K));
-    text("K⁺", p.x, p.y);
+    if (validECS(p.x, p.y)) {
+      fill(...ION_COLOR.K, map(p.life, 0, K_FLUX_LIFETIME, 0, ION_ALPHA.K));
+      text("K⁺", p.x, p.y);
+    }
     return p.life > 0;
   });
 
@@ -191,18 +209,20 @@ function drawExtracellularIons() {
   ecsIons.AxonNaFlux = ecsIons.AxonNaFlux.filter(p => {
     p.life--;
     p.x += p.vx; p.y += p.vy;
-    text("Na⁺", p.x, p.y);
+    if (validECS(p.x, p.y)) text("Na⁺", p.x, p.y);
     return p.life > 0;
   });
 
-  // ---- AXON K⁺ (RESTORED PERFECT VERSION) ----
+  // ---- AXON K⁺ (PERFECT VERSION PRESERVED) ----
   ecsIons.AxonKFlux = ecsIons.AxonKFlux.filter(p => {
     p.life--;
     p.x += p.vx; p.y += p.vy;
     p.vx *= AXON_K_DECAY;
     p.vy *= AXON_K_DECAY;
-    fill(...ION_COLOR.K, map(p.life, 0, AXON_K_LIFETIME, 0, ION_ALPHA.K));
-    text("K⁺", p.x, p.y);
+    if (validECS(p.x, p.y)) {
+      fill(...ION_COLOR.K, map(p.life, 0, AXON_K_LIFETIME, 0, ION_ALPHA.K));
+      text("K⁺", p.x, p.y);
+    }
     return p.life > 0;
   });
 
