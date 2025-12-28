@@ -32,17 +32,17 @@ const AXON_HALO_THICKNESS = 4;
 // -----------------------------------------------------
 const HALO_AP_RADIUS = 28;
 
-// Motion strengths (BIOLOGICALLY CORRECT)
-const HALO_NA_PERTURB = 0.06;   // Na⁺ barely moves (channels open)
-const HALO_K_PUSH     = 1.9;    // K⁺ strongly expelled
+// Static halo motion (very subtle)
+const HALO_NA_PERTURB = 0.05;
+const HALO_K_PUSH     = 2.0;
 
 // Relaxation
 const HALO_NA_RELAX = 0.95;
 const HALO_K_RELAX  = 0.78;
 
-// Na⁺ influx copies (fast, brief)
-const AXON_NA_IN_SPEED = 4.2;
-const AXON_NA_IN_LIFE  = 16;
+// Na⁺ influx copies
+const AXON_NA_IN_SPEED = 4.8;
+const AXON_NA_IN_LIFE  = 14;
 
 // -----------------------------------------------------
 // VISUALS
@@ -160,7 +160,7 @@ function drawExtracellularIons() {
   ecsIons.K.forEach(p => text("K⁺", p.x, p.y));
 
   // ------------------
-  // AP position
+  // AP position (axon interior target)
   // ------------------
   const apPhase = window.currentAxonAPPhase;
   const apPos =
@@ -171,32 +171,29 @@ function drawExtracellularIons() {
       : null;
 
   // ------------------
-  // Na⁺ HALO (INWARD — CORRECT)
+  // Na⁺ HALO + INWARD COPIES
   // ------------------
   fill(...ION_COLOR.Na, 150);
   ecsIons.AxonNaStatic.forEach(p => {
 
-    if (apPos) {
-      const dx = p.x0 - apPos.x;
-      const dy = p.y0 - apPos.y;
+    if (apPos && abs(apPhase - p.lastAPPhase) > 0.05) {
+
+      const dx = apPos.x - p.x;
+      const dy = apPos.y - p.y;
       const d  = Math.hypot(dx, dy);
 
-      if (d < HALO_AP_RADIUS && abs(apPhase - p.lastAPPhase) > 0.05) {
+      if (d < HALO_AP_RADIUS) {
 
-        // inward direction = toward rest position
-        const ix = p.x0 - p.x;
-        const iy = p.y0 - p.y;
-        const im = Math.hypot(ix, iy) || 1;
+        // tiny visual perturbation
+        p.vx += (dx / d) * HALO_NA_PERTURB;
+        p.vy += (dy / d) * HALO_NA_PERTURB;
 
-        p.vx += (ix / im) * HALO_NA_PERTURB;
-        p.vy += (iy / im) * HALO_NA_PERTURB;
-
-        // fast Na⁺ influx copy
+        // TRUE Na⁺ influx (both sides → center)
         ecsIons.AxonNaInward.push({
           x: p.x,
           y: p.y,
-          vx: (ix / im) * AXON_NA_IN_SPEED,
-          vy: (iy / im) * AXON_NA_IN_SPEED,
+          vx: (dx / d) * AXON_NA_IN_SPEED,
+          vy: (dy / d) * AXON_NA_IN_SPEED,
           life: AXON_NA_IN_LIFE
         });
 
@@ -218,7 +215,7 @@ function drawExtracellularIons() {
   });
 
   // ------------------
-  // Na⁺ inward copies
+  // Na⁺ inward copies (CONVERGE + DISAPPEAR)
   // ------------------
   ecsIons.AxonNaInward = ecsIons.AxonNaInward.filter(p => {
     p.life--;
@@ -229,7 +226,7 @@ function drawExtracellularIons() {
   });
 
   // ------------------
-  // K⁺ HALO (OUTWARD — CORRECT)
+  // K⁺ HALO (OUTWARD ONLY)
   // ------------------
   fill(...ION_COLOR.K, 150);
   ecsIons.AxonKStatic.forEach(p => {
@@ -243,7 +240,6 @@ function drawExtracellularIons() {
       p.vy += (oy / om) * HALO_K_PUSH;
     }
 
-    // weak tether → plume persists
     p.vx += (p.x0 - p.x) * 0.006;
     p.vy += (p.y0 - p.y) * 0.006;
 
