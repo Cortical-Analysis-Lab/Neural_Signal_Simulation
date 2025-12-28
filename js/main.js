@@ -165,11 +165,10 @@ function draw() {
 
   // ---------------------------------------------------
   // UPDATE PHASE (FROZEN DURING TRANSITION)
-// ---------------------------------------------------
+  // ---------------------------------------------------
   if (!state.paused && !transitioning) {
     state.time += state.dt;
-    
-  
+
     updateHemodynamics();
     updateBloodContents();
     updateSupplyWaves();
@@ -178,7 +177,7 @@ function draw() {
 
   // ---------------------------------------------------
   // CAMERA TRANSITION
-// ---------------------------------------------------
+  // ---------------------------------------------------
   if (transitioning) {
 
     camera.t++;
@@ -228,17 +227,28 @@ function draw() {
 
   // ---------------------------------------------------
   // DRAW ARTERY (NOT IN SYNAPSE)
-// ---------------------------------------------------
+  // ---------------------------------------------------
   if (state.mode !== "synapse") drawArtery();
 
   // ---------------------------------------------------
   // WORLD SPACE
-// ---------------------------------------------------
+  // ---------------------------------------------------
   push();
   translate(width / 2, height / 2);
   scale(camera.zoom);
   translate(-camera.x, -camera.y);
 
+  // ===================================================
+  // 🌊 EXTRACELLULAR SPACE (BACKGROUND ENVIRONMENT)
+  // ===================================================
+  // Draw ions BEFORE neurons, AFTER camera transform
+  if (state.mode === "overview" || state.mode === "ion") {
+    drawExtracellularIons();
+  }
+
+  // ---------------------------------------------------
+  // UPDATE BIOLOGICAL DYNAMICS
+  // ---------------------------------------------------
   if (!state.paused && !transitioning) {
     updateSynapseHover();
     updateEPSPs();
@@ -254,15 +264,18 @@ function draw() {
     updateSynapticCoupling();
   }
 
+  // ---------------------------------------------------
+  // DRAW MODES
+  // ---------------------------------------------------
   if (state.mode === "overview") drawOverview(state);
-  if (state.mode === "ion") drawIonView(state);
-  if (state.mode === "synapse") drawSynapseView(state);
+  if (state.mode === "ion")      drawIonView(state);
+  if (state.mode === "synapse")  drawSynapseView(state);
 
   pop();
 
   // ---------------------------------------------------
   // FADE OVERLAY
-// ---------------------------------------------------
+  // ---------------------------------------------------
   if (transitioning && state.mode !== "synapse") {
     const u = constrain(camera.t / camera.duration, 0, 1);
     let alpha = 0;
