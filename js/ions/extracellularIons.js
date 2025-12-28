@@ -1,13 +1,13 @@
 // =====================================================
 // EXTRACELLULAR IONS — Na⁺ / K⁺ (ECS + AXON)
-// Teaching-first, artery-excluded ECS (authoritative)
+// Teaching-first, artery-excluded ECS (AUTHORITATIVE)
 // =====================================================
 console.log("🧂 extracellularIons loaded");
 
 // -----------------------------------------------------
 // GLOBAL STORAGE
 // -----------------------------------------------------
-window.ecsIons = window.ecsIons || {
+window.ecsIons = {
   Na: [], K: [],
   NaFlux: [], KFlux: [],
   AxonNaFlux: [], AxonKFlux: []
@@ -42,7 +42,7 @@ const K_SPAWN_RADIUS    = 28;
 const ION_VEL_DECAY     = 0.965;
 
 // -----------------------------------------------------
-// AXON PARAMETERS (RESTORED)
+// AXON PARAMETERS (RESTORED PERFECT)
 // -----------------------------------------------------
 const AXON_NA_SPEED     = 1.8;
 const AXON_NA_LIFETIME  = 26;
@@ -52,7 +52,7 @@ const AXON_K_LIFETIME   = 120;
 const AXON_K_DECAY      = 0.97;
 
 // =====================================================
-// 🔒 EXCLUSION RULES (AUTHORITATIVE)
+// 🔒 ECS EXCLUSION RULES (ECS ONLY)
 // =====================================================
 function inArteryThird(x) {
   return x < -width * 0.33;
@@ -67,7 +67,7 @@ function validECS(x, y) {
 }
 
 // =====================================================
-// INITIALIZATION — BASELINE ECS (EXCLUDED)
+// INITIALIZATION — BASELINE ECS ONLY
 // =====================================================
 function initExtracellularIons() {
 
@@ -97,11 +97,11 @@ function initExtracellularIons() {
   for (let i = 0; i < ECS_ION_COUNTS.Na; i++) spawnIon("Na");
   for (let i = 0; i < ECS_ION_COUNTS.K;  i++) spawnIon("K");
 
-  console.log("🧂 ECS baseline ions initialized (exclusions enforced)");
+  console.log("🧂 ECS baseline ions initialized");
 }
 
 // =====================================================
-// SOMA FLUX (UNCHANGED — APPROVED)
+// SOMA FLUX (UNCHANGED)
 // =====================================================
 function triggerNaInfluxNeuron1() {
   for (let i = 0; i < 14; i++) {
@@ -127,13 +127,13 @@ function triggerKEffluxNeuron1() {
 }
 
 // =====================================================
-// AXON FLUX — EXCLUSION-AWARE
+// AXON FLUX — MEMBRANE-BOUND (NO ECS EXCLUSION)
 // =====================================================
 function triggerAxonNaInflux(x, y, nx, ny) {
-  if (!validECS(x, y)) return;
 
   ecsIons.AxonNaFlux.push({
-    x, y,
+    x,
+    y,
     vx: -nx * AXON_NA_SPEED,
     vy: -ny * AXON_NA_SPEED,
     life: AXON_NA_LIFETIME
@@ -141,10 +141,10 @@ function triggerAxonNaInflux(x, y, nx, ny) {
 }
 
 function triggerAxonKEfflux(x, y, nx, ny) {
-  if (!validECS(x, y)) return;
 
   ecsIons.AxonKFlux.push({
-    x, y,
+    x,
+    y,
     vx: nx * AXON_K_SPEED,
     vy: ny * AXON_K_SPEED,
     life: AXON_K_LIFETIME
@@ -155,31 +155,29 @@ window.triggerAxonNaInflux = triggerAxonNaInflux;
 window.triggerAxonKEfflux = triggerAxonKEfflux;
 
 // =====================================================
-// DRAWING — EXCLUSION-SAFE
+// DRAWING
 // =====================================================
 function drawExtracellularIons() {
   push();
   textAlign(CENTER, CENTER);
   noStroke();
 
-  // ---- BASELINE ----
+  // ---- BASELINE ECS ----
   fill(...ION_COLOR.Na, 120);
   textSize(ION_TEXT_SIZE.Na);
-  ecsIons.Na.forEach(p => {
-    if (!validECS(p.x, p.y)) return;
+  ecsIons.Na.forEach(p =>
     text("Na⁺",
       p.x + sin(state.time * 0.0018 + p.phase) * 0.4,
-      p.y - sin(state.time * 0.0018 + p.phase) * 0.4);
-  });
+      p.y - sin(state.time * 0.0018 + p.phase) * 0.4)
+  );
 
   fill(...ION_COLOR.K, 130);
   textSize(ION_TEXT_SIZE.K);
-  ecsIons.K.forEach(p => {
-    if (!validECS(p.x, p.y)) return;
+  ecsIons.K.forEach(p =>
     text("K⁺",
       p.x - cos(state.time * 0.0016 + p.phase) * 0.35,
-      p.y + cos(state.time * 0.0016 + p.phase) * 0.35);
-  });
+      p.y + cos(state.time * 0.0016 + p.phase) * 0.35)
+  );
 
   // ---- SOMA Na⁺ ----
   fill(...ION_COLOR.Na, ION_ALPHA.Na);
@@ -188,7 +186,7 @@ function drawExtracellularIons() {
     const d = max(1, sqrt(p.x*p.x + p.y*p.y));
     p.x += (-p.x / d) * NA_FLUX_SPEED;
     p.y += (-p.y / d) * NA_FLUX_SPEED;
-    if (validECS(p.x, p.y)) text("Na⁺", p.x, p.y);
+    text("Na⁺", p.x, p.y);
     return p.life > 0;
   });
 
@@ -197,10 +195,8 @@ function drawExtracellularIons() {
     p.life--;
     p.x += p.vx; p.y += p.vy;
     p.vx *= ION_VEL_DECAY; p.vy *= ION_VEL_DECAY;
-    if (validECS(p.x, p.y)) {
-      fill(...ION_COLOR.K, map(p.life, 0, K_FLUX_LIFETIME, 0, ION_ALPHA.K));
-      text("K⁺", p.x, p.y);
-    }
+    fill(...ION_COLOR.K, map(p.life, 0, K_FLUX_LIFETIME, 0, ION_ALPHA.K));
+    text("K⁺", p.x, p.y);
     return p.life > 0;
   });
 
@@ -209,20 +205,18 @@ function drawExtracellularIons() {
   ecsIons.AxonNaFlux = ecsIons.AxonNaFlux.filter(p => {
     p.life--;
     p.x += p.vx; p.y += p.vy;
-    if (validECS(p.x, p.y)) text("Na⁺", p.x, p.y);
+    text("Na⁺", p.x, p.y);
     return p.life > 0;
   });
 
-  // ---- AXON K⁺ (PERFECT VERSION PRESERVED) ----
+  // ---- AXON K⁺ (PERFECT RESTORED) ----
   ecsIons.AxonKFlux = ecsIons.AxonKFlux.filter(p => {
     p.life--;
     p.x += p.vx; p.y += p.vy;
     p.vx *= AXON_K_DECAY;
     p.vy *= AXON_K_DECAY;
-    if (validECS(p.x, p.y)) {
-      fill(...ION_COLOR.K, map(p.life, 0, AXON_K_LIFETIME, 0, ION_ALPHA.K));
-      text("K⁺", p.x, p.y);
-    }
+    fill(...ION_COLOR.K, map(p.life, 0, AXON_K_LIFETIME, 0, ION_ALPHA.K));
+    text("K⁺", p.x, p.y);
     return p.life > 0;
   });
 
