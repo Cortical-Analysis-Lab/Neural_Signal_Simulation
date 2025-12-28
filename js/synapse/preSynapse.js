@@ -4,13 +4,12 @@ console.log("🟡 preSynapse loaded");
 // COLORS & GEOMETRY
 // =====================================================
 const NEURON_YELLOW = window.COLORS?.neuron ?? [245, 225, 140];
-const CORNER_RADIUS = 80;
 
 // =====================================================
-// PRESYNAPTIC AP CONDUCTION PATH (LOCKED, LOCAL SPACE)
-// Shaft → cap (user-selected & validated)
+// PRESYNAPTIC AP CONDUCTION PATH (LOCAL, UNFLIPPED)
+// Shaft → cap (user-selected)
 // =====================================================
-const PRESYNAPTIC_AP_PATH = [
+const PRESYNAPTIC_AP_PATH_RAW = [
   { x: 153.1, y:  4.7 },
   { x: 170.5, y: -5.1 },
   { x: 181.1, y: -20.5 },
@@ -27,22 +26,24 @@ const PRESYNAPTIC_AP_PATH = [
 ];
 
 // =====================================================
-// PRESYNAPTIC NEURON
-// Geometry + membrane-bound AP glow
+// MIRROR PATH TO MATCH drawTNeuronShape(-1)
+// =====================================================
+function mirrorXPath(path) {
+  return path.map(p => ({ x: -p.x, y: p.y }));
+}
+
+const PRESYNAPTIC_AP_PATH = mirrorXPath(PRESYNAPTIC_AP_PATH_RAW);
+
+// =====================================================
+// PRESYNAPTIC NEURON (GEOMETRY + AP)
 // =====================================================
 function drawPreSynapse() {
   push();
 
-  // ---------------------------------------------------
-  // Neuron geometry (PURE — no positioning logic here)
-  // ---------------------------------------------------
+  // ---- Geometry (mirrored)
   drawTNeuronShape(-1);
 
-  // ---------------------------------------------------
-  // Action potential glow
-  // Bidirectional, midpoint-fading, no wraparound
-  // (Handled entirely in voltageWave.js)
-  // ---------------------------------------------------
+  // ---- Action potential (uses mirrored path)
   drawVoltageWave(PRESYNAPTIC_AP_PATH, { side: +1 });
   drawVoltageWave(PRESYNAPTIC_AP_PATH, { side: -1 });
 
