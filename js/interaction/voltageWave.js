@@ -5,29 +5,42 @@ console.log("⚡ voltageWave interaction loaded (DEBUG DOT MODE)");
 // =====================================================
 window.apActive   = false;
 window.apPhase    = 0;
-window.apSpeed    = 0.04;     // faster pulse for visibility
+window.apSpeed    = 0.04;
 window.apDuration = 1.2;
 window.apTimer    = 0;
 
 // =====================================================
-// SPACEBAR → START AP (SYNAPSE VIEW ONLY)
+// p5 KEYBOARD HANDLER (RELIABLE)
 // =====================================================
-window.addEventListener("keydown", (e) => {
+function keyPressed() {
 
-  if (e.code !== "Space") return;
+  // Spacebar only
+  if (key !== ' ') return;
+
+  // Prevent browser/UI interference
+  if (typeof event !== "undefined") {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  // Only allow in synapse view
+  if (typeof state !== "undefined" && state.mode !== "synapse") {
+    return;
+  }
+
+  // Prevent retrigger
   if (window.apActive) return;
 
-  if (typeof state !== "undefined" && state.mode !== "synapse") return;
-
+  // Trigger AP
   window.apActive = true;
   window.apPhase  = 0;
   window.apTimer  = 0;
 
-  console.log("⚡ Presynaptic AP triggered (dot debug)");
-});
+  console.log("⚡ Presynaptic AP triggered");
+}
 
 // =====================================================
-// UPDATE — CALLED EACH FRAME (FROM SYNAPSE VIEW OR MAIN)
+// UPDATE — ADVANCE AP TIMER (CALLED FROM SynapseView)
 // =====================================================
 function updateVoltageWave() {
   if (!window.apActive) return;
@@ -43,7 +56,7 @@ function updateVoltageWave() {
 }
 
 // =====================================================
-// DRAW DEBUG DOTS AT EACH PATH COORDINATE
+// DEBUG DOT RENDERING (STATIC POSITIONS)
 // =====================================================
 function drawVoltageWave(path) {
 
@@ -57,19 +70,16 @@ function drawVoltageWave(path) {
   noStroke();
   blendMode(ADD);
 
-  // Pulsing brightness
   const pulse = 0.5 + 0.5 * sin(frameCount * 0.25);
   const alpha = lerp(80, 220, pulse);
   const radius = lerp(4, 8, pulse);
 
-  for (let i = 0; i < path.length; i++) {
-    const p = path[i];
-
-    // Soft halo
+  for (const p of path) {
+    // Halo
     fill(80, 255, 120, alpha * 0.35);
     circle(p.x, p.y, radius * 3);
 
-    // Bright core
+    // Core
     fill(120, 255, 160, alpha);
     circle(p.x, p.y, radius);
   }
