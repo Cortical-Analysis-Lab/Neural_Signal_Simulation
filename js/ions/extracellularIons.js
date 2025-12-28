@@ -48,6 +48,8 @@ const HALO_K_RELAX  = 0.80;
 // -----------------------------------------------------
 const NA_COPY_SPEED = 0.02;
 const NA_CENTER_EPS = 1.2;
+const NA_COPY_LIFE = Infinity;
+
 
 // -----------------------------------------------------
 // VISUALS
@@ -224,8 +226,10 @@ function drawExtracellularIons() {
       ecsIons.AxonNaCopies.push({
         x: p.x,
         y: p.y,
-        stopped: false
+        life: NA_COPY_LIFE,
+        source: p,          // ← link back to halo ion
       });
+
       p.hasCopy = true;
       p.lastAPPhase = apPhase;
     }
@@ -245,23 +249,32 @@ function drawExtracellularIons() {
     text("Na⁺", p.x, p.y);
   });
 
-  ecsIons.AxonNaCopies.forEach(p => {
+    ecsIons.AxonNaCopies = ecsIons.AxonNaCopies.filter(p => {
     if (!p.stopped) {
       const target = closestPointOnAxon(p.x, p.y);
       if (target) {
         const dx = target.x - p.x;
         const dy = target.y - p.y;
         const d  = Math.hypot(dx, dy);
+  
         if (d < NA_CENTER_EPS) {
           p.stopped = true;
+  
+          if (p.source) {
+            p.source.hasCopy = false;
+            p.source.lastAPPhase = -Infinity;
+          }
         } else {
           p.x += dx * NA_COPY_SPEED;
           p.y += dy * NA_COPY_SPEED;
         }
       }
     }
+  
     text("Na⁺", p.x, p.y);
+    return !p.stopped;
   });
+
 
   // ------------------
   // AXON K⁺ HALO
