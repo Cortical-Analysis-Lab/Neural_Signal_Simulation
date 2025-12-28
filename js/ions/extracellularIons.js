@@ -41,12 +41,11 @@ const HALO_NA_RELAX = 0.95;
 const HALO_K_RELAX  = 0.80;
 
 // -----------------------------------------------------
-// BILATERAL Na⁺ COPY CONTROL
+// Na⁺ COPY MOTION (PER-HALO, OWNED)
 // -----------------------------------------------------
-const MAX_AXON_NA_COPIES = 3;     // HARD CAP
-const NA_COPY_SPEED     = 0.012; // slow, readable convergence
-const NA_COPY_LIFE      = 50;
-const NA_CENTER_EPS     = 1;
+const NA_COPY_SPEED = 0.006;   // slow, readable
+const NA_COPY_LIFE  = 45;
+const NA_CENTER_EPS = 1.2;
 
 // -----------------------------------------------------
 // VISUALS
@@ -155,39 +154,14 @@ function initExtracellularIons() {
           x: x0, y: y0,
           x0, y0,
           vx: 0, vy: 0,
-          lastAPPhase: -Infinity
+          lastAPPhase: -Infinity,
+          hasActiveCopy: false   // ★ key addition
         });
       }
     }
 
     spawnHalo("AxonNaStatic", AXON_STATIC_NA_COUNT);
     spawnHalo("AxonKStatic",  AXON_STATIC_K_COUNT);
-  }
-}
-
-// =====================================================
-// 🧠 SOMA ION FLUX (PRESERVED)
-// =====================================================
-function triggerNaInfluxNeuron1() {
-  for (let i = 0; i < 14; i++) {
-    ecsIons.NaFlux.push({
-      x: random(-NA_SPAWN_RADIUS, NA_SPAWN_RADIUS),
-      y: random(-NA_SPAWN_RADIUS, NA_SPAWN_RADIUS),
-      life: NA_FLUX_LIFETIME
-    });
-  }
-}
-
-function triggerKEffluxNeuron1() {
-  for (let i = 0; i < 16; i++) {
-    const a = random(TWO_PI);
-    ecsIons.KFlux.push({
-      x: random(-K_SPAWN_RADIUS, K_SPAWN_RADIUS),
-      y: random(-K_SPAWN_RADIUS, K_SPAWN_RADIUS),
-      vx: cos(a) * K_FLUX_SPEED,
-      vy: sin(a) * K_FLUX_SPEED,
-      life: K_FLUX_LIFETIME
-    });
   }
 }
 
@@ -199,9 +173,7 @@ function drawExtracellularIons() {
   textAlign(CENTER, CENTER);
   noStroke();
 
-  // ------------------
   // ECS baseline
-  // ------------------
   fill(...ION_COLOR.Na, 120);
   textSize(ION_TEXT_SIZE.Na);
   ecsIons.Na.forEach(p => text("Na⁺", p.x, p.y));
@@ -212,23 +184,26 @@ function drawExtracellularIons() {
 
   const apPhase = window.currentAxonAPPhase;
 
-  // ------------------
-  // Na⁺ STATIC HALO + LIMITED COPY SPAWN
-  // ------------------
+  // ---------------------------------------------------
+  // Na⁺ STATIC HALO → GUARANTEED 1 COPY EACH
+  // ---------------------------------------------------
   fill(...ION_COLOR.Na, 150);
   ecsIons.AxonNaStatic.forEach(p => {
 
     if (
       apPhase != null &&
       abs(apPhase - p.lastAPPhase) > 0.06 &&
-      ecsIons.AxonNaCopies.length < MAX_AXON_NA_COPIES
+      !p.hasActiveCopy
     ) {
       ecsIons.AxonNaCopies.push({
         x: p.x,
         y: p.y,
-        life: NA_COPY_LIFE
+        life: NA_COPY_LIFE,
+        parent: p
       });
-      p.lastAPPhase = apPhase;
+
+      p.hasActiveCopy = true;
+      p.lastAPPhase   = apPhase;
     }
 
     // subtle membrane emphasis
@@ -248,30 +223,39 @@ function drawExtracellularIons() {
     text("Na⁺", p.x, p.y);
   });
 
-  // ------------------
+  // ---------------------------------------------------
   // Na⁺ COPIES → AXON CENTERLINE
-  // ------------------
+  // ---------------------------------------------------
   ecsIons.AxonNaCopies = ecsIons.AxonNaCopies.filter(p => {
 
     const target = closestPointOnAxon(p.x, p.y);
-    if (!target || --p.life <= 0) return false;
+    if (!target || --p.life <= 0) {
+      if (p.parent) p.parent.hasActiveCopy = false;
+      return false;
+    }
 
     const dx = target.x - p.x;
     const dy = target.y - p.y;
     const d  = Math.hypot(dx, dy);
 
-    if (d < NA_CENTER_EPS) return false;
+    if (d < NA_CENTER_EPS) {
+      if (p.parent) p.parent.hasActiveCopy = false;
+      return false;
+    }
 
     p.x += dx * NA_COPY_SPEED;
     p.y += dy * NA_COPY_SPEED;
 
+    const alpha = map(p.life, 0, NA_COPY_LIFE, 50, 160);
+    fill(...ION_COLOR.Na, alpha);
     text("Na⁺", p.x, p.y);
+
     return true;
   });
 
-  // ------------------
+  // ---------------------------------------------------
   // K⁺ STATIC HALO (OUTWARD PLUME)
-  // ------------------
+  // ---------------------------------------------------
   fill(...ION_COLOR.K, 150);
   ecsIons.AxonKStatic.forEach(p => {
 
@@ -288,33 +272,6 @@ function drawExtracellularIons() {
     p.y += p.vy;
 
     text("K⁺", p.x, p.y);
-  });
-
-  // ------------------
-  // 🧠 SOMA Na⁺
-  // ------------------
-  fill(...ION_COLOR.Na, 170);
-  ecsIons.NaFlux = ecsIons.NaFlux.filter(p => {
-    p.life--;
-    const d = Math.hypot(p.x, p.y) || 1;
-    p.x += (-p.x / d) * NA_FLUX_SPEED;
-    p.y += (-p.y / d) * NA_FLUX_SPEED;
-    text("Na⁺", p.x, p.y);
-    return p.life > 0;
-  });
-
-  // ------------------
-  // 🧠 SOMA K⁺
-  // ------------------
-  ecsIons.KFlux = ecsIons.KFlux.filter(p => {
-    p.life--;
-    p.x += p.vx;
-    p.y += p.vy;
-    p.vx *= ION_VEL_DECAY;
-    p.vy *= ION_VEL_DECAY;
-    fill(...ION_COLOR.K, map(p.life, 0, K_FLUX_LIFETIME, 0, 180));
-    text("K⁺", p.x, p.y);
-    return p.life > 0;
   });
 
   pop();
