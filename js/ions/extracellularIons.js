@@ -11,7 +11,7 @@ window.ecsIons = {
   Na: [], K: [],
   NaFlux: [], KFlux: [],
   AxonNaStatic: [], AxonKStatic: [],
-  AxonNaCopies: []   // ★ bilateral Na⁺ → axon centerline
+  AxonNaCopies: []   // bilateral Na⁺ → axon centerline
 };
 
 // -----------------------------------------------------
@@ -32,18 +32,21 @@ const AXON_HALO_THICKNESS = 4;
 // -----------------------------------------------------
 const HALO_AP_RADIUS = 28;
 
-// Static halo motion (visual only)
-const HALO_NA_PERTURB = 0.06;
+// Static halo motion (visual emphasis only)
+const HALO_NA_PERTURB = 0.04;
 const HALO_K_PUSH     = 1.6;
 
 // Relaxation
 const HALO_NA_RELAX = 0.95;
 const HALO_K_RELAX  = 0.80;
 
-// Bilateral Na⁺ copy motion
-const NA_COPY_SPEED = 0.01;   // geometric convergence
-const NA_COPY_LIFE  = 16;
-const NA_CENTER_EPS = 3;      // vanish at centerline
+// -----------------------------------------------------
+// BILATERAL Na⁺ COPY CONTROL
+// -----------------------------------------------------
+const MAX_AXON_NA_COPIES = 6;     // HARD CAP
+const NA_COPY_SPEED     = 0.012; // slow, readable convergence
+const NA_COPY_LIFE      = 20;
+const NA_CENTER_EPS     = 3;
 
 // -----------------------------------------------------
 // VISUALS
@@ -210,18 +213,28 @@ function drawExtracellularIons() {
   const apPhase = window.currentAxonAPPhase;
 
   // ------------------
-  // Na⁺ STATIC HALO + COPY SPAWN
+  // Na⁺ STATIC HALO + LIMITED COPY SPAWN
   // ------------------
   fill(...ION_COLOR.Na, 150);
   ecsIons.AxonNaStatic.forEach(p => {
 
-    if (apPhase != null && abs(apPhase - p.lastAPPhase) > 0.06) {
+    if (
+      apPhase != null &&
+      abs(apPhase - p.lastAPPhase) > 0.06 &&
+      ecsIons.AxonNaCopies.length < MAX_AXON_NA_COPIES
+    ) {
       ecsIons.AxonNaCopies.push({
         x: p.x,
         y: p.y,
         life: NA_COPY_LIFE
       });
       p.lastAPPhase = apPhase;
+    }
+
+    // subtle membrane emphasis
+    if (apPhase != null) {
+      p.vx += (p.x - p.x0) * HALO_NA_PERTURB;
+      p.vy += (p.y - p.y0) * HALO_NA_PERTURB;
     }
 
     // tether
