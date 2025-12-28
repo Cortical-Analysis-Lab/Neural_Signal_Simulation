@@ -18,8 +18,8 @@ window.ecsIons = {
 // COUNTS
 // -----------------------------------------------------
 const ECS_ION_COUNTS = { Na: 260, K: 160 };
-const AXON_STATIC_NA_COUNT = 28;
-const AXON_STATIC_K_COUNT  = 8;
+const AXON_STATIC_NA_COUNT = 12;
+const AXON_STATIC_K_COUNT  = 4;
 
 // -----------------------------------------------------
 // 🔧 HALO CONTROLS (ONLY TUNING YOU NEED)
