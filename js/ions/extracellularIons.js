@@ -30,18 +30,18 @@ const AXON_HALO_THICKNESS = 4;
 // -----------------------------------------------------
 // AP → HALO COUPLING
 // -----------------------------------------------------
-const HALO_AP_RADIUS   = 28;
+const HALO_AP_RADIUS = 28;
 
-// Static halo motion
-const HALO_NA_PERTURB = -0.12;   // subtle inward bias only
-const HALO_K_PUSH     =  1.6;    // strong outward plume
+// Static halo motion (VERY subtle)
+const HALO_NA_PERTURB = 0.08;   // inward only
+const HALO_K_PUSH     = 1.8;    // strong outward plume
 
-// Relaxation (Na almost fixed, K slow return)
-const HALO_NA_RELAX   = 0.93;
-const HALO_K_RELAX    = 0.80;
+// Relaxation
+const HALO_NA_RELAX = 0.94;
+const HALO_K_RELAX  = 0.80;
 
-// Na⁺ influx copies
-const AXON_NA_IN_SPEED = 3.6;
+// Na⁺ influx copies (fast + brief)
+const AXON_NA_IN_SPEED = 3.8;
 const AXON_NA_IN_LIFE  = 18;
 
 // -----------------------------------------------------
@@ -110,12 +110,14 @@ function initExtracellularIons() {
         const p1 = path[idx];
         const p2 = path[idx + 1];
 
-        const dx = p2.x - p1.x;
-        const dy = p2.y - p1.y;
-        const len = max(1, sqrt(dx*dx + dy*dy));
+        const tx = p2.x - p1.x;
+        const ty = p2.y - p1.y;
+        const len = Math.hypot(tx, ty) || 1;
 
-        const nx = -dy / len;
-        const ny =  dx / len;
+        // membrane normal
+        const nx = -ty / len;
+        const ny =  tx / len;
+
         const side = i % 2 === 0 ? 1 : -1;
 
         const r = random(
@@ -130,7 +132,7 @@ function initExtracellularIons() {
           x: x0, y: y0,
           x0, y0,
           vx: 0, vy: 0,
-          lastAPPhase: -Infinity   // 🔑 gating
+          lastAPPhase: -Infinity
         });
       }
     }
@@ -160,18 +162,30 @@ function drawExtracellularIons() {
   ecsIons.K.forEach(p => text("K⁺", p.x, p.y));
 
   // ------------------
-  // AP coupling
+  // AP position + membrane normal
   // ------------------
   const apPhase = window.currentAxonAPPhase;
-  const apPos =
-    (apPhase != null && neuron?.axon?.path)
-      ? neuron.axon.path[
-          floor(apPhase * (neuron.axon.path.length - 1))
-        ]
-      : null;
+  let axonNx = 0, axonNy = 0;
+  let apPos = null;
+
+  if (apPhase != null && neuron?.axon?.path) {
+
+    const idx = floor(apPhase * (neuron.axon.path.length - 2));
+    const p1  = neuron.axon.path[idx];
+    const p2  = neuron.axon.path[idx + 1];
+
+    apPos = p1;
+
+    const tx = p2.x - p1.x;
+    const ty = p2.y - p1.y;
+    const len = Math.hypot(tx, ty) || 1;
+
+    axonNx = -ty / len;
+    axonNy =  tx / len;
+  }
 
   // ------------------
-  // Na⁺ HALO (inward only)
+  // Na⁺ HALO (INWARD ONLY)
   // ------------------
   fill(...ION_COLOR.Na, 150);
   ecsIons.AxonNaStatic.forEach(p => {
@@ -179,21 +193,22 @@ function drawExtracellularIons() {
     if (apPos) {
       const dx = p.x0 - apPos.x;
       const dy = p.y0 - apPos.y;
-      const d  = sqrt(dx*dx + dy*dy);
+      const d  = Math.hypot(dx, dy);
 
       if (d < HALO_AP_RADIUS && abs(apPhase - p.lastAPPhase) > 0.05) {
 
-        // slight static perturbation
         const f = 1 - d / HALO_AP_RADIUS;
-        p.vx += (dx / max(d,1)) * HALO_NA_PERTURB * f;
-        p.vy += (dy / max(d,1)) * HALO_NA_PERTURB * f;
 
-        // real Na⁺ influx copy
+        // slight inward bias along membrane normal
+        p.vx += -axonNx * HALO_NA_PERTURB * f;
+        p.vy += -axonNy * HALO_NA_PERTURB * f;
+
+        // TRUE Na⁺ influx copy (fast, disappears)
         ecsIons.AxonNaInward.push({
           x: p.x,
           y: p.y,
-          vx: -(dx / max(d,1)) * AXON_NA_IN_SPEED,
-          vy: -(dy / max(d,1)) * AXON_NA_IN_SPEED,
+          vx: -axonNx * AXON_NA_IN_SPEED,
+          vy: -axonNy * AXON_NA_IN_SPEED,
           life: AXON_NA_IN_LIFE
         });
 
@@ -201,7 +216,7 @@ function drawExtracellularIons() {
       }
     }
 
-    // tether strongly to membrane
+    // strong tether
     p.vx += (p.x0 - p.x) * 0.05;
     p.vy += (p.y0 - p.y) * 0.05;
 
@@ -226,7 +241,7 @@ function drawExtracellularIons() {
   });
 
   // ------------------
-  // K⁺ HALO (outward plume)
+  // K⁺ HALO (OUTWARD ONLY)
   // ------------------
   fill(...ION_COLOR.K, 150);
   ecsIons.AxonKStatic.forEach(p => {
@@ -234,12 +249,14 @@ function drawExtracellularIons() {
     if (apPos) {
       const dx = p.x0 - apPos.x;
       const dy = p.y0 - apPos.y;
-      const d  = sqrt(dx*dx + dy*dy);
+      const d  = Math.hypot(dx, dy);
 
       if (d < HALO_AP_RADIUS) {
         const f = 1 - d / HALO_AP_RADIUS;
-        p.vx += (dx / max(d,1)) * HALO_K_PUSH * f;
-        p.vy += (dy / max(d,1)) * HALO_K_PUSH * f;
+
+        // outward plume along membrane normal
+        p.vx += axonNx * HALO_K_PUSH * f;
+        p.vy += axonNy * HALO_K_PUSH * f;
       }
     }
 
