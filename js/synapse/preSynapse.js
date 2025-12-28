@@ -7,8 +7,8 @@ const NEURON_YELLOW = window.COLORS?.neuron ?? [245, 225, 140];
 const CORNER_RADIUS = 80;
 
 // =====================================================
-// PRESYNAPTIC AP CONDUCTION PATH (LOCKED)
-// Shaft → cap (user-selected, directed)
+// PRESYNAPTIC AP CONDUCTION PATH (LOCKED, LOCAL SPACE)
+// Shaft → cap (user-selected & validated)
 // =====================================================
 const PRESYNAPTIC_AP_PATH = [
   { x: 153.1, y:  4.7 },
@@ -27,17 +27,22 @@ const PRESYNAPTIC_AP_PATH = [
 ];
 
 // =====================================================
-// PRESYNAPTIC NEURON (GEOMETRY + BIDIRECTIONAL AP)
+// PRESYNAPTIC NEURON
+// Geometry + membrane-bound AP glow
 // =====================================================
 function drawPreSynapse() {
   push();
 
-  // ---- Draw neuron geometry (pure, unchanged)
+  // ---------------------------------------------------
+  // Neuron geometry (PURE — no positioning logic here)
+  // ---------------------------------------------------
   drawTNeuronShape(-1);
 
-  // ---- Presynaptic action potential
-  // One wave travels forward, one backward
-  // Both fade out at midpoint (handled in voltageWave.js)
+  // ---------------------------------------------------
+  // Action potential glow
+  // Bidirectional, midpoint-fading, no wraparound
+  // (Handled entirely in voltageWave.js)
+  // ---------------------------------------------------
   drawVoltageWave(PRESYNAPTIC_AP_PATH, { side: +1 });
   drawVoltageWave(PRESYNAPTIC_AP_PATH, { side: -1 });
 
