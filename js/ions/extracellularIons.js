@@ -24,8 +24,8 @@ const AXON_STATIC_NA_COUNT = 28;
 const AXON_STATIC_K_COUNT  = 8;
 
 // 🔧 ONLY TUNING CONTROLS
-const AXON_STATIC_MIN_OFFSET = 12;
-const AXON_STATIC_MAX_OFFSET = 7;
+const AXON_STATIC_MIN_OFFSET = 9;
+const AXON_STATIC_MAX_OFFSET = 13;
 
 // -----------------------------------------------------
 // VISUALS
