@@ -117,14 +117,28 @@ function initExtracellularIons() {
     function spawnAxonStatic(type, count) {
       for (let i = 0; i < count; i++) {
 
-        const p = random(neuron.axon.path);
-        const jitter = random(-AXON_STATIC_OFFSET, AXON_STATIC_OFFSET);
-
+        const idx = floor(random(neuron.axon.path.length - 1));
+        const p  = neuron.axon.path[idx];
+        const p2 = neuron.axon.path[idx + 1];
+        
+        // Tangent
+        const tx = p2.x - p.x;
+        const ty = p2.y - p.y;
+        const len = max(1, sqrt(tx*tx + ty*ty));
+        
+        // Normal (perpendicular)
+        const nx = -ty / len;
+        const ny =  tx / len;
+        
+        // 🔧 THIS is your main tuning knob
+        const r = random(AXON_STATIC_MIN_OFFSET, AXON_STATIC_MAX_OFFSET);
+        
         ecsIons[type].push({
-          x: p.x + random(-jitter, jitter),
-          y: p.y + random(-jitter, jitter),
+          x: p.x + nx * r,
+          y: p.y + ny * r,
           phase: random(TWO_PI)
         });
+
       }
     }
 
