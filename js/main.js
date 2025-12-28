@@ -115,6 +115,9 @@ function setup() {
   canvas.parent(document.body);
   frameRate(60);
 
+  // ---------------------------------------------------
+  // GEOMETRY / BIOLOGY INITIALIZATION
+  // ---------------------------------------------------
   initSynapses();
   initAxonPath(neuron);
   initArtery();
@@ -125,8 +128,19 @@ function setup() {
   initNeuron3();
   initAstrocyte();
 
+  // ===================================================
+  // 🧂 EXTRACELLULAR IONS (MUST COME AFTER GEOMETRY)
+  // ===================================================
+  initExtracellularIons();
+
+  // ---------------------------------------------------
+  // INITIAL MODE
+  // ---------------------------------------------------
   state.mode = "overview";
 
+  // ---------------------------------------------------
+  // UI CONTROLS
+  // ---------------------------------------------------
   const pauseBtn = document.getElementById("pauseBtn");
   if (pauseBtn) pauseBtn.onclick = togglePause;
 
@@ -149,6 +163,9 @@ function setup() {
     });
   }
 
+  // ---------------------------------------------------
+  // UI SYNC
+  // ---------------------------------------------------
   updateOverviewUI();
   if (typeof updateUIPanelContent === "function") {
     updateUIPanelContent(state.mode);
