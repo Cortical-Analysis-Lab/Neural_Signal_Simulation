@@ -1,296 +1,322 @@
 // =====================================================
-// AXON ACTION POTENTIAL → TERMINAL BRANCH PROPAGATION
+// EXTRACELLULAR IONS — Na⁺ / K⁺ (ECS + AXON)
+// Teaching-first, artery-excluded ECS (AUTHORITATIVE)
 // =====================================================
-console.log("axonSpike loaded");
+console.log("🧂 extracellularIons loaded");
 
 // -----------------------------------------------------
-// Parameters
+// GLOBAL STORAGE
 // -----------------------------------------------------
-const AXON_CONDUCTION_SPEED     = 0.035;
-const TERMINAL_CONDUCTION_SPEED = 0.06;
-const TERMINAL_GLOW_LIFETIME    = 18;
-const AXON_TERMINAL_START       = 0.75;
-
-// 🔑 Ion gating (CRITICAL for clean K⁺ plume)
-const AXON_K_RELEASE_INTERVAL   = 0.06;
-
-// -----------------------------------------------------
-// Active axonal APs (one object = one AP)
-// -----------------------------------------------------
-const axonSpikes = [];
+window.ecsIons = {
+  Na: [], K: [],
+  NaFlux: [], KFlux: [],
+  AxonNaStatic: [], AxonKStatic: [],
+  AxonNaCopies: []   // ★ bilateral Na⁺ convergence copies
+};
 
 // -----------------------------------------------------
-// Active terminal branch AP fragments
+// COUNTS
 // -----------------------------------------------------
-const terminalSpikes = [];
-
-// -----------------------------------------------------
-// Bouton depolarization glows (visual only)
-// -----------------------------------------------------
-const terminalGlows = [];
+const ECS_ION_COUNTS = { Na: 260, K: 160 };
+const AXON_STATIC_NA_COUNT = 8;
+const AXON_STATIC_K_COUNT  = 4;
 
 // -----------------------------------------------------
-// Spawn AP at axon hillock
+// AXON HALO GEOMETRY
 // -----------------------------------------------------
-function spawnAxonSpike() {
-
-  // 🔑 Myelinated handoff
-  if (window.myelinEnabled && typeof spawnMyelinAP === "function") {
-
-    if (!state.paused && typeof logEvent === "function") {
-      logEvent(
-        "system",
-        "Action potential enters myelinated axon (saltatory conduction)",
-        "axon"
-      );
-    }
-
-    spawnMyelinAP();
-    return;
-  }
-
-  // Prevent overlapping APs
-  if (axonSpikes.length > 0) {
-    const last = axonSpikes[axonSpikes.length - 1];
-    if (last.phase < 0.1) return;
-  }
-
-  if (!state.paused && typeof logEvent === "function") {
-    logEvent(
-      "neural",
-      "Action potential propagates down unmyelinated axon",
-      "axon"
-    );
-  }
-
-  axonSpikes.push({
-    phase: 0,
-    lastKEffluxPhase: -Infinity
-  });
-}
+const AXON_HALO_RADIUS    = 16;
+const AXON_HALO_THICKNESS = 4;
 
 // -----------------------------------------------------
-// Update axon AP propagation (UNMYELINATED)
+// AP → HALO COUPLING
 // -----------------------------------------------------
-function updateAxonSpikes() {
+const HALO_AP_RADIUS = 28;
 
-  // Default: no active AP
-  window.currentAxonAPPhase = null;
+// Static halo motion (minimal)
+const HALO_NA_PERTURB = 0.06;   // visual emphasis only
+const HALO_K_PUSH     = 1.6;    // strong outward plume
 
-  for (let i = axonSpikes.length - 1; i >= 0; i--) {
+// Relaxation
+const HALO_NA_RELAX = 0.95;
+const HALO_K_RELAX  = 0.80;
 
-    const s = axonSpikes[i];
-    s.phase += AXON_CONDUCTION_SPEED;
-
-    // 🔑 expose phase for extracellular halo coupling
-    window.currentAxonAPPhase = s.phase;
-
-    // =================================================
-    // 🧂 AXON ION FLUX (CORRECTED + GATED)
-    // =================================================
-    if (!window.myelinEnabled && neuron?.axon?.path) {
-
-      const p1 = getAxonPoint(s.phase);
-      const p2 = getAxonPoint(
-        Math.min(s.phase + 0.015, 1)
-      );
-
-      // Tangent
-      const dx = p2.x - p1.x;
-      const dy = p2.y - p1.y;
-      const mag = Math.hypot(dx, dy) || 1;
-
-      const tx = dx / mag;
-      const ty = dy / mag;
-
-      // 🔑 Membrane normal
-      const nx = -ty;
-      const ny =  tx;
-
-      // -------------------------
-      // Na⁺ influx (local entry)
-      // -------------------------
-      if (typeof triggerAxonNaInflux === "function") {
-        triggerAxonNaInflux(
-          p1.x + nx * 2,
-          p1.y + ny * 2
-        );
-      }
-
-      // -------------------------
-      // K⁺ efflux (TRAILING + GATED)
-      // -------------------------
-      if (
-        typeof triggerAxonKEfflux === "function" &&
-        s.phase - s.lastKEffluxPhase > AXON_K_RELEASE_INTERVAL
-      ) {
-        triggerAxonKEfflux(
-          p1.x - tx * 10 + nx * 4,
-          p1.y - ty * 10 + ny * 4
-        );
-
-        s.lastKEffluxPhase = s.phase;
-      }
-    }
-    // =================================================
-
-    // Enter terminal region
-    if (s.phase >= AXON_TERMINAL_START) {
-
-      // Clear coupling signal
-      window.currentAxonAPPhase = null;
-
-      if (!state.paused && typeof logEvent === "function") {
-        logEvent(
-          "neural",
-          "Action potential reaches axon terminals",
-          "terminal"
-        );
-      }
-
-      spawnTerminalSpikes();
-      axonSpikes.splice(i, 1);
-    }
-  }
-}
+// Bilateral Na⁺ copy motion
+const NA_COPY_SPEED = 2.8;
+const NA_COPY_LIFE  = 16;
 
 // -----------------------------------------------------
-// Spawn AP fragments into terminal branches
+// VISUALS
 // -----------------------------------------------------
-function spawnTerminalSpikes() {
+const ION_TEXT_SIZE = { Na: 10, K: 11 };
 
-  neuron.axon.terminalBranches.forEach(branch => {
-    terminalSpikes.push({
-      branch,
-      t: 0
-    });
-  });
-}
+const ION_COLOR = {
+  Na: [245, 215, 90],
+  K:  [255, 140, 190]
+};
 
 // -----------------------------------------------------
-// Update terminal branch APs
+// SOMA PARAMETERS (UNCHANGED)
 // -----------------------------------------------------
-function updateTerminalDots() {
+const NA_FLUX_SPEED     = 0.9;
+const NA_FLUX_LIFETIME  = 80;
+const NA_SPAWN_RADIUS   = 140;
 
-  for (let i = terminalSpikes.length - 1; i >= 0; i--) {
+const K_FLUX_SPEED      = 2.2;
+const K_FLUX_LIFETIME   = 160;
+const K_SPAWN_RADIUS    = 28;
+const ION_VEL_DECAY     = 0.965;
 
-    const ts = terminalSpikes[i];
-    ts.t += TERMINAL_CONDUCTION_SPEED;
+// =====================================================
+// INITIALIZATION
+// =====================================================
+function initExtracellularIons() {
 
-    if (ts.t >= 1) {
+  Object.values(ecsIons).forEach(arr => arr.length = 0);
 
-      const bouton = {
-        x: ts.branch.end.x,
-        y: ts.branch.end.y
-      };
+  // ------------------
+  // ECS baseline
+  // ------------------
+  const b = {
+    xmin: -width * 0.9,
+    xmax:  width * 0.9,
+    ymin: -height * 0.9,
+    ymax:  height * 0.9
+  };
 
-      // =================================================
-      // 🩸 METABOLIC CONSUMPTION + SUPPLY SIGNAL
-      // =================================================
-      if (!state.paused && typeof logEvent === "function") {
-        logEvent(
-          "vascular",
-          "Neural firing increases local metabolic demand",
-          "neurovascular"
-        );
-      }
-
-      if (typeof extractOxygenNearNeuron1 === "function") {
-        extractOxygenNearNeuron1();
-      }
-
-      if (typeof extractGlucoseNearNeuron1 === "function") {
-        extractGlucoseNearNeuron1();
-      }
-
-      if (typeof triggerSupplyWave === "function") {
-        triggerSupplyWave(1.0);
-      }
-      // =================================================
-
-      terminalGlows.push({
-        x: bouton.x,
-        y: bouton.y,
-        life: TERMINAL_GLOW_LIFETIME
-      });
-
-      if (typeof triggerSynapticRelease === "function") {
-        triggerSynapticRelease(bouton);
-      }
-
-      terminalSpikes.splice(i, 1);
-    }
-  }
-
-  // Glow decay
-  for (let i = terminalGlows.length - 1; i >= 0; i--) {
-    terminalGlows[i].life--;
-    if (terminalGlows[i].life <= 0) {
-      terminalGlows.splice(i, 1);
-    }
-  }
-}
-
-// -----------------------------------------------------
-// Draw axon + terminal APs
-// -----------------------------------------------------
-function drawAxonSpikes() {
-
-  // Axon AP wavefront
-  if (!window.myelinEnabled) {
-    axonSpikes.forEach(s => {
-      const p = getAxonPoint(s.phase);
-      push();
-      noStroke();
-      fill(getColor("ap"));
-      ellipse(p.x, p.y, 10, 10);
-      pop();
+  function spawnECSIon(type) {
+    ecsIons[type].push({
+      x: random(b.xmin, b.xmax),
+      y: random(b.ymin, b.ymax),
+      phase: random(TWO_PI)
     });
   }
 
-  // Terminal AP fragments
-  terminalSpikes.forEach(ts => {
+  for (let i = 0; i < ECS_ION_COUNTS.Na; i++) spawnECSIon("Na");
+  for (let i = 0; i < ECS_ION_COUNTS.K;  i++) spawnECSIon("K");
 
-    const b = ts.branch;
+  // ------------------
+  // AXON STATIC HALO
+  // ------------------
+  if (neuron?.axon?.path) {
 
-    const x = bezierPoint(
-      b.start.x,
-      b.ctrl.x,
-      b.ctrl.x,
-      b.end.x,
-      ts.t
-    );
+    function spawnHalo(type, count) {
+      const path = neuron.axon.path;
 
-    const y = bezierPoint(
-      b.start.y,
-      b.ctrl.y,
-      b.ctrl.y,
-      b.end.y,
-      ts.t
-    );
+      for (let i = 0; i < count; i++) {
 
-    push();
-    noStroke();
-    fill(getColor("ap"));
-    ellipse(x, y, 5, 5);
-    pop();
+        const t   = i / count;
+        const idx = floor(t * (path.length - 2));
+        const p1  = path[idx];
+        const p2  = path[idx + 1];
+
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const len = Math.hypot(dx, dy) || 1;
+
+        const nx = -dy / len;
+        const ny =  dx / len;
+        const side = i % 2 === 0 ? 1 : -1;
+
+        const r = random(
+          AXON_HALO_RADIUS,
+          AXON_HALO_RADIUS + AXON_HALO_THICKNESS
+        );
+
+        const x0 = p1.x + nx * r * side;
+        const y0 = p1.y + ny * r * side;
+
+        ecsIons[type].push({
+          x: x0, y: y0,
+          x0, y0,
+          vx: 0, vy: 0,
+          lastAPPhase: -Infinity
+        });
+      }
+    }
+
+    spawnHalo("AxonNaStatic", AXON_STATIC_NA_COUNT);
+    spawnHalo("AxonKStatic",  AXON_STATIC_K_COUNT);
+  }
+}
+
+// =====================================================
+// 🧠 SOMA ION FLUX (PRESERVED)
+// =====================================================
+function triggerNaInfluxNeuron1() {
+  for (let i = 0; i < 14; i++) {
+    ecsIons.NaFlux.push({
+      x: random(-NA_SPAWN_RADIUS, NA_SPAWN_RADIUS),
+      y: random(-NA_SPAWN_RADIUS, NA_SPAWN_RADIUS),
+      life: NA_FLUX_LIFETIME
+    });
+  }
+}
+
+function triggerKEffluxNeuron1() {
+  for (let i = 0; i < 16; i++) {
+    const a = random(TWO_PI);
+    ecsIons.KFlux.push({
+      x: random(-K_SPAWN_RADIUS, K_SPAWN_RADIUS),
+      y: random(-K_SPAWN_RADIUS, K_SPAWN_RADIUS),
+      vx: cos(a) * K_FLUX_SPEED,
+      vy: sin(a) * K_FLUX_SPEED,
+      life: K_FLUX_LIFETIME
+    });
+  }
+}
+
+// =====================================================
+// DRAWING
+// =====================================================
+function drawExtracellularIons() {
+  push();
+  textAlign(CENTER, CENTER);
+  noStroke();
+
+  // ------------------
+  // ECS baseline
+  // ------------------
+  fill(...ION_COLOR.Na, 120);
+  textSize(ION_TEXT_SIZE.Na);
+  ecsIons.Na.forEach(p => text("Na⁺", p.x, p.y));
+
+  fill(...ION_COLOR.K, 130);
+  textSize(ION_TEXT_SIZE.K);
+  ecsIons.K.forEach(p => text("K⁺", p.x, p.y));
+
+  // ------------------
+  // AP position + normal
+  // ------------------
+  const apPhase = window.currentAxonAPPhase;
+  let apPos = null;
+  let nx = 0, ny = 0;
+
+  if (apPhase != null && neuron?.axon?.path) {
+    const idx = floor(apPhase * (neuron.axon.path.length - 2));
+    const p1  = neuron.axon.path[idx];
+    const p2  = neuron.axon.path[idx + 1];
+
+    apPos = p1;
+
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const len = Math.hypot(dx, dy) || 1;
+
+    nx = -dy / len;
+    ny =  dx / len;
+  }
+
+  // ------------------
+  // Na⁺ STATIC HALO + BILATERAL COPIES
+  // ------------------
+  fill(...ION_COLOR.Na, 150);
+  ecsIons.AxonNaStatic.forEach(p => {
+
+    if (apPos && abs(apPhase - p.lastAPPhase) > 0.06) {
+
+      const dx = p.x0 - apPos.x;
+      const dy = p.y0 - apPos.y;
+      const d  = Math.hypot(dx, dy);
+
+      if (d < HALO_AP_RADIUS) {
+
+        // subtle highlight only
+        p.vx += -nx * HALO_NA_PERTURB;
+        p.vy += -ny * HALO_NA_PERTURB;
+
+        // ★ bilateral inward Na⁺ copies
+        ecsIons.AxonNaCopies.push({
+          x: p.x,
+          y: p.y,
+          vx: -nx * NA_COPY_SPEED,
+          vy: -ny * NA_COPY_SPEED,
+          life: NA_COPY_LIFE
+        });
+
+        p.lastAPPhase = apPhase;
+      }
+    }
+
+    // strong tether
+    p.vx += (p.x0 - p.x) * 0.06;
+    p.vy += (p.y0 - p.y) * 0.06;
+
+    p.vx *= HALO_NA_RELAX;
+    p.vy *= HALO_NA_RELAX;
+
+    p.x += p.vx;
+    p.y += p.vy;
+
+    text("Na⁺", p.x, p.y);
   });
 
-  // Bouton depolarization glow
-  terminalGlows.forEach(g => {
-
-    const a = map(
-      g.life,
-      0,
-      TERMINAL_GLOW_LIFETIME,
-      40,
-      160
-    );
-
-    push();
-    noStroke();
-    fill(getColor("terminalBouton", a));
-    ellipse(g.x, g.y, 10, 10);
-    pop();
+  // ------------------
+  // Na⁺ CONVERGING COPIES
+  // ------------------
+  ecsIons.AxonNaCopies = ecsIons.AxonNaCopies.filter(p => {
+    p.life--;
+    p.x += p.vx;
+    p.y += p.vy;
+    text("Na⁺", p.x, p.y);
+    return p.life > 0;
   });
+
+  // ------------------
+  // K⁺ STATIC HALO (OUTWARD PLUME)
+  // ------------------
+  fill(...ION_COLOR.K, 150);
+  ecsIons.AxonKStatic.forEach(p => {
+
+    if (apPos) {
+      const dx = p.x0 - apPos.x;
+      const dy = p.y0 - apPos.y;
+      const d  = Math.hypot(dx, dy);
+
+      if (d < HALO_AP_RADIUS) {
+        p.vx += nx * HALO_K_PUSH;
+        p.vy += ny * HALO_K_PUSH;
+      }
+    }
+
+    // weak tether → plume persists
+    p.vx += (p.x0 - p.x) * 0.008;
+    p.vy += (p.y0 - p.y) * 0.008;
+
+    p.vx *= HALO_K_RELAX;
+    p.vy *= HALO_K_RELAX;
+
+    p.x += p.vx;
+    p.y += p.vy;
+
+    text("K⁺", p.x, p.y);
+  });
+
+  // ------------------
+  // 🧠 SOMA Na⁺ INFLUX
+  // ------------------
+  fill(...ION_COLOR.Na, 170);
+  ecsIons.NaFlux = ecsIons.NaFlux.filter(p => {
+    p.life--;
+    const d = Math.hypot(p.x, p.y) || 1;
+    p.x += (-p.x / d) * NA_FLUX_SPEED;
+    p.y += (-p.y / d) * NA_FLUX_SPEED;
+    text("Na⁺", p.x, p.y);
+    return p.life > 0;
+  });
+
+  // ------------------
+  // 🧠 SOMA K⁺ EFFLUX
+  // ------------------
+  ecsIons.KFlux = ecsIons.KFlux.filter(p => {
+    p.life--;
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vx *= ION_VEL_DECAY;
+    p.vy *= ION_VEL_DECAY;
+    fill(...ION_COLOR.K, map(p.life, 0, K_FLUX_LIFETIME, 0, 180));
+    text("K⁺", p.x, p.y);
+    return p.life > 0;
+  });
+
+  pop();
 }
