@@ -6,7 +6,7 @@ console.log("axonSpike loaded");
 // -----------------------------------------------------
 // Parameters
 // -----------------------------------------------------
-const AXON_CONDUCTION_SPEED     = 0.035;
+const AXON_CONDUCTION_SPEED     = 0.02;
 const TERMINAL_CONDUCTION_SPEED = 0.06;
 const TERMINAL_GLOW_LIFETIME    = 18;
 const AXON_TERMINAL_START       = 0.75;
