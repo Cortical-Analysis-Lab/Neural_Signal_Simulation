@@ -1,39 +1,33 @@
-console.log("⚡ voltageWave interaction loaded");
+console.log("⚡ voltageWave interaction loaded (DEBUG DOT MODE)");
 
 // =====================================================
 // GLOBAL AP STATE (EXPLICIT & SAFE)
 // =====================================================
 window.apActive   = false;
 window.apPhase    = 0;
-window.apSpeed    = 0.015;
+window.apSpeed    = 0.04;     // faster pulse for visibility
 window.apDuration = 1.2;
 window.apTimer    = 0;
 
-// Optional user-captured path (fallback)
-window.apPath = window.apPath || [];
-
 // =====================================================
-// KEYBOARD TRIGGER — SPACEBAR STARTS AP
+// SPACEBAR → START AP (SYNAPSE VIEW ONLY)
 // =====================================================
 window.addEventListener("keydown", (e) => {
 
   if (e.code !== "Space") return;
-
-  // Prevent retrigger while active
   if (window.apActive) return;
 
-  // Optional: only allow in synapse view
   if (typeof state !== "undefined" && state.mode !== "synapse") return;
 
   window.apActive = true;
   window.apPhase  = 0;
   window.apTimer  = 0;
 
-  console.log("⚡ Presynaptic AP triggered");
+  console.log("⚡ Presynaptic AP triggered (dot debug)");
 });
 
 // =====================================================
-// UPDATE — ADVANCE AP PHASE (CALLED FROM SynapseView)
+// UPDATE — CALLED EACH FRAME (FROM SYNAPSE VIEW OR MAIN)
 // =====================================================
 function updateVoltageWave() {
   if (!window.apActive) return;
@@ -41,10 +35,6 @@ function updateVoltageWave() {
   window.apPhase += window.apSpeed;
   window.apTimer += window.apSpeed;
 
-  // Clamp phase (no wraparound)
-  if (window.apPhase > 1) window.apPhase = 1;
-
-  // End AP after duration
   if (window.apTimer >= window.apDuration) {
     window.apActive = false;
     window.apPhase  = 0;
@@ -53,99 +43,36 @@ function updateVoltageWave() {
 }
 
 // =====================================================
-// DRAW TRAVELING MEMBRANE WAVES (BIDIRECTIONAL, NO LOOP)
+// DRAW DEBUG DOTS AT EACH PATH COORDINATE
 // =====================================================
-function drawVoltageWave(path, {
-  side = 1,
-  length = 0.18,
-  thickness = 6,
-  offset = 4
-} = {}) {
-
-  const activePath = path ?? window.apPath;
+function drawVoltageWave(path) {
 
   if (
     !window.apActive ||
-    !activePath ||
-    activePath.length < 2
+    !Array.isArray(path) ||
+    path.length === 0
   ) return;
 
   push();
-  noFill();
+  noStroke();
   blendMode(ADD);
 
-  const total = activePath.length;
-  const halfIndex = Math.floor(total / 2);
+  // Pulsing brightness
+  const pulse = 0.5 + 0.5 * sin(frameCount * 0.25);
+  const alpha = lerp(80, 220, pulse);
+  const radius = lerp(4, 8, pulse);
 
-  // ---------------------------------------------------
-  // PHASE → INDEX (NO WRAP, BIDIRECTIONAL)
-  // ---------------------------------------------------
-  const forwardHead  = Math.floor(window.apPhase * halfIndex);
-  const backwardHead = total - 1 - forwardHead;
+  for (let i = 0; i < path.length; i++) {
+    const p = path[i];
 
-  const span = Math.max(2, Math.floor(length * total));
+    // Soft halo
+    fill(80, 255, 120, alpha * 0.35);
+    circle(p.x, p.y, radius * 3);
 
-  // ---------------------------------------------------
-  // HELPER: DRAW ONE DIRECTIONAL WAVE
-  // ---------------------------------------------------
-  function drawWave(headIndex, direction) {
-    for (let i = 0; i < span; i++) {
-
-      const idx = headIndex + i * direction;
-      const nextIdx = idx + direction;
-
-      // Stop at midpoint or bounds
-      if (
-        idx < 0 ||
-        nextIdx < 0 ||
-        idx >= total - 1 ||
-        nextIdx >= total - 1 ||
-        (direction === 1 && idx > halfIndex) ||
-        (direction === -1 && idx < halfIndex)
-      ) return;
-
-      const p1 = activePath[idx];
-      const p2 = activePath[nextIdx];
-
-      const dx = p2.x - p1.x;
-      const dy = p2.y - p1.y;
-      const mag = Math.hypot(dx, dy) || 1;
-
-      const nx = -dy / mag;
-      const ny =  dx / mag;
-
-      // Fade toward midpoint
-      const fade = map(
-        Math.abs(idx - halfIndex),
-        halfIndex, 0,
-        40, 220,
-        true
-      );
-
-      const alpha = Math.max(40, fade);
-
-      const x1 = p1.x + nx * offset * side;
-      const y1 = p1.y + ny * offset * side;
-      const x2 = p2.x + nx * offset * side;
-      const y2 = p2.y + ny * offset * side;
-
-      // Halo
-      stroke(80, 255, 120, alpha * 0.35);
-      strokeWeight(thickness + 6);
-      line(x1, y1, x2, y2);
-
-      // Core
-      stroke(120, 255, 160, alpha);
-      strokeWeight(thickness);
-      line(x1, y1, x2, y2);
-    }
+    // Bright core
+    fill(120, 255, 160, alpha);
+    circle(p.x, p.y, radius);
   }
-
-  // ---------------------------------------------------
-  // DRAW BOTH DIRECTIONS
-  // ---------------------------------------------------
-  drawWave(forwardHead,  +1); // shaft → cap
-  drawWave(backwardHead, -1); // cap → shaft
 
   blendMode(BLEND);
   pop();
