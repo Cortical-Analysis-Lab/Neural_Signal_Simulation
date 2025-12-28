@@ -2,8 +2,7 @@ console.log("🟡 preSynapse loaded");
 
 // =====================================================
 // PRESYNAPTIC AP CONDUCTION PATH
-// NEURON-LOCAL, UNFLIPPED, UNSCALED (CANONICAL)
-// Shaft → cap (user-selected)
+// (Captured in VIEW SPACE — needs calibration)
 // =====================================================
 const PRESYNAPTIC_AP_PATH = [
   { x: 153.1, y:  4.7 },
@@ -22,54 +21,50 @@ const PRESYNAPTIC_AP_PATH = [
 ];
 
 // =====================================================
-// 🔑 PATH TRANSFORMS (EXPLICIT & SAFE)
+// 🔧 CALIBRATION CONSTANTS (THIS IS THE FIX)
 // =====================================================
-function mirrorXPath(path) {
+
+// Empirically determined: neuron geometry units / capture units
+const AP_PATH_SCALE = 6.0;
+
+// Align path to synaptic face (x = 0 in neuronShape)
+const AP_PATH_OFFSET = {
+  x: -170,   // ≈ barThick / 2
+  y: 0
+};
+
+// =====================================================
+// PATH TRANSFORMS (ORDER MATTERS)
+// =====================================================
+function calibratePath(path) {
   return path.map(p => ({
-    x: -p.x,
-    y:  p.y
+    x: (-p.x * AP_PATH_SCALE) + AP_PATH_OFFSET.x,
+    y: ( p.y * AP_PATH_SCALE) + AP_PATH_OFFSET.y
   }));
 }
 
-function scalePath(path, s) {
-  return path.map(p => ({
-    x: p.x * s,
-    y: p.y * s
-  }));
-}
-
 // =====================================================
-// PRESYNAPTIC NEURON (GEOMETRY + AP DOT DEBUG)
+// PRESYNAPTIC NEURON (GEOMETRY + DEBUG DOTS)
 // =====================================================
 function drawPreSynapse() {
   push();
 
-  // ---------------------------------------------------
-  // APPLY PRESYNAPTIC ORIENTATION
-  // ---------------------------------------------------
+  // Presynaptic orientation
   scale(-1, 1);
 
-  // ---- Draw neuron geometry (canonical units)
+  // Neuron geometry (canonical)
   drawTNeuronShape(1);
 
-  // ---------------------------------------------------
-  // 🔑 MATCH AP DATA TO VIEW SCALE + ORIENTATION
-  // ---------------------------------------------------
-  // SYNAPSE_SCALE is defined in SynapseView.js (global)
-  const s = typeof SYNAPSE_SCALE === "number" ? SYNAPSE_SCALE : 1;
+  // Calibrated AP path
+  const calibratedPath = calibratePath(PRESYNAPTIC_AP_PATH);
 
-  const correctedPath = scalePath(
-    mirrorXPath(PRESYNAPTIC_AP_PATH),
-    s
-  );
-
-  drawAPDebugDots(correctedPath);
+  drawAPDebugDots(calibratedPath);
 
   pop();
 }
 
 // =====================================================
-// DEBUG: FLASHING GREEN DOTS AT EACH AP COORDINATE
+// DEBUG: FLASHING GREEN DOTS
 // =====================================================
 function drawAPDebugDots(path) {
   if (!window.apActive) return;
@@ -81,11 +76,9 @@ function drawAPDebugDots(path) {
   noStroke();
 
   for (const p of path) {
-    // Soft halo
     fill(80, 255, 120, 120 * pulse);
     circle(p.x, p.y, 18);
 
-    // Bright core
     fill(160, 255, 190, 220 * pulse);
     circle(p.x, p.y, 6);
   }
