@@ -1,7 +1,8 @@
 console.log("🟡 preSynapse loaded");
 
 // =====================================================
-// PRESYNAPTIC AP CONDUCTION PATH (NEURON-LOCAL, UNFLIPPED)
+// PRESYNAPTIC AP CONDUCTION PATH
+// NEURON-LOCAL, UNFLIPPED, UNSCALED (CANONICAL)
 // Shaft → cap (user-selected)
 // =====================================================
 const PRESYNAPTIC_AP_PATH = [
@@ -21,12 +22,19 @@ const PRESYNAPTIC_AP_PATH = [
 ];
 
 // =====================================================
-// 🔑 MIRROR PATH TO MATCH PRESYNAPTIC FLIP
+// 🔑 PATH TRANSFORMS (EXPLICIT & SAFE)
 // =====================================================
 function mirrorXPath(path) {
   return path.map(p => ({
     x: -p.x,
     y:  p.y
+  }));
+}
+
+function scalePath(path, s) {
+  return path.map(p => ({
+    x: p.x * s,
+    y: p.y * s
   }));
 }
 
@@ -41,12 +49,21 @@ function drawPreSynapse() {
   // ---------------------------------------------------
   scale(-1, 1);
 
-  // ---- Draw neuron geometry (canonical)
+  // ---- Draw neuron geometry (canonical units)
   drawTNeuronShape(1);
 
-  // ---- Draw AP debug dots (PATH MIRRORED TO MATCH SPACE)
-  const mirroredPath = mirrorXPath(PRESYNAPTIC_AP_PATH);
-  drawAPDebugDots(mirroredPath);
+  // ---------------------------------------------------
+  // 🔑 MATCH AP DATA TO VIEW SCALE + ORIENTATION
+  // ---------------------------------------------------
+  // SYNAPSE_SCALE is defined in SynapseView.js (global)
+  const s = typeof SYNAPSE_SCALE === "number" ? SYNAPSE_SCALE : 1;
+
+  const correctedPath = scalePath(
+    mirrorXPath(PRESYNAPTIC_AP_PATH),
+    s
+  );
+
+  drawAPDebugDots(correctedPath);
 
   pop();
 }
