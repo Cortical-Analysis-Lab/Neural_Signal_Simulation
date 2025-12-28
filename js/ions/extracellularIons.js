@@ -11,10 +11,7 @@ window.ecsIons = {
   Na: [], K: [],
   NaFlux: [], KFlux: [],
   AxonNaFlux: [], AxonKFlux: [],
-
-  // ★ NEW — baseline axon-adjacent ions
-  AxonNaStatic: [],
-  AxonKStatic: []
+  AxonNaStatic: [], AxonKStatic: []
 };
 
 // -----------------------------------------------------
@@ -22,10 +19,13 @@ window.ecsIons = {
 // -----------------------------------------------------
 const ECS_ION_COUNTS = { Na: 260, K: 160 };
 
-// ★ NEW — axon-adjacent baseline counts
+// Axon-adjacent baseline counts
 const AXON_STATIC_NA_COUNT = 28;
 const AXON_STATIC_K_COUNT  = 8;
-const AXON_STATIC_OFFSET  = 2;
+
+// 🔧 ONLY TUNING CONTROLS
+const AXON_STATIC_MIN_OFFSET = 6;
+const AXON_STATIC_MAX_OFFSET = 12;
 
 // -----------------------------------------------------
 // VISUALS
@@ -51,7 +51,7 @@ const K_SPAWN_RADIUS    = 28;
 const ION_VEL_DECAY     = 0.965;
 
 // -----------------------------------------------------
-// AXON PARAMETERS (PERFECT)
+// AXON PARAMETERS (APPROVED)
 // -----------------------------------------------------
 const AXON_NA_SPEED     = 1.8;
 const AXON_NA_LIFETIME  = 26;
@@ -61,7 +61,7 @@ const AXON_K_LIFETIME   = 120;
 const AXON_K_DECAY      = 0.97;
 
 // =====================================================
-// ECS EXCLUSION RULES (ECS ONLY)
+// ECS EXCLUSION RULES (BASELINE ONLY)
 // =====================================================
 function inArteryThird(x) {
   return x < -width * 0.33;
@@ -76,7 +76,7 @@ function validECS(x, y) {
 }
 
 // =====================================================
-// INITIALIZATION — ECS + AXON STATIC
+// INITIALIZATION — ECS + AXON STATIC HALO
 // =====================================================
 function initExtracellularIons() {
 
@@ -110,43 +110,45 @@ function initExtracellularIons() {
   for (let i = 0; i < ECS_ION_COUNTS.K;  i++) spawnECSIon("K");
 
   // ------------------
-  // ★ NEW — AXON-ADJACENT BASELINE IONS
+  // AXON-ADJACENT STATIC (NORMAL OFFSET)
   // ------------------
   if (neuron?.axon?.path) {
 
     function spawnAxonStatic(type, count) {
+      const path = neuron.axon.path;
+
       for (let i = 0; i < count; i++) {
 
-        const idx = floor(random(neuron.axon.path.length - 1));
-        const p  = neuron.axon.path[idx];
-        const p2 = neuron.axon.path[idx + 1];
-        
-        // Tangent
-        const tx = p2.x - p.x;
-        const ty = p2.y - p.y;
+        const idx = floor(random(path.length - 1));
+        const p1  = path[idx];
+        const p2  = path[idx + 1];
+
+        const tx = p2.x - p1.x;
+        const ty = p2.y - p1.y;
         const len = max(1, sqrt(tx*tx + ty*ty));
-        
-        // Normal (perpendicular)
+
+        // Normal vector
         const nx = -ty / len;
         const ny =  tx / len;
-        
-        // 🔧 THIS is your main tuning knob
-        const r = random(AXON_STATIC_MIN_OFFSET, AXON_STATIC_MAX_OFFSET);
-        
+
+        const r = random(
+          AXON_STATIC_MIN_OFFSET,
+          AXON_STATIC_MAX_OFFSET
+        );
+
         ecsIons[type].push({
-          x: p.x + nx * r,
-          y: p.y + ny * r,
+          x: p1.x + nx * r,
+          y: p1.y + ny * r,
           phase: random(TWO_PI)
         });
-
       }
     }
 
     spawnAxonStatic("AxonNaStatic", AXON_STATIC_NA_COUNT);
-    spawnAxonStatic("AxonKStatic", AXON_STATIC_K_COUNT);
+    spawnAxonStatic("AxonKStatic",  AXON_STATIC_K_COUNT);
   }
 
-  console.log("🧂 ECS + axon-adjacent ions initialized");
+  console.log("🧂 ECS + axon halo initialized (normal-based)");
 }
 
 // =====================================================
@@ -224,7 +226,7 @@ function drawExtracellularIons() {
       p.y + cos(state.time * 0.0016 + p.phase) * 0.35)
   );
 
-  // ---- ★ AXON-ADJACENT STATIC ----
+  // ---- AXON STATIC HALO ----
   fill(...ION_COLOR.Na, 150);
   ecsIons.AxonNaStatic.forEach(p =>
     text("Na⁺",
