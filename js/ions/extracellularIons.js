@@ -43,7 +43,7 @@ const HALO_K_RELAX  = 0.80;
 // -----------------------------------------------------
 // BILATERAL Na⁺ COPY CONTROL
 // -----------------------------------------------------
-const MAX_AXON_NA_COPIES = 1;     // HARD CAP
+const MAX_AXON_NA_COPIES = 6;     // HARD CAP
 const NA_COPY_SPEED     = 0.012; // slow, readable convergence
 const NA_COPY_LIFE      = 20;
 const NA_CENTER_EPS     = 3;
