@@ -1,13 +1,18 @@
 // =====================================================
 // EXTRACELLULAR IONS — Na⁺ / K⁺ (ECS ONLY)
-// Teaching-first, artery-excluded ECS
+// Teaching-first, artery-excluded ECS (slow, readable)
 // =====================================================
 console.log("🧂 extracellularIons loaded");
 
 // -----------------------------------------------------
-// GLOBAL STORAGE (RELOAD SAFE)
+// GLOBAL STORAGE
 // -----------------------------------------------------
-window.ecsIons = window.ecsIons || { Na: [], K: [] };
+window.ecsIons = window.ecsIons || {
+  Na: [],
+  K: [],
+  NaFlux: [],
+  KFlux: []
+};
 
 // -----------------------------------------------------
 // COUNTS
@@ -23,29 +28,27 @@ const ECS_ION_COUNTS = {
 const ION_TEXT_SIZE = { Na: 10, K: 11 };
 const ION_ALPHA    = { Na: 170, K: 185 };
 
-// Na⁺ → yellow, K⁺ → pink
 const ION_COLOR = {
-  Na: [245, 215, 90],
-  K:  [255, 140, 190]
+  Na: [245, 215, 90],    // yellow
+  K:  [255, 140, 190]   // pink
 };
 
 // -----------------------------------------------------
-// MOTION PARAMETERS
+// MOTION PARAMETERS (LOCKED TO GOOD VERSION)
 // -----------------------------------------------------
-const SOMA_SUCTION_RADIUS   = 120;
-const SOMA_ABSORB_RADIUS    = 0.85;   // × somaRadius
-const K_SPAWN_RADIUS        = 26;
+const NA_FLUX_SPEED       = 0.9;     // ✅ good inward speed
+const K_FLUX_SPEED       = 1.1;
 
-const NA_SUCTION_FORCE      = 0.9;
+const NA_FLUX_LIFETIME   = 80;
+const K_FLUX_LIFETIME   = 120;
 
-// 🔑 K⁺ efflux tuning (THIS IS THE CHANGE)
-const K_EFFLUX_FORCE        = 1.35;   // stronger outward push
-const K_VEL_DECAY           = 0.975;  // slower decay = farther travel
-const K_MAX_DISTANCE        = 520;    // disappear after this distance
-const K_LIFETIME            = 520;    // frames before fade-out
+const NA_SPAWN_RADIUS    = 140;      // ✅ long travel distance
+const K_SPAWN_RADIUS    = 28;
+
+const ION_VEL_DECAY      = 0.92;     // K⁺ only
 
 // =====================================================
-// ECS BOUNDS
+// ECS WORLD BOUNDS — ARTERY THIRD REMOVED
 // =====================================================
 function getECSBounds() {
   return {
@@ -57,7 +60,7 @@ function getECSBounds() {
 }
 
 // =====================================================
-// EXCLUSION TESTS
+// EXCLUSION TESTS (STATIC ECS ONLY)
 // =====================================================
 function pointInArteryThird(x) {
   return x < -width * 0.33;
@@ -68,38 +71,31 @@ function pointNearVoltageTrace(x, y) {
 }
 
 function validECSPosition(x, y) {
-  return !(
-    pointInArteryThird(x) ||
-    pointNearVoltageTrace(x, y)
-  );
+  return !(pointInArteryThird(x) || pointNearVoltageTrace(x, y));
 }
 
 // =====================================================
-// INITIALIZATION
+// INITIALIZATION — BASELINE ECS
 // =====================================================
 function initExtracellularIons() {
 
   ecsIons.Na.length = 0;
   ecsIons.K.length  = 0;
+  ecsIons.NaFlux.length = 0;
+  ecsIons.KFlux.length  = 0;
 
   const b = getECSBounds();
 
   function spawnIon(type) {
     let tries = 0;
-
     while (tries++ < 1200) {
       const x = random(b.xmin, b.xmax);
       const y = random(b.ymin, b.ymax);
-
       if (!validECSPosition(x, y)) continue;
 
       ecsIons[type].push({
-        x,
-        y,
-        vx: 0,
-        vy: 0,
-        phase: random(TWO_PI),
-        life: Infinity
+        x, y,
+        phase: random(TWO_PI)
       });
       return;
     }
@@ -108,51 +104,46 @@ function initExtracellularIons() {
   for (let i = 0; i < ECS_ION_COUNTS.Na; i++) spawnIon("Na");
   for (let i = 0; i < ECS_ION_COUNTS.K;  i++) spawnIon("K");
 
-  console.log(
-    `🧂 ECS ions initialized → Na⁺:${ecsIons.Na.length}, K⁺:${ecsIons.K.length}`
-  );
+  console.log("🧂 ECS baseline ions initialized");
 }
 
 // =====================================================
-// NEURON-1 EVENT HOOKS
+// NEURON-1 ION FLUX EVENTS (COPIES ONLY)
 // =====================================================
 
-// EPSP → Na⁺ influx (unchanged)
+// -----------------------------------------------------
+// EPSP → Na⁺ influx (RESTORED GOOD VERSION)
+// -----------------------------------------------------
 function triggerNaInfluxNeuron1() {
-  ecsIons.Na.forEach(p => {
-    const d = dist(p.x, p.y, 0, 0);
-    if (d < SOMA_SUCTION_RADIUS && d > 1) {
-      p.vx += (-p.x / d) * NA_SUCTION_FORCE;
-      p.vy += (-p.y / d) * NA_SUCTION_FORCE;
-    }
-  });
+
+  for (let i = 0; i < 14; i++) {
+    ecsIons.NaFlux.push({
+      x: random(-NA_SPAWN_RADIUS, NA_SPAWN_RADIUS),
+      y: random(-NA_SPAWN_RADIUS, NA_SPAWN_RADIUS),
+      life: NA_FLUX_LIFETIME
+    });
+  }
 }
 
-// IPSP → K⁺ efflux (UPDATED)
+// -----------------------------------------------------
+// IPSP → K⁺ efflux (IMPROVED VERSION)
+// -----------------------------------------------------
 function triggerKEffluxNeuron1() {
 
-  for (let i = 0; i < 18; i++) {
-
-    // random radial direction
+  for (let i = 0; i < 16; i++) {
     const a = random(TWO_PI);
-    const r = random(8, K_SPAWN_RADIUS);
-
-    ecsIons.K.push({
-      x: cos(a) * r,
-      y: sin(a) * r,
-
-      // 🔑 strong outward radial push
-      vx: cos(a) * K_EFFLUX_FORCE,
-      vy: sin(a) * K_EFFLUX_FORCE,
-
-      phase: random(TWO_PI),
-      life: K_LIFETIME
+    ecsIons.KFlux.push({
+      x: random(-K_SPAWN_RADIUS, K_SPAWN_RADIUS),
+      y: random(-K_SPAWN_RADIUS, K_SPAWN_RADIUS),
+      vx: cos(a) * K_FLUX_SPEED,
+      vy: sin(a) * K_FLUX_SPEED,
+      life: K_FLUX_LIFETIME
     });
   }
 }
 
 // =====================================================
-// DRAWING — TEXT IONS
+// DRAWING — BASELINE + FLUX
 // =====================================================
 function drawExtracellularIons() {
   push();
@@ -160,60 +151,61 @@ function drawExtracellularIons() {
   noStroke();
 
   // -------------------------
-  // Na⁺ (yellow, absorbed)
+  // BASELINE Na⁺ (static ECS)
   // -------------------------
-  fill(...ION_COLOR.Na, ION_ALPHA.Na);
+  fill(...ION_COLOR.Na, 120);
   textSize(ION_TEXT_SIZE.Na);
-
-  ecsIons.Na = ecsIons.Na.filter(p => {
-
-    p.x += p.vx;
-    p.y += p.vy;
-    p.vx *= 0.96;
-    p.vy *= 0.96;
-
-    const d = dist(p.x, p.y, 0, 0);
-    if (d < neuron.somaRadius * SOMA_ABSORB_RADIUS) {
-      return false; // absorbed
-    }
-
+  ecsIons.Na.forEach(p => {
     const wob = sin(state.time * 0.0018 + p.phase) * 0.4;
     text("Na⁺", p.x + wob, p.y - wob);
-    return true;
   });
 
   // -------------------------
-  // K⁺ (pink, strong efflux)
+  // BASELINE K⁺ (static ECS)
   // -------------------------
+  fill(...ION_COLOR.K, 130);
   textSize(ION_TEXT_SIZE.K);
+  ecsIons.K.forEach(p => {
+    const wob = cos(state.time * 0.0016 + p.phase) * 0.35;
+    text("K⁺", p.x - wob, p.y + wob);
+  });
 
-  ecsIons.K = ecsIons.K.filter(p => {
+  // -------------------------
+  // Na⁺ FLUX (LONG, CLEAR SUCTION)
+  // -------------------------
+  fill(...ION_COLOR.Na, ION_ALPHA.Na);
+  ecsIons.NaFlux = ecsIons.NaFlux.filter(p => {
+
+    p.life--;
+
+    const dx = -p.x;
+    const dy = -p.y;
+    const d  = max(1, sqrt(dx*dx + dy*dy));
+
+    p.x += (dx / d) * NA_FLUX_SPEED;
+    p.y += (dy / d) * NA_FLUX_SPEED;
+
+    text("Na⁺", p.x, p.y);
+    return p.life > 0;
+  });
+
+  // -------------------------
+  // K⁺ FLUX (FAR, SLOW, FADING)
+  // -------------------------
+  ecsIons.KFlux = ecsIons.KFlux.filter(p => {
+
+    p.life--;
 
     p.x += p.vx;
     p.y += p.vy;
+    p.vx *= ION_VEL_DECAY;
+    p.vy *= ION_VEL_DECAY;
 
-    p.vx *= K_VEL_DECAY;
-    p.vy *= K_VEL_DECAY;
+    const a = map(p.life, 0, K_FLUX_LIFETIME, 0, ION_ALPHA.K);
+    fill(...ION_COLOR.K, a);
 
-    if (p.life !== Infinity) p.life--;
-
-    const d = dist(p.x, p.y, 0, 0);
-
-    // fade out as it disperses
-    const alpha =
-      p.life === Infinity
-        ? ION_ALPHA.K
-        : map(p.life, 0, K_LIFETIME, 0, ION_ALPHA.K);
-
-    fill(...ION_COLOR.K, alpha);
-
-    const wob = cos(state.time * 0.0016 + p.phase) * 0.35;
-    text("K⁺", p.x - wob, p.y + wob);
-
-    return (
-      p.life > 0 &&
-      d < K_MAX_DISTANCE
-    );
+    text("K⁺", p.x, p.y);
+    return p.life > 0;
   });
 
   pop();
