@@ -1,7 +1,7 @@
 console.log("🟡 preSynapse loaded");
 
 // =====================================================
-// PRESYNAPTIC AP CONDUCTION PATH (NEURON-LOCAL)
+// PRESYNAPTIC AP CONDUCTION PATH (NEURON-LOCAL, UNFLIPPED)
 // Shaft → cap (user-selected)
 // =====================================================
 const PRESYNAPTIC_AP_PATH = [
@@ -21,21 +21,32 @@ const PRESYNAPTIC_AP_PATH = [
 ];
 
 // =====================================================
+// 🔑 MIRROR PATH TO MATCH PRESYNAPTIC FLIP
+// =====================================================
+function mirrorXPath(path) {
+  return path.map(p => ({
+    x: -p.x,
+    y:  p.y
+  }));
+}
+
+// =====================================================
 // PRESYNAPTIC NEURON (GEOMETRY + AP DOT DEBUG)
 // =====================================================
 function drawPreSynapse() {
   push();
 
   // ---------------------------------------------------
-  // 🔑 APPLY FLIP ONCE — FOR EVERYTHING
+  // APPLY PRESYNAPTIC ORIENTATION
   // ---------------------------------------------------
   scale(-1, 1);
 
-  // ---- Draw neuron geometry (NO internal flip now)
+  // ---- Draw neuron geometry (canonical)
   drawTNeuronShape(1);
 
-  // ---- Draw flashing AP dots (same coordinate space)
-  drawAPDebugDots(PRESYNAPTIC_AP_PATH);
+  // ---- Draw AP debug dots (PATH MIRRORED TO MATCH SPACE)
+  const mirroredPath = mirrorXPath(PRESYNAPTIC_AP_PATH);
+  drawAPDebugDots(mirroredPath);
 
   pop();
 }
@@ -53,11 +64,11 @@ function drawAPDebugDots(path) {
   noStroke();
 
   for (const p of path) {
-    // Halo
+    // Soft halo
     fill(80, 255, 120, 120 * pulse);
     circle(p.x, p.y, 18);
 
-    // Core
+    // Bright core
     fill(160, 255, 190, 220 * pulse);
     circle(p.x, p.y, 6);
   }
