@@ -5,13 +5,16 @@
 console.log("🧂 extracellularIons loaded");
 
 // -----------------------------------------------------
-// GLOBAL STORAGE
+// GLOBAL STORAGE (reload-safe)
 // -----------------------------------------------------
 window.ecsIons = {
-  Na: [], K: [],
-  NaFlux: [], KFlux: [],
-  AxonNaStatic: [], AxonKStatic: [],
-  AxonNaCopies: []   // bilateral Na⁺ → axon centerline
+  Na: [],
+  K: [],
+  NaFlux: [],
+  KFlux: [],
+  AxonNaStatic: [],
+  AxonKStatic: [],
+  AxonNaCopies: []
 };
 
 // -----------------------------------------------------
@@ -32,7 +35,7 @@ const AXON_HALO_THICKNESS = 4;
 // -----------------------------------------------------
 const HALO_AP_RADIUS = 28;
 
-// Static halo motion (visual emphasis only)
+// Static halo emphasis
 const HALO_NA_PERTURB = 0.04;
 const HALO_K_PUSH     = 1.6;
 
@@ -41,10 +44,9 @@ const HALO_NA_RELAX = 0.95;
 const HALO_K_RELAX  = 0.80;
 
 // -----------------------------------------------------
-// Na⁺ COPY MOTION (PER-HALO, OWNED)
+// BILATERAL Na⁺ COPY CONTROL
 // -----------------------------------------------------
-const NA_COPY_SPEED = 0.006;   // slow, readable
-const NA_COPY_LIFE  = 45;
+const NA_COPY_SPEED = 0.008;
 const NA_CENTER_EPS = 1.2;
 
 // -----------------------------------------------------
@@ -58,7 +60,7 @@ const ION_COLOR = {
 };
 
 // -----------------------------------------------------
-// SOMA PARAMETERS (UNCHANGED)
+// SOMA PARAMETERS (AUTHORITATIVE)
 // -----------------------------------------------------
 const NA_FLUX_SPEED     = 0.9;
 const NA_FLUX_LIFETIME  = 80;
@@ -99,7 +101,7 @@ function initExtracellularIons() {
   Object.values(ecsIons).forEach(arr => arr.length = 0);
 
   // ------------------
-  // ECS baseline
+  // ECS BASELINE
   // ------------------
   const b = {
     xmin: -width * 0.9,
@@ -122,46 +124,68 @@ function initExtracellularIons() {
   // ------------------
   // AXON STATIC HALO
   // ------------------
-  if (neuron?.axon?.path) {
+  if (!neuron?.axon?.path) return;
 
-    function spawnHalo(type, count) {
-      const path = neuron.axon.path;
+  function spawnHalo(type, count) {
+    const path = neuron.axon.path;
 
-      for (let i = 0; i < count; i++) {
+    for (let i = 0; i < count; i++) {
 
-        const t   = i / count;
-        const idx = floor(t * (path.length - 2));
-        const p1  = path[idx];
-        const p2  = path[idx + 1];
+      const t   = i / count;
+      const idx = floor(t * (path.length - 2));
+      const p1  = path[idx];
+      const p2  = path[idx + 1];
 
-        const dx = p2.x - p1.x;
-        const dy = p2.y - p1.y;
-        const len = Math.hypot(dx, dy) || 1;
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const len = Math.hypot(dx, dy) || 1;
 
-        const nx = -dy / len;
-        const ny =  dx / len;
-        const side = i % 2 === 0 ? 1 : -1;
+      const nx = -dy / len;
+      const ny =  dx / len;
+      const side = i % 2 === 0 ? 1 : -1;
 
-        const r = random(
-          AXON_HALO_RADIUS,
-          AXON_HALO_RADIUS + AXON_HALO_THICKNESS
-        );
+      const r = random(AXON_HALO_RADIUS, AXON_HALO_RADIUS + AXON_HALO_THICKNESS);
 
-        const x0 = p1.x + nx * r * side;
-        const y0 = p1.y + ny * r * side;
+      const x0 = p1.x + nx * r * side;
+      const y0 = p1.y + ny * r * side;
 
-        ecsIons[type].push({
-          x: x0, y: y0,
-          x0, y0,
-          vx: 0, vy: 0,
-          lastAPPhase: -Infinity,
-          hasActiveCopy: false   // ★ key addition
-        });
-      }
+      ecsIons[type].push({
+        x: x0, y: y0,
+        x0, y0,
+        vx: 0, vy: 0,
+        lastAPPhase: -Infinity,
+        hasCopy: false
+      });
     }
+  }
 
-    spawnHalo("AxonNaStatic", AXON_STATIC_NA_COUNT);
-    spawnHalo("AxonKStatic",  AXON_STATIC_K_COUNT);
+  spawnHalo("AxonNaStatic", AXON_STATIC_NA_COUNT);
+  spawnHalo("AxonKStatic",  AXON_STATIC_K_COUNT);
+}
+
+// =====================================================
+// 🧠 SOMA ION TRIGGERS (UNCHANGED)
+// =====================================================
+function triggerNaInfluxNeuron1() {
+  for (let i = 0; i < 14; i++) {
+    ecsIons.NaFlux.push({
+      x: random(-NA_SPAWN_RADIUS, NA_SPAWN_RADIUS),
+      y: random(-NA_SPAWN_RADIUS, NA_SPAWN_RADIUS),
+      life: NA_FLUX_LIFETIME
+    });
+  }
+}
+
+function triggerKEffluxNeuron1() {
+  for (let i = 0; i < 16; i++) {
+    const a = random(TWO_PI);
+    ecsIons.KFlux.push({
+      x: random(-K_SPAWN_RADIUS, K_SPAWN_RADIUS),
+      y: random(-K_SPAWN_RADIUS, K_SPAWN_RADIUS),
+      vx: cos(a) * K_FLUX_SPEED,
+      vy: sin(a) * K_FLUX_SPEED,
+      life: K_FLUX_LIFETIME
+    });
   }
 }
 
@@ -173,7 +197,9 @@ function drawExtracellularIons() {
   textAlign(CENTER, CENTER);
   noStroke();
 
-  // ECS baseline
+  // ------------------
+  // ECS BASELINE
+  // ------------------
   fill(...ION_COLOR.Na, 120);
   textSize(ION_TEXT_SIZE.Na);
   ecsIons.Na.forEach(p => text("Na⁺", p.x, p.y));
@@ -184,35 +210,31 @@ function drawExtracellularIons() {
 
   const apPhase = window.currentAxonAPPhase;
 
-  // ---------------------------------------------------
-  // Na⁺ STATIC HALO → GUARANTEED 1 COPY EACH
-  // ---------------------------------------------------
+  // ------------------
+  // AXON Na⁺ HALO + COPY
+  // ------------------
   fill(...ION_COLOR.Na, 150);
   ecsIons.AxonNaStatic.forEach(p => {
 
     if (
       apPhase != null &&
       abs(apPhase - p.lastAPPhase) > 0.06 &&
-      !p.hasActiveCopy
+      !p.hasCopy
     ) {
       ecsIons.AxonNaCopies.push({
         x: p.x,
         y: p.y,
-        life: NA_COPY_LIFE,
-        parent: p
+        stopped: false
       });
-
-      p.hasActiveCopy = true;
-      p.lastAPPhase   = apPhase;
+      p.hasCopy = true;
+      p.lastAPPhase = apPhase;
     }
 
-    // subtle membrane emphasis
     if (apPhase != null) {
       p.vx += (p.x - p.x0) * HALO_NA_PERTURB;
       p.vy += (p.y - p.y0) * HALO_NA_PERTURB;
     }
 
-    // tether
     p.vx += (p.x0 - p.x) * 0.06;
     p.vy += (p.y0 - p.y) * 0.06;
     p.vx *= HALO_NA_RELAX;
@@ -223,39 +245,27 @@ function drawExtracellularIons() {
     text("Na⁺", p.x, p.y);
   });
 
-  // ---------------------------------------------------
-  // Na⁺ COPIES → AXON CENTERLINE
-  // ---------------------------------------------------
-  ecsIons.AxonNaCopies = ecsIons.AxonNaCopies.filter(p => {
-
-    const target = closestPointOnAxon(p.x, p.y);
-    if (!target || --p.life <= 0) {
-      if (p.parent) p.parent.hasActiveCopy = false;
-      return false;
+  ecsIons.AxonNaCopies.forEach(p => {
+    if (!p.stopped) {
+      const target = closestPointOnAxon(p.x, p.y);
+      if (target) {
+        const dx = target.x - p.x;
+        const dy = target.y - p.y;
+        const d  = Math.hypot(dx, dy);
+        if (d < NA_CENTER_EPS) {
+          p.stopped = true;
+        } else {
+          p.x += dx * NA_COPY_SPEED;
+          p.y += dy * NA_COPY_SPEED;
+        }
+      }
     }
-
-    const dx = target.x - p.x;
-    const dy = target.y - p.y;
-    const d  = Math.hypot(dx, dy);
-
-    if (d < NA_CENTER_EPS) {
-      if (p.parent) p.parent.hasActiveCopy = false;
-      return false;
-    }
-
-    p.x += dx * NA_COPY_SPEED;
-    p.y += dy * NA_COPY_SPEED;
-
-    const alpha = map(p.life, 0, NA_COPY_LIFE, 50, 160);
-    fill(...ION_COLOR.Na, alpha);
     text("Na⁺", p.x, p.y);
-
-    return true;
   });
 
-  // ---------------------------------------------------
-  // K⁺ STATIC HALO (OUTWARD PLUME)
-  // ---------------------------------------------------
+  // ------------------
+  // AXON K⁺ HALO
+  // ------------------
   fill(...ION_COLOR.K, 150);
   ecsIons.AxonKStatic.forEach(p => {
 
@@ -272,6 +282,33 @@ function drawExtracellularIons() {
     p.y += p.vy;
 
     text("K⁺", p.x, p.y);
+  });
+
+  // ------------------
+  // 🧠 SOMA Na⁺ INFLUX (RESTORED)
+  // ------------------
+  fill(...ION_COLOR.Na, 170);
+  ecsIons.NaFlux = ecsIons.NaFlux.filter(p => {
+    p.life--;
+    const d = Math.hypot(p.x, p.y) || 1;
+    p.x += (-p.x / d) * NA_FLUX_SPEED;
+    p.y += (-p.y / d) * NA_FLUX_SPEED;
+    text("Na⁺", p.x, p.y);
+    return p.life > 0;
+  });
+
+  // ------------------
+  // 🧠 SOMA K⁺ EFFLUX (RESTORED)
+  // ------------------
+  ecsIons.KFlux = ecsIons.KFlux.filter(p => {
+    p.life--;
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vx *= ION_VEL_DECAY;
+    p.vy *= ION_VEL_DECAY;
+    fill(...ION_COLOR.K, map(p.life, 0, K_FLUX_LIFETIME, 0, 180));
+    text("K⁺", p.x, p.y);
+    return p.life > 0;
   });
 
   pop();
