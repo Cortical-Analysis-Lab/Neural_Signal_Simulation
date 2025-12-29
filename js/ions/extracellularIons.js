@@ -84,20 +84,26 @@ const AXON_K_PHASE_STEP = 0.045;
 // =====================================================
 // AXONAL Na⁺ WAVE SPAWNER (PREDICTIVE)
 // =====================================================
-const AXON_NA_LEAD_SEGMENTS = 25;     // spatial offset from AIS
-const AXON_NA_FORWARD_BIAS = 0.35;    // how fast Na⁺ runs down axon
-const AXON_NA_INWARD_PULL  = 1.1;     // membrane entry strength
+const AXON_NA_LEAD_SEGMENTS = 25; 
 
 function triggerAxonNaWave() {
+  if (!window.axonNaActive) return;
   if (!neuron?.axon?.path) return;
+  if (window.currentAxonAPPhase == null) return;
 
   const path = neuron.axon.path;
 
-  // 🔑 AIS = start of axon
-  const aisIdx = 0;
+  // -----------------------------
+  // AP position (authoritative)
+  // -----------------------------
+  const apIdx = floor(
+    window.currentAxonAPPhase * (path.length - 2)
+  );
 
-  // 🔑 Na⁺ always spawns relative to AIS, NOT AP
-  const naIdx = aisIdx + AXON_NA_LEAD_SEGMENTS;
+  // -----------------------------
+  // Na⁺ spatial lead
+  // -----------------------------
+  const naIdx = apIdx + AXON_NA_LEAD_SEGMENTS;
 
   if (naIdx < 0 || naIdx >= path.length - 1) return;
 
@@ -105,7 +111,9 @@ function triggerAxonNaWave() {
   const p2 = path[naIdx + 1];
   if (!p1 || !p2) return;
 
-  // Tangent (forward axon direction)
+  // -----------------------------
+  // Geometry
+  // -----------------------------
   const dx = p2.x - p1.x;
   const dy = p2.y - p1.y;
   const len = Math.hypot(dx, dy) || 1;
@@ -113,10 +121,13 @@ function triggerAxonNaWave() {
   const tx = dx / len;
   const ty = dy / len;
 
-  // Membrane normal (inward)
+  // inward membrane normal
   const nx = -ty;
   const ny =  tx;
 
+  // -----------------------------
+  // Spawn Na⁺ particles
+  // -----------------------------
   for (let i = 0; i < AXON_NA_WAVE_COUNT; i++) {
     const side = i % 2 === 0 ? 1 : -1;
 
@@ -124,9 +135,9 @@ function triggerAxonNaWave() {
       x: p1.x + nx * AXON_HALO_RADIUS * side,
       y: p1.y + ny * AXON_HALO_RADIUS * side,
 
-      // 🔑 inward + forward (NOT tied to AP)
-      vx: (-nx * AXON_NA_INWARD_PULL + tx * AXON_NA_FORWARD_BIAS) * AXON_NA_WAVE_SPEED,
-      vy: (-ny * AXON_NA_INWARD_PULL + ty * AXON_NA_FORWARD_BIAS) * AXON_NA_WAVE_SPEED,
+      // inward + forward = influx
+      vx: (-nx * 1.2 + tx * 0.6) * AXON_NA_WAVE_SPEED,
+      vy: (-ny * 1.2 + ty * 0.6) * AXON_NA_WAVE_SPEED,
 
       life: AXON_NA_WAVE_LIFETIME
     });
@@ -323,6 +334,18 @@ function drawExtracellularIons() {
     text("K⁺", p.x, p.y);
     return p.life > 0;
   });
+
+  const apIdx = floor(
+    window.currentAxonAPPhase * (path.length - 2)
+  );
+  
+  // Clamp Na⁺ lead near AIS early in spike
+  const lead = window.currentAxonAPPhase < 0.08
+    ? AXON_NA_LEAD_SEGMENTS * 0.4
+    : AXON_NA_LEAD_SEGMENTS;
+  
+  const naIdx = apIdx + floor(lead);
+
 
   pop();
 }
