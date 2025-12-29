@@ -60,8 +60,8 @@ const ION_VEL_DECAY     = 0.965;
 // -----------------------------------------------------
 // AXONAL Na⁺ WAVE (LEADING, DETACHED FROM HALO)
 // -----------------------------------------------------
-const AXON_NA_WAVE_SPEED    = 0.9;
-const AXON_NA_WAVE_LIFETIME = 28;
+const AXON_NA_WAVE_SPEED    = 1.6;
+const AXON_NA_WAVE_LIFETIME = 18;
 const AXON_NA_WAVE_COUNT    = 3;
 
 const AXON_NA_SPAWN_INTERVAL = 0.04;
@@ -84,7 +84,7 @@ const AXON_K_PHASE_STEP = 0.045;
 // =====================================================
 // AXONAL Na⁺ WAVE SPAWNER (PREDICTIVE)
 // =====================================================
-const AXON_NA_LEAD_SEGMENTS = 40;
+const AXON_NA_LEAD_SEGMENTS = 25;
 
 function triggerAxonNaWave() {
   if (!neuron?.axon?.path) return;
@@ -93,12 +93,11 @@ function triggerAxonNaWave() {
   const path = neuron.axon.path;
 
   // 🔑 CURRENT AP POSITION
-  const apIdx = floor(
-    window.currentAxonAPPhase * (path.length - 2)
-  );
+  // AIS index (start of axon)
+const aisIdx = 0;
 
-  // 🔑 PUSH Na⁺ AHEAD SPATIALLY
-  const naIdx = apIdx + AXON_NA_LEAD_SEGMENTS;
+  // Spatial Na⁺ lead measured FROM AIS
+  const naIdx = aisIdx + AXON_NA_LEAD_SEGMENTS;
 
   if (naIdx <= 0 || naIdx >= path.length - 1) return;
 
