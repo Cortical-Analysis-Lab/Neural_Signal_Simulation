@@ -75,7 +75,6 @@ function spawnAxonSpike() {
 function updateAxonSpikes() {
 
   window.currentAxonAPPhase = null;
-  window.nextAxonAPPhase    = null;
 
   for (let i = axonSpikes.length - 1; i >= 0; i--) {
 
@@ -86,11 +85,6 @@ function updateAxonSpikes() {
     window.currentAxonAPPhase = s.phase;
 
    const NA_LEAD_MULTIPLIER = 5;
-
-    window.nextAxonAPPhase = Math.min(
-      s.phase + AXON_CONDUCTION_SPEED * NA_LEAD_MULTIPLIER,
-      1
-    );
 
     // =================================================
     // 🧂 AXON ION FLUX (CORRECTED + GATED)
