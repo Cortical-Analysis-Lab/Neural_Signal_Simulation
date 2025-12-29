@@ -199,8 +199,13 @@ function triggerKEffluxNeuron1() {
       ecsIons.AxonKFlux.push({
         x: p1.x + nx * AXON_HALO_RADIUS * side,
         y: p1.y + ny * AXON_HALO_RADIUS * side,
-        vx: nx * AXON_K_FLUX_SPEED * side,
-        vy: ny * AXON_K_FLUX_SPEED * side,
+        const normalStrength  = 1.2;
+        const backwardStrength = 0.6;
+        
+        vx: (-nx * normalStrength * side - tx * backwardStrength) * AXON_NA_WAVE_SPEED,
+        vy: (-ny * normalStrength * side - ty * backwardStrength) * AXON_NA_WAVE_SPEED,
+
+
         life: AXON_K_FLUX_LIFETIME
       });
     }
