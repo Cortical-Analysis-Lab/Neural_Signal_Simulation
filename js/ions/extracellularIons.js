@@ -286,11 +286,15 @@ function drawExtracellularIons() {
     triggerAxonKEfflux(apPhase);
     lastAxonKPhase = apPhase;
   }
+ // RESET Na⁺ PHASE GATE AT NEW AP
   if (apPhase != null && apPhase < lastAxonNaPhase) {
     lastAxonNaPhase = -Infinity;
+    ecsIons.AxonNaStatic.forEach(p => {
+      p.hasCopy = false;
+      p.lastAPPhase = -Infinity;
+    });
   }
 
-  lastAxonNaPhase = naPhase;
 
   // ------------------
   // AXON Na⁺ HALO + COPY (AP-PREDICTIVE)
