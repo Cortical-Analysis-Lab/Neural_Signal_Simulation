@@ -316,3 +316,5 @@ function drawExtracellularIons() {
 
   pop();
 }
+
+window.initExtracellularIons = initExtracellularIons;
