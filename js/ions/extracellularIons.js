@@ -47,7 +47,7 @@ const HALO_K_RELAX  = 0.80;
 // ------------------
 // SOMA FLUX CONSTANTS
 // ------------------
-const NA_FLUX_SPEED     = 0.9;
+const NA_FLUX_SPEED     = 1.6;
 const NA_FLUX_LIFETIME  = 80;
 const NA_SPAWN_RADIUS   = 140;
 
