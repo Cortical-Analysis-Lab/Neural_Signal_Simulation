@@ -84,7 +84,7 @@ const AXON_K_PHASE_STEP = 0.045;
 // =====================================================
 // AXONAL Na⁺ WAVE SPAWNER (PREDICTIVE)
 // =====================================================
-const AXON_NA_LEAD_SEGMENTS = 30;
+const AXON_NA_LEAD_SEGMENTS = 40;
 
 function triggerAxonNaWave() {
   if (!neuron?.axon?.path) return;
