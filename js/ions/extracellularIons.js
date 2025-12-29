@@ -84,11 +84,13 @@ const AXON_K_PHASE_STEP = 0.045;
 // =====================================================
 // AXONAL Na⁺ WAVE SPAWNER (ZIPPER MODEL — AUTHORITATIVE)
 // =====================================================
-const AXON_NA_LEAD_SEGMENTS = 40;   // how far ahead of AP
-const AXON_NA_SPACING      = 2;    // spawn every N segments
-const AXON_NA_RADIAL_JITTER = 1.5;
+const AXON_NA_LEAD_SEGMENTS  = 40;  // how far ahead of AP
+const AXON_NA_SPACING        = 2;   // spawn every N segments
+const AXON_NA_RADIAL_JITTER  = 1.5;
+const AXON_NA_INFLUX_RATE    = 0.22; // smooth zipper collapse
 
 let lastNaSpawnIdx = -Infinity;
+let lastNaAPIdx    = -Infinity; // 🔑 spike reset detector
 
 function triggerAxonNaWave() {
   if (!window.axonNaActive) return;
@@ -103,6 +105,14 @@ function triggerAxonNaWave() {
   const apIdx = floor(
     window.currentAxonAPPhase * (path.length - 2)
   );
+
+  // =====================================================
+  // 🔑 RESET ON NEW SPIKE
+  // =====================================================
+  if (apIdx < lastNaAPIdx) {
+    lastNaSpawnIdx = -Infinity;
+  }
+  lastNaAPIdx = apIdx;
 
   // -----------------------------
   // AIS-biased lead
@@ -141,11 +151,15 @@ function triggerAxonNaWave() {
   // -----------------------------
   for (let side of [-1, 1]) {
     ecsIons.AxonNaWave.push({
+      // membrane position
       x: p1.x + nx * (AXON_HALO_RADIUS + random(-AXON_NA_RADIAL_JITTER, AXON_NA_RADIAL_JITTER)) * side,
       y: p1.y + ny * (AXON_HALO_RADIUS + random(-AXON_NA_RADIAL_JITTER, AXON_NA_RADIAL_JITTER)) * side,
 
+      // bookkeeping
       axonIdx: spawnIdx,
-      state: "waiting"   // 🔑 explicit state
+
+      // 🔑 zipper dynamics
+      influxRate: AXON_NA_INFLUX_RATE
     });
   }
 }
