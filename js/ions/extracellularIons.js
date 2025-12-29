@@ -92,12 +92,23 @@ function triggerAxonNaWave() {
 
   const path = neuron.axon.path;
 
-  // 🔑 CURRENT AP POSITION
-  // AIS index (start of axon)
-const aisIdx = 0;
 
-  // Spatial Na⁺ lead measured FROM AIS
-  const naIdx = aisIdx + AXON_NA_LEAD_SEGMENTS;
+const path = neuron.axon.path;
+
+  // Current AP index
+  const apIdx = floor(
+    window.currentAxonAPPhase * (path.length - 2)
+  );
+  
+  // Na⁺ leads AP spatially
+  const naIdx = apIdx + AXON_NA_LEAD_SEGMENTS;
+  
+  // Bounds check
+  if (naIdx < 0 || naIdx >= path.length - 1) return;
+  
+  const p1 = path[naIdx];
+  const p2 = path[naIdx + 1];
+
 
   if (naIdx <= 0 || naIdx >= path.length - 1) return;
 
