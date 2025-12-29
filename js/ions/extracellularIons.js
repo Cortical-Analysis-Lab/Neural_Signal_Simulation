@@ -86,24 +86,25 @@ const AXON_K_PHASE_STEP = 0.045;
 // =====================================================
 // AXONAL Na⁺ WAVE SPAWNER (PREDICTIVE)
 // =====================================================
-function triggerAxonNaWave(apPhase) {
-  if (!neuron?.axon?.path || apPhase == null) return;
+function triggerAxonNaWave(naPhase) {
+  if (!neuron?.axon?.path) return;
 
-  const naPhase = apPhase - AXON_NA_PHASE_LEAD;
-  if (naPhase <= 0) return;
+  // Na⁺ wave must be ahead but still on the axon
+  if (naPhase <= 0 || naPhase >= 1) return;
 
   const path = neuron.axon.path;
   const idx  = floor(naPhase * (path.length - 2));
-  const p1   = path[idx];
-  const p2   = path[idx + 1];
+
+  const p1 = path[idx];
+  const p2 = path[idx + 1];
   if (!p1 || !p2) return;
 
-  // Tangent
+  // Tangent (axon direction)
   const dx = p2.x - p1.x;
   const dy = p2.y - p1.y;
   const len = Math.hypot(dx, dy) || 1;
 
-  // Inward membrane normal
+  // Inward membrane normal (toward axon core)
   const nx = -dy / len;
   const ny =  dx / len;
 
@@ -187,21 +188,22 @@ function drawExtracellularIons() {
   textAlign(CENTER, CENTER);
   noStroke();
 
-
-  // ECS baseline
+  // ==============================
+  // ECS BASELINE
+  // ==============================
   textSize(ION_TEXT_SIZE_NA);
   fill(getColor("sodium", 120));
   ecsIons.Na.forEach(p => text("Na⁺", p.x, p.y));
-  
+
   textSize(ION_TEXT_SIZE_K);
   fill(getColor("potassium", 130));
   ecsIons.K.forEach(p => text("K⁺", p.x, p.y));
 
   const apPhase = window.currentAxonAPPhase;
 
-  // =================================================
-  // RESET PHASE GATES AT NEW AP
-  // =================================================
+  // ==============================
+  // RESET PHASE GATES ON NEW AP
+  // ==============================
   if (apPhase != null && apPhase < lastAxonKPhase) {
     lastAxonKPhase = -Infinity;
   }
@@ -210,22 +212,23 @@ function drawExtracellularIons() {
     lastAxonNaWavePhase = -Infinity;
   }
 
-  // =================================================
-  // 🟡 AXONAL Na⁺ WAVE (LEADS AP — DETACHED)
-  // =================================================
-  const naPhase = apPhase + AXON_NA_PHASE_LEAD;
+  // ==============================
+  // 🟡 AXONAL Na⁺ WAVE (LEADS AP)
+  // ==============================
+  if (apPhase != null) {
+    const naPhase = apPhase + AXON_NA_PHASE_LEAD;
 
-  if (
-    naPhase < 1 &&
-    abs(naPhase - lastAxonNaWavePhase) > AXON_NA_PHASE_STEP
-  ) {
-    triggerAxonNaWave(naPhase);
-    lastAxonNaWavePhase = naPhase;
+    if (
+      naPhase > 0 &&
+      naPhase < 1 &&
+      abs(naPhase - lastAxonNaWavePhase) > AXON_NA_PHASE_STEP
+    ) {
+      triggerAxonNaWave(naPhase);
+      lastAxonNaWavePhase = naPhase;
+    }
   }
 
-
-
-  // ---- DRAW Na⁺ WAVE (THIS WAS MISSING) ----
+  // ---- DRAW Na⁺ WAVE ----
   fill(getColor("sodium", 120));
   ecsIons.AxonNaWave = ecsIons.AxonNaWave.filter(p => {
     p.life--;
@@ -238,9 +241,9 @@ function drawExtracellularIons() {
     return p.life > 0;
   });
 
-  // =================================================
-  // 🔴 AXONAL K⁺ EFFLUX (TRAILS AP — PERFECT, UNCHANGED)
-  // =================================================
+  // ==============================
+  // 🔴 AXONAL K⁺ EFFLUX (TRAILS AP)
+  // ==============================
   if (
     apPhase != null &&
     abs(apPhase - lastAxonKPhase) > AXON_K_PHASE_STEP
@@ -261,9 +264,9 @@ function drawExtracellularIons() {
     return p.life > 0;
   });
 
-  // =================================================
-  // AXON HALOS (STATIC, TEACHING CONTEXT)
-  // =================================================
+  // ==============================
+  // AXON HALOS (STATIC CONTEXT)
+  // ==============================
   fill(getColor("sodium", 120));
   ecsIons.AxonNaStatic.forEach(p => {
     p.vx += (p.x - p.x0) * HALO_NA_PERTURB;
@@ -292,9 +295,9 @@ function drawExtracellularIons() {
     text("K⁺", p.x, p.y);
   });
 
-  // =================================================
+  // ==============================
   // 🧠 SOMA FLUXES (UNCHANGED)
-  // =================================================
+  // ==============================
   fill(getColor("sodium", 120));
   ecsIons.NaFlux = ecsIons.NaFlux.filter(p => {
     p.life--;
@@ -318,6 +321,7 @@ function drawExtracellularIons() {
 
   pop();
 }
+
 
 // =====================================================
 // INITIALIZATION (REQUIRED)
