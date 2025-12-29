@@ -82,9 +82,13 @@ let lastAxonKPhase = -Infinity;
 const AXON_K_PHASE_STEP = 0.045;
 
 // =====================================================
-// AXONAL Na⁺ WAVE SPAWNER (PREDICTIVE)
+// AXONAL Na⁺ WAVE SPAWNER (ZIPPER MODEL — AUTHORITATIVE)
 // =====================================================
-const AXON_NA_LEAD_SEGMENTS =40; 
+const AXON_NA_LEAD_SEGMENTS = 40;   // how far ahead of AP
+const AXON_NA_SPACING      = 2;    // spawn every N segments
+const AXON_NA_RADIAL_JITTER = 1.5;
+
+let lastNaSpawnIdx = -Infinity;
 
 function triggerAxonNaWave() {
   if (!window.axonNaActive) return;
@@ -94,68 +98,55 @@ function triggerAxonNaWave() {
   const path = neuron.axon.path;
 
   // -----------------------------
-  // AP index
+  // AP index (authoritative)
   // -----------------------------
   const apIdx = floor(
     window.currentAxonAPPhase * (path.length - 2)
   );
 
   // -----------------------------
-  // Lead distance (AIS-biased)
+  // AIS-biased lead
   // -----------------------------
   const lead =
     window.currentAxonAPPhase < 0.08
       ? floor(AXON_NA_LEAD_SEGMENTS * 0.4)
       : AXON_NA_LEAD_SEGMENTS;
 
-  const startIdx = apIdx + 1;
-  const endIdx   = min(apIdx + lead, path.length - 2);
+  const spawnIdx = apIdx + lead;
 
   // -----------------------------
-  // Tail parameters
+  // Spacing gate (CRITICAL)
   // -----------------------------
-  const baseDensity   = 2;   // Na⁺ per segment
-  const maxDensity    = 0.5;   // near AIS
-  const radialJitter  = 2.0;
+  if (spawnIdx - lastNaSpawnIdx < AXON_NA_SPACING) return;
+  lastNaSpawnIdx = spawnIdx;
+
+  if (spawnIdx < 0 || spawnIdx >= path.length - 1) return;
+
+  const p1 = path[spawnIdx];
+  const p2 = path[spawnIdx + 1];
+  if (!p1 || !p2) return;
 
   // -----------------------------
-  // Spawn Na⁺ along axon
+  // Geometry
   // -----------------------------
-  for (let idx = startIdx; idx <= endIdx; idx++) {
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  const len = Math.hypot(dx, dy) || 1;
 
-    const p1 = path[idx];
-    const p2 = path[idx + 1];
-    if (!p1 || !p2) continue;
+  const nx = -dy / len;
+  const ny =  dx / len;
 
-    const dx = p2.x - p1.x;
-    const dy = p2.y - p1.y;
-    const len = Math.hypot(dx, dy) || 1;
+  // -----------------------------
+  // Spawn symmetric Na⁺ pair
+  // -----------------------------
+  for (let side of [-1, 1]) {
+    ecsIons.AxonNaWave.push({
+      x: p1.x + nx * (AXON_HALO_RADIUS + random(-AXON_NA_RADIAL_JITTER, AXON_NA_RADIAL_JITTER)) * side,
+      y: p1.y + ny * (AXON_HALO_RADIUS + random(-AXON_NA_RADIAL_JITTER, AXON_NA_RADIAL_JITTER)) * side,
 
-    // inward normal
-    const nx = -dy / len;
-    const ny =  dx / len;
-
-    // density taper (more Na⁺ closer to AP)
-    const t = 1 - (idx - startIdx) / max(1, endIdx - startIdx);
-    const density = floor(lerp(baseDensity, maxDensity, t));
-
-    for (let i = 0; i < density; i++) {
-      const side = i % 2 === 0 ? 1 : -1;
-
-      ecsIons.AxonNaWave.push({
-        // start at membrane
-        x: p1.x + nx * (AXON_HALO_RADIUS + random(-radialJitter, radialJitter)) * side,
-        y: p1.y + ny * (AXON_HALO_RADIUS + random(-radialJitter, radialJitter)) * side,
-
-        // slow inward collapse (no axial drift)
-        vx: -nx * AXON_NA_WAVE_SPEED * 0.5,
-        vy: -ny * AXON_NA_WAVE_SPEED * 0.5,
-
-        life: AXON_NA_WAVE_LIFETIME,
-        collapsing: true,
-        axonIdx: idx
-      });
-    }
+      axonIdx: spawnIdx,
+      state: "waiting"   // 🔑 explicit state
+    });
   }
 }
 
@@ -226,6 +217,7 @@ function drawExtracellularIons() {
   noStroke();
 
   const apPhase = window.currentAxonAPPhase;
+  const path = neuron?.axon?.path;
 
   // ==============================
   // ECS BASELINE
@@ -251,7 +243,7 @@ function drawExtracellularIons() {
 
   // ==============================
   // 🟡 Na⁺ PRE-DEPOLARIZATION WAVE
-  // Spatially LEADS AP (index-based)
+  // (zipper spawn, AP-driven)
   // ==============================
   if (
     apPhase != null &&
@@ -261,43 +253,44 @@ function drawExtracellularIons() {
     lastAxonNaWavePhase = apPhase;
   }
 
+  // ==============================
+  // 🟡 DRAW Na⁺ ZIPPER WAVE
+  // ==============================
+  fill(getColor("sodium", 140));
 
-  // ---- DRAW Na⁺ WAVE (INWARD → MIDLINE → DISAPPEAR) ----
-    fill(getColor("sodium", 140));
-    ecsIons.AxonNaWave = ecsIons.AxonNaWave.filter(p => {
-      p.life--;
-    
-      if (
-        p.collapsing &&
-        neuron?.axon?.path &&
-        window.currentAxonAPPhase != null
-      ) {
-        const path = neuron.axon.path;
-        const idx = floor(
-          window.currentAxonAPPhase * (path.length - 2)
-        );
-        const center = path[idx];
-    
-        // collapse toward axon centerline
-        p.x = lerp(p.x, center.x, 0.35);
-        p.y = lerp(p.y, center.y, 0.35);
-    
-        // once inside axon → remove
-        if (dist(p.x, p.y, center.x, center.y) < 1.5) {
-          return false;
-        }
-      } else {
-        // safety fallback
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vx *= ION_VEL_DECAY;
-        p.vy *= ION_VEL_DECAY;
-      }
-    
+  ecsIons.AxonNaWave = ecsIons.AxonNaWave.filter(p => {
+    if (!path || apPhase == null) return false;
+
+    const apIdx = floor(
+      apPhase * (path.length - 2)
+    );
+
+    // -------------------------
+    // WAITING (ahead of AP)
+    // -------------------------
+    if (p.axonIdx > apIdx + 1) {
       text("Na⁺", p.x, p.y);
-      return p.life > 0;
-    });
+      return true;
+    }
 
+    // -------------------------
+    // INFLUX (zipper moment)
+    // -------------------------
+    if (p.axonIdx === apIdx + 1) {
+      const center = path[p.axonIdx];
+
+      p.x = lerp(p.x, center.x, 0.35);
+      p.y = lerp(p.y, center.y, 0.35);
+
+      text("Na⁺", p.x, p.y);
+      return true;
+    }
+
+    // -------------------------
+    // AP passed → remove
+    // -------------------------
+    return false;
+  });
 
   // ==============================
   // 🔴 AXONAL K⁺ EFFLUX (TRAILS AP)
@@ -317,6 +310,7 @@ function drawExtracellularIons() {
     p.y += p.vy;
     p.vx *= ION_VEL_DECAY;
     p.vy *= ION_VEL_DECAY;
+
     text("K⁺", p.x, p.y);
     return p.life > 0;
   });
@@ -334,6 +328,7 @@ function drawExtracellularIons() {
     p.vy *= HALO_NA_RELAX;
     p.x += p.vx;
     p.y += p.vy;
+
     text("Na⁺", p.x, p.y);
   });
 
@@ -347,6 +342,7 @@ function drawExtracellularIons() {
     p.vy *= HALO_K_RELAX;
     p.x += p.vx;
     p.y += p.vy;
+
     text("K⁺", p.x, p.y);
   });
 
@@ -359,6 +355,7 @@ function drawExtracellularIons() {
     const d = Math.hypot(p.x, p.y) || 1;
     p.x += (-p.x / d) * NA_FLUX_SPEED;
     p.y += (-p.y / d) * NA_FLUX_SPEED;
+
     text("Na⁺", p.x, p.y);
     return p.life > 0;
   });
@@ -369,6 +366,7 @@ function drawExtracellularIons() {
     p.y += p.vy;
     p.vx *= ION_VEL_DECAY;
     p.vy *= ION_VEL_DECAY;
+
     fill(getColor("potassium", map(p.life, 0, K_FLUX_LIFETIME, 0, 180)));
     text("K⁺", p.x, p.y);
     return p.life > 0;
@@ -376,8 +374,6 @@ function drawExtracellularIons() {
 
   pop();
 }
-
-
 
 // =====================================================
 // INITIALIZATION (REQUIRED)
