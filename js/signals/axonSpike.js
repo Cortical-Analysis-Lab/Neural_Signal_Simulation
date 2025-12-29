@@ -288,3 +288,5 @@ function drawAxonSpikes() {
     pop();
   });
 }
+
+window.axonNaActive = false;
