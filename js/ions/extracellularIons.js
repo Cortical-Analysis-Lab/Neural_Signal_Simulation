@@ -212,21 +212,22 @@ function drawExtracellularIons() {
     lastAxonNaWavePhase = -Infinity;
   }
 
-  // ==============================
-  // 🟡 AXONAL Na⁺ WAVE (LEADS AP)
-  // ==============================
-  if (apPhase != null) {
-    const naPhase = apPhase + AXON_NA_PHASE_LEAD;
 
-    if (
-      naPhase > 0 &&
-      naPhase < 1 &&
-      abs(naPhase - lastAxonNaWavePhase) > AXON_NA_PHASE_STEP
-    ) {
-      triggerAxonNaWave(naPhase);
-      lastAxonNaWavePhase = naPhase;
-    }
-  }
+ // ==============================
+// 🟡 AXONAL Na⁺ WAVE (PREDICTIVE)
+// ==============================
+const predictedPhase =
+  (window.nextAxonAPPhase ?? apPhase) + AXON_NA_PHASE_LEAD;
+
+if (
+  predictedPhase > 0 &&
+  predictedPhase < 1 &&
+  abs(predictedPhase - lastAxonNaWavePhase) > AXON_NA_PHASE_STEP
+) {
+  triggerAxonNaWave(predictedPhase);
+  lastAxonNaWavePhase = predictedPhase;
+}
+
 
   // ---- DRAW Na⁺ WAVE ----
   fill(getColor("sodium", 120));
