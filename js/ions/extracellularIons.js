@@ -349,10 +349,6 @@ function drawExtracellularIons() {
     return !p.stopped;
   });
 
-  pop();
-}
-
-
   // ------------------
   // AXON K⁺ HALO
   // ------------------
