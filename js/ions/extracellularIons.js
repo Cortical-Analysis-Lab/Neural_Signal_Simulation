@@ -83,6 +83,8 @@ const AXON_K_SPAWN_COUNT   = 3;
 let lastAxonKPhase = -Infinity;
 const AXON_K_PHASE_STEP = 0.045;
 
+const apPhase = window.currentAxonAPPhase;
+
 // =====================================================
 // AXONAL Na⁺ WAVE SPAWNER (PREDICTIVE)
 // =====================================================
@@ -199,8 +201,6 @@ function drawExtracellularIons() {
   fill(getColor("potassium", 130));
   ecsIons.K.forEach(p => text("K⁺", p.x, p.y));
 
-  const apPhase = window.currentAxonAPPhase;
-
   // ==============================
   // RESET PHASE GATES ON NEW AP
   // ==============================
@@ -213,14 +213,12 @@ function drawExtracellularIons() {
   }
 
   // ==============================
-  // 🟡 AXONAL Na⁺ WAVE (PREDICTIVE, LEADS AP)
+  // 🟡 Na⁺ PRE-DEPOLARIZATION WAVE
   // ==============================
   if (window.nextAxonAPPhase != null) {
-
-    // 🔑 predictive + biologically early
-    const naPhase =
-      window.nextAxonAPPhase + AXON_NA_PHASE_LEAD;
-
+  
+    const naPhase = window.nextAxonAPPhase;
+  
     if (
       naPhase > 0 &&
       naPhase < 1 &&
@@ -230,6 +228,7 @@ function drawExtracellularIons() {
       lastAxonNaWavePhase = naPhase;
     }
   }
+
 
   // ---- DRAW Na⁺ WAVE ----
   fill(getColor("sodium", 140));
