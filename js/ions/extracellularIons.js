@@ -317,4 +317,74 @@ function drawExtracellularIons() {
   pop();
 }
 
+// =====================================================
+// INITIALIZATION (REQUIRED)
+// =====================================================
+function initExtracellularIons() {
+
+  // clear all ECS arrays safely
+  Object.values(window.ecsIons).forEach(arr => {
+    if (Array.isArray(arr)) arr.length = 0;
+  });
+
+  // ------------------
+  // ECS BASELINE
+  // ------------------
+  const b = {
+    xmin: -width * 0.9,
+    xmax:  width * 0.9,
+    ymin: -height * 0.9,
+    ymax:  height * 0.9
+  };
+
+  function spawnECSIon(type) {
+    ecsIons[type].push({
+      x: random(b.xmin, b.xmax),
+      y: random(b.ymin, b.ymax)
+    });
+  }
+
+  for (let i = 0; i < ECS_ION_COUNTS.Na; i++) spawnECSIon("Na");
+  for (let i = 0; i < ECS_ION_COUNTS.K;  i++) spawnECSIon("K");
+
+  // ------------------
+  // AXON STATIC HALOS
+  // ------------------
+  if (!neuron?.axon?.path) return;
+
+  function spawnHalo(type, count) {
+    const path = neuron.axon.path;
+
+    for (let i = 0; i < count; i++) {
+      const t   = i / count;
+      const idx = floor(t * (path.length - 2));
+      const p1  = path[idx];
+      const p2  = path[idx + 1];
+
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const len = Math.hypot(dx, dy) || 1;
+
+      const nx = -dy / len;
+      const ny =  dx / len;
+      const side = i % 2 === 0 ? 1 : -1;
+
+      const r = random(AXON_HALO_RADIUS, AXON_HALO_RADIUS + AXON_HALO_THICKNESS);
+
+      const x0 = p1.x + nx * r * side;
+      const y0 = p1.y + ny * r * side;
+
+      ecsIons[type].push({
+        x: x0, y: y0,
+        x0, y0,
+        vx: 0, vy: 0
+      });
+    }
+  }
+
+  spawnHalo("AxonNaStatic", AXON_STATIC_NA_COUNT);
+  spawnHalo("AxonKStatic",  AXON_STATIC_K_COUNT);
+}
+
+
 window.initExtracellularIons = initExtracellularIons;
