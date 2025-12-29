@@ -213,15 +213,16 @@ function drawExtracellularIons() {
   // =================================================
   // 🟡 AXONAL Na⁺ WAVE (LEADS AP — DETACHED)
   // =================================================
-  const naPhase = apPhase - AXON_NA_PHASE_LEAD;
-  
+  const naPhase = apPhase + AXON_NA_PHASE_LEAD;
+
   if (
-    naPhase > 0 &&
+    naPhase < 1 &&
     abs(naPhase - lastAxonNaWavePhase) > AXON_NA_PHASE_STEP
   ) {
     triggerAxonNaWave(naPhase);
     lastAxonNaWavePhase = naPhase;
   }
+
 
 
   // ---- DRAW Na⁺ WAVE (THIS WAS MISSING) ----
