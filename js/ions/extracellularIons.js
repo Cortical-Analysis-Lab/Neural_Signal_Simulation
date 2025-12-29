@@ -52,6 +52,8 @@ const HALO_K_RELAX  = 0.80;
 // -----------------------------------------------------
 const NA_COPY_SPEED = 0.02;
 const NA_CENTER_EPS = 1.2;
+const NA_COPY_LIFE = Infinity;
+
 
 // -----------------------------------------------------
 // AXONAL K⁺ EFFLUX (AP-LOCKED)
