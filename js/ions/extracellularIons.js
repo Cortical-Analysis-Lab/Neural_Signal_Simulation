@@ -14,12 +14,14 @@ window.ecsIons = {
   KFlux: [],
   AxonNaStatic: [],
   AxonKStatic: [],
-  AxonNaCopies: []
   
 };
 // Axonal K⁺ efflux particles (AP-coupled)
 window.ecsIons.AxonKFlux = [];
 window.ecsIons.AxonNaWave = [];
+
+const ION_TEXT_SIZE_NA = 10;
+const ION_TEXT_SIZE_K  = 11;
 
 // -----------------------------------------------------
 // COUNTS
@@ -34,12 +36,6 @@ const AXON_STATIC_K_COUNT  = 4;
 const AXON_HALO_RADIUS    = 16;
 const AXON_HALO_THICKNESS = 4;
 
-
-// -----------------------------------------------------
-// AP → HALO COUPLING
-// -----------------------------------------------------
-const HALO_AP_RADIUS = 28;
-
 // Static halo emphasis
 const HALO_NA_PERTURB = 0.04;
 const HALO_K_PUSH     = 1.6;
@@ -48,12 +44,18 @@ const HALO_K_PUSH     = 1.6;
 const HALO_NA_RELAX = 0.95;
 const HALO_K_RELAX  = 0.80;
 
-// -----------------------------------------------------
-// BILATERAL Na⁺ COPY CONTROL (HALO ONLY)
-// -----------------------------------------------------
-const NA_COPY_SPEED = 0.02;
-const NA_CENTER_EPS = 1.2;
-const NA_COPY_LIFE  = Infinity;
+// ------------------
+// SOMA FLUX CONSTANTS
+// ------------------
+const NA_FLUX_SPEED     = 0.9;
+const NA_FLUX_LIFETIME  = 80;
+const NA_SPAWN_RADIUS   = 140;
+
+const K_FLUX_SPEED      = 2.2;
+const K_FLUX_LIFETIME   = 160;
+const K_SPAWN_RADIUS    = 28;
+
+const ION_VEL_DECAY     = 0.965;
 
 // -----------------------------------------------------
 // AXONAL Na⁺ WAVE (LEADING, DETACHED FROM HALO)
@@ -185,15 +187,14 @@ function drawExtracellularIons() {
   textAlign(CENTER, CENTER);
   noStroke();
 
-  // ------------------
-  // ECS BASELINE
-  // ------------------
-  fill(...ION_COLOR.Na, 120);
-  textSize(ION_TEXT_SIZE.Na);
-  ecsIons.Na.forEach(p => text("Na⁺", p.x, p.y));
 
-  fill(...ION_COLOR.K, 130);
-  textSize(ION_TEXT_SIZE.K);
+  // ECS baseline
+  textSize(ION_TEXT_SIZE_NA);
+  fill(getColor("sodium", 120));
+  ecsIons.Na.forEach(p => text("Na⁺", p.x, p.y));
+  
+  textSize(ION_TEXT_SIZE_K);
+  fill(getColor("potassium", 130));
   ecsIons.K.forEach(p => text("K⁺", p.x, p.y));
 
   const apPhase = window.currentAxonAPPhase;
@@ -224,7 +225,7 @@ function drawExtracellularIons() {
 
 
   // ---- DRAW Na⁺ WAVE (THIS WAS MISSING) ----
-  fill(...ION_COLOR.Na, 190);
+  fill(getColor("sodium", 120));
   ecsIons.AxonNaWave = ecsIons.AxonNaWave.filter(p => {
     p.life--;
     p.x += p.vx;
@@ -247,7 +248,7 @@ function drawExtracellularIons() {
     lastAxonKPhase = apPhase;
   }
 
-  fill(...ION_COLOR.K, 180);
+  fill(getColor("potassium", 130));
   ecsIons.AxonKFlux = ecsIons.AxonKFlux.filter(p => {
     p.life--;
     p.x += p.vx;
@@ -262,7 +263,7 @@ function drawExtracellularIons() {
   // =================================================
   // AXON HALOS (STATIC, TEACHING CONTEXT)
   // =================================================
-  fill(...ION_COLOR.Na, 150);
+  fill(getColor("sodium", 120));
   ecsIons.AxonNaStatic.forEach(p => {
     p.vx += (p.x - p.x0) * HALO_NA_PERTURB;
     p.vy += (p.y - p.y0) * HALO_NA_PERTURB;
@@ -276,7 +277,7 @@ function drawExtracellularIons() {
     text("Na⁺", p.x, p.y);
   });
 
-  fill(...ION_COLOR.K, 150);
+  fill(getColor("potassium", 130));
   ecsIons.AxonKStatic.forEach(p => {
     p.vx += (p.x - p.x0) * HALO_K_PUSH * 0.01;
     p.vy += (p.y - p.y0) * HALO_K_PUSH * 0.01;
@@ -293,7 +294,7 @@ function drawExtracellularIons() {
   // =================================================
   // 🧠 SOMA FLUXES (UNCHANGED)
   // =================================================
-  fill(...ION_COLOR.Na, 170);
+  fill(getColor("sodium", 120));
   ecsIons.NaFlux = ecsIons.NaFlux.filter(p => {
     p.life--;
     const d = Math.hypot(p.x, p.y) || 1;
@@ -309,7 +310,7 @@ function drawExtracellularIons() {
     p.y += p.vy;
     p.vx *= ION_VEL_DECAY;
     p.vy *= ION_VEL_DECAY;
-    fill(...ION_COLOR.K, map(p.life, 0, K_FLUX_LIFETIME, 0, 180));
+    fill(getColor("potassium", map(p.life, 0, K_FLUX_LIFETIME, 0, 180)));
     text("K⁺", p.x, p.y);
     return p.life > 0;
   });
