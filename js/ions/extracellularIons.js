@@ -57,9 +57,6 @@ const K_SPAWN_RADIUS    = 28;
 
 const ION_VEL_DECAY     = 0.965;
 
-// How many axon segments Na⁺ leads the AP by
-const NA_LEAD_SEGMENTS = 8;   // try 8–15
-
 // -----------------------------------------------------
 // AXONAL Na⁺ WAVE (LEADING, DETACHED FROM HALO)
 // -----------------------------------------------------
@@ -67,9 +64,7 @@ const AXON_NA_WAVE_SPEED    = 0.9;
 const AXON_NA_WAVE_LIFETIME = 28;
 const AXON_NA_WAVE_COUNT    = 3;
 
-// Na⁺ wave precedes AP
-const AXON_NA_PHASE_LEAD = 0.05;
-const AXON_NA_PHASE_STEP = 0.045;
+const AXON_NA_SPAWN_INTERVAL = 0.04;
 
 let lastAxonNaWavePhase = -Infinity;
 
@@ -86,34 +81,38 @@ const AXON_K_SPAWN_COUNT   = 3;
 let lastAxonKPhase = -Infinity;
 const AXON_K_PHASE_STEP = 0.045;
 
-const apPhase = window.currentAxonAPPhase;
-
 // =====================================================
 // AXONAL Na⁺ WAVE SPAWNER (PREDICTIVE)
 // =====================================================
-function triggerAxonNaWave(naPhase) {
-  if (!neuron?.axon?.path) return;
+const AXON_NA_LEAD_SEGMENTS = 30;
 
-  // Na⁺ wave must be ahead but still on the axon
-  if (naPhase <= 0 || naPhase >= 1) return;
+function triggerAxonNaWave() {
+  if (!neuron?.axon?.path) return;
+  if (window.currentAxonAPPhase == null) return;
 
   const path = neuron.axon.path;
-  const apIdx = floor(window.currentAxonAPPhase * (path.length - 2));
-  const idx   = min(
-    apIdx + NA_LEAD_SEGMENTS,
-    path.length - 2
+
+  // 🔑 CURRENT AP POSITION
+  const apIdx = floor(
+    window.currentAxonAPPhase * (path.length - 2)
   );
 
-  const p1 = path[idx];
-  const p2 = path[idx + 1];
+  // 🔑 PUSH Na⁺ AHEAD SPATIALLY
+  const naIdx = apIdx + AXON_NA_LEAD_SEGMENTS;
+
+  if (naIdx <= 0 || naIdx >= path.length - 1) return;
+
+  const p1 = path[naIdx];
+  const p2 = path[naIdx + 1];
+
   if (!p1 || !p2) return;
 
-  // Tangent (axon direction)
+  // Tangent
   const dx = p2.x - p1.x;
   const dy = p2.y - p1.y;
   const len = Math.hypot(dx, dy) || 1;
 
-  // Inward membrane normal (toward axon core)
+  // Membrane normal (inward)
   const nx = -dy / len;
   const ny =  dx / len;
 
@@ -227,11 +226,12 @@ function drawExtracellularIons() {
   // ==============================
   if (
     apPhase != null &&
-    abs(apPhase - lastAxonNaWavePhase) > AXON_NA_PHASE_STEP
+    abs(apPhase - lastAxonNaWavePhase) > AXON_NA_SPAWN_INTERVAL
   ) {
-    triggerAxonNaWave();   // 🔑 NO PHASE ARG
+    triggerAxonNaWave();
     lastAxonNaWavePhase = apPhase;
   }
+
 
   // ---- DRAW Na⁺ WAVE ----
   fill(getColor("sodium", 140));
