@@ -115,7 +115,7 @@ function triggerAxonNaWave() {
   // Tail parameters
   // -----------------------------
   const baseDensity   = 2;   // Na⁺ per segment
-  const maxDensity    = 1;   // near AIS
+  const maxDensity    = 0.5;   // near AIS
   const radialJitter  = 2.0;
 
   // -----------------------------
