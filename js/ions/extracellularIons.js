@@ -101,53 +101,61 @@ function triggerAxonNaWave() {
   );
 
   // -----------------------------
-  // Na⁺ lead distance
+  // Lead distance (AIS-biased)
   // -----------------------------
   const lead =
     window.currentAxonAPPhase < 0.08
-      ? AXON_NA_LEAD_SEGMENTS * 0.35   // strong AIS burst
+      ? floor(AXON_NA_LEAD_SEGMENTS * 0.4)
       : AXON_NA_LEAD_SEGMENTS;
 
-  const naIdx = apIdx + floor(lead);
-  if (naIdx < 0 || naIdx >= path.length - 1) return;
-
-  const p1 = path[naIdx];
-  const p2 = path[naIdx + 1];
-  if (!p1 || !p2) return;
+  const startIdx = apIdx + 1;
+  const endIdx   = min(apIdx + lead, path.length - 2);
 
   // -----------------------------
-  // Geometry
+  // Tail parameters
   // -----------------------------
-  const dx = p2.x - p1.x;
-  const dy = p2.y - p1.y;
-  const len = Math.hypot(dx, dy) || 1;
-
-  const nx = -dy / len;
-  const ny =  dx / len;
+  const baseDensity   = 2;   // Na⁺ per segment
+  const maxDensity    = 4;   // near AIS
+  const radialJitter  = 2.0;
 
   // -----------------------------
-  // 🔑 Tail density control
+  // Spawn Na⁺ along axon
   // -----------------------------
-  const tailDensity = 3;        // 🔥 increase to 4–5 for thicker tail
-  const radialJitter = 2.5;
+  for (let idx = startIdx; idx <= endIdx; idx++) {
 
-  for (let i = 0; i < tailDensity; i++) {
-    const side = i % 2 === 0 ? 1 : -1;
+    const p1 = path[idx];
+    const p2 = path[idx + 1];
+    if (!p1 || !p2) continue;
 
-    ecsIons.AxonNaWave.push({
-      // start near membrane
-      x: p1.x + nx * (AXON_HALO_RADIUS + random(-radialJitter, radialJitter)) * side,
-      y: p1.y + ny * (AXON_HALO_RADIUS + random(-radialJitter, radialJitter)) * side,
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const len = Math.hypot(dx, dy) || 1;
 
-      // inward velocity (slow, smooth)
-      vx: -nx * AXON_NA_WAVE_SPEED * 0.6,
-      vy: -ny * AXON_NA_WAVE_SPEED * 0.6,
+    // inward normal
+    const nx = -dy / len;
+    const ny =  dx / len;
 
-      life: AXON_NA_WAVE_LIFETIME,
+    // density taper (more Na⁺ closer to AP)
+    const t = 1 - (idx - startIdx) / max(1, endIdx - startIdx);
+    const density = floor(lerp(baseDensity, maxDensity, t));
 
-      collapsing: true,
-      axonIdx: naIdx    // 🔑 anchor collapse to correct segment
-    });
+    for (let i = 0; i < density; i++) {
+      const side = i % 2 === 0 ? 1 : -1;
+
+      ecsIons.AxonNaWave.push({
+        // start at membrane
+        x: p1.x + nx * (AXON_HALO_RADIUS + random(-radialJitter, radialJitter)) * side,
+        y: p1.y + ny * (AXON_HALO_RADIUS + random(-radialJitter, radialJitter)) * side,
+
+        // slow inward collapse (no axial drift)
+        vx: -nx * AXON_NA_WAVE_SPEED * 0.5,
+        vy: -ny * AXON_NA_WAVE_SPEED * 0.5,
+
+        life: AXON_NA_WAVE_LIFETIME,
+        collapsing: true,
+        axonIdx: idx
+      });
+    }
   }
 }
 
