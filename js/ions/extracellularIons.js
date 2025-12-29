@@ -132,20 +132,24 @@ function triggerAxonNaWave() {
   // -----------------------------
   // Spawn Na⁺ particles
   // -----------------------------
-  for (let i = 0; i < AXON_NA_WAVE_COUNT; i++) {
-    const side = i % 2 === 0 ? 1 : -1;
+    const normalStrength   = 1.2;
+    const backwardStrength = 0.6;
+    
+    for (let i = 0; i < AXON_NA_WAVE_COUNT; i++) {
+      const side = i % 2 === 0 ? 1 : -1;
+    
+      ecsIons.AxonNaWave.push({
+        x: p1.x + nx * AXON_HALO_RADIUS * side,
+        y: p1.y + ny * AXON_HALO_RADIUS * side,
+    
+        // inward + backward (mirror of K⁺)
+        vx: (-nx * normalStrength * side - tx * backwardStrength) * AXON_NA_WAVE_SPEED,
+        vy: (-ny * normalStrength * side - ty * backwardStrength) * AXON_NA_WAVE_SPEED,
+    
+        life: AXON_NA_WAVE_LIFETIME
+      });
+    }
 
-    ecsIons.AxonNaWave.push({
-      x: p1.x + nx * AXON_HALO_RADIUS * side,
-      y: p1.y + ny * AXON_HALO_RADIUS * side,
-
-      // inward + forward = influx
-      vx: (-nx * 1.2 + tx * 0.6) * AXON_NA_WAVE_SPEED,
-      vy: (-ny * 1.2 + ty * 0.6) * AXON_NA_WAVE_SPEED,
-
-      life: AXON_NA_WAVE_LIFETIME
-    });
-  }
 }
 
 
@@ -199,13 +203,8 @@ function triggerKEffluxNeuron1() {
       ecsIons.AxonKFlux.push({
         x: p1.x + nx * AXON_HALO_RADIUS * side,
         y: p1.y + ny * AXON_HALO_RADIUS * side,
-        const normalStrength  = 1.2;
-        const backwardStrength = 0.6;
-        
-        vx: (-nx * normalStrength * side - tx * backwardStrength) * AXON_NA_WAVE_SPEED,
-        vy: (-ny * normalStrength * side - ty * backwardStrength) * AXON_NA_WAVE_SPEED,
-
-
+        vx: nx * AXON_K_FLUX_SPEED * side,
+        vy: ny * AXON_K_FLUX_SPEED * side,
         life: AXON_K_FLUX_LIFETIME
       });
     }
