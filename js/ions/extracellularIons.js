@@ -101,10 +101,14 @@ function triggerAxonNaWave() {
   );
 
   // -----------------------------
-  // Na⁺ spatial lead
+  // Na⁺ lead (AIS-biased early)
   // -----------------------------
-  const naIdx = apIdx + AXON_NA_LEAD_SEGMENTS;
+  const lead =
+    window.currentAxonAPPhase < 0.08
+      ? AXON_NA_LEAD_SEGMENTS * 0.35
+      : AXON_NA_LEAD_SEGMENTS;
 
+  const naIdx = apIdx + floor(lead);
   if (naIdx < 0 || naIdx >= path.length - 1) return;
 
   const p1 = path[naIdx];
@@ -334,18 +338,6 @@ function drawExtracellularIons() {
     text("K⁺", p.x, p.y);
     return p.life > 0;
   });
-
-  const apIdx = floor(
-    window.currentAxonAPPhase * (path.length - 2)
-  );
-  
-  // Clamp Na⁺ lead near AIS early in spike
-  const lead = window.currentAxonAPPhase < 0.08
-    ? AXON_NA_LEAD_SEGMENTS * 0.4
-    : AXON_NA_LEAD_SEGMENTS;
-  
-  const naIdx = apIdx + floor(lead);
-
 
   pop();
 }
