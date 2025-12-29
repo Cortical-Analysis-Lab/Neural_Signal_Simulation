@@ -47,7 +47,7 @@ const HALO_K_RELAX  = 0.80;
 // ------------------
 // SOMA FLUX CONSTANTS
 // ------------------
-const NA_FLUX_SPEED     = 1.6;
+const NA_FLUX_SPEED     = 2;
 const NA_FLUX_LIFETIME  = 80;
 const NA_SPAWN_RADIUS   = 140;
 
@@ -121,8 +121,10 @@ const aisIdx = 0;
     ecsIons.AxonNaWave.push({
       x: p1.x + nx * AXON_HALO_RADIUS * side,
       y: p1.y + ny * AXON_HALO_RADIUS * side,
-      vx: -nx * AXON_NA_WAVE_SPEED * side,
-      vy: -ny * AXON_NA_WAVE_SPEED * side,
+      // Strong inward pull + slight forward bias
+      vx: (-nx * 1.2 + dx / len * 0.15) * AXON_NA_WAVE_SPEED,
+      vy: (-ny * 1.2 + dy / len * 0.15) * AXON_NA_WAVE_SPEED,
+
       life: AXON_NA_WAVE_LIFETIME
     });
   }
