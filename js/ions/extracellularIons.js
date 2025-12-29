@@ -84,47 +84,38 @@ const AXON_K_PHASE_STEP = 0.045;
 // =====================================================
 // AXONAL Na⁺ WAVE SPAWNER (PREDICTIVE)
 // =====================================================
-const AXON_NA_LEAD_SEGMENTS = 25;
+const AXON_NA_LEAD_SEGMENTS = 25;     // spatial offset from AIS
+const AXON_NA_FORWARD_BIAS = 0.35;    // how fast Na⁺ runs down axon
+const AXON_NA_INWARD_PULL  = 1.1;     // membrane entry strength
 
 function triggerAxonNaWave() {
   if (!neuron?.axon?.path) return;
-  if (window.currentAxonAPPhase == null) return;
 
   const path = neuron.axon.path;
 
+  // 🔑 AIS = start of axon
+  const aisIdx = 0;
 
-const path = neuron.axon.path;
+  // 🔑 Na⁺ always spawns relative to AIS, NOT AP
+  const naIdx = aisIdx + AXON_NA_LEAD_SEGMENTS;
 
-  // Current AP index
-  const apIdx = floor(
-    window.currentAxonAPPhase * (path.length - 2)
-  );
-  
-  // Na⁺ leads AP spatially
-  const naIdx = apIdx + AXON_NA_LEAD_SEGMENTS;
-  
-  // Bounds check
   if (naIdx < 0 || naIdx >= path.length - 1) return;
-  
-  const p1 = path[naIdx];
-  const p2 = path[naIdx + 1];
-
-
-  if (naIdx <= 0 || naIdx >= path.length - 1) return;
 
   const p1 = path[naIdx];
   const p2 = path[naIdx + 1];
-
   if (!p1 || !p2) return;
 
-  // Tangent
+  // Tangent (forward axon direction)
   const dx = p2.x - p1.x;
   const dy = p2.y - p1.y;
   const len = Math.hypot(dx, dy) || 1;
 
+  const tx = dx / len;
+  const ty = dy / len;
+
   // Membrane normal (inward)
-  const nx = -dy / len;
-  const ny =  dx / len;
+  const nx = -ty;
+  const ny =  tx;
 
   for (let i = 0; i < AXON_NA_WAVE_COUNT; i++) {
     const side = i % 2 === 0 ? 1 : -1;
@@ -132,9 +123,10 @@ const path = neuron.axon.path;
     ecsIons.AxonNaWave.push({
       x: p1.x + nx * AXON_HALO_RADIUS * side,
       y: p1.y + ny * AXON_HALO_RADIUS * side,
-      // Strong inward pull + slight forward bias
-      vx: (-nx * 1.2 + dx / len * 0.15) * AXON_NA_WAVE_SPEED,
-      vy: (-ny * 1.2 + dy / len * 0.15) * AXON_NA_WAVE_SPEED,
+
+      // 🔑 inward + forward (NOT tied to AP)
+      vx: (-nx * AXON_NA_INWARD_PULL + tx * AXON_NA_FORWARD_BIAS) * AXON_NA_WAVE_SPEED,
+      vy: (-ny * AXON_NA_INWARD_PULL + ty * AXON_NA_FORWARD_BIAS) * AXON_NA_WAVE_SPEED,
 
       life: AXON_NA_WAVE_LIFETIME
     });
