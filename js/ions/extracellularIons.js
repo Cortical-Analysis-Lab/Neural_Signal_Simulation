@@ -81,16 +81,16 @@ const AXON_K_SPAWN_COUNT   = 3;
 let lastAxonKPhase = -Infinity;
 const AXON_K_PHASE_STEP = 0.045;
 
-// =====================================================
-// AXONAL Na⁺ WAVE SPAWNER (ZIPPER MODEL — AUTHORITATIVE)
-// =====================================================
-const AXON_NA_LEAD_SEGMENTS  = 40;  // how far ahead of AP
-const AXON_NA_SPACING        = 2;   // spawn every N segments
-const AXON_NA_RADIAL_JITTER  = 1.5;
-const AXON_NA_INFLUX_RATE    = 0.22; // smooth zipper collapse
+// Na⁺ zipper behavior
+const AXON_NA_INFLOW_WINDOW = 2;   // how many segments BEFORE AP Na⁺ begins influx
+
+const AXON_NA_LEAD_SEGMENTS = 40;  // how far ahead of AP Na⁺ are staged
+const AXON_NA_SPACING       = 2;   // spawn every N segments
+const AXON_NA_RADIAL_JITTER = 1.5;
+const AXON_NA_INFLUX_RATE   = 0.22; // smooth zipper collapse
 
 let lastNaSpawnIdx = -Infinity;
-let lastNaAPIdx    = -Infinity; // 🔑 spike reset detector
+let lastNaAPIdx    = -Infinity; // spike reset detector
 
 function triggerAxonNaWave() {
   if (!window.axonNaActive) return;
@@ -139,8 +139,8 @@ function triggerAxonNaWave() {
   // -----------------------------
   // Geometry
   // -----------------------------
-  const dx = p2.x - p1.x;
-  const dy = p2.y - p1.y;
+  const dx  = p2.x - p1.x;
+  const dy  = p2.y - p1.y;
   const len = Math.hypot(dx, dy) || 1;
 
   const nx = -dy / len;
@@ -158,8 +158,9 @@ function triggerAxonNaWave() {
       // bookkeeping
       axonIdx: spawnIdx,
 
-      // 🔑 zipper dynamics
-      influxRate: AXON_NA_INFLUX_RATE
+      // 🔑 explicit zipper state
+      state: "waiting",   // waiting → inflowing
+      collapse: 0
     });
   }
 }
@@ -267,44 +268,50 @@ function drawExtracellularIons() {
     lastAxonNaWavePhase = apPhase;
   }
 
-  // ==============================
-  // 🟡 DRAW Na⁺ ZIPPER WAVE
-  // ==============================
   fill(getColor("sodium", 140));
 
-  ecsIons.AxonNaWave = ecsIons.AxonNaWave.filter(p => {
-    if (!path || apPhase == null) return false;
+ecsIons.AxonNaWave = ecsIons.AxonNaWave.filter(p => {
+  if (!path || apPhase == null) return false;
 
-    const apIdx = floor(
-      apPhase * (path.length - 2)
-    );
+  const apIdx = floor(
+    apPhase * (path.length - 2)
+  );
 
-    // -------------------------
-    // WAITING (ahead of AP)
-    // -------------------------
-    if (p.axonIdx > apIdx + 1) {
-      text("Na⁺", p.x, p.y);
-      return true;
+  // ==========================
+  // WAITING AHEAD OF AP
+  // ==========================
+  if (p.state === "waiting") {
+
+    // 🔑 START INFLOW *BEFORE* AP ARRIVES
+    if (p.axonIdx - apIdx <= AXON_NA_INFLOW_WINDOW) {
+      p.state = "inflowing";
     }
 
-    // -------------------------
-    // INFLUX (zipper moment)
-    // -------------------------
-    if (p.axonIdx === apIdx + 1) {
-      const center = path[p.axonIdx];
+    text("Na⁺", p.x, p.y);
+    return true;
+  }
 
-      p.x = lerp(p.x, center.x, 0.35);
-      p.y = lerp(p.y, center.y, 0.35);
+  // ==========================
+  // INFLOWING (ZIPPER)
+  // ==========================
+  if (p.state === "inflowing") {
+    const center = path[p.axonIdx];
 
-      text("Na⁺", p.x, p.y);
-      return true;
-    }
+    p.collapse = min(1, p.collapse + AXON_NA_INFLUX_RATE);
 
-    // -------------------------
-    // AP passed → remove
-    // -------------------------
-    return false;
-  });
+    p.x = lerp(p.x, center.x, p.collapse);
+    p.y = lerp(p.y, center.y, p.collapse);
+
+    text("Na⁺", p.x, p.y);
+
+    // fully inside axon → remove
+    if (p.collapse >= 0.98) return false;
+
+    return true;
+  }
+
+  return false;
+});
 
   // ==============================
   // 🔴 AXONAL K⁺ EFFLUX (TRAILS AP)
