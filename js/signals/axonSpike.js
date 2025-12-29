@@ -84,6 +84,10 @@ function updateAxonSpikes() {
 
     // 🔑 expose phase for extracellular halo coupling
     window.currentAxonAPPhase = s.phase;
+    // 🔮 Predictive AP phase (for Na⁺ pre-depolarization)
+    window.nextAxonAPPhase =
+    s.phase + AXON_CONDUCTION_SPEED;
+
 
     // =================================================
     // 🧂 AXON ION FLUX (CORRECTED + GATED)
