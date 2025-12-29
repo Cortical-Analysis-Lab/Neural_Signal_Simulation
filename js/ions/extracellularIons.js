@@ -219,7 +219,7 @@ function drawExtracellularIons() {
     naPhase > 0 &&
     abs(naPhase - lastAxonNaWavePhase) > AXON_NA_PHASE_STEP
   ) {
-    triggerAxonNaWave(apPhase);
+    triggerAxonNaWave(naPhase);
     lastAxonNaWavePhase = naPhase;
   }
 
