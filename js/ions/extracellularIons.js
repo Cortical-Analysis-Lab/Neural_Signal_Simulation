@@ -93,16 +93,16 @@ function triggerAxonNaWave() {
 
   const path = neuron.axon.path;
 
-  // -----------------------------
+  // --------------------------------------------------
   // AP position (authoritative)
-  // -----------------------------
+  // --------------------------------------------------
   const apIdx = floor(
     window.currentAxonAPPhase * (path.length - 2)
   );
 
-  // -----------------------------
+  // --------------------------------------------------
   // Na⁺ lead (AIS-biased early)
-  // -----------------------------
+  // --------------------------------------------------
   const lead =
     window.currentAxonAPPhase < 0.08
       ? AXON_NA_LEAD_SEGMENTS * 0.35
@@ -115,42 +115,41 @@ function triggerAxonNaWave() {
   const p2 = path[naIdx + 1];
   if (!p1 || !p2) return;
 
-  // -----------------------------
+  // --------------------------------------------------
   // Geometry
-  // -----------------------------
+  // --------------------------------------------------
   const dx = p2.x - p1.x;
   const dy = p2.y - p1.y;
   const len = Math.hypot(dx, dy) || 1;
 
-  const tx = dx / len;
-  const ty = dy / len;
-
   // inward membrane normal
-  const nx = -ty;
-  const ny =  tx;
+  const nx = -dy / len;
+  const ny =  dx / len;
 
-  // -----------------------------
-  // Spawn Na⁺ particles
-  // -----------------------------
-    const normalStrength   = 1.2;
-    const backwardStrength = 0.6;
-    
-    for (let i = 0; i < AXON_NA_WAVE_COUNT; i++) {
-      const side = i % 2 === 0 ? 1 : -1;
-    
-      ecsIons.AxonNaWave.push({
-        x: p1.x + nx * AXON_HALO_RADIUS * side,
-        y: p1.y + ny * AXON_HALO_RADIUS * side,
-    
-        // inward + backward (mirror of K⁺)
-        vx: (-nx * normalStrength * side - tx * backwardStrength) * AXON_NA_WAVE_SPEED,
-        vy: (-ny * normalStrength * side - ty * backwardStrength) * AXON_NA_WAVE_SPEED,
-    
-        life: AXON_NA_WAVE_LIFETIME
-      });
-    }
+  // --------------------------------------------------
+  // Spawn Na⁺ particles (INWARD → MIDLINE → DISAPPEAR)
+  // --------------------------------------------------
+  for (let i = 0; i < AXON_NA_WAVE_COUNT; i++) {
+    const side = i % 2 === 0 ? 1 : -1;
 
+    ecsIons.AxonNaWave.push({
+      // start at membrane
+      x: p1.x + nx * AXON_HALO_RADIUS * side,
+      y: p1.y + ny * AXON_HALO_RADIUS * side,
+
+      // inward only (no axial drift)
+      vx: -nx * AXON_NA_WAVE_SPEED,
+      vy: -ny * AXON_NA_WAVE_SPEED,
+
+      life: AXON_NA_WAVE_LIFETIME,
+      collapsing: true,
+
+      // 🔑 LOCK collapse target to this axon segment
+      axonIdx: naIdx
+    });
+  }
 }
+
 
 
 // =====================================================
@@ -256,17 +255,42 @@ function drawExtracellularIons() {
   }
 
 
-  // ---- DRAW Na⁺ WAVE ----
-  fill(getColor("sodium", 140));
-  ecsIons.AxonNaWave = ecsIons.AxonNaWave.filter(p => {
-    p.life--;
-    p.x += p.vx;
-    p.y += p.vy;
-    p.vx *= ION_VEL_DECAY;
-    p.vy *= ION_VEL_DECAY;
-    text("Na⁺", p.x, p.y);
-    return p.life > 0;
-  });
+  // ---- DRAW Na⁺ WAVE (INWARD → MIDLINE → DISAPPEAR) ----
+    fill(getColor("sodium", 140));
+    ecsIons.AxonNaWave = ecsIons.AxonNaWave.filter(p => {
+      p.life--;
+    
+      if (
+        p.collapsing &&
+        neuron?.axon?.path &&
+        window.currentAxonAPPhase != null
+      ) {
+        const path = neuron.axon.path;
+        const idx = floor(
+          window.currentAxonAPPhase * (path.length - 2)
+        );
+        const center = path[idx];
+    
+        // collapse toward axon centerline
+        p.x = lerp(p.x, center.x, 0.35);
+        p.y = lerp(p.y, center.y, 0.35);
+    
+        // once inside axon → remove
+        if (dist(p.x, p.y, center.x, center.y) < 1.5) {
+          return false;
+        }
+      } else {
+        // safety fallback
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vx *= ION_VEL_DECAY;
+        p.vy *= ION_VEL_DECAY;
+      }
+    
+      text("Na⁺", p.x, p.y);
+      return p.life > 0;
+    });
+
 
   // ==============================
   // 🔴 AXONAL K⁺ EFFLUX (TRAILS AP)
