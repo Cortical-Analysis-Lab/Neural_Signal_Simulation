@@ -93,19 +93,19 @@ function triggerAxonNaWave() {
 
   const path = neuron.axon.path;
 
-  // --------------------------------------------------
-  // AP position (authoritative)
-  // --------------------------------------------------
+  // -----------------------------
+  // AP index
+  // -----------------------------
   const apIdx = floor(
     window.currentAxonAPPhase * (path.length - 2)
   );
 
-  // --------------------------------------------------
-  // Na⁺ lead (AIS-biased early)
-  // --------------------------------------------------
+  // -----------------------------
+  // Na⁺ lead distance
+  // -----------------------------
   const lead =
     window.currentAxonAPPhase < 0.08
-      ? AXON_NA_LEAD_SEGMENTS * 0.35
+      ? AXON_NA_LEAD_SEGMENTS * 0.35   // strong AIS burst
       : AXON_NA_LEAD_SEGMENTS;
 
   const naIdx = apIdx + floor(lead);
@@ -115,42 +115,41 @@ function triggerAxonNaWave() {
   const p2 = path[naIdx + 1];
   if (!p1 || !p2) return;
 
-  // --------------------------------------------------
+  // -----------------------------
   // Geometry
-  // --------------------------------------------------
+  // -----------------------------
   const dx = p2.x - p1.x;
   const dy = p2.y - p1.y;
   const len = Math.hypot(dx, dy) || 1;
 
-  // inward membrane normal
   const nx = -dy / len;
   const ny =  dx / len;
 
-  // --------------------------------------------------
-  // Spawn Na⁺ particles (INWARD → MIDLINE → DISAPPEAR)
-  // --------------------------------------------------
-  for (let i = 0; i < AXON_NA_WAVE_COUNT; i++) {
+  // -----------------------------
+  // 🔑 Tail density control
+  // -----------------------------
+  const tailDensity = 3;        // 🔥 increase to 4–5 for thicker tail
+  const radialJitter = 2.5;
+
+  for (let i = 0; i < tailDensity; i++) {
     const side = i % 2 === 0 ? 1 : -1;
 
     ecsIons.AxonNaWave.push({
-      // start at membrane
-      x: p1.x + nx * AXON_HALO_RADIUS * side,
-      y: p1.y + ny * AXON_HALO_RADIUS * side,
+      // start near membrane
+      x: p1.x + nx * (AXON_HALO_RADIUS + random(-radialJitter, radialJitter)) * side,
+      y: p1.y + ny * (AXON_HALO_RADIUS + random(-radialJitter, radialJitter)) * side,
 
-      // inward only (no axial drift)
-      vx: -nx * AXON_NA_WAVE_SPEED,
-      vy: -ny * AXON_NA_WAVE_SPEED,
+      // inward velocity (slow, smooth)
+      vx: -nx * AXON_NA_WAVE_SPEED * 0.6,
+      vy: -ny * AXON_NA_WAVE_SPEED * 0.6,
 
       life: AXON_NA_WAVE_LIFETIME,
-      collapsing: true,
 
-      // 🔑 LOCK collapse target to this axon segment
-      axonIdx: naIdx
+      collapsing: true,
+      axonIdx: naIdx    // 🔑 anchor collapse to correct segment
     });
   }
 }
-
-
 
 // =====================================================
 // 🧠 SOMA ION TRIGGERS (UNCHANGED)
