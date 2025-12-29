@@ -58,17 +58,6 @@ const K_SPAWN_RADIUS    = 28;
 const ION_VEL_DECAY     = 0.965;
 
 // -----------------------------------------------------
-// AXONAL Na⁺ WAVE (LEADING, DETACHED FROM HALO)
-// -----------------------------------------------------
-const AXON_NA_WAVE_SPEED    = 1.6;
-const AXON_NA_WAVE_LIFETIME = 18;
-const AXON_NA_WAVE_COUNT    = 3;
-
-const AXON_NA_SPAWN_INTERVAL = 0.04;
-
-let lastAxonNaWavePhase = -Infinity;
-
-// -----------------------------------------------------
 // AXONAL K⁺ EFFLUX (AP-LOCKED)
 // -----------------------------------------------------
 const AXON_K_FLUX_SPEED    = 1.6;
@@ -81,86 +70,52 @@ const AXON_K_SPAWN_COUNT   = 3;
 let lastAxonKPhase = -Infinity;
 const AXON_K_PHASE_STEP = 0.045;
 
-// Na⁺ zipper behavior
-const AXON_NA_INFLOW_WINDOW = 2;   // how many segments BEFORE AP Na⁺ begins influx
 
-const AXON_NA_LEAD_SEGMENTS = 40;  // how far ahead of AP Na⁺ are staged
-const AXON_NA_SPACING       = 2;   // spawn every N segments
 const AXON_NA_RADIAL_JITTER = 1.5;
-const AXON_NA_INFLUX_RATE   = 0.22; // smooth zipper collapse
 
-let lastNaSpawnIdx = -Infinity;
-let lastNaAPIdx    = -Infinity; // spike reset detector
+// ---- constants (top-level only) ----
+const AXON_NA_LEAD_SEGMENTS = 40;
+const AXON_NA_WAVE_SPEED = 1.6;
+const AXON_NA_WAVE_LIFETIME = 18;
+const AXON_NA_WAVE_COUNT = 3;
+const AXON_NA_SPAWN_INTERVAL = 0.04;
+let lastAxonNaWavePhase = -Infinity;
 
 function triggerAxonNaWave() {
-  if (!window.axonNaActive) return;
   if (!neuron?.axon?.path) return;
   if (window.currentAxonAPPhase == null) return;
 
   const path = neuron.axon.path;
+  const apIdx = floor(window.currentAxonAPPhase * (path.length - 2));
+  const naIdx = apIdx + AXON_NA_LEAD_SEGMENTS;
+  if (naIdx <= 0 || naIdx >= path.length - 1) return;
 
-  // -----------------------------
-  // AP index (authoritative)
-  // -----------------------------
-  const apIdx = floor(
-    window.currentAxonAPPhase * (path.length - 2)
-  );
+  const p1 = path[naIdx];
+  const p2 = path[naIdx + 1];
 
-  // =====================================================
-  // 🔑 RESET ON NEW SPIKE
-  // =====================================================
-  if (apIdx < lastNaAPIdx) {
-    lastNaSpawnIdx = -Infinity;
-  }
-  lastNaAPIdx = apIdx;
-
-  // -----------------------------
-  // AIS-biased lead
-  // -----------------------------
-  const lead =
-    window.currentAxonAPPhase < 0.08
-      ? floor(AXON_NA_LEAD_SEGMENTS * 0.4)
-      : AXON_NA_LEAD_SEGMENTS;
-
-  const spawnIdx = apIdx + lead;
-
-  // -----------------------------
-  // Spacing gate (CRITICAL)
-  // -----------------------------
-  if (spawnIdx - lastNaSpawnIdx < AXON_NA_SPACING) return;
-  lastNaSpawnIdx = spawnIdx;
-
-  if (spawnIdx < 0 || spawnIdx >= path.length - 1) return;
-
-  const p1 = path[spawnIdx];
-  const p2 = path[spawnIdx + 1];
-  if (!p1 || !p2) return;
-
-  // -----------------------------
-  // Geometry
-  // -----------------------------
-  const dx  = p2.x - p1.x;
-  const dy  = p2.y - p1.y;
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
   const len = Math.hypot(dx, dy) || 1;
 
   const nx = -dy / len;
   const ny =  dx / len;
 
-  // -----------------------------
-  // Spawn symmetric Na⁺ pair
-  // -----------------------------
-  for (let side of [-1, 1]) {
+  for (let i = 0; i < AXON_NA_WAVE_COUNT; i++) {
+    const side = i % 2 === 0 ? 1 : -1;
+    const r =
+      AXON_HALO_RADIUS +
+      random(-AXON_NA_RADIAL_JITTER, AXON_NA_RADIAL_JITTER);
+
     ecsIons.AxonNaWave.push({
-      // membrane position
-      x: p1.x + nx * (AXON_HALO_RADIUS + random(-AXON_NA_RADIAL_JITTER, AXON_NA_RADIAL_JITTER)) * side,
-      y: p1.y + ny * (AXON_HALO_RADIUS + random(-AXON_NA_RADIAL_JITTER, AXON_NA_RADIAL_JITTER)) * side,
+      x: p1.x + nx * r * side,
+      y: p1.y + ny * r * side,
 
-      // bookkeeping
-      axonIdx: spawnIdx,
+      vx: -nx * AXON_NA_WAVE_SPEED * side,
+      vy: -ny * AXON_NA_WAVE_SPEED * side,
 
-      // 🔑 explicit zipper state
-      state: "waiting",   // waiting → inflowing
-      collapse: 0
+      axonIdx: naIdx,      // 🔑 REQUIRED
+      state: "approach",   // approach → inflow
+      life: AXON_NA_WAVE_LIFETIME
     });
   }
 }
@@ -232,7 +187,7 @@ function drawExtracellularIons() {
   noStroke();
 
   const apPhase = window.currentAxonAPPhase;
-  const path = neuron?.axon?.path;
+  const path    = neuron?.axon?.path;
 
   // ==============================
   // ECS BASELINE
@@ -251,14 +206,12 @@ function drawExtracellularIons() {
   if (apPhase != null && apPhase < lastAxonKPhase) {
     lastAxonKPhase = -Infinity;
   }
-
   if (apPhase != null && apPhase < lastAxonNaWavePhase) {
     lastAxonNaWavePhase = -Infinity;
   }
 
   // ==============================
-  // 🟡 Na⁺ PRE-DEPOLARIZATION WAVE
-  // (zipper spawn, AP-driven)
+  // 🟡 Na⁺ PREDICTIVE WAVE SPAWN
   // ==============================
   if (
     apPhase != null &&
@@ -268,50 +221,53 @@ function drawExtracellularIons() {
     lastAxonNaWavePhase = apPhase;
   }
 
+  // ==============================
+  // 🟡 Na⁺ APPROACH → INFLOW
+  // ==============================
   fill(getColor("sodium", 140));
+  ecsIons.AxonNaWave = ecsIons.AxonNaWave.filter(p => {
+    if (!path || apPhase == null) return false;
 
-ecsIons.AxonNaWave = ecsIons.AxonNaWave.filter(p => {
-  if (!path || apPhase == null) return false;
+    const apIdx = floor(apPhase * (path.length - 2));
 
-  const apIdx = floor(
-    apPhase * (path.length - 2)
-  );
+    // --------------------------
+    // APPROACH PHASE
+    // --------------------------
+    if (p.state === "approach") {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vx *= ION_VEL_DECAY;
+      p.vy *= ION_VEL_DECAY;
 
-  // ==========================
-  // WAITING AHEAD OF AP
-  // ==========================
-  if (p.state === "waiting") {
+      // 🔑 AP reaches segment → start inflow
+      if (apIdx >= p.axonIdx - 1) {
+        p.state = "inflow";
+      }
 
-    // 🔑 START INFLOW *BEFORE* AP ARRIVES
-    if (p.axonIdx - apIdx <= AXON_NA_INFLOW_WINDOW) {
-      p.state = "inflowing";
+      text("Na⁺", p.x, p.y);
+      return true;
     }
 
-    text("Na⁺", p.x, p.y);
-    return true;
-  }
+    // --------------------------
+    // INFLOW PHASE (ZIP-IN)
+    // --------------------------
+    if (p.state === "inflow") {
+      const center = path[p.axonIdx];
 
-  // ==========================
-  // INFLOWING (ZIPPER)
-  // ==========================
-  if (p.state === "inflowing") {
-    const center = path[p.axonIdx];
+      p.x = lerp(p.x, center.x, 0.35);
+      p.y = lerp(p.y, center.y, 0.35);
 
-    p.collapse = min(1, p.collapse + AXON_NA_INFLUX_RATE);
+      text("Na⁺", p.x, p.y);
 
-    p.x = lerp(p.x, center.x, p.collapse);
-    p.y = lerp(p.y, center.y, p.collapse);
+      // fully inside axon → remove
+      if (dist(p.x, p.y, center.x, center.y) < 1.2) {
+        return false;
+      }
+      return true;
+    }
 
-    text("Na⁺", p.x, p.y);
-
-    // fully inside axon → remove
-    if (p.collapse >= 0.98) return false;
-
-    return true;
-  }
-
-  return false;
-});
+    return false;
+  });
 
   // ==============================
   // 🔴 AXONAL K⁺ EFFLUX (TRAILS AP)
@@ -349,7 +305,6 @@ ecsIons.AxonNaWave = ecsIons.AxonNaWave.filter(p => {
     p.vy *= HALO_NA_RELAX;
     p.x += p.vx;
     p.y += p.vy;
-
     text("Na⁺", p.x, p.y);
   });
 
@@ -363,12 +318,11 @@ ecsIons.AxonNaWave = ecsIons.AxonNaWave.filter(p => {
     p.vy *= HALO_K_RELAX;
     p.x += p.vx;
     p.y += p.vy;
-
     text("K⁺", p.x, p.y);
   });
 
   // ==============================
-  // 🧠 SOMA FLUXES (UNCHANGED)
+  // 🧠 SOMA FLUXES
   // ==============================
   fill(getColor("sodium", 120));
   ecsIons.NaFlux = ecsIons.NaFlux.filter(p => {
@@ -376,7 +330,6 @@ ecsIons.AxonNaWave = ecsIons.AxonNaWave.filter(p => {
     const d = Math.hypot(p.x, p.y) || 1;
     p.x += (-p.x / d) * NA_FLUX_SPEED;
     p.y += (-p.y / d) * NA_FLUX_SPEED;
-
     text("Na⁺", p.x, p.y);
     return p.life > 0;
   });
@@ -387,8 +340,9 @@ ecsIons.AxonNaWave = ecsIons.AxonNaWave.filter(p => {
     p.y += p.vy;
     p.vx *= ION_VEL_DECAY;
     p.vy *= ION_VEL_DECAY;
-
-    fill(getColor("potassium", map(p.life, 0, K_FLUX_LIFETIME, 0, 180)));
+    fill(getColor("potassium",
+      map(p.life, 0, K_FLUX_LIFETIME, 0, 180)
+    ));
     text("K⁺", p.x, p.y);
     return p.life > 0;
   });
