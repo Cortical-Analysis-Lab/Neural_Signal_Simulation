@@ -54,6 +54,11 @@ const NA_COPY_SPEED = 0.02;
 const NA_CENTER_EPS = 1.2;
 const NA_COPY_LIFE = Infinity;
 
+// -----------------------------------------------------
+// AXONAL Na⁺ INFLUX PHASE LEAD (AP-PREDICTIVE)
+// -----------------------------------------------------
+const AXON_NA_PHASE_LEAD = 0.035; // Na⁺ opens BEFORE AP
+const AXON_NA_PHASE_STEP = 0.06;  // spacing between Na⁺ influx events
 
 // -----------------------------------------------------
 // AXONAL K⁺ EFFLUX (AP-LOCKED)
@@ -89,6 +94,8 @@ const ION_VEL_DECAY     = 0.965;
 // -----------------------------------------------------
 let lastAxonKPhase = -Infinity;
 const AXON_K_PHASE_STEP = 0.045; // controls spacing of K⁺ plumes
+
+let lastAxonNaPhase = -Infinity;
 
 
 // =====================================================
@@ -279,16 +286,33 @@ function drawExtracellularIons() {
     triggerAxonKEfflux(apPhase);
     lastAxonKPhase = apPhase;
   }
+  if (apPhase != null && apPhase < lastAxonNaPhase) {
+    lastAxonNaPhase = -Infinity;
+  }
+
+  lastAxonNaPhase = naPhase;
 
   // ------------------
-  // AXON Na⁺ HALO + COPY
+  // AXON Na⁺ HALO + COPY (AP-PREDICTIVE)
   // ------------------
   fill(...ION_COLOR.Na, 150);
+  
   ecsIons.AxonNaStatic.forEach(p => {
-
+  
+    if (apPhase == null) return;
+  
+    const naPhase = apPhase - AXON_NA_PHASE_LEAD;
+  
+    // Reset Na⁺ phase gate on new AP
+    if (naPhase < lastAxonNaPhase) {
+      p.hasCopy = false;
+      p.lastAPPhase = -Infinity;
+    }
+  
+    // Spawn Na⁺ copy AHEAD of AP
     if (
-      apPhase != null &&
-      abs(apPhase - p.lastAPPhase) > 0.06 &&
+      naPhase > 0 &&
+      abs(naPhase - p.lastAPPhase) > AXON_NA_PHASE_STEP &&
       !p.hasCopy
     ) {
       ecsIons.AxonNaCopies.push({
@@ -297,17 +321,16 @@ function drawExtracellularIons() {
         life: NA_COPY_LIFE,
         source: p
       });
-
+  
       p.hasCopy = true;
-      p.lastAPPhase = apPhase;
+      p.lastAPPhase = naPhase;
+      lastAxonNaPhase = naPhase;
     }
-
+  
     // subtle membrane perturbation
-    if (apPhase != null) {
-      p.vx += (p.x - p.x0) * HALO_NA_PERTURB;
-      p.vy += (p.y - p.y0) * HALO_NA_PERTURB;
-    }
-
+    p.vx += (p.x - p.x0) * HALO_NA_PERTURB;
+    p.vy += (p.y - p.y0) * HALO_NA_PERTURB;
+  
     // tether back to halo
     p.vx += (p.x0 - p.x) * 0.06;
     p.vy += (p.y0 - p.y) * 0.06;
@@ -315,9 +338,10 @@ function drawExtracellularIons() {
     p.vy *= HALO_NA_RELAX;
     p.x += p.vx;
     p.y += p.vy;
-
+  
     text("Na⁺", p.x, p.y);
   });
+
 
   // ------------------
   // Na⁺ COPIES → AXON CENTERLINE (STOP + RESET)
