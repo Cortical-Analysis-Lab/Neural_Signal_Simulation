@@ -127,6 +127,7 @@ function updateAxonSpikes() {
 
       // Clear coupling signal
       window.currentAxonAPPhase = null;
+      window.axonNaActive = false;
 
       if (!state.paused && typeof logEvent === "function") {
         logEvent(
@@ -282,5 +283,3 @@ function drawAxonSpikes() {
     pop();
   });
 }
-
-window.axonNaActive = false;
