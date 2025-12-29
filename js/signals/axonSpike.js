@@ -74,8 +74,8 @@ function spawnAxonSpike() {
 // -----------------------------------------------------
 function updateAxonSpikes() {
 
-  // Default: no active AP
   window.currentAxonAPPhase = null;
+  window.nextAxonAPPhase    = null;
 
   for (let i = axonSpikes.length - 1; i >= 0; i--) {
 
@@ -84,10 +84,9 @@ function updateAxonSpikes() {
 
     // 🔑 expose phase for extracellular halo coupling
     window.currentAxonAPPhase = s.phase;
-    // 🔮 Predictive AP phase (for Na⁺ pre-depolarization)
-    window.nextAxonAPPhase =
-    s.phase + AXON_CONDUCTION_SPEED;
 
+    // Predictive subthreshold depolarization front (Na⁺ gating)
+    window.nextAxonAPPhase = Math.min(s.phase + 0.12, 1);
 
     // =================================================
     // 🧂 AXON ION FLUX (CORRECTED + GATED)
@@ -110,16 +109,6 @@ function updateAxonSpikes() {
       // 🔑 Membrane normal
       const nx = -ty;
       const ny =  tx;
-
-      // -------------------------
-      // Na⁺ influx (local entry)
-      // -------------------------
-      if (typeof triggerAxonNaInflux === "function") {
-        triggerAxonNaInflux(
-          p1.x + nx * 2,
-          p1.y + ny * 2
-        );
-      }
 
       // -------------------------
       // K⁺ efflux (TRAILING + GATED)
