@@ -85,8 +85,12 @@ function updateAxonSpikes() {
     // 🔑 expose phase for extracellular halo coupling
     window.currentAxonAPPhase = s.phase;
 
-    // Predictive subthreshold depolarization front (Na⁺ gating)
-    window.nextAxonAPPhase = Math.min(s.phase + 0.12, 1);
+   const NA_LEAD_MULTIPLIER = 5;
+
+    window.nextAxonAPPhase = Math.min(
+      s.phase + AXON_CONDUCTION_SPEED * NA_LEAD_MULTIPLIER,
+      1
+    );
 
     // =================================================
     // 🧂 AXON ION FLUX (CORRECTED + GATED)
@@ -117,10 +121,7 @@ function updateAxonSpikes() {
         typeof triggerAxonKEfflux === "function" &&
         s.phase - s.lastKEffluxPhase > AXON_K_RELEASE_INTERVAL
       ) {
-        triggerAxonKEfflux(
-          p1.x - tx * 10 + nx * 4,
-          p1.y - ty * 10 + ny * 4
-        );
+        triggerAxonKEfflux(s.phase);
 
         s.lastKEffluxPhase = s.phase;
       }
