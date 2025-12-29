@@ -57,6 +57,9 @@ const K_SPAWN_RADIUS    = 28;
 
 const ION_VEL_DECAY     = 0.965;
 
+// How many axon segments Na⁺ leads the AP by
+const NA_LEAD_SEGMENTS = 8;   // try 8–15
+
 // -----------------------------------------------------
 // AXONAL Na⁺ WAVE (LEADING, DETACHED FROM HALO)
 // -----------------------------------------------------
@@ -95,7 +98,11 @@ function triggerAxonNaWave(naPhase) {
   if (naPhase <= 0 || naPhase >= 1) return;
 
   const path = neuron.axon.path;
-  const idx  = floor(naPhase * (path.length - 2));
+  const apIdx = floor(window.currentAxonAPPhase * (path.length - 2));
+  const idx   = min(
+    apIdx + NA_LEAD_SEGMENTS,
+    path.length - 2
+  );
 
   const p1 = path[idx];
   const p2 = path[idx + 1];
@@ -190,6 +197,8 @@ function drawExtracellularIons() {
   textAlign(CENTER, CENTER);
   noStroke();
 
+  const apPhase = window.currentAxonAPPhase;
+
   // ==============================
   // ECS BASELINE
   // ==============================
@@ -214,21 +223,15 @@ function drawExtracellularIons() {
 
   // ==============================
   // 🟡 Na⁺ PRE-DEPOLARIZATION WAVE
+  // Spatially LEADS AP (index-based)
   // ==============================
-  if (window.nextAxonAPPhase != null) {
-  
-    const naPhase = window.nextAxonAPPhase;
-  
-    if (
-      naPhase > 0 &&
-      naPhase < 1 &&
-      abs(naPhase - lastAxonNaWavePhase) > AXON_NA_PHASE_STEP
-    ) {
-      triggerAxonNaWave(naPhase);
-      lastAxonNaWavePhase = naPhase;
-    }
+  if (
+    apPhase != null &&
+    abs(apPhase - lastAxonNaWavePhase) > AXON_NA_PHASE_STEP
+  ) {
+    triggerAxonNaWave();   // 🔑 NO PHASE ARG
+    lastAxonNaWavePhase = apPhase;
   }
-
 
   // ---- DRAW Na⁺ WAVE ----
   fill(getColor("sodium", 140));
@@ -238,13 +241,12 @@ function drawExtracellularIons() {
     p.y += p.vy;
     p.vx *= ION_VEL_DECAY;
     p.vy *= ION_VEL_DECAY;
-
     text("Na⁺", p.x, p.y);
     return p.life > 0;
   });
 
   // ==============================
-  // 🔴 AXONAL K⁺ EFFLUX (TRAILS AP — PERFECT)
+  // 🔴 AXONAL K⁺ EFFLUX (TRAILS AP)
   // ==============================
   if (
     apPhase != null &&
@@ -261,7 +263,6 @@ function drawExtracellularIons() {
     p.y += p.vy;
     p.vx *= ION_VEL_DECAY;
     p.vy *= ION_VEL_DECAY;
-
     text("K⁺", p.x, p.y);
     return p.life > 0;
   });
@@ -279,7 +280,6 @@ function drawExtracellularIons() {
     p.vy *= HALO_NA_RELAX;
     p.x += p.vx;
     p.y += p.vy;
-
     text("Na⁺", p.x, p.y);
   });
 
@@ -293,7 +293,6 @@ function drawExtracellularIons() {
     p.vy *= HALO_K_RELAX;
     p.x += p.vx;
     p.y += p.vy;
-
     text("K⁺", p.x, p.y);
   });
 
