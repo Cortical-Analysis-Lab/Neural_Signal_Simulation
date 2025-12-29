@@ -98,6 +98,9 @@ function updateSoma() {
 
         spawnAxonSpike();
         console.log("⚡ ACTION POTENTIAL");
+        // 🔑 Reset Na⁺ front to AIS at spike start
+        window.axonNaActive = true;
+
       }
       break;
 
