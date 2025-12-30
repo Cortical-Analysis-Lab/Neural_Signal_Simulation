@@ -55,9 +55,10 @@ let lastNaWavePhase = -Infinity;
 // =====================================================
 // AXON Na⁺ WAVE — PHASE-SPACED, BILATERAL
 // =====================================================
-function triggerAxonNaWave(apPhase) {
+function triggerAxonKEfflux(apPhase) {
 
   if (!neuron?.axon?.path || apPhase == null) return;
+  if (Math.abs(apPhase - lastAxonKPhase) < AXON_K_PHASE_STEP) return;
 
   // ---------------------------------------------
   // PHASE SPACING GATE (CRITICAL)
@@ -101,8 +102,12 @@ function triggerAxonNaWave(apPhase) {
 // =====================================================
 function triggerAxonKEfflux(apPhase) {
 
+  // 🚫 NO axonal K⁺ efflux under myelin
+  if (window.myelinEnabled) return;
+
   if (!neuron?.axon?.path || apPhase == null) return;
   if (Math.abs(apPhase - lastAxonKPhase) < AXON_K_PHASE_STEP) return;
+
   lastAxonKPhase = apPhase;
 
   const path = neuron.axon.path;
