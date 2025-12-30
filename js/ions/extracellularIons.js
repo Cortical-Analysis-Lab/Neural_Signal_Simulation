@@ -33,7 +33,7 @@ const AXON_STATIC_K_COUNT  = 4;
 // -----------------------------------------------------
 // AXON HALO GEOMETRY
 // -----------------------------------------------------
-const AXON_HALO_RADIUS    = 16;
+const AXON_HALO_RADIUS    = 28;
 const AXON_HALO_THICKNESS = 4;
 
 // Static halo emphasis
@@ -63,6 +63,8 @@ const ION_VEL_DECAY     = 0.965;
 const AXON_NA_WAVE_SPEED    = 0.9;
 const AXON_NA_WAVE_LIFETIME = 28;
 const AXON_NA_WAVE_COUNT    = 3;
+const AXON_NA_WAVE_RADIUS = 28; // controls Na⁺ influx distance ONLY
+
 
 // Na⁺ wave precedes AP
 const AXON_NA_PHASE_LEAD = 0.05;
@@ -123,8 +125,10 @@ function triggerAxonNaWave() {
     const side = i % 2 === 0 ? 1 : -1;
 
     ecsIons.AxonNaWave.push({
-      x: p1.x + nx * AXON_HALO_RADIUS * side,
-      y: p1.y + ny * AXON_HALO_RADIUS * side,
+      // NEW (decoupled)
+      x: p1.x + nx * AXON_NA_WAVE_RADIUS * side,
+      y: p1.y + ny * AXON_NA_WAVE_RADIUS * side,
+
       vx: -nx * AXON_NA_WAVE_SPEED * side,
       vy: -ny * AXON_NA_WAVE_SPEED * side,
       life: AXON_NA_WAVE_LIFETIME
