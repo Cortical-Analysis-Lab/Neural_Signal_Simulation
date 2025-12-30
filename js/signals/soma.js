@@ -44,7 +44,9 @@ const soma = {
   apState: AP.NONE,
   apTimer: 0,
   refractory: 0,
-  delayCounter: 0
+  delayCounter: 0,
+
+  invisibleAPRequested: false   // 🔑 NEW
 };
 
 // -----------------------------------------------------
@@ -89,12 +91,16 @@ function updateSoma() {
 
         soma.apState = AP.NA_COMMIT;
         soma.delayCounter = 0;
+        soma.invisibleAPRequested = false;
 
         // Soma Na⁺ influx (visual + conceptual)
         triggerNaInfluxNeuron1?.();
 
-        // 🔑 Request invisible axonal AP (axon manages it)
-        spawnInvisibleAxonAP?.();
+        // 🔑 Request invisible axonal AP ONCE
+        if (!soma.invisibleAPRequested) {
+          spawnInvisibleAxonAP?.();
+          soma.invisibleAPRequested = true;
+        }
       }
 
       else {
@@ -169,6 +175,7 @@ function updateSoma() {
       if (abs(soma.Vm - AP_PARAMS.ahpTarget) < 0.5) {
         soma.apState = AP.NONE;
         soma.refractory = AP_PARAMS.refractoryFrames;
+        soma.invisibleAPRequested = false;   // 🔑 RESET
       }
       break;
   }
