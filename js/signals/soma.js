@@ -47,7 +47,7 @@ const soma = {
 };
 
 // -----------------------------------------------------
-// Invisible pre-AP front (driver for Na⁺ wave)
+// Invisible pre-AP front (driver for axonal Na⁺ wave)
 // -----------------------------------------------------
 window.preAxonAPPhase = null;
 window.apDelayCounter = 0;
@@ -96,10 +96,9 @@ function updateSoma() {
         // 🟡 Soma Na⁺ influx (visual + conceptual)
         triggerNaInfluxNeuron1();
 
-        // Reset Na⁺ wave + invisible AP
-        window.naWaveStarted    = false;
-        window.preAxonAPPhase   = null;
-        window.apDelayCounter   = 0;
+        // Reset AP → axon coupling
+        window.preAxonAPPhase = null;
+        window.apDelayCounter = 0;
       }
 
       else {
@@ -112,26 +111,21 @@ function updateSoma() {
     // =================================================
     case AP.NA_COMMIT:
 
-    soma.Vm += AP_PARAMS.upstrokeRate * 0.6;
-  
-    // Start invisible pre-AP front ONCE
-    if (window.preAxonAPPhase === null) {
-      window.preAxonAPPhase = 0;
-    }
-  
-    // Trigger Na⁺ wave once from AIS
-    if (!window.naWaveStarted) {
-      triggerAxonNaWave();
-      window.naWaveStarted = true;
-    }
-  
-    window.apDelayCounter++;
-  
-    if (window.apDelayCounter >= AP_DELAY_FRAMES) {
-      soma.apState = AP.UPSTROKE;
-    }
-    break;
+      // Partial depolarization (commit but not spike)
+      soma.Vm += AP_PARAMS.upstrokeRate * 0.6;
 
+      // 🔑 Start invisible pre-AP front ONCE
+      if (window.preAxonAPPhase === null) {
+        window.preAxonAPPhase = 0;   // AIS origin
+      }
+
+      // Wait fixed biological delay
+      window.apDelayCounter++;
+
+      if (window.apDelayCounter >= AP_DELAY_FRAMES) {
+        soma.apState = AP.UPSTROKE;
+      }
+      break;
 
     // =================================================
     // FAST DEPOLARIZATION (VISIBLE AP)
@@ -157,6 +151,7 @@ function updateSoma() {
           );
         }
 
+        // 🔴 Visible AP enters axon
         spawnAxonSpike();
         console.log("⚡ ACTION POTENTIAL");
       }
