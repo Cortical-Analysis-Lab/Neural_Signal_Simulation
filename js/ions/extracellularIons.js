@@ -229,17 +229,6 @@ function drawExtracellularIons() {
     lastAxonKPhase = -Infinity;
   }
 
-  // ==============================
-  // 🟡 Na⁺ PRE-DEPOLARIZATION WAVE
-  // Spatially LEADS AP (index-based)
-  // ==============================
-  if (!window.naWaveStarted && ecsIons.AxonNaWave.length === 0) {
-    triggerAxonNaWave(1);
-    window.naWaveStarted = true;
-  }
-
-
-
 // ---- DRAW Na⁺ WAVE (ROBUST INFLOW) ----
 fill(getColor("sodium", 140));
 
@@ -266,9 +255,10 @@ ecsIons.AxonNaWave = ecsIons.AxonNaWave.filter(p => {
 
       const d = dist(p.x, p.y, c.x, c.y);
     // 🔑 Na⁺ reached hillock → allow AP
-    if (!window.naTriggeredAP && p.axonIdx <= 1) {
+    if (!window.naTriggeredAP && p.axonIdx <= 1 && p.life > 0) {
       window.naTriggeredAP = true;
-}
+    }
+
 
       // once recruited, ignore velocity entirely
       if (d < AXON_NA_WAVE_RADIUS * 0.9) {
