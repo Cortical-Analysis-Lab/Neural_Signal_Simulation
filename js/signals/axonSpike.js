@@ -15,7 +15,7 @@ const PRE_AP_SPEED = window.PRE_AP_SPEED ?? 0.015;
 
 // Fractional lead so Na⁺ wave precedes visible AP
 // ↑ increase = longer soma→AIS delay
-const PRE_AP_START_OFFSET = 0.08;
+const PRE_AP_START_OFFSET = 0.1;
 
 // Invisible AP terminates BEFORE terminals
 // (prevents Na⁺ wave from entering boutons)
