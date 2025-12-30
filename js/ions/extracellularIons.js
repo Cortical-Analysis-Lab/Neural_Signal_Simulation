@@ -55,7 +55,7 @@ const K_FLUX_SPEED      = 2.2;
 const K_FLUX_LIFETIME   = 160;
 const K_SPAWN_RADIUS    = 28;
 
-const ION_VEL_DECAY     = 0.965;
+const ION_VEL_DECAY     = 0.8;
 
 // -----------------------------------------------------
 // AXONAL Na⁺ WAVE (LEADING, DETACHED FROM HALO)
