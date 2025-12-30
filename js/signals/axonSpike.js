@@ -7,19 +7,10 @@ console.log("axonSpike loaded");
 // Parameters
 // -----------------------------------------------------
 const AXON_CONDUCTION_SPEED     = 0.02;  // visible AP speed
+const PRE_AP_SPEED              = window.PRE_AP_SPEED ?? 0.025; // invisible AP
 const TERMINAL_CONDUCTION_SPEED = 0.06;
 const TERMINAL_GLOW_LIFETIME    = 18;
 const AXON_TERMINAL_START       = 0.75;
-
-// =====================================================
-// Na⁺ → AP COUPLING (TEACHING KNOBS)
-// =====================================================
-const PRE_AP_SPEED = window.PRE_AP_SPEED ?? 0.02;
-
-// -----------------------------------------------------
-// Invisible pre-AP state (driver ONLY)
-// -----------------------------------------------------
-window.preAxonAPPhase = null; // [0–1] along axon
 
 // -----------------------------------------------------
 // Ion gating (K⁺ must trail visible AP)
@@ -32,6 +23,11 @@ const AXON_K_RELEASE_INTERVAL = 0.06;
 const axonSpikes = [];
 
 // -----------------------------------------------------
+// Active invisible Na⁺-driving APs
+// -----------------------------------------------------
+const invisibleAxonAPs = [];
+
+// -----------------------------------------------------
 // Active terminal branch AP fragments
 // -----------------------------------------------------
 const terminalSpikes = [];
@@ -42,38 +38,41 @@ const terminalSpikes = [];
 const terminalGlows = [];
 
 // =====================================================
-// SPAWN VISIBLE AP (CALLED FROM soma.js ONLY)
+// SPAWN INVISIBLE AP (CALLED FROM soma.js — NA_COMMIT)
+// =====================================================
+function spawnInvisibleAxonAP() {
+  invisibleAxonAPs.push({ phase: 0 });
+}
+
+// =====================================================
+// SPAWN VISIBLE AP (CALLED FROM soma.js — UPSTROKE)
 // =====================================================
 function spawnAxonSpike() {
 
-  // Prevent overlapping APs
+  // Prevent overlapping visible APs
   if (axonSpikes.length > 0) {
     const last = axonSpikes[axonSpikes.length - 1];
     if (last.phase < 0.1) return;
   }
 
-  // 🔑 Myelinated handoff
+  // Myelinated handoff
   if (window.myelinEnabled && typeof spawnMyelinAP === "function") {
 
-    if (!state.paused && typeof logEvent === "function") {
-      logEvent(
-        "system",
-        "Action potential enters myelinated axon (saltatory conduction)",
-        "axon"
-      );
-    }
+    logEvent?.(
+      "system",
+      "Action potential enters myelinated axon (saltatory conduction)",
+      "axon"
+    );
 
     spawnMyelinAP();
     return;
   }
 
-  if (!state.paused && typeof logEvent === "function") {
-    logEvent(
-      "neural",
-      "Action potential propagates down unmyelinated axon",
-      "axon"
-    );
-  }
+  logEvent?.(
+    "neural",
+    "Action potential propagates down unmyelinated axon",
+    "axon"
+  );
 
   axonSpikes.push({
     phase: 0,
@@ -88,26 +87,28 @@ function updateAxonSpikes() {
 
   window.currentAxonAPPhase = null;
 
-  // -----------------------------------------------
-  // INVISIBLE PRE-AP FRONT (Na⁺ WAVE DRIVER)
-  // -----------------------------------------------
-  if (window.preAxonAPPhase !== null) {
+  // ---------------------------------------------------
+  // INVISIBLE APs — DRIVE Na⁺ WAVE ONLY
+  // ---------------------------------------------------
+  for (let i = invisibleAxonAPs.length - 1; i >= 0; i--) {
 
-    window.preAxonAPPhase += PRE_AP_SPEED;
+    const s = invisibleAxonAPs[i];
+    s.phase += PRE_AP_SPEED;
 
+    // Drive Na⁺ wave from this phase
     if (typeof triggerAxonNaWave === "function") {
-      triggerAxonNaWave();
+      triggerAxonNaWave(s.phase);
     }
 
     // End invisible AP cleanly
-    if (window.preAxonAPPhase >= 1 || axonSpikes.length > 0) {
-      window.preAxonAPPhase = null;
+    if (s.phase >= 1) {
+      invisibleAxonAPs.splice(i, 1);
     }
   }
 
-  // -----------------------------------------------
-  // VISIBLE AP PROPAGATION
-  // -----------------------------------------------
+  // ---------------------------------------------------
+  // VISIBLE APs — K⁺ + TERMINALS
+  // ---------------------------------------------------
   for (let i = axonSpikes.length - 1; i >= 0; i--) {
 
     const s = axonSpikes[i];
@@ -115,9 +116,7 @@ function updateAxonSpikes() {
 
     window.currentAxonAPPhase = s.phase;
 
-    // -------------------------------------------
-    // K⁺ efflux (VISIBLE AP ONLY)
-    // -------------------------------------------
+    // K⁺ efflux (visible AP only)
     if (
       typeof triggerAxonKEfflux === "function" &&
       s.phase - s.lastKEffluxPhase > AXON_K_RELEASE_INTERVAL
@@ -126,20 +125,16 @@ function updateAxonSpikes() {
       s.lastKEffluxPhase = s.phase;
     }
 
-    // -------------------------------------------
     // Enter terminal region
-    // -------------------------------------------
     if (s.phase >= AXON_TERMINAL_START) {
 
       window.currentAxonAPPhase = null;
 
-      if (!state.paused && typeof logEvent === "function") {
-        logEvent(
-          "neural",
-          "Action potential reaches axon terminals",
-          "terminal"
-        );
-      }
+      logEvent?.(
+        "neural",
+        "Action potential reaches axon terminals",
+        "terminal"
+      );
 
       spawnTerminalSpikes();
       axonSpikes.splice(i, 1);
@@ -170,28 +165,15 @@ function updateTerminalDots() {
 
       const bouton = ts.branch.end;
 
-      // -----------------------------
-      // Metabolic signaling (SAFE)
-      // -----------------------------
-      if (typeof logEvent === "function") {
-        logEvent(
-          "vascular",
-          "Neural firing increases local metabolic demand",
-          "neurovascular"
-        );
-      }
+      logEvent?.(
+        "vascular",
+        "Neural firing increases local metabolic demand",
+        "neurovascular"
+      );
 
-      if (typeof extractOxygenNearNeuron1 === "function") {
-        extractOxygenNearNeuron1();
-      }
-
-      if (typeof extractGlucoseNearNeuron1 === "function") {
-        extractGlucoseNearNeuron1();
-      }
-
-      if (typeof triggerSupplyWave === "function") {
-        triggerSupplyWave(1.0);
-      }
+      extractOxygenNearNeuron1?.();
+      extractGlucoseNearNeuron1?.();
+      triggerSupplyWave?.(1.0);
 
       terminalGlows.push({
         x: bouton.x,
@@ -199,10 +181,7 @@ function updateTerminalDots() {
         life: TERMINAL_GLOW_LIFETIME
       });
 
-      if (typeof triggerSynapticRelease === "function") {
-        triggerSynapticRelease(bouton);
-      }
-
+      triggerSynapticRelease?.(bouton);
       terminalSpikes.splice(i, 1);
     }
   }
@@ -210,9 +189,7 @@ function updateTerminalDots() {
   // Glow decay
   for (let i = terminalGlows.length - 1; i >= 0; i--) {
     terminalGlows[i].life--;
-    if (terminalGlows[i].life <= 0) {
-      terminalGlows.splice(i, 1);
-    }
+    if (terminalGlows[i].life <= 0) terminalGlows.splice(i, 1);
   }
 }
 
@@ -260,8 +237,9 @@ function drawAxonSpikes() {
 }
 
 // =====================================================
-// GLOBAL EXPORTS (REQUIRED)
+// GLOBAL EXPORTS
 // =====================================================
-window.updateAxonSpikes = updateAxonSpikes;
-window.spawnAxonSpike  = spawnAxonSpike;
-window.drawAxonSpikes  = drawAxonSpikes;
+window.updateAxonSpikes      = updateAxonSpikes;
+window.spawnAxonSpike       = spawnAxonSpike;
+window.spawnInvisibleAxonAP = spawnInvisibleAxonAP;
+window.drawAxonSpikes       = drawAxonSpikes;
