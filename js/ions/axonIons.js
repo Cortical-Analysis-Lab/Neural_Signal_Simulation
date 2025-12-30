@@ -28,7 +28,7 @@ const HALO_NA_RELAX   = 0.95;
 const HALO_K_RELAX    = 0.80;
 
 // -----------------------------------------------------
-// Na⁺ WAVE (INVISIBLE PRE-AP DRIVEN)
+// Na⁺ WAVE (INVISIBLE AP DRIVEN)
 // -----------------------------------------------------
 const AXON_NA_WAVE_SPEED    = 1.6;
 const AXON_NA_WAVE_RADIUS   = 28;
@@ -47,14 +47,15 @@ const AXON_K_PHASE_STEP     = 0.045;
 let lastAxonKPhase = -Infinity;
 
 // =====================================================
-// AXON Na⁺ WAVE — DRIVEN BY preAxonAPPhase
+// AXON Na⁺ WAVE — DRIVEN BY *PASSED-IN* AP PHASE
 // =====================================================
-function triggerAxonNaWave() {
+function triggerAxonNaWave(apPhase) {
 
-  if (!neuron?.axon?.path || window.preAxonAPPhase == null) return;
+  if (!neuron?.axon?.path) return;
+  if (apPhase == null) return;
 
   const path = neuron.axon.path;
-  const idx  = floor(window.preAxonAPPhase * (path.length - 2));
+  const idx  = Math.floor(apPhase * (path.length - 2));
 
   if (idx <= 0 || idx >= path.length - 1) return;
 
@@ -97,7 +98,7 @@ function triggerAxonKEfflux(apPhase) {
   lastAxonKPhase = apPhase;
 
   const path = neuron.axon.path;
-  const idx  = floor(apPhase * (path.length - 2));
+  const idx  = Math.floor(apPhase * (path.length - 2));
 
   if (idx <= 0 || idx >= path.length - 1) return;
 
@@ -233,7 +234,7 @@ function initAxonIons() {
     for (let i = 0; i < count; i++) {
 
       const t   = i / count;
-      const idx = floor(t * (path.length - 2));
+      const idx = Math.floor(t * (path.length - 2));
 
       const p1 = path[idx];
       const p2 = path[idx + 1];
@@ -269,7 +270,7 @@ function initAxonIons() {
 // =====================================================
 // EXPORTS
 // =====================================================
-window.triggerAxonNaWave = triggerAxonNaWave;
+window.triggerAxonNaWave   = triggerAxonNaWave;
 window.triggerAxonKEfflux = triggerAxonKEfflux;
-window.drawAxonIons = drawAxonIons;
-window.initAxonIons = initAxonIons;
+window.drawAxonIons       = drawAxonIons;
+window.initAxonIons       = initAxonIons;
