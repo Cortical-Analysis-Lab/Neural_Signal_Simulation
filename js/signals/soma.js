@@ -6,7 +6,7 @@ console.log("soma loaded");
 // -----------------------------------------------------
 // Na⁺ → AP timing (TEACHING KNOBS)
 // -----------------------------------------------------
-const AP_DELAY_FRAMES = 6;   // 🔥 frames between soma Na⁺ influx and AP upstroke
+const AP_DELAY_FRAMES = 6;   // frames between soma Na⁺ influx and AP upstroke
 
 // -----------------------------------------------------
 // Action potential phases
@@ -24,9 +24,9 @@ const AP = {
 // Tunable AP parameters (biophysically inspired)
 // -----------------------------------------------------
 const AP_PARAMS = {
-  upstrokeRate: 7.5,     // fast Na+ influx
+  upstrokeRate: 7.5,     // fast Na⁺ influx
   peakHold: 2,           // frames at peak
-  repolRate: 5.0,        // K+ efflux
+  repolRate: 5.0,        // K⁺ efflux
   ahpTarget: -78,        // after-hyperpolarization
   ahpRate: 1.2,
   refractoryFrames: 25
@@ -52,7 +52,7 @@ const soma = {
 // -----------------------------------------------------
 function addEPSPToSoma(amplitude, type, sourceNeuron = 1) {
 
-  // 🚫 Ignore IPSPs originating from neuron 3
+  // Ignore IPSPs originating from neuron 3
   if (type !== "exc" && sourceNeuron === 3) return;
 
   const normalized = constrain((amplitude - 6) / 24, 0, 1);
@@ -86,13 +86,14 @@ function updateSoma() {
       }
 
       else if (soma.Vm >= soma.threshold) {
+
         soma.apState = AP.NA_COMMIT;
         soma.delayCounter = 0;
 
-        // 🟡 Soma Na⁺ influx (visual + conceptual)
-        triggerNaInfluxNeuron1();
+        // Soma Na⁺ influx (visual + conceptual)
+        triggerNaInfluxNeuron1?.();
 
-        // 🔑 REQUEST invisible axonal AP (do NOT manage it here)
+        // 🔑 Request invisible axonal AP (axon manages it)
         spawnInvisibleAxonAP?.();
       }
 
@@ -127,20 +128,18 @@ function updateSoma() {
         soma.apState = AP.PEAK;
         soma.apTimer = AP_PARAMS.peakHold;
 
-        // 🔑 Metabolic signal
+        // Metabolic coupling
         window.neuron1Fired = true;
         window.lastNeuron1SpikeTime = state.time;
 
-        if (typeof logEvent === "function") {
-          logEvent(
-            "neural",
-            "Action potential generated at the soma",
-            "soma"
-          );
-        }
+        logEvent?.(
+          "neural",
+          "Action potential generated at the soma",
+          "soma"
+        );
 
         // 🔴 Spawn visible axonal AP
-        spawnAxonSpike();
+        spawnAxonSpike?.();
       }
       break;
 
