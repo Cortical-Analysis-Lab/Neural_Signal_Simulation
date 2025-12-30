@@ -2,9 +2,10 @@
 // NODE IONS — MYELINATED AXON (Na⁺ / K⁺)
 // =====================================================
 // ✔ Node-of-Ranvier only
-// ✔ Event-driven (no phase math)
-// ✔ No internodal ion motion
-// ✔ Strong, bursty teaching visuals
+// ✔ Event-driven
+// ✔ Directed transmembrane flux
+// ✔ Na⁺ drawn INTO axon
+// ✔ K⁺ expelled OUT of axon
 // =====================================================
 
 console.log("🧬 nodeIons loaded");
@@ -17,31 +18,32 @@ ecsIons.NodeNa = ecsIons.NodeNa || [];
 ecsIons.NodeK  = ecsIons.NodeK  || [];
 
 // -----------------------------------------------------
-// TUNING PARAMETERS (VISUAL SALIENCE)
+// VISUAL / PHYSIOLOGY TUNING
 // -----------------------------------------------------
 
-// Radial distance from node
-const NODE_NA_RADIUS    = 16;   // ↑ was 10
-const NODE_K_RADIUS    = 22;   // ↑ was 14
+// Radii
+const NODE_RADIUS          = 10;
+const NODE_NA_SPAWN_RADIUS = 20;
+const NODE_K_SPAWN_RADIUS  = 12;
 
-// Lifetime (frames)
-const NODE_NA_LIFETIME  = 32;   // ↑ was 20
-const NODE_K_LIFETIME  = 44;   // ↑ was 28
+// Lifetimes
+const NODE_NA_LIFETIME = 34;
+const NODE_K_LIFETIME  = 46;
 
-// Velocity magnitude
-const NODE_NA_SPREAD   = 0.9;  // ↑ was 0.4
-const NODE_K_SPREAD   = 1.6;  // ↑ was 1.2
+// Burst sizes
+const NODE_NA_BURST_PER_SIDE = 4;
+const NODE_K_BURST_COUNT    = 6;
 
-// Burst counts
-const NODE_NA_BURST_PER_SIDE = 3;
-const NODE_K_BURST_COUNT    = 5;
+// Force magnitudes
+const NA_ATTRACTION_FORCE = 0.9;   // pull inward
+const K_REPULSION_FORCE   = 1.4;   // push outward
 
-// Motion damping
-const NODE_NA_DAMPING = 0.92;
-const NODE_K_DAMPING  = 0.88;
+// Damping
+const NA_DAMPING = 0.90;
+const K_DAMPING  = 0.88;
 
 // -----------------------------------------------------
-// Na⁺ INFLUX — NODE ONLY (BURSTY, PRE-DOMINANT)
+// Na⁺ INFLUX — STRONGLY INWARD
 // -----------------------------------------------------
 function triggerNodeNaInflux(nodeIdx) {
 
@@ -50,24 +52,28 @@ function triggerNodeNaInflux(nodeIdx) {
   const node = neuron?.axon?.nodes?.[nodeIdx];
   if (!node) return;
 
-  // Symmetric bilateral Na⁺ bursts
   [-1, +1].forEach(side => {
     for (let i = 0; i < NODE_NA_BURST_PER_SIDE; i++) {
 
+      const x = node.x + side * NODE_NA_SPAWN_RADIUS;
+      const y = node.y + random(-6, 6);
+
       ecsIons.NodeNa.push({
-        x: node.x + side * NODE_NA_RADIUS,
-        y: node.y,
-        vx: side * (NODE_NA_SPREAD + random(0.3)),
-        vy: random(-0.8, 0.8),
+        x,
+        y,
+
+        // initial velocity toward node
+        vx: (node.x - x) * 0.08,
+        vy: (node.y - y) * 0.08,
+
         life: NODE_NA_LIFETIME + random(-6, 6)
       });
-
     }
   });
 }
 
 // -----------------------------------------------------
-// K⁺ EFFLUX — NODE / PARANODE (DIFFUSE PLUME)
+// K⁺ EFFLUX — STRONGLY OUTWARD
 // -----------------------------------------------------
 function triggerNodeKEfflux(nodeIdx) {
 
@@ -78,19 +84,27 @@ function triggerNodeKEfflux(nodeIdx) {
 
   for (let i = 0; i < NODE_K_BURST_COUNT; i++) {
 
+    const angle = random(TWO_PI);
+    const r = NODE_K_SPAWN_RADIUS;
+
+    const x = node.x + cos(angle) * r;
+    const y = node.y + sin(angle) * r;
+
     ecsIons.NodeK.push({
-      x: node.x,
-      y: node.y,
-      vx: random(-NODE_K_SPREAD, NODE_K_SPREAD),
-      vy: random(-NODE_K_SPREAD, NODE_K_SPREAD) + 0.8, // outward bias
+      x,
+      y,
+
+      // initial velocity away from node
+      vx: cos(angle) * K_REPULSION_FORCE,
+      vy: sin(angle) * K_REPULSION_FORCE,
+
       life: NODE_K_LIFETIME + random(-8, 8)
     });
-
   }
 }
 
 // -----------------------------------------------------
-// DRAW
+// DRAW — APPLY FORCE FIELDS EACH FRAME
 // -----------------------------------------------------
 function drawNodeIons() {
   push();
@@ -98,32 +112,51 @@ function drawNodeIons() {
   noStroke();
 
   // -----------------------------
-  // Na⁺ (NODE INFLUX)
+  // Na⁺ — ATTRACTIVE FIELD
   // -----------------------------
-  fill(getColor("sodium", 190)); // ↑ stronger contrast
+  fill(getColor("sodium", 200));
 
   ecsIons.NodeNa = ecsIons.NodeNa.filter(p => {
     p.life--;
+
+    // Pull toward nearest node center
+    const node = findClosestNode(p.x, p.y);
+    if (node) {
+      const dx = node.x - p.x;
+      const dy = node.y - p.y;
+      p.vx += dx * 0.02 * NA_ATTRACTION_FORCE;
+      p.vy += dy * 0.02 * NA_ATTRACTION_FORCE;
+    }
+
     p.x += p.vx;
     p.y += p.vy;
-    p.vx *= NODE_NA_DAMPING;
-    p.vy *= NODE_NA_DAMPING;
+    p.vx *= NA_DAMPING;
+    p.vy *= NA_DAMPING;
 
     text("Na⁺", p.x, p.y);
     return p.life > 0;
   });
 
   // -----------------------------
-  // K⁺ (NODE EFFLUX)
+  // K⁺ — REPULSIVE FIELD
   // -----------------------------
-  fill(getColor("potassium", 170)); // ↑ stronger contrast
+  fill(getColor("potassium", 180));
 
   ecsIons.NodeK = ecsIons.NodeK.filter(p => {
     p.life--;
+
+    const node = findClosestNode(p.x, p.y);
+    if (node) {
+      const dx = p.x - node.x;
+      const dy = p.y - node.y;
+      p.vx += dx * 0.03 * K_REPULSION_FORCE;
+      p.vy += dy * 0.03 * K_REPULSION_FORCE;
+    }
+
     p.x += p.vx;
     p.y += p.vy;
-    p.vx *= NODE_K_DAMPING;
-    p.vy *= NODE_K_DAMPING;
+    p.vx *= K_DAMPING;
+    p.vy *= K_DAMPING;
 
     text("K⁺", p.x, p.y);
     return p.life > 0;
@@ -133,7 +166,27 @@ function drawNodeIons() {
 }
 
 // -----------------------------------------------------
-// RESET (FOR NEW SPIKES / MODE SWITCH)
+// UTILITY — NEAREST NODE
+// -----------------------------------------------------
+function findClosestNode(x, y) {
+  const nodes = neuron?.axon?.nodes;
+  if (!nodes || nodes.length === 0) return null;
+
+  let best = null;
+  let bestD = Infinity;
+
+  for (const n of nodes) {
+    const d = dist(x, y, n.x, n.y);
+    if (d < bestD) {
+      bestD = d;
+      best = n;
+    }
+  }
+  return best;
+}
+
+// -----------------------------------------------------
+// RESET
 // -----------------------------------------------------
 function initNodeIons() {
   ecsIons.NodeNa.length = 0;
