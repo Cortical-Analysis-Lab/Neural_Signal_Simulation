@@ -4,13 +4,27 @@
 console.log("axonSpike loaded");
 
 // -----------------------------------------------------
-// Parameters
+// 🔧 TEACHING / TUNING PARAMETERS
 // -----------------------------------------------------
-const AXON_CONDUCTION_SPEED      = 0.01;   // visible AP speed
-const PRE_AP_SPEED               = window.PRE_AP_SPEED ?? 0.015; // invisible AP
-const TERMINAL_CONDUCTION_SPEED  = 0.06;
-const TERMINAL_GLOW_LIFETIME     = 18;
-const AXON_TERMINAL_START        = 0.75;
+
+// Visible axonal AP speed
+const AXON_CONDUCTION_SPEED = 0.01;
+
+// Invisible (Na⁺-driving) AP speed — should be ≥ visible
+const PRE_AP_SPEED = window.PRE_AP_SPEED ?? 0.015;
+
+// Fractional lead so Na⁺ wave precedes visible AP
+// ↑ increase = longer soma→AIS delay
+const PRE_AP_START_OFFSET = 0.08;
+
+// Invisible AP terminates BEFORE terminals
+// (prevents Na⁺ wave from entering boutons)
+const INVISIBLE_AP_END = 0.95 * 0.75; // relative to AXON_TERMINAL_START
+
+// Terminal conduction + visuals
+const TERMINAL_CONDUCTION_SPEED = 0.06;
+const TERMINAL_GLOW_LIFETIME    = 18;
+const AXON_TERMINAL_START       = 0.75;
 
 // -----------------------------------------------------
 // Ion gating (K⁺ must trail visible AP)
@@ -18,31 +32,23 @@ const AXON_TERMINAL_START        = 0.75;
 const AXON_K_RELEASE_INTERVAL = 0.06;
 
 // -----------------------------------------------------
-// Active visible axonal APs
+// Active AP containers
 // -----------------------------------------------------
-const axonSpikes = [];
-
-// -----------------------------------------------------
-// Active invisible Na⁺-driving APs
-// -----------------------------------------------------
-const invisibleAxonAPs = [];
-
-// -----------------------------------------------------
-// Active terminal branch AP fragments
-// -----------------------------------------------------
-const terminalSpikes = [];
-
-// -----------------------------------------------------
-// Bouton depolarization glows (visual only)
-// -----------------------------------------------------
-const terminalGlows = [];
+const axonSpikes       = []; // visible APs
+const invisibleAxonAPs = []; // Na⁺-driving APs
+const terminalSpikes   = [];
+const terminalGlows    = [];
 
 // =====================================================
-// SPAWN INVISIBLE AP (CALLED FROM soma.js — NA_COMMIT)
+// SPAWN INVISIBLE AP (CALLED FROM soma.js — Na⁺ COMMIT)
 // =====================================================
 function spawnInvisibleAxonAP() {
+
+  // 🔒 Only one invisible AP at a time
+  if (invisibleAxonAPs.length > 0) return;
+
   invisibleAxonAPs.push({
-    phase: 0
+    phase: -PRE_AP_START_OFFSET
   });
 }
 
@@ -93,24 +99,24 @@ function spawnAxonSpike() {
 // =====================================================
 function updateAxonSpikes() {
 
-  // Reset each frame
+  // Reset ECS-coupled phase each frame
   window.currentAxonAPPhase = null;
 
   // ---------------------------------------------------
-  // INVISIBLE APs — DRIVE Na⁺ WAVE ONLY
+  // INVISIBLE APs — Na⁺ WAVE ONLY
   // ---------------------------------------------------
   for (let i = invisibleAxonAPs.length - 1; i >= 0; i--) {
 
     const s = invisibleAxonAPs[i];
     s.phase += PRE_AP_SPEED;
 
-    // 🔑 Drive Na⁺ wave using THIS AP's phase
+    // 🔑 Drive Na⁺ wave
     if (typeof triggerAxonNaWave === "function") {
       triggerAxonNaWave(s.phase);
     }
 
-    // End invisible AP cleanly
-    if (s.phase >= 1) {
+    // End BEFORE terminals
+    if (s.phase >= INVISIBLE_AP_END) {
       invisibleAxonAPs.splice(i, 1);
     }
   }
@@ -123,7 +129,7 @@ function updateAxonSpikes() {
     const s = axonSpikes[i];
     s.phase += AXON_CONDUCTION_SPEED;
 
-    // Expose phase for ECS coupling (K⁺ halos)
+    // Expose phase for K⁺ ECS coupling
     window.currentAxonAPPhase = s.phase;
 
     // -----------------------------
@@ -184,9 +190,7 @@ function updateTerminalDots() {
 
       const bouton = ts.branch.end;
 
-      // -------------------------------------------------
-      // Metabolic demand signal (feeds bloodContents.js)
-      // -------------------------------------------------
+      // Metabolic demand signal
       window.neuron1Fired = true;
       window.lastNeuron1SpikeTime = state.time;
 
