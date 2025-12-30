@@ -8,11 +8,13 @@ console.log("soma loaded");
 // -----------------------------------------------------
 const AP = {
   NONE: 0,
+  NA_COMMIT: 0.5,
   UPSTROKE: 1,
   PEAK: 2,
   REPOLARIZE: 3,
   AHP: 4
 };
+
 
 // -----------------------------------------------------
 // Tunable AP parameters (biophysically inspired)
@@ -25,6 +27,8 @@ const AP_PARAMS = {
   ahpRate: 1.2,
   refractoryFrames: 25
 };
+
+
 
 // -----------------------------------------------------
 // Soma state
@@ -98,8 +102,6 @@ function updateSoma() {
 
         spawnAxonSpike();
         console.log("⚡ ACTION POTENTIAL");
-        // 🔑 Reset Na⁺ front to AIS at spike start
-        window.axonNaActive = true;
 
       }
       break;
@@ -147,14 +149,39 @@ function updateSoma() {
         soma.Vm = lerp(soma.Vm, soma.rest, 0.2);
       }
 
-      else if (soma.Vm >= soma.threshold) {
-        soma.apState = AP.UPSTROKE;
-      }
+     else if (
+      soma.Vm >= soma.threshold &&
+      soma.apState !== AP.NA_COMMIT
+    ) {
+      soma.apState = AP.NA_COMMIT;
+      triggerNaInfluxNeuron1();
+      window.naWaveStarted = false;
+    }
+
 
       else {
         soma.Vm = lerp(soma.Vm, soma.rest, 0.05);
       }
       break;
+
+      case AP.NA_COMMIT:
+
+  // partial depolarization from soma Na⁺ influx
+  soma.Vm += AP_PARAMS.upstrokeRate * 0.6;
+
+  // start AIS Na⁺ wave ONCE
+  if (!window.naWaveStarted) {
+    triggerAxonNaWave(1);   // AIS / hillock
+    window.naWaveStarted = true;
+  }
+
+  // wait for Na⁺ wave to reach hillock
+  if (window.naTriggeredAP) {
+    soma.apState = AP.UPSTROKE;
+    window.naTriggeredAP = false;
+  }
+  break;
+
   }
 
   // ===================================================
