@@ -20,7 +20,7 @@ const AP_DELAY_FRAMES = 6;     // 🔥 delay between Na⁺ wave & visible AP
 // -----------------------------------------------------
 // Invisible pre-AP state (driver ONLY)
 // -----------------------------------------------------
-window.preAxonAPPhase  = null;
+window.preAxonAPPhase  = null; // [0–1] along axon
 window.apDelayCounter = 0;
 
 // -----------------------------------------------------
