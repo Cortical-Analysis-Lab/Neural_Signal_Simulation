@@ -30,6 +30,14 @@ const K_SPAWN_RADIUS   = 28;
 const ION_VEL_DECAY    = 0.965;
 
 // =====================================================
+// 🔧 INITIALIZATION (CALLED FROM main.js)
+// =====================================================
+function initSomaIons() {
+  ecsIons.NaFlux.length = 0;
+  ecsIons.KFlux.length  = 0;
+}
+
+// =====================================================
 // 🧠 SOMA TRIGGERS
 // =====================================================
 function triggerNaInfluxNeuron1() {
@@ -111,6 +119,7 @@ function drawSomaIons() {
 // =====================================================
 // EXPORTS
 // =====================================================
+window.initSomaIons            = initSomaIons;
 window.triggerNaInfluxNeuron1 = triggerNaInfluxNeuron1;
-window.triggerKEffluxNeuron1 = triggerKEffluxNeuron1;
-window.drawSomaIons          = drawSomaIons;
+window.triggerKEffluxNeuron1  = triggerKEffluxNeuron1;
+window.drawSomaIons           = drawSomaIons;
