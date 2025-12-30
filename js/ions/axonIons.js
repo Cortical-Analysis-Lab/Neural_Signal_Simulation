@@ -14,7 +14,7 @@ ecsIons.AxonNaWave   = ecsIons.AxonNaWave   || [];
 ecsIons.AxonKFlux    = ecsIons.AxonKFlux    || [];
 
 // -----------------------------------------------------
-// AXON HALO GEOMETRY
+// AXON HALO GEOMETRY (STATIC CONTEXT)
 // -----------------------------------------------------
 const AXON_HALO_RADIUS    = 28;
 const AXON_HALO_THICKNESS = 4;
@@ -32,11 +32,11 @@ const HALO_K_RELAX    = 0.80;
 // -----------------------------------------------------
 const AXON_NA_WAVE_SPEED      = 1.6;
 const AXON_NA_WAVE_RADIUS    = 28;
-const AXON_NA_WAVE_LIFETIME  = 26;
+const AXON_NA_WAVE_LIFETIME  = 24;
 const AXON_NA_MIDLINE_RADIUS = 6;
 const NA_APPROACH_DECAY      = 0.99;
 
-// 🔑 THIS CONTROLS DENSITY / SPACING
+// 🔑 THIS IS THE DENSITY / SPACING CONTROL
 // ↑ increase = fewer Na⁺, more spacing
 // ↓ decrease = denser wave
 const AXON_NA_PHASE_SPACING = 0.045;
@@ -60,7 +60,7 @@ function triggerAxonNaWave(apPhase) {
   if (!neuron?.axon?.path || apPhase == null) return;
 
   // ---------------------------------------------
-  // PHASE SPACING GATE (CORE FIX)
+  // PHASE SPACING GATE (CRITICAL)
   // ---------------------------------------------
   if (apPhase - lastNaWavePhase < AXON_NA_PHASE_SPACING) return;
   lastNaWavePhase = apPhase;
@@ -81,7 +81,7 @@ function triggerAxonNaWave(apPhase) {
   const ny =  dx / len;
 
   // ---------------------------------------------
-  // BILATERAL: exactly ONE Na⁺ per side
+  // EXACTLY ONE Na⁺ PER SIDE
   // ---------------------------------------------
   [-1, +1].forEach(side => {
     ecsIons.AxonNaWave.push({
@@ -181,7 +181,7 @@ function drawAxonIons() {
 }
 
 // =====================================================
-// INITIALIZATION / RESET (CRITICAL)
+// INITIALIZATION / RESET (CRITICAL FOR REPEAT)
 // =====================================================
 function initAxonIons() {
   ecsIons.AxonNaStatic.length = 0;
