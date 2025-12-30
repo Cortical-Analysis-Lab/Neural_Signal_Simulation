@@ -128,7 +128,7 @@ function setup() {
   initAxonPath(neuron);
   initArtery();
 
-  neuron.axon.myelinNodes = generateMyelinNodes(neuron.axon.path);
+  neuron.axon.nodes = generateMyelinNodes(neuron.axon.path);
 
   initNeuron2();
   initNeuron3();
@@ -140,6 +140,11 @@ function setup() {
   initBackgroundIons();
   initSomaIons();
   initAxonIons();
+
+  if (typeof initNodeIons === "function") {
+  initNodeIons();
+  }
+
 
   // ---------------------------------------------------
   // INITIAL MODE
@@ -267,10 +272,14 @@ function draw() {
   // 🌊 EXTRACELLULAR SPACE (BACKGROUND ENVIRONMENT)
   // ===================================================
   if (state.mode === "overview" || state.mode === "ion") {
-    drawBackgroundIons();
-    drawSomaIons();
-    drawAxonIons();
+  drawBackgroundIons();
+  drawSomaIons();
+  drawAxonIons();
+  
+  if (window.myelinEnabled) {
+    drawNodeIons();
   }
+
 
   // ---------------------------------------------------
 // UPDATE BIOLOGICAL DYNAMICS
