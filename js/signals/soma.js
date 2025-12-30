@@ -36,21 +36,16 @@ const AP_PARAMS = {
 // Soma state
 // -----------------------------------------------------
 const soma = {
-  Vm: -65,            // TRUE membrane potential
-  VmDisplay: -65,     // visual smoothing only
+  Vm: -65,
+  VmDisplay: -65,
   rest: -65,
   threshold: -50,
 
   apState: AP.NONE,
   apTimer: 0,
-  refractory: 0
+  refractory: 0,
+  delayCounter: 0
 };
-
-// -----------------------------------------------------
-// Invisible pre-AP front (driver for axonal Na⁺ wave)
-// -----------------------------------------------------
-window.preAxonAPPhase = null;
-window.apDelayCounter = 0;
 
 // -----------------------------------------------------
 // PSP arrival at soma (EPSP / IPSP)
@@ -92,13 +87,13 @@ function updateSoma() {
 
       else if (soma.Vm >= soma.threshold) {
         soma.apState = AP.NA_COMMIT;
+        soma.delayCounter = 0;
 
         // 🟡 Soma Na⁺ influx (visual + conceptual)
         triggerNaInfluxNeuron1();
 
-        // Reset AP → axon coupling
-        window.preAxonAPPhase = null;
-        window.apDelayCounter = 0;
+        // 🔑 REQUEST invisible axonal AP (do NOT manage it here)
+        spawnInvisibleAxonAP?.();
       }
 
       else {
@@ -111,18 +106,10 @@ function updateSoma() {
     // =================================================
     case AP.NA_COMMIT:
 
-      // Partial depolarization (commit but not spike)
       soma.Vm += AP_PARAMS.upstrokeRate * 0.6;
+      soma.delayCounter++;
 
-      // 🔑 Start invisible pre-AP front ONCE
-      if (window.preAxonAPPhase === null) {
-        window.preAxonAPPhase = 0;   // AIS origin
-      }
-
-      // Wait fixed biological delay
-      window.apDelayCounter++;
-
-      if (window.apDelayCounter >= AP_DELAY_FRAMES) {
+      if (soma.delayCounter >= AP_DELAY_FRAMES) {
         soma.apState = AP.UPSTROKE;
       }
       break;
@@ -131,9 +118,11 @@ function updateSoma() {
     // FAST DEPOLARIZATION (VISIBLE AP)
     // =================================================
     case AP.UPSTROKE:
+
       soma.Vm += AP_PARAMS.upstrokeRate;
 
       if (soma.Vm >= 40) {
+
         soma.Vm = 40;
         soma.apState = AP.PEAK;
         soma.apTimer = AP_PARAMS.peakHold;
@@ -142,7 +131,6 @@ function updateSoma() {
         window.neuron1Fired = true;
         window.lastNeuron1SpikeTime = state.time;
 
-        // 🔔 Log once
         if (typeof logEvent === "function") {
           logEvent(
             "neural",
@@ -151,9 +139,8 @@ function updateSoma() {
           );
         }
 
-        // 🔴 Visible AP enters axon
+        // 🔴 Spawn visible axonal AP
         spawnAxonSpike();
-        console.log("⚡ ACTION POTENTIAL");
       }
       break;
 
@@ -177,20 +164,18 @@ function updateSoma() {
     // AFTER-HYPERPOLARIZATION
     // =================================================
     case AP.AHP:
+
       soma.Vm = lerp(soma.Vm, AP_PARAMS.ahpTarget, 0.15);
 
       if (abs(soma.Vm - AP_PARAMS.ahpTarget) < 0.5) {
         soma.apState = AP.NONE;
         soma.refractory = AP_PARAMS.refractoryFrames;
-
-        // Cleanup invisible AP
-        window.preAxonAPPhase = null;
       }
       break;
   }
 
   // ===================================================
-  // DISPLAY smoothing ONLY (trace-friendly)
+  // DISPLAY smoothing ONLY
   // ===================================================
   soma.VmDisplay = lerp(soma.VmDisplay, soma.Vm, 0.25);
 }
