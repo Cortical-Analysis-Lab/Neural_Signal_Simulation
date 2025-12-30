@@ -15,7 +15,6 @@ const AXON_TERMINAL_START       = 0.75;
 // Na⁺ → AP COUPLING (TEACHING KNOBS)
 // =====================================================
 const PRE_AP_SPEED    = 0.02;  // invisible Na⁺-priming front
-const AP_DELAY_FRAMES = 6;     // 🔥 delay between Na⁺ wave & visible AP
 
 // -----------------------------------------------------
 // Invisible pre-AP state (driver ONLY)
