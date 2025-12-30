@@ -8,10 +8,10 @@ console.log("🧠 soma loaded");
 // -----------------------------------------------------
 
 // 🔹 delay between soma Na⁺ influx and AIS activation
-const AP_DELAY_FRAMES = 6;
+const AP_DELAY_FRAMES = 14;
 
 // 🔹 invisible AP starts AFTER Na⁺ influx but BEFORE visible AP
-const INVISIBLE_AP_OFFSET = 2;   // frames after Na⁺ influx
+const INVISIBLE_AP_OFFSET = 10;   // frames after Na⁺ influx
 
 // -----------------------------------------------------
 // ACTION POTENTIAL PHASES
