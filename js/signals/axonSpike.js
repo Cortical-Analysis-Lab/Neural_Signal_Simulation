@@ -13,10 +13,6 @@ const AXON_CONDUCTION_SPEED = 0.01;
 // Invisible (Na⁺-driving) AP speed — should be ≥ visible
 const PRE_AP_SPEED = window.PRE_AP_SPEED ?? 0.015;
 
-// Fractional lead so Na⁺ wave precedes visible AP
-// ↑ increase = longer soma→AIS delay
-const PRE_AP_START_OFFSET = 0.5;
-
 // Invisible AP terminates BEFORE terminals
 // (prevents Na⁺ wave from entering boutons)
 const INVISIBLE_AP_END = 0.95 * 0.75; // relative to AXON_TERMINAL_START
