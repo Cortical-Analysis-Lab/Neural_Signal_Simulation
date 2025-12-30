@@ -111,6 +111,12 @@ function setMode(mode) {
 let canvas;
 
 function setup() {
+
+  console.log(
+    "axon path length:",
+    neuron?.axon?.path?.length
+  );
+
   canvas = createCanvas(windowWidth, windowHeight);
   canvas.parent(document.body);
   frameRate(60);
@@ -132,6 +138,7 @@ function setup() {
   // 🧂 EXTRACELLULAR IONS (MUST COME AFTER GEOMETRY)
   // ===================================================
   initBackgroundIons();
+  initSomaIons();
   initAxonIons();
 
   // ---------------------------------------------------
