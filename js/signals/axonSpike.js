@@ -82,24 +82,25 @@ function spawnAxonSpike() {
 }
 
 // =====================================================
-// UPDATE AXON SPIKES (VISIBLE + INVISIBLE)
+// UPDATE AXON SPIKES (INVISIBLE + VISIBLE)
 // =====================================================
 function updateAxonSpikes() {
 
   window.currentAxonAPPhase = null;
 
   // -----------------------------------------------
-  // INVISIBLE PRE-AP FRONT (Na⁺ wave driver)
+  // INVISIBLE PRE-AP FRONT (Na⁺ WAVE DRIVER)
   // -----------------------------------------------
   if (window.preAxonAPPhase !== null) {
 
     window.preAxonAPPhase += PRE_AP_SPEED;
 
-    // Drive Na⁺ wave spatially
-    triggerAxonNaWave?.();
+    if (typeof triggerAxonNaWave === "function") {
+      triggerAxonNaWave();
+    }
 
-    // Stop invisible front once visible AP exists
-    if (axonSpikes.length > 0 || window.preAxonAPPhase >= 1) {
+    // End invisible AP cleanly
+    if (window.preAxonAPPhase >= 1 || axonSpikes.length > 0) {
       window.preAxonAPPhase = null;
     }
   }
@@ -112,14 +113,13 @@ function updateAxonSpikes() {
     const s = axonSpikes[i];
     s.phase += AXON_CONDUCTION_SPEED;
 
-    // 🔑 expose phase for ECS coupling (K⁺ halos)
     window.currentAxonAPPhase = s.phase;
 
     // -------------------------------------------
-    // K⁺ efflux (TRAILS visible AP ONLY)
+    // K⁺ efflux (VISIBLE AP ONLY)
     // -------------------------------------------
     if (
-      triggerAxonKEfflux &&
+      typeof triggerAxonKEfflux === "function" &&
       s.phase - s.lastKEffluxPhase > AXON_K_RELEASE_INTERVAL
     ) {
       triggerAxonKEfflux(s.phase);
@@ -152,10 +152,7 @@ function updateAxonSpikes() {
 // =====================================================
 function spawnTerminalSpikes() {
   neuron.axon.terminalBranches.forEach(branch => {
-    terminalSpikes.push({
-      branch,
-      t: 0
-    });
+    terminalSpikes.push({ branch, t: 0 });
   });
 }
 
@@ -171,23 +168,30 @@ function updateTerminalDots() {
 
     if (ts.t >= 1) {
 
-      const bouton = {
-        x: ts.branch.end.x,
-        y: ts.branch.end.y
-      };
+      const bouton = ts.branch.end;
 
       // -----------------------------
-      // Metabolic signaling
+      // Metabolic signaling (SAFE)
       // -----------------------------
-      logEvent?.(
-        "vascular",
-        "Neural firing increases local metabolic demand",
-        "neurovascular"
-      );
+      if (typeof logEvent === "function") {
+        logEvent(
+          "vascular",
+          "Neural firing increases local metabolic demand",
+          "neurovascular"
+        );
+      }
 
-      extractOxygenNearNeuron1?.();
-      extractGlucoseNearNeuron1?.();
-      triggerSupplyWave?.(1.0);
+      if (typeof extractOxygenNearNeuron1 === "function") {
+        extractOxygenNearNeuron1();
+      }
+
+      if (typeof extractGlucoseNearNeuron1 === "function") {
+        extractGlucoseNearNeuron1();
+      }
+
+      if (typeof triggerSupplyWave === "function") {
+        triggerSupplyWave(1.0);
+      }
 
       terminalGlows.push({
         x: bouton.x,
@@ -195,7 +199,10 @@ function updateTerminalDots() {
         life: TERMINAL_GLOW_LIFETIME
       });
 
-      triggerSynapticRelease?.(bouton);
+      if (typeof triggerSynapticRelease === "function") {
+        triggerSynapticRelease(bouton);
+      }
+
       terminalSpikes.splice(i, 1);
     }
   }
@@ -231,21 +238,8 @@ function drawAxonSpikes() {
 
     const b = ts.branch;
 
-    const x = bezierPoint(
-      b.start.x,
-      b.ctrl.x,
-      b.ctrl.x,
-      b.end.x,
-      ts.t
-    );
-
-    const y = bezierPoint(
-      b.start.y,
-      b.ctrl.y,
-      b.ctrl.y,
-      b.end.y,
-      ts.t
-    );
+    const x = bezierPoint(b.start.x, b.ctrl.x, b.ctrl.x, b.end.x, ts.t);
+    const y = bezierPoint(b.start.y, b.ctrl.y, b.ctrl.y, b.end.y, ts.t);
 
     push();
     noStroke();
