@@ -13,14 +13,16 @@ const AXON_CONDUCTION_SPEED = 0.01;
 // Invisible (Na⁺-driving) AP speed — should be ≥ visible
 const PRE_AP_SPEED = window.PRE_AP_SPEED ?? 0.015;
 
-// Invisible AP terminates BEFORE terminals
-// (prevents Na⁺ wave from entering boutons)
-const INVISIBLE_AP_END = 0.95 * 0.75; // relative to AXON_TERMINAL_START
-
 // Terminal conduction + visuals
 const TERMINAL_CONDUCTION_SPEED = 0.06;
 const TERMINAL_GLOW_LIFETIME    = 18;
-const AXON_TERMINAL_START       = 0.75;
+
+// Where terminals begin (fraction of axon length)
+const AXON_TERMINAL_START = 0.75;
+
+// Invisible AP terminates BEFORE terminals
+// (prevents Na⁺ wave from entering boutons)
+const INVISIBLE_AP_END = AXON_TERMINAL_START * 0.95;
 
 // -----------------------------------------------------
 // Ion gating (K⁺ must trail visible AP)
@@ -36,7 +38,8 @@ const terminalSpikes   = [];
 const terminalGlows    = [];
 
 // =====================================================
-// SPAWN INVISIBLE AP (CALLED FROM soma.js — Na⁺ COMMIT)
+// SPAWN INVISIBLE AP
+// (CALLED FROM soma.js AFTER DELAY)
 // =====================================================
 function spawnInvisibleAxonAP() {
 
@@ -44,12 +47,13 @@ function spawnInvisibleAxonAP() {
   if (invisibleAxonAPs.length > 0) return;
 
   invisibleAxonAPs.push({
-    phase: -PRE_AP_START_OFFSET
+    phase: 0
   });
 }
 
 // =====================================================
-// SPAWN VISIBLE AP (CALLED FROM soma.js — UPSTROKE)
+// SPAWN VISIBLE AP
+// (CALLED FROM soma.js AFTER FULL DELAY)
 // =====================================================
 function spawnAxonSpike() {
 
@@ -99,14 +103,14 @@ function updateAxonSpikes() {
   window.currentAxonAPPhase = null;
 
   // ---------------------------------------------------
-  // INVISIBLE APs — Na⁺ WAVE ONLY
+  // 👻 INVISIBLE APs — Na⁺ WAVE ONLY
   // ---------------------------------------------------
   for (let i = invisibleAxonAPs.length - 1; i >= 0; i--) {
 
     const s = invisibleAxonAPs[i];
     s.phase += PRE_AP_SPEED;
 
-    // 🔑 Drive Na⁺ wave
+    // Drive Na⁺ wave
     if (typeof triggerAxonNaWave === "function") {
       triggerAxonNaWave(s.phase);
     }
@@ -118,14 +122,14 @@ function updateAxonSpikes() {
   }
 
   // ---------------------------------------------------
-  // VISIBLE APs — K⁺ + TERMINALS
+  // 🔴 VISIBLE APs — K⁺ + TERMINALS
   // ---------------------------------------------------
   for (let i = axonSpikes.length - 1; i >= 0; i--) {
 
     const s = axonSpikes[i];
     s.phase += AXON_CONDUCTION_SPEED;
 
-    // Expose phase for K⁺ ECS coupling
+    // Expose phase for ECS coupling
     window.currentAxonAPPhase = s.phase;
 
     // -----------------------------
