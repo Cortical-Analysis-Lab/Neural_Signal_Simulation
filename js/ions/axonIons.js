@@ -20,7 +20,7 @@ const AXON_HALO_RADIUS    = 28;
 const AXON_HALO_THICKNESS = 4;
 
 // -----------------------------------------------------
-// HALO DYNAMICS
+// HALO DYNAMICS (BACKGROUND ONLY)
 // -----------------------------------------------------
 const HALO_NA_PERTURB = 0.04;
 const HALO_K_PUSH     = 1.6;
@@ -28,20 +28,20 @@ const HALO_NA_RELAX   = 0.95;
 const HALO_K_RELAX    = 0.80;
 
 // -----------------------------------------------------
-// Na⁺ WAVE — TEACHING KNOBS
+// Na⁺ WAVE — TEACHING / TUNING KNOBS
 // -----------------------------------------------------
-const AXON_NA_WAVE_SPEED    = 1.6;
+const AXON_NA_WAVE_SPEED     = 1.6;
 const AXON_NA_WAVE_RADIUS   = 28;
-const AXON_NA_WAVE_LIFETIME = 28;
+const AXON_NA_WAVE_LIFETIME = 24;
 
-const AXON_NA_WAVE_COUNT = 0.2;        // per side
-const AXON_NA_MAX_PER_SIDE = 1;      // density clamp (per side)
-const AXON_NA_MIDLINE_RADIUS = 6;    // axon core cutoff
+const AXON_NA_WAVE_COUNT     = 1;   // particles per side PER SEGMENT
+const AXON_NA_MAX_PER_SIDE   = 1;   // safety clamp
+const AXON_NA_MIDLINE_RADIUS = 6;   // kill at axon core
 
 const NA_APPROACH_DECAY = 0.99;
 
 // -----------------------------------------------------
-// K⁺ EFFLUX (VISIBLE AP)
+// K⁺ EFFLUX (VISIBLE AP ONLY)
 // -----------------------------------------------------
 const AXON_K_FLUX_SPEED     = 1.6;
 const AXON_K_FLUX_LIFETIME  = 40;
@@ -49,6 +49,11 @@ const AXON_K_SPAWN_COUNT    = 3;
 const AXON_K_PHASE_STEP     = 0.045;
 
 let lastAxonKPhase = -Infinity;
+
+// -----------------------------------------------------
+// 🔑 Na⁺ SEGMENT GATE (CRITICAL FIX)
+// -----------------------------------------------------
+let lastNaWaveIdx = -1;
 
 // =====================================================
 // AXON Na⁺ WAVE — DRIVEN BY INVISIBLE AP PHASE
@@ -61,6 +66,10 @@ function triggerAxonNaWave(apPhase) {
   const idx  = Math.floor(apPhase * (path.length - 2));
   if (idx <= 0 || idx >= path.length - 1) return;
 
+  // 🔒 Only spawn when entering a NEW axon segment
+  if (idx === lastNaWaveIdx) return;
+  lastNaWaveIdx = idx;
+
   const p1 = path[idx];
   const p2 = path[idx + 1];
 
@@ -72,12 +81,11 @@ function triggerAxonNaWave(apPhase) {
   const nx = -dy / len;
   const ny =  dx / len;
 
-  // -----------------------------------------------
-  // Bilateral spawning (LEFT + RIGHT)
-  // -----------------------------------------------
+  // ---------------------------------------------------
+  // BILATERAL SPAWNING
+  // ---------------------------------------------------
   [-1, +1].forEach(side => {
 
-    // density clamp PER SIDE
     const existing = ecsIons.AxonNaWave.filter(
       p => p.axonIdx === idx && p.side === side
     );
@@ -101,7 +109,7 @@ function triggerAxonNaWave(apPhase) {
 }
 
 // =====================================================
-// AXON K⁺ EFFLUX — VISIBLE AP
+// AXON K⁺ EFFLUX — VISIBLE AP ONLY
 // =====================================================
 function triggerAxonKEfflux(apPhase) {
 
@@ -144,7 +152,9 @@ function drawAxonIons() {
   textAlign(CENTER, CENTER);
   noStroke();
 
-  // Na⁺ wave
+  // ------------------------------
+  // Na⁺ WAVE
+  // ------------------------------
   fill(getColor("sodium", 140));
 
   ecsIons.AxonNaWave = ecsIons.AxonNaWave.filter(p => {
@@ -156,13 +166,17 @@ function drawAxonIons() {
     p.vy *= NA_APPROACH_DECAY;
 
     const center = neuron.axon.path[p.axonIdx];
-    if (dist(p.x, p.y, center.x, center.y) < AXON_NA_MIDLINE_RADIUS) return false;
+    if (dist(p.x, p.y, center.x, center.y) < AXON_NA_MIDLINE_RADIUS) {
+      return false;
+    }
 
     text("Na⁺", p.x, p.y);
     return p.life > 0;
   });
 
-  // K⁺ efflux
+  // ------------------------------
+  // K⁺ EFFLUX
+  // ------------------------------
   fill(getColor("potassium", 130));
 
   ecsIons.AxonKFlux = ecsIons.AxonKFlux.filter(p => {
@@ -184,6 +198,9 @@ function drawAxonIons() {
 function initAxonIons() {
   ecsIons.AxonNaStatic.length = 0;
   ecsIons.AxonKStatic.length  = 0;
+  ecsIons.AxonNaWave.length   = 0;
+  ecsIons.AxonKFlux.length    = 0;
+  lastNaWaveIdx = -1;
 }
 
 // =====================================================
