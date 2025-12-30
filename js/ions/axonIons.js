@@ -20,7 +20,7 @@ const AXON_HALO_RADIUS    = 28;
 const AXON_HALO_THICKNESS = 4;
 
 // -----------------------------------------------------
-// HALO DYNAMICS (SUBTLE, CONTEXTUAL)
+// HALO DYNAMICS
 // -----------------------------------------------------
 const HALO_NA_PERTURB = 0.04;
 const HALO_K_PUSH     = 1.6;
@@ -28,23 +28,20 @@ const HALO_NA_RELAX   = 0.95;
 const HALO_K_RELAX    = 0.80;
 
 // -----------------------------------------------------
-// Na⁺ WAVE — INVISIBLE AP DRIVEN (TEACHING KNOBS)
+// Na⁺ WAVE — TEACHING KNOBS
 // -----------------------------------------------------
 const AXON_NA_WAVE_SPEED    = 1.6;
 const AXON_NA_WAVE_RADIUS   = 28;
 const AXON_NA_WAVE_LIFETIME = 28;
 
-// 🔑 PRIMARY DENSITY CONTROL
-const AXON_NA_WAVE_COUNT = 1;        // Na⁺ per phase step (⬅ reduce clutter)
-
-// 🔑 SECONDARY SAFETY CONTROLS
-const AXON_NA_MAX_PER_SEGMENT = 4;   // hard cap per axon index
-const AXON_NA_MIDLINE_RADIUS = 6;    // axon core cutoff (clean disappearance)
+const AXON_NA_WAVE_COUNT = 1;        // per side
+const AXON_NA_MAX_PER_SIDE = 3;      // density clamp (per side)
+const AXON_NA_MIDLINE_RADIUS = 6;    // axon core cutoff
 
 const NA_APPROACH_DECAY = 0.99;
 
 // -----------------------------------------------------
-// K⁺ EFFLUX (VISIBLE AP DRIVEN)
+// K⁺ EFFLUX (VISIBLE AP)
 // -----------------------------------------------------
 const AXON_K_FLUX_SPEED     = 1.6;
 const AXON_K_FLUX_LIFETIME  = 40;
@@ -62,14 +59,7 @@ function triggerAxonNaWave(apPhase) {
 
   const path = neuron.axon.path;
   const idx  = Math.floor(apPhase * (path.length - 2));
-
   if (idx <= 0 || idx >= path.length - 1) return;
-
-  // ---------------------------------------------------
-  // Density clamp (prevents carpet effect)
-  // ---------------------------------------------------
-  const existing = ecsIons.AxonNaWave.filter(p => p.axonIdx === idx);
-  if (existing.length >= AXON_NA_MAX_PER_SEGMENT) return;
 
   const p1 = path[idx];
   const p2 = path[idx + 1];
@@ -82,36 +72,45 @@ function triggerAxonNaWave(apPhase) {
   const nx = -dy / len;
   const ny =  dx / len;
 
-  for (let i = 0; i < AXON_NA_WAVE_COUNT; i++) {
+  // -----------------------------------------------
+  // Bilateral spawning (LEFT + RIGHT)
+  // -----------------------------------------------
+  [-1, +1].forEach(side => {
 
-    const side = i % 2 === 0 ? 1 : -1;
+    // density clamp PER SIDE
+    const existing = ecsIons.AxonNaWave.filter(
+      p => p.axonIdx === idx && p.side === side
+    );
+    if (existing.length >= AXON_NA_MAX_PER_SIDE) return;
 
-    ecsIons.AxonNaWave.push({
-      x: p1.x + nx * AXON_NA_WAVE_RADIUS * side,
-      y: p1.y + ny * AXON_NA_WAVE_RADIUS * side,
+    for (let i = 0; i < AXON_NA_WAVE_COUNT; i++) {
 
-      vx: -nx * AXON_NA_WAVE_SPEED * side,
-      vy: -ny * AXON_NA_WAVE_SPEED * side,
+      ecsIons.AxonNaWave.push({
+        x: p1.x + nx * AXON_NA_WAVE_RADIUS * side,
+        y: p1.y + ny * AXON_NA_WAVE_RADIUS * side,
 
-      axonIdx: idx,
-      life: AXON_NA_WAVE_LIFETIME
-    });
-  }
+        vx: -nx * AXON_NA_WAVE_SPEED * side,
+        vy: -ny * AXON_NA_WAVE_SPEED * side,
+
+        axonIdx: idx,
+        side,
+        life: AXON_NA_WAVE_LIFETIME
+      });
+    }
+  });
 }
 
 // =====================================================
-// AXON K⁺ EFFLUX — DRIVEN BY VISIBLE AP
+// AXON K⁺ EFFLUX — VISIBLE AP
 // =====================================================
 function triggerAxonKEfflux(apPhase) {
 
   if (!neuron?.axon?.path || apPhase == null) return;
-
   if (Math.abs(apPhase - lastAxonKPhase) < AXON_K_PHASE_STEP) return;
   lastAxonKPhase = apPhase;
 
   const path = neuron.axon.path;
   const idx  = Math.floor(apPhase * (path.length - 2));
-
   if (idx <= 0 || idx >= path.length - 1) return;
 
   const p1 = path[idx];
@@ -121,21 +120,17 @@ function triggerAxonKEfflux(apPhase) {
   const dy = p2.y - p1.y;
   const len = Math.hypot(dx, dy) || 1;
 
-  // outward membrane normal
   const nx = -dy / len;
   const ny =  dx / len;
 
   for (let i = 0; i < AXON_K_SPAWN_COUNT; i++) {
-
     const side = i % 2 === 0 ? 1 : -1;
 
     ecsIons.AxonKFlux.push({
       x: p1.x + nx * AXON_HALO_RADIUS * side,
       y: p1.y + ny * AXON_HALO_RADIUS * side,
-
       vx: nx * AXON_K_FLUX_SPEED * side,
       vy: ny * AXON_K_FLUX_SPEED * side,
-
       life: AXON_K_FLUX_LIFETIME
     });
   }
@@ -149,139 +144,46 @@ function drawAxonIons() {
   textAlign(CENTER, CENTER);
   noStroke();
 
-  // ------------------------------
-  // Na⁺ WAVE (leading front)
-  // ------------------------------
+  // Na⁺ wave
   fill(getColor("sodium", 140));
 
   ecsIons.AxonNaWave = ecsIons.AxonNaWave.filter(p => {
 
     p.life--;
-
     p.x += p.vx;
     p.y += p.vy;
-
     p.vx *= NA_APPROACH_DECAY;
     p.vy *= NA_APPROACH_DECAY;
 
-    // Kill Na⁺ when reaching axon midline
     const center = neuron.axon.path[p.axonIdx];
-    const d = dist(p.x, p.y, center.x, center.y);
-    if (d < AXON_NA_MIDLINE_RADIUS) return false;
+    if (dist(p.x, p.y, center.x, center.y) < AXON_NA_MIDLINE_RADIUS) return false;
 
     text("Na⁺", p.x, p.y);
     return p.life > 0;
   });
 
-  // ------------------------------
-  // K⁺ EFFLUX (trailing)
-  // ------------------------------
+  // K⁺ efflux
   fill(getColor("potassium", 130));
 
   ecsIons.AxonKFlux = ecsIons.AxonKFlux.filter(p => {
-
     p.life--;
-
     p.x += p.vx;
     p.y += p.vy;
-
     p.vx *= 0.96;
     p.vy *= 0.96;
-
     text("K⁺", p.x, p.y);
     return p.life > 0;
-  });
-
-  // ------------------------------
-  // STATIC HALOS (context only)
-  // ------------------------------
-  fill(getColor("sodium", 110));
-
-  ecsIons.AxonNaStatic.forEach(p => {
-    p.vx += (p.x - p.x0) * HALO_NA_PERTURB;
-    p.vy += (p.y - p.y0) * HALO_NA_PERTURB;
-
-    p.vx += (p.x0 - p.x) * 0.06;
-    p.vy += (p.y0 - p.y) * 0.06;
-
-    p.vx *= HALO_NA_RELAX;
-    p.vy *= HALO_NA_RELAX;
-
-    p.x += p.vx;
-    p.y += p.vy;
-
-    text("Na⁺", p.x, p.y);
-  });
-
-  fill(getColor("potassium", 120));
-
-  ecsIons.AxonKStatic.forEach(p => {
-    p.vx += (p.x - p.x0) * HALO_K_PUSH * 0.01;
-    p.vy += (p.y - p.y0) * HALO_K_PUSH * 0.01;
-
-    p.vx += (p.x0 - p.x) * 0.008;
-    p.vy += (p.y0 - p.y) * 0.008;
-
-    p.vx *= HALO_K_RELAX;
-    p.vy *= HALO_K_RELAX;
-
-    p.x += p.vx;
-    p.y += p.vy;
-
-    text("K⁺", p.x, p.y);
   });
 
   pop();
 }
 
 // =====================================================
-// INITIALIZATION (HALOS ONLY)
+// INITIALIZATION
 // =====================================================
 function initAxonIons() {
-
   ecsIons.AxonNaStatic.length = 0;
   ecsIons.AxonKStatic.length  = 0;
-
-  if (!neuron?.axon?.path) return;
-
-  const path = neuron.axon.path;
-
-  function spawnHalo(target, count) {
-
-    for (let i = 0; i < count; i++) {
-
-      const t   = i / count;
-      const idx = Math.floor(t * (path.length - 2));
-
-      const p1 = path[idx];
-      const p2 = path[idx + 1];
-
-      const dx = p2.x - p1.x;
-      const dy = p2.y - p1.y;
-      const len = Math.hypot(dx, dy) || 1;
-
-      const nx = -dy / len;
-      const ny =  dx / len;
-      const side = i % 2 === 0 ? 1 : -1;
-
-      const r = random(
-        AXON_HALO_RADIUS,
-        AXON_HALO_RADIUS + AXON_HALO_THICKNESS
-      );
-
-      const x0 = p1.x + nx * r * side;
-      const y0 = p1.y + ny * r * side;
-
-      target.push({
-        x: x0, y: y0,
-        x0, y0,
-        vx: 0, vy: 0
-      });
-    }
-  }
-
-  spawnHalo(ecsIons.AxonNaStatic, 8);
-  spawnHalo(ecsIons.AxonKStatic,  4);
 }
 
 // =====================================================
