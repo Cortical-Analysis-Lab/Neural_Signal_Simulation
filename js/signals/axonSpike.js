@@ -38,13 +38,18 @@ const terminalSpikes   = [];
 const terminalGlows    = [];
 
 // =====================================================
-// SPAWN INVISIBLE AP
-// (CALLED FROM soma.js AFTER DELAY)
+// 👻 SPAWN INVISIBLE AP  (Na⁺-DRIVING)
+// CALLED FROM soma.js AFTER DELAY
 // =====================================================
 function spawnInvisibleAxonAP() {
 
   // 🔒 Only one invisible AP at a time
   if (invisibleAxonAPs.length > 0) return;
+
+  // 🔁 CRITICAL: reset Na⁺ wave state for NEW AP
+  if (typeof initAxonIons === "function") {
+    initAxonIons();
+  }
 
   invisibleAxonAPs.push({
     phase: 0
@@ -52,8 +57,8 @@ function spawnInvisibleAxonAP() {
 }
 
 // =====================================================
-// SPAWN VISIBLE AP
-// (CALLED FROM soma.js AFTER FULL DELAY)
+// 🔴 SPAWN VISIBLE AP
+// CALLED FROM soma.js AFTER FULL DELAY
 // =====================================================
 function spawnAxonSpike() {
 
