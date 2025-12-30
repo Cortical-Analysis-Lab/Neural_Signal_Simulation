@@ -11,6 +11,16 @@ const TERMINAL_CONDUCTION_SPEED = 0.06;
 const TERMINAL_GLOW_LIFETIME    = 18;
 const AXON_TERMINAL_START       = 0.75;
 
+// =====================================================
+// Na⁺ → AP COUPLING TUNING
+// =====================================================
+const PRE_AP_SPEED         = 0.02;   // usually same as AXON_CONDUCTION_SPEED
+const AP_DELAY_FRAMES      = 6;      // 🔥 MAIN TIMING KNOB (frames)
+
+
+window.preAxonAPPhase   = null;  // invisible depolarization front
+window.apDelayCounter  = 0;     // timing gate
+
 // 🔑 Ion gating (CRITICAL for clean K⁺ plume)
 const AXON_K_RELEASE_INTERVAL   = 0.06;
 
