@@ -6,11 +6,11 @@ console.log("axonSpike loaded");
 // -----------------------------------------------------
 // Parameters
 // -----------------------------------------------------
-const AXON_CONDUCTION_SPEED     = 0.02;  // visible AP speed
-const PRE_AP_SPEED              = window.PRE_AP_SPEED ?? 0.025; // invisible AP
-const TERMINAL_CONDUCTION_SPEED = 0.06;
-const TERMINAL_GLOW_LIFETIME    = 18;
-const AXON_TERMINAL_START       = 0.75;
+const AXON_CONDUCTION_SPEED      = 0.02;   // visible AP speed
+const PRE_AP_SPEED               = window.PRE_AP_SPEED ?? 0.025; // invisible AP
+const TERMINAL_CONDUCTION_SPEED  = 0.06;
+const TERMINAL_GLOW_LIFETIME     = 18;
+const AXON_TERMINAL_START        = 0.75;
 
 // -----------------------------------------------------
 // Ion gating (K⁺ must trail visible AP)
@@ -41,7 +41,9 @@ const terminalGlows = [];
 // SPAWN INVISIBLE AP (CALLED FROM soma.js — NA_COMMIT)
 // =====================================================
 function spawnInvisibleAxonAP() {
-  invisibleAxonAPs.push({ phase: 0 });
+  invisibleAxonAPs.push({
+    phase: 0
+  });
 }
 
 // =====================================================
@@ -55,24 +57,30 @@ function spawnAxonSpike() {
     if (last.phase < 0.1) return;
   }
 
+  // ---------------------------------------------------
   // Myelinated handoff
+  // ---------------------------------------------------
   if (window.myelinEnabled && typeof spawnMyelinAP === "function") {
 
-    logEvent?.(
-      "system",
-      "Action potential enters myelinated axon (saltatory conduction)",
-      "axon"
-    );
+    if (!state.paused && typeof logEvent === "function") {
+      logEvent(
+        "system",
+        "Action potential enters myelinated axon (saltatory conduction)",
+        "axon"
+      );
+    }
 
     spawnMyelinAP();
     return;
   }
 
-  logEvent?.(
-    "neural",
-    "Action potential propagates down unmyelinated axon",
-    "axon"
-  );
+  if (!state.paused && typeof logEvent === "function") {
+    logEvent(
+      "neural",
+      "Action potential propagates down unmyelinated axon",
+      "axon"
+    );
+  }
 
   axonSpikes.push({
     phase: 0,
@@ -85,6 +93,7 @@ function spawnAxonSpike() {
 // =====================================================
 function updateAxonSpikes() {
 
+  // Reset each frame
   window.currentAxonAPPhase = null;
 
   // ---------------------------------------------------
@@ -95,7 +104,7 @@ function updateAxonSpikes() {
     const s = invisibleAxonAPs[i];
     s.phase += PRE_AP_SPEED;
 
-    // Drive Na⁺ wave from this phase
+    // 🔑 Drive Na⁺ wave using THIS AP's phase
     if (typeof triggerAxonNaWave === "function") {
       triggerAxonNaWave(s.phase);
     }
@@ -114,9 +123,12 @@ function updateAxonSpikes() {
     const s = axonSpikes[i];
     s.phase += AXON_CONDUCTION_SPEED;
 
+    // Expose phase for ECS coupling (K⁺ halos)
     window.currentAxonAPPhase = s.phase;
 
-    // K⁺ efflux (visible AP only)
+    // -----------------------------
+    // K⁺ efflux (VISIBLE AP ONLY)
+    // -----------------------------
     if (
       typeof triggerAxonKEfflux === "function" &&
       s.phase - s.lastKEffluxPhase > AXON_K_RELEASE_INTERVAL
@@ -125,16 +137,20 @@ function updateAxonSpikes() {
       s.lastKEffluxPhase = s.phase;
     }
 
+    // -----------------------------
     // Enter terminal region
+    // -----------------------------
     if (s.phase >= AXON_TERMINAL_START) {
 
       window.currentAxonAPPhase = null;
 
-      logEvent?.(
-        "neural",
-        "Action potential reaches axon terminals",
-        "terminal"
-      );
+      if (!state.paused && typeof logEvent === "function") {
+        logEvent(
+          "neural",
+          "Action potential reaches axon terminals",
+          "terminal"
+        );
+      }
 
       spawnTerminalSpikes();
       axonSpikes.splice(i, 1);
@@ -147,13 +163,13 @@ function updateAxonSpikes() {
 // =====================================================
 function spawnTerminalSpikes() {
   neuron.axon.terminalBranches.forEach(branch => {
-    terminalSpikes.push({ branch, t: 0 });
+    terminalSpikes.push({
+      branch,
+      t: 0
+    });
   });
 }
 
-// =====================================================
-// UPDATE TERMINAL BRANCH APS
-// =====================================================
 // =====================================================
 // UPDATE TERMINAL BRANCH APS
 // =====================================================
@@ -168,13 +184,13 @@ function updateTerminalDots() {
 
       const bouton = ts.branch.end;
 
-      // -----------------------------
-      // Metabolic demand signal
-      // -----------------------------
+      // -------------------------------------------------
+      // Metabolic demand signal (feeds bloodContents.js)
+      // -------------------------------------------------
       window.neuron1Fired = true;
       window.lastNeuron1SpikeTime = state.time;
 
-      if (typeof logEvent === "function") {
+      if (!state.paused && typeof logEvent === "function") {
         logEvent(
           "vascular",
           "Neural firing increases local metabolic demand",
@@ -205,7 +221,6 @@ function updateTerminalDots() {
   }
 }
 
-
 // =====================================================
 // DRAW AXON + TERMINALS
 // =====================================================
@@ -228,8 +243,21 @@ function drawAxonSpikes() {
 
     const b = ts.branch;
 
-    const x = bezierPoint(b.start.x, b.ctrl.x, b.ctrl.x, b.end.x, ts.t);
-    const y = bezierPoint(b.start.y, b.ctrl.y, b.ctrl.y, b.end.y, ts.t);
+    const x = bezierPoint(
+      b.start.x,
+      b.ctrl.x,
+      b.ctrl.x,
+      b.end.x,
+      ts.t
+    );
+
+    const y = bezierPoint(
+      b.start.y,
+      b.ctrl.y,
+      b.ctrl.y,
+      b.end.y,
+      ts.t
+    );
 
     push();
     noStroke();
