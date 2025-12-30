@@ -47,7 +47,7 @@ const HALO_K_RELAX  = 0.80;
 // ------------------
 // SOMA FLUX CONSTANTS
 // ------------------
-const NA_FLUX_SPEED     = 0.9;
+const NA_FLUX_SPEED     = 1.6;
 const NA_FLUX_LIFETIME  = 80;
 const NA_SPAWN_RADIUS   = 140;
 
@@ -60,11 +60,11 @@ const ION_VEL_DECAY     = 0.965;
 // -----------------------------------------------------
 // AXONAL Na⁺ WAVE (LEADING, DETACHED FROM HALO)
 // -----------------------------------------------------
-const AXON_NA_WAVE_SPEED    = 0.9;
+const AXON_NA_WAVE_SPEED    = 1.6;
 const AXON_NA_WAVE_LIFETIME = 28;
-const AXON_NA_WAVE_COUNT    = 3;
+const AXON_NA_WAVE_COUNT    = 2;
 const AXON_NA_WAVE_RADIUS = 28; // controls Na⁺ influx distance ONLY
-const NA_APPROACH_DECAY = 0.98;  // Na⁺ only
+const NA_APPROACH_DECAY = 0.9;  // Na⁺ only
 
 
 // Na⁺ wave precedes AP
