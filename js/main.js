@@ -12,6 +12,11 @@ const state = {
 };
 
 // -----------------------------------------------------
+// Pre-AP fallback (safety)
+// -----------------------------------------------------
+const PRE_AP_SPEED = window.PRE_AP_SPEED ?? 0.02;
+
+// -----------------------------------------------------
 // Global Toggles
 // -----------------------------------------------------
 window.myelinEnabled  = false;
@@ -131,7 +136,7 @@ function setup() {
   // ===================================================
   // 🧂 EXTRACELLULAR IONS (MUST COME AFTER GEOMETRY)
   // ===================================================
-  initExtracellularIons();
+  initBackgroundIons();
 
   // ---------------------------------------------------
   // INITIAL MODE
@@ -258,28 +263,41 @@ function draw() {
   // ===================================================
   // 🌊 EXTRACELLULAR SPACE (BACKGROUND ENVIRONMENT)
   // ===================================================
-  // Draw ions BEFORE neurons, AFTER camera transform
   if (state.mode === "overview" || state.mode === "ion") {
-    drawExtracellularIons();
+    drawBackgroundIons();
+    drawSomaIons();
+    drawAxonIons();
   }
 
   // ---------------------------------------------------
-  // UPDATE BIOLOGICAL DYNAMICS
-  // ---------------------------------------------------
-  if (!state.paused && !transitioning) {
-    updateSynapseHover();
-    updateEPSPs();
-    updateSoma();
-    updateVoltageTrace();
+// UPDATE BIOLOGICAL DYNAMICS
+// ---------------------------------------------------
+if (!state.paused && !transitioning) {
 
-    if (window.myelinEnabled) updateMyelinAPs();
-    else updateAxonSpikes();
+  // INVISIBLE Na⁺ LEADING FRONT
+  if (window.preAxonAPPhase !== null) {
+    window.preAxonAPPhase += PRE_AP_SPEED;
+    triggerAxonNaWave();
 
-    updateTerminalDots();
-    updateVesicles();
-    updateNeuron2EPSPs();
-    updateSynapticCoupling();
+    if (window.preAxonAPPhase >= 1) {
+      window.preAxonAPPhase = null;
+    }
   }
+
+  updateSynapseHover();
+  updateEPSPs();
+  updateSoma();
+  updateVoltageTrace();
+
+  if (window.myelinEnabled) updateMyelinAPs();
+  else updateAxonSpikes();
+
+  updateTerminalDots();
+  updateVesicles();
+  updateNeuron2EPSPs();
+  updateSynapticCoupling();
+}
+
 
   // ---------------------------------------------------
   // DRAW MODES
