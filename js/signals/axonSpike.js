@@ -34,6 +34,13 @@ const terminalGlows = [];
 // -----------------------------------------------------
 function spawnAxonSpike() {
 
+  // ❌ Do not allow AP unless Na⁺ wave triggered it
+  if (!window.naTriggeredAP) return;
+
+  // Consume trigger so it can't retrigger immediately
+  window.naTriggeredAP = false;
+  window.naWaveStarted = false;
+
   // 🔑 Myelinated handoff
   if (window.myelinEnabled && typeof spawnMyelinAP === "function") {
 
@@ -84,8 +91,6 @@ function updateAxonSpikes() {
     // 🔑 expose phase for extracellular halo coupling
     window.currentAxonAPPhase = s.phase;
 
-   const NA_LEAD_MULTIPLIER = 5;
-
     // =================================================
     // 🧂 AXON ION FLUX (CORRECTED + GATED)
     // =================================================
@@ -127,7 +132,6 @@ function updateAxonSpikes() {
 
       // Clear coupling signal
       window.currentAxonAPPhase = null;
-      window.axonNaActive = false;
 
       if (!state.paused && typeof logEvent === "function") {
         logEvent(
