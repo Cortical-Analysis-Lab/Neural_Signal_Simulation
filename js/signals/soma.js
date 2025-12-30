@@ -7,18 +7,18 @@ console.log("🧠 soma loaded");
 // 🧠 TEACHING / TIMING KNOBS
 // -----------------------------------------------------
 
-// 🔹 delay between soma Na⁺ influx and AIS activation
+// 🔹 total delay between soma Na⁺ influx and visible AP release
 const AP_DELAY_FRAMES = 14;
 
-// 🔹 invisible AP starts AFTER Na⁺ influx but BEFORE visible AP
-const INVISIBLE_AP_OFFSET = 10;   // frames after Na⁺ influx
+// 🔹 invisible AP fires AFTER Na⁺ influx but BEFORE visible AP
+const INVISIBLE_AP_OFFSET = 8;   // must be < AP_DELAY_FRAMES
 
 // -----------------------------------------------------
 // ACTION POTENTIAL PHASES
 // -----------------------------------------------------
 const AP = {
   NONE: 0,
-  NA_COMMIT: 0.5,   // soma Na⁺ influx → AIS priming
+  NA_COMMIT: 0.5,   // soma Na⁺ influx + AIS priming window
   UPSTROKE: 1,
   PEAK: 2,
   REPOLARIZE: 3,
@@ -29,9 +29,9 @@ const AP = {
 // BIOPHYSICALLY INSPIRED PARAMETERS
 // -----------------------------------------------------
 const AP_PARAMS = {
-  upstrokeRate: 7.5,     // Na⁺ influx speed
-  peakHold: 2,           // frames at peak
-  repolRate: 5.0,        // K⁺ efflux
+  upstrokeRate: 7.5,
+  peakHold: 2,
+  repolRate: 5.0,
   ahpTarget: -78,
   ahpRate: 1.2,
   refractoryFrames: 25
@@ -51,7 +51,8 @@ const soma = {
   refractory: 0,
 
   delayCounter: 0,
-  invisibleAPFired: false
+  invisibleAPFired: false,
+  visibleAPReleased: false
 };
 
 // -----------------------------------------------------
@@ -59,7 +60,6 @@ const soma = {
 // -----------------------------------------------------
 function addEPSPToSoma(amplitude, type, sourceNeuron = 1) {
 
-  // ignore IPSPs from neuron 3 (your existing rule)
   if (type !== "exc" && sourceNeuron === 3) return;
 
   const normalized = constrain((amplitude - 6) / 24, 0, 1);
@@ -67,7 +67,7 @@ function addEPSPToSoma(amplitude, type, sourceNeuron = 1) {
 
   if (type === "exc") {
     deltaV = 3 + 28 * normalized * normalized;
-    if (normalized > 0.9) deltaV += 10; // driver synapse
+    if (normalized > 0.9) deltaV += 10;
   } else {
     deltaV = -(4 + 20 * normalized);
   }
@@ -98,25 +98,27 @@ function updateSoma() {
         soma.apState = AP.NA_COMMIT;
         soma.delayCounter = 0;
         soma.invisibleAPFired = false;
+        soma.visibleAPReleased = false;
 
-        // 🟡 SOMA Na⁺ INFLUX (visual + conceptual)
+        // 🟡 SOMA Na⁺ INFLUX (always first)
         triggerNaInfluxNeuron1?.();
       }
-
       else {
         soma.Vm = lerp(soma.Vm, soma.rest, 0.05);
       }
       break;
 
     // =================================================
-    // Na⁺ COMMIT (SOMA → AIS)
+    // Na⁺ COMMIT → AIS WINDOW
     // =================================================
     case AP.NA_COMMIT:
 
-      soma.Vm += AP_PARAMS.upstrokeRate * 0.6;
       soma.delayCounter++;
 
-      // 👻 INVISIBLE AP FIRES HERE (DELAYED)
+      // gentle depolarization plateau (NOT the spike)
+      soma.Vm += AP_PARAMS.upstrokeRate * 0.35;
+
+      // 👻 INVISIBLE AP (Na⁺ wave driver)
       if (
         !soma.invisibleAPFired &&
         soma.delayCounter >= INVISIBLE_AP_OFFSET
@@ -125,9 +127,13 @@ function updateSoma() {
         soma.invisibleAPFired = true;
       }
 
-      // 🔴 VISIBLE AP FOLLOWS AFTER FULL DELAY
-      if (soma.delayCounter >= AP_DELAY_FRAMES) {
+      // 🔴 RELEASE visible AP ONLY after full delay
+      if (
+        !soma.visibleAPReleased &&
+        soma.delayCounter >= AP_DELAY_FRAMES
+      ) {
         soma.apState = AP.UPSTROKE;
+        soma.visibleAPReleased = true;
       }
       break;
 
@@ -144,7 +150,6 @@ function updateSoma() {
         soma.apState = AP.PEAK;
         soma.apTimer = AP_PARAMS.peakHold;
 
-        // metabolic + logging
         window.neuron1Fired = true;
         window.lastNeuron1SpikeTime = state.time;
 
@@ -154,13 +159,13 @@ function updateSoma() {
           "soma"
         );
 
-        // 🔴 SPAWN VISIBLE AXON AP
+        // 🔴 Visible axonal AP (K⁺ wave follows this)
         spawnAxonSpike?.();
       }
       break;
 
     // =================================================
-    // PEAK (Na⁺ INACTIVATION)
+    // PEAK
     // =================================================
     case AP.PEAK:
       soma.apTimer--;
@@ -168,7 +173,7 @@ function updateSoma() {
       break;
 
     // =================================================
-    // REPOLARIZATION (K⁺ EFFLUX)
+    // REPOLARIZATION
     // =================================================
     case AP.REPOLARIZE:
       soma.Vm -= AP_PARAMS.repolRate;
