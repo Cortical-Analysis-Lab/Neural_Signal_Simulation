@@ -14,7 +14,7 @@ ecsIons.AxonNaWave   = ecsIons.AxonNaWave   || [];
 ecsIons.AxonKFlux    = ecsIons.AxonKFlux    || [];
 
 // -----------------------------------------------------
-// AXON HALO GEOMETRY
+// AXON HALO GEOMETRY (STATIC CONTEXT)
 // -----------------------------------------------------
 const AXON_HALO_RADIUS    = 28;
 const AXON_HALO_THICKNESS = 4;
@@ -30,15 +30,11 @@ const HALO_K_RELAX    = 0.80;
 // -----------------------------------------------------
 // Na⁺ WAVE — TEACHING / TUNING KNOBS
 // -----------------------------------------------------
-const AXON_NA_WAVE_SPEED     = 1.6;
-const AXON_NA_WAVE_RADIUS   = 28;
-const AXON_NA_WAVE_LIFETIME = 24;
-
-const AXON_NA_WAVE_COUNT     = 1;   // particles per side PER SEGMENT
-const AXON_NA_MAX_PER_SIDE   = 1;   // safety clamp
-const AXON_NA_MIDLINE_RADIUS = 6;   // kill at axon core
-
-const NA_APPROACH_DECAY = 0.99;
+const AXON_NA_WAVE_SPEED      = 1.6;   // inward velocity
+const AXON_NA_WAVE_RADIUS    = 28;    // spawn distance from membrane
+const AXON_NA_WAVE_LIFETIME  = 24;    // frames
+const AXON_NA_MIDLINE_RADIUS = 6;     // kill at axon core
+const NA_APPROACH_DECAY      = 0.99;
 
 // -----------------------------------------------------
 // K⁺ EFFLUX (VISIBLE AP ONLY)
@@ -51,9 +47,11 @@ const AXON_K_PHASE_STEP     = 0.045;
 let lastAxonKPhase = -Infinity;
 
 // -----------------------------------------------------
-// 🔑 Na⁺ SEGMENT GATE (CRITICAL FIX)
+// 🔑 Na⁺ WAVE GATES (CRITICAL)
 // -----------------------------------------------------
-let lastNaWaveIdx = -1;
+let lastNaWaveIdx = -1;        // prevents per-frame respawn
+let naWaveActiveLeft  = false;
+let naWaveActiveRight = false;
 
 // =====================================================
 // AXON Na⁺ WAVE — DRIVEN BY INVISIBLE AP PHASE
@@ -66,7 +64,9 @@ function triggerAxonNaWave(apPhase) {
   const idx  = Math.floor(apPhase * (path.length - 2));
   if (idx <= 0 || idx >= path.length - 1) return;
 
-  // 🔒 Only spawn when entering a NEW axon segment
+  // ---------------------------------------------
+  // SEGMENT GATE — only spawn on new segment
+  // ---------------------------------------------
   if (idx === lastNaWaveIdx) return;
   lastNaWaveIdx = idx;
 
@@ -81,31 +81,37 @@ function triggerAxonNaWave(apPhase) {
   const nx = -dy / len;
   const ny =  dx / len;
 
-  // ---------------------------------------------------
-  // BILATERAL SPAWNING
-  // ---------------------------------------------------
-  [-1, +1].forEach(side => {
+  // ---------------------------------------------
+  // LEFT SIDE (singleton)
+  // ---------------------------------------------
+  if (!naWaveActiveLeft) {
+    ecsIons.AxonNaWave.push({
+      x: p1.x - nx * AXON_NA_WAVE_RADIUS,
+      y: p1.y - ny * AXON_NA_WAVE_RADIUS,
+      vx:  nx * AXON_NA_WAVE_SPEED,
+      vy:  ny * AXON_NA_WAVE_SPEED,
+      side: -1,
+      axonIdx: idx,
+      life: AXON_NA_WAVE_LIFETIME
+    });
+    naWaveActiveLeft = true;
+  }
 
-    const existing = ecsIons.AxonNaWave.filter(
-      p => p.axonIdx === idx && p.side === side
-    );
-    if (existing.length >= AXON_NA_MAX_PER_SIDE) return;
-
-    for (let i = 0; i < AXON_NA_WAVE_COUNT; i++) {
-
-      ecsIons.AxonNaWave.push({
-        x: p1.x + nx * AXON_NA_WAVE_RADIUS * side,
-        y: p1.y + ny * AXON_NA_WAVE_RADIUS * side,
-
-        vx: -nx * AXON_NA_WAVE_SPEED * side,
-        vy: -ny * AXON_NA_WAVE_SPEED * side,
-
-        axonIdx: idx,
-        side,
-        life: AXON_NA_WAVE_LIFETIME
-      });
-    }
-  });
+  // ---------------------------------------------
+  // RIGHT SIDE (singleton)
+  // ---------------------------------------------
+  if (!naWaveActiveRight) {
+    ecsIons.AxonNaWave.push({
+      x: p1.x + nx * AXON_NA_WAVE_RADIUS,
+      y: p1.y + ny * AXON_NA_WAVE_RADIUS,
+      vx: -nx * AXON_NA_WAVE_SPEED,
+      vy: -ny * AXON_NA_WAVE_SPEED,
+      side: +1,
+      axonIdx: idx,
+      life: AXON_NA_WAVE_LIFETIME
+    });
+    naWaveActiveRight = true;
+  }
 }
 
 // =====================================================
@@ -153,7 +159,7 @@ function drawAxonIons() {
   noStroke();
 
   // ------------------------------
-  // Na⁺ WAVE
+  // Na⁺ WAVE (SINGLE PAIR)
   // ------------------------------
   fill(getColor("sodium", 140));
 
@@ -167,6 +173,8 @@ function drawAxonIons() {
 
     const center = neuron.axon.path[p.axonIdx];
     if (dist(p.x, p.y, center.x, center.y) < AXON_NA_MIDLINE_RADIUS) {
+      if (p.side === -1) naWaveActiveLeft  = false;
+      if (p.side === +1) naWaveActiveRight = false;
       return false;
     }
 
@@ -200,7 +208,10 @@ function initAxonIons() {
   ecsIons.AxonKStatic.length  = 0;
   ecsIons.AxonNaWave.length   = 0;
   ecsIons.AxonKFlux.length    = 0;
+
   lastNaWaveIdx = -1;
+  naWaveActiveLeft  = false;
+  naWaveActiveRight = false;
 }
 
 // =====================================================
