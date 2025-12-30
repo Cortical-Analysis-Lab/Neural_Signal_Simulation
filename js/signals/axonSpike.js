@@ -269,3 +269,11 @@ function drawAxonSpikes() {
     pop();
   });
 }
+
+// =====================================================
+// GLOBAL EXPORTS (REQUIRED)
+// =====================================================
+window.updateAxonSpikes = updateAxonSpikes;
+window.spawnAxonSpike  = spawnAxonSpike;
+window.drawAxonSpikes  = drawAxonSpikes;
+
