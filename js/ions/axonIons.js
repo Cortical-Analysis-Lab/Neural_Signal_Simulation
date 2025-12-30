@@ -39,7 +39,7 @@ const NA_APPROACH_DECAY      = 0.99;
 // 🔑 THIS IS THE DENSITY / SPACING CONTROL
 // ↑ increase = fewer Na⁺, more spacing
 // ↓ decrease = denser wave
-const AXON_NA_PHASE_SPACING = 0.045;
+const AXON_NA_PHASE_SPACING = 0.08;
 
 // -----------------------------------------------------
 // K⁺ EFFLUX (VISIBLE AP ONLY)
