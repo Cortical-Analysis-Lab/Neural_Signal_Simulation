@@ -271,14 +271,16 @@ function draw() {
   // ===================================================
   // 🌊 EXTRACELLULAR SPACE (BACKGROUND ENVIRONMENT)
   // ===================================================
-  if (state.mode === "overview" || state.mode === "ion") {
+ if (state.mode === "overview" || state.mode === "ion") {
   drawBackgroundIons();
   drawSomaIons();
   drawAxonIons();
-  
+
   if (window.myelinEnabled) {
     drawNodeIons();
   }
+}
+
 
 
   // ---------------------------------------------------
