@@ -8,7 +8,7 @@ console.log("axonSpike loaded");
 // -----------------------------------------------------
 
 // Visible axonal AP speed
-const AXON_CONDUCTION_SPEED = 0.01;
+const AXON_CONDUCTION_SPEED = 0.015;
 
 // Invisible (Na⁺-driving) AP speed — should be ≥ visible
 const PRE_AP_SPEED = window.PRE_AP_SPEED ?? 0.015;
