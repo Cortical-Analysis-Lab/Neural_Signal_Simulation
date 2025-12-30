@@ -28,17 +28,20 @@ const HALO_NA_RELAX   = 0.95;
 const HALO_K_RELAX    = 0.80;
 
 // -----------------------------------------------------
-// Na⁺ WAVE (INVISIBLE AP DRIVEN)
+// Na⁺ WAVE — INVISIBLE AP DRIVEN (TEACHING KNOBS)
 // -----------------------------------------------------
 const AXON_NA_WAVE_SPEED    = 1.6;
 const AXON_NA_WAVE_RADIUS   = 28;
 const AXON_NA_WAVE_LIFETIME = 28;
-const AXON_NA_WAVE_COUNT    = 2;
-const NA_APPROACH_DECAY     = 0.99;
 
-// 🆕 Density + termination control
-const AXON_NA_MAX_PER_SEGMENT = 6;   // max Na⁺ per axon index
-const AXON_NA_MIDLINE_RADIUS = 6;    // axon core cutoff
+// 🔑 PRIMARY DENSITY CONTROL
+const AXON_NA_WAVE_COUNT = 1;        // Na⁺ per phase step (⬅ reduce clutter)
+
+// 🔑 SECONDARY SAFETY CONTROLS
+const AXON_NA_MAX_PER_SEGMENT = 4;   // hard cap per axon index
+const AXON_NA_MIDLINE_RADIUS = 6;    // axon core cutoff (clean disappearance)
+
+const NA_APPROACH_DECAY = 0.99;
 
 // -----------------------------------------------------
 // K⁺ EFFLUX (VISIBLE AP DRIVEN)
@@ -51,12 +54,11 @@ const AXON_K_PHASE_STEP     = 0.045;
 let lastAxonKPhase = -Infinity;
 
 // =====================================================
-// AXON Na⁺ WAVE — DRIVEN BY PASSED-IN AP PHASE
+// AXON Na⁺ WAVE — DRIVEN BY INVISIBLE AP PHASE
 // =====================================================
 function triggerAxonNaWave(apPhase) {
 
-  if (!neuron?.axon?.path) return;
-  if (apPhase == null) return;
+  if (!neuron?.axon?.path || apPhase == null) return;
 
   const path = neuron.axon.path;
   const idx  = Math.floor(apPhase * (path.length - 2));
@@ -162,9 +164,7 @@ function drawAxonIons() {
     p.vx *= NA_APPROACH_DECAY;
     p.vy *= NA_APPROACH_DECAY;
 
-    // -------------------------------------------
     // Kill Na⁺ when reaching axon midline
-    // -------------------------------------------
     const center = neuron.axon.path[p.axonIdx];
     const d = dist(p.x, p.y, center.x, center.y);
     if (d < AXON_NA_MIDLINE_RADIUS) return false;
