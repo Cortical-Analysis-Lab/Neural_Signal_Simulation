@@ -35,7 +35,7 @@ const AXON_NA_WAVE_RADIUS   = 28;
 const AXON_NA_WAVE_LIFETIME = 28;
 
 const AXON_NA_WAVE_COUNT = 1;        // per side
-const AXON_NA_MAX_PER_SIDE = 3;      // density clamp (per side)
+const AXON_NA_MAX_PER_SIDE = 1;      // density clamp (per side)
 const AXON_NA_MIDLINE_RADIUS = 6;    // axon core cutoff
 
 const NA_APPROACH_DECAY = 0.99;
