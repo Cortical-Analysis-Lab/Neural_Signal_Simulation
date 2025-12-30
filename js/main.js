@@ -12,11 +12,6 @@ const state = {
 };
 
 // -----------------------------------------------------
-// Pre-AP fallback (safety)
-// -----------------------------------------------------
-const PRE_AP_SPEED = window.PRE_AP_SPEED ?? 0.02;
-
-// -----------------------------------------------------
 // Global Toggles
 // -----------------------------------------------------
 window.myelinEnabled  = false;
@@ -273,16 +268,6 @@ function draw() {
 // UPDATE BIOLOGICAL DYNAMICS
 // ---------------------------------------------------
 if (!state.paused && !transitioning) {
-
-  // INVISIBLE Na⁺ LEADING FRONT
-  if (window.preAxonAPPhase !== null) {
-    window.preAxonAPPhase += PRE_AP_SPEED;
-    triggerAxonNaWave();
-
-    if (window.preAxonAPPhase >= 1) {
-      window.preAxonAPPhase = null;
-    }
-  }
 
   updateSynapseHover();
   updateEPSPs();
