@@ -1,5 +1,5 @@
 // =====================================================
-// AXON IONS — Na⁺ WAVE (INVISIBLE AP) + K⁺ EFFLUX (VISIBLE AP)
+// AXON IONS — HALOS, Na⁺ WAVE, K⁺ EFFLUX
 // =====================================================
 console.log("🧬 axonIons loaded");
 
@@ -8,32 +8,38 @@ console.log("🧬 axonIons loaded");
 // -----------------------------------------------------
 window.ecsIons = window.ecsIons || {};
 
-ecsIons.AxonNaWave = ecsIons.AxonNaWave || [];
-ecsIons.AxonKFlux  = ecsIons.AxonKFlux  || [];
+ecsIons.AxonNaStatic = ecsIons.AxonNaStatic || [];
+ecsIons.AxonKStatic  = ecsIons.AxonKStatic  || [];
+ecsIons.AxonNaWave   = ecsIons.AxonNaWave   || [];
+ecsIons.AxonKFlux    = ecsIons.AxonKFlux    || [];
 
 // -----------------------------------------------------
-// 🧠 Na⁺ WAVE — TEACHING / TUNING KNOBS
+// AXON HALO GEOMETRY
 // -----------------------------------------------------
+const AXON_HALO_RADIUS    = 28;
+const AXON_HALO_THICKNESS = 4;
 
-// inward Na⁺ velocity
-const AXON_NA_WAVE_SPEED     = 1.6;
+// -----------------------------------------------------
+// HALO DYNAMICS (BACKGROUND ONLY)
+// -----------------------------------------------------
+const HALO_NA_PERTURB = 0.04;
+const HALO_K_PUSH     = 1.6;
+const HALO_NA_RELAX   = 0.95;
+const HALO_K_RELAX    = 0.80;
 
-// spawn distance from membrane
-const AXON_NA_WAVE_RADIUS   = 28;
+// -----------------------------------------------------
+// Na⁺ WAVE — TEACHING / TUNING KNOBS
+// -----------------------------------------------------
+const AXON_NA_WAVE_SPEED      = 1.6;
+const AXON_NA_WAVE_RADIUS    = 28;
+const AXON_NA_WAVE_LIFETIME  = 26;
+const AXON_NA_MIDLINE_RADIUS = 6;
+const NA_APPROACH_DECAY      = 0.99;
 
-// lifetime (frames)
-const AXON_NA_WAVE_LIFETIME = 26;
-
-// 🔑 SPACING CONTROL — THIS IS THE MAIN DENSITY KNOB
+// 🔑 THIS CONTROLS DENSITY / SPACING
 // ↑ increase = fewer Na⁺, more spacing
 // ↓ decrease = denser wave
-const AXON_NA_PHASE_SPACING = 0.035;
-
-// anatomical cutoff (axon core)
-const AXON_NA_MIDLINE_RADIUS = 6;
-
-// velocity damping
-const NA_APPROACH_DECAY = 0.99;
+const AXON_NA_PHASE_SPACING = 0.045;
 
 // -----------------------------------------------------
 // K⁺ EFFLUX (VISIBLE AP ONLY)
@@ -47,13 +53,6 @@ let lastAxonKPhase  = -Infinity;
 let lastNaWavePhase = -Infinity;
 
 // =====================================================
-// 🔄 RESET Na⁺ WAVE (CALLED PER INVISIBLE AP)
-// =====================================================
-function resetAxonNaWave() {
-  lastNaWavePhase = -Infinity;
-}
-
-// =====================================================
 // AXON Na⁺ WAVE — PHASE-SPACED, BILATERAL
 // =====================================================
 function triggerAxonNaWave(apPhase) {
@@ -61,7 +60,7 @@ function triggerAxonNaWave(apPhase) {
   if (!neuron?.axon?.path || apPhase == null) return;
 
   // ---------------------------------------------
-  // PHASE SPACING GATE (PREVENTS OVERLAP)
+  // PHASE SPACING GATE (CORE FIX)
   // ---------------------------------------------
   if (apPhase - lastNaWavePhase < AXON_NA_PHASE_SPACING) return;
   lastNaWavePhase = apPhase;
@@ -81,15 +80,16 @@ function triggerAxonNaWave(apPhase) {
   const nx = -dy / len;
   const ny =  dx / len;
 
-  // ---------------------------------------------------
-  // BILATERAL: EXACTLY ONE Na⁺ PER SIDE
-  // ---------------------------------------------------
+  // ---------------------------------------------
+  // BILATERAL: exactly ONE Na⁺ per side
+  // ---------------------------------------------
   [-1, +1].forEach(side => {
     ecsIons.AxonNaWave.push({
       x: p1.x + nx * AXON_NA_WAVE_RADIUS * side,
       y: p1.y + ny * AXON_NA_WAVE_RADIUS * side,
       vx: -nx * AXON_NA_WAVE_SPEED * side,
       vy: -ny * AXON_NA_WAVE_SPEED * side,
+      side,
       axonIdx: idx,
       life: AXON_NA_WAVE_LIFETIME
     });
@@ -123,8 +123,8 @@ function triggerAxonKEfflux(apPhase) {
     const side = i % 2 === 0 ? 1 : -1;
 
     ecsIons.AxonKFlux.push({
-      x: p1.x + nx * 28 * side,
-      y: p1.y + ny * 28 * side,
+      x: p1.x + nx * AXON_HALO_RADIUS * side,
+      y: p1.y + ny * AXON_HALO_RADIUS * side,
       vx: nx * AXON_K_FLUX_SPEED * side,
       vy: ny * AXON_K_FLUX_SPEED * side,
       life: AXON_K_FLUX_LIFETIME
@@ -146,14 +146,17 @@ function drawAxonIons() {
   fill(getColor("sodium", 140));
 
   ecsIons.AxonNaWave = ecsIons.AxonNaWave.filter(p => {
+
     p.life--;
     p.x += p.vx;
     p.y += p.vy;
     p.vx *= NA_APPROACH_DECAY;
     p.vy *= NA_APPROACH_DECAY;
 
-    const c = neuron.axon.path[p.axonIdx];
-    if (dist(p.x, p.y, c.x, c.y) < AXON_NA_MIDLINE_RADIUS) return false;
+    const center = neuron.axon.path[p.axonIdx];
+    if (dist(p.x, p.y, center.x, center.y) < AXON_NA_MIDLINE_RADIUS) {
+      return false;
+    }
 
     text("Na⁺", p.x, p.y);
     return p.life > 0;
@@ -178,12 +181,16 @@ function drawAxonIons() {
 }
 
 // =====================================================
-// INIT
+// INITIALIZATION / RESET (CRITICAL)
 // =====================================================
 function initAxonIons() {
-  ecsIons.AxonNaWave.length = 0;
-  ecsIons.AxonKFlux.length  = 0;
+  ecsIons.AxonNaStatic.length = 0;
+  ecsIons.AxonKStatic.length  = 0;
+  ecsIons.AxonNaWave.length   = 0;
+  ecsIons.AxonKFlux.length    = 0;
+
   lastNaWavePhase = -Infinity;
+  lastAxonKPhase  = -Infinity;
 }
 
 // =====================================================
@@ -191,6 +198,5 @@ function initAxonIons() {
 // =====================================================
 window.triggerAxonNaWave   = triggerAxonNaWave;
 window.triggerAxonKEfflux = triggerAxonKEfflux;
-window.resetAxonNaWave    = resetAxonNaWave;
 window.drawAxonIons       = drawAxonIons;
 window.initAxonIons       = initAxonIons;
