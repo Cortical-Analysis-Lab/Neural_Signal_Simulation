@@ -55,7 +55,7 @@ const K_FLUX_SPEED      = 2.2;
 const K_FLUX_LIFETIME   = 160;
 const K_SPAWN_RADIUS    = 28;
 
-const ION_VEL_DECAY     = 0.8;
+const ION_VEL_DECAY     = 0.965;
 
 // -----------------------------------------------------
 // AXONAL Na⁺ WAVE (LEADING, DETACHED FROM HALO)
@@ -64,6 +64,7 @@ const AXON_NA_WAVE_SPEED    = 0.9;
 const AXON_NA_WAVE_LIFETIME = 28;
 const AXON_NA_WAVE_COUNT    = 3;
 const AXON_NA_WAVE_RADIUS = 28; // controls Na⁺ influx distance ONLY
+const NA_APPROACH_DECAY = 0.98;  // Na⁺ only
 
 
 // Na⁺ wave precedes AP
@@ -239,17 +240,48 @@ function drawExtracellularIons() {
   lastAxonNaWavePhase = apPhase;
 }
 
-  // ---- DRAW Na⁺ WAVE ----
-  fill(getColor("sodium", 140));
-  ecsIons.AxonNaWave = ecsIons.AxonNaWave.filter(p => {
-    p.life--;
-    p.x += p.vx;
-    p.y += p.vy;
-    p.vx *= ION_VEL_DECAY;
-    p.vy *= ION_VEL_DECAY;
-    text("Na⁺", p.x, p.y);
-    return p.life > 0;
-  });
+// ---- DRAW Na⁺ WAVE (ROBUST INFLOW) ----
+fill(getColor("sodium", 140));
+
+ecsIons.AxonNaWave = ecsIons.AxonNaWave.filter(p => {
+
+  p.life--;
+
+  // -----------------------------
+  // ECS APPROACH (velocity-based)
+  // -----------------------------
+  p.x += p.vx;
+  p.y += p.vy;
+
+  p.vx *= NA_APPROACH_DECAY;
+  p.vy *= NA_APPROACH_DECAY;
+
+  // -----------------------------
+  // DETERMINISTIC INFLOW
+  // -----------------------------
+  if (neuron?.axon?.path && p.axonIdx != null) {
+
+    const c = neuron.axon.path[p.axonIdx];
+    if (c) {
+
+      const d = dist(p.x, p.y, c.x, c.y);
+
+      // once recruited, ignore velocity entirely
+      if (d < AXON_NA_WAVE_RADIUS * 0.9) {
+        p.x = lerp(p.x, c.x, 0.22);
+        p.y = lerp(p.y, c.y, 0.22);
+      }
+
+      // fully influxed
+      if (d < 1.5) return false;
+    }
+  }
+
+  text("Na⁺", p.x, p.y);
+  return p.life > 0;
+});
+
+
 
   // ==============================
   // 🔴 AXONAL K⁺ EFFLUX (TRAILS AP)
