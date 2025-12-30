@@ -3,15 +3,27 @@
 // =====================================================
 console.log("🧂 backgroundIons loaded");
 
+// -----------------------------------------------------
+// GLOBAL ECS CONTAINER (RELOAD-SAFE)
+// -----------------------------------------------------
 window.ecsIons = window.ecsIons || {};
-ecsIons.Na = [];
-ecsIons.K  = [];
+ecsIons.Na = ecsIons.Na || [];
+ecsIons.K  = ecsIons.K  || [];
 
+// -----------------------------------------------------
+// VISUAL CONSTANTS
+// -----------------------------------------------------
 const ECS_ION_COUNTS = { Na: 260, K: 160 };
+
 const ION_TEXT_SIZE_NA = 10;
 const ION_TEXT_SIZE_K  = 11;
 
+// -----------------------------------------------------
+// INITIALIZATION
+// -----------------------------------------------------
 function initBackgroundIons() {
+
+  // clear without breaking shared references
   ecsIons.Na.length = 0;
   ecsIons.K.length  = 0;
 
@@ -33,6 +45,9 @@ function initBackgroundIons() {
   for (let i = 0; i < ECS_ION_COUNTS.K;  i++) spawn("K");
 }
 
+// -----------------------------------------------------
+// DRAW
+// -----------------------------------------------------
 function drawBackgroundIons() {
   push();
   textAlign(CENTER, CENTER);
@@ -49,5 +64,8 @@ function drawBackgroundIons() {
   pop();
 }
 
+// -----------------------------------------------------
+// EXPORTS
+// -----------------------------------------------------
 window.initBackgroundIons = initBackgroundIons;
 window.drawBackgroundIons = drawBackgroundIons;
