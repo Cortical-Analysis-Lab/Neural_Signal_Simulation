@@ -64,7 +64,7 @@ const AXON_NA_WAVE_SPEED    = 1.6;
 const AXON_NA_WAVE_LIFETIME = 28;
 const AXON_NA_WAVE_COUNT    = 2;
 const AXON_NA_WAVE_RADIUS = 28; // controls Na⁺ influx distance ONLY
-const NA_APPROACH_DECAY = 0.9;  // Na⁺ only
+const NA_APPROACH_DECAY = 0.99;  // Na⁺ only
 
 
 // Na⁺ wave precedes AP
