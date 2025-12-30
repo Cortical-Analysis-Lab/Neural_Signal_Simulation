@@ -132,6 +132,10 @@ function setup() {
   // 🧂 EXTRACELLULAR IONS (MUST COME AFTER GEOMETRY)
   // ===================================================
   initBackgroundIons();
+  initAxonIons();
+  initSomaIons();  
+
+
 
   // ---------------------------------------------------
   // INITIAL MODE
