@@ -5,7 +5,7 @@
   <title>Neural Signal Simulation</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- p5.js (ONCE) -->
+  <!-- p5.js (LOAD ONCE) -->
   <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
 
   <link rel="stylesheet" href="css/style.css" />
@@ -71,34 +71,38 @@
 </div>
 
 <!-- =====================================================
-     SCRIPTS (LOAD ORDER MATTERS)
+     SCRIPT LOAD ORDER (AUTHORITATIVE)
 ===================================================== -->
 
 <!-- =====================================================
-     CONSTANTS
+     CONSTANTS / COLORS
 ===================================================== -->
 <script src="js/constants/colors.js"></script>
 
 <!-- =====================================================
-     UI
+     UI SYSTEMS
 ===================================================== -->
 <script src="js/ui/eventLog.js"></script>
 <script src="js/ui/panelContent.js"></script>
 
 <!-- =====================================================
-     SIGNALS
+     SIGNALS (PHYSIOLOGY FIRST)
 ===================================================== -->
 <script src="js/signals/hemodynamics.js"></script>
 <script src="js/signals/psp.js"></script>
 <script src="js/signals/soma.js"></script>
 <script src="js/signals/voltageTrace.js"></script>
 <script src="js/signals/synapseCoupling.js"></script>
+
+<!-- =====================================================
+     AXONAL SIGNALING
+===================================================== -->
 <script src="js/signals/axonSpike.js"></script>
 <script src="js/signals/myelinAP.js"></script>
 <script src="js/signals/vesicleBurst.js"></script>
 
 <!-- =====================================================
-     GEOMETRY (OVERVIEW / WORLD)
+     GEOMETRY (WORLD SPACE)
 ===================================================== -->
 <script src="js/geometry/neuronGeometry.js"></script>
 <script src="js/geometry/neuron2Geometry.js"></script>
@@ -110,12 +114,20 @@
 <script src="js/geometry/bloodContents.js"></script>
 
 <!-- =====================================================
-     Ions (OVERVIEW / WORLD)
+     IONS (SPLIT, ORDER MATTERS)
 ===================================================== -->
-  <script src="js/ions/extracellularIons.js"></script>
+
+<!-- Background ECS ions -->
+<script src="js/ions/backgroundIons.js"></script>
+
+<!-- Soma-specific Na⁺ / K⁺ flux -->
+<script src="js/ions/somaIons.js"></script>
+
+<!-- Axonal Na⁺ wave + K⁺ efflux -->
+<script src="js/ions/axonIons.js"></script>
 
 <!-- =====================================================
-     SYNAPSE MODULES 
+     SYNAPSE MODULES
 ===================================================== -->
 
 <!-- Shared neuron shape -->
