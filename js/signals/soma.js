@@ -112,30 +112,26 @@ function updateSoma() {
     // =================================================
     case AP.NA_COMMIT:
 
-      // Partial depolarization from soma Na⁺ influx
-      soma.Vm += AP_PARAMS.upstrokeRate * 0.6;
+    soma.Vm += AP_PARAMS.upstrokeRate * 0.6;
+  
+    // Start invisible pre-AP front ONCE
+    if (window.preAxonAPPhase === null) {
+      window.preAxonAPPhase = 0;
+    }
+  
+    // Trigger Na⁺ wave once from AIS
+    if (!window.naWaveStarted) {
+      triggerAxonNaWave();
+      window.naWaveStarted = true;
+    }
+  
+    window.apDelayCounter++;
+  
+    if (window.apDelayCounter >= AP_DELAY_FRAMES) {
+      soma.apState = AP.UPSTROKE;
+    }
+    break;
 
-      // 🔑 Start invisible pre-AP front ONCE
-      if (window.preAxonAPPhase === null) {
-        window.preAxonAPPhase = 0;
-      }
-
-      // Advance invisible AP front (same geometry as real AP)
-      window.preAxonAPPhase += AXON_CONDUCTION_SPEED;
-
-      // 🔑 Trigger Na⁺ wave from invisible AP
-      if (!window.naWaveStarted) {
-        triggerAxonNaWave(1); // AIS / hillock
-        window.naWaveStarted = true;
-      }
-
-      // 🔥 Delay before full AP upstroke
-      window.apDelayCounter++;
-
-      if (window.apDelayCounter >= AP_DELAY_FRAMES) {
-        soma.apState = AP.UPSTROKE;
-      }
-      break;
 
     // =================================================
     // FAST DEPOLARIZATION (VISIBLE AP)
