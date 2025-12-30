@@ -166,21 +166,24 @@ function updateSoma() {
 
       case AP.NA_COMMIT:
 
-  // partial depolarization from soma Na⁺ influx
-  soma.Vm += AP_PARAMS.upstrokeRate * 0.6;
+        // partial depolarization from soma Na⁺ influx
+        soma.Vm += AP_PARAMS.upstrokeRate * 0.6;
+      
+        // 🔑 START INVISIBLE PRE-AP FRONT (ONCE)
+        if (window.preAxonAPPhase === null) {
+          window.preAxonAPPhase  = 0;
+          window.apDelayCounter = 0;
+        }
+      
+        // wait for delay, then allow real AP
+        window.apDelayCounter++;
+      
+        if (window.apDelayCounter >= AP_DELAY_FRAMES) {
+          soma.apState = AP.UPSTROKE;
+        }
+      
+        break;
 
-  // start AIS Na⁺ wave ONCE
-  if (!window.naWaveStarted) {
-    triggerAxonNaWave(1);   // AIS / hillock
-    window.naWaveStarted = true;
-  }
-
-  // wait for Na⁺ wave to reach hillock
-  if (window.naTriggeredAP) {
-    soma.apState = AP.UPSTROKE;
-    window.naTriggeredAP = false;
-  }
-  break;
 
   }
 
