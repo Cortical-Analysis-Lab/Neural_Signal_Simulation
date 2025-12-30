@@ -154,6 +154,9 @@ function spawnTerminalSpikes() {
 // =====================================================
 // UPDATE TERMINAL BRANCH APS
 // =====================================================
+// =====================================================
+// UPDATE TERMINAL BRANCH APS
+// =====================================================
 function updateTerminalDots() {
 
   for (let i = terminalSpikes.length - 1; i >= 0; i--) {
@@ -165,15 +168,19 @@ function updateTerminalDots() {
 
       const bouton = ts.branch.end;
 
-      logEvent?.(
-        "vascular",
-        "Neural firing increases local metabolic demand",
-        "neurovascular"
-      );
+      // -----------------------------
+      // Metabolic demand signal
+      // -----------------------------
+      window.neuron1Fired = true;
+      window.lastNeuron1SpikeTime = state.time;
 
-      extractOxygenNearNeuron1?.();
-      extractGlucoseNearNeuron1?.();
-      triggerSupplyWave?.(1.0);
+      if (typeof logEvent === "function") {
+        logEvent(
+          "vascular",
+          "Neural firing increases local metabolic demand",
+          "neurovascular"
+        );
+      }
 
       terminalGlows.push({
         x: bouton.x,
@@ -181,7 +188,10 @@ function updateTerminalDots() {
         life: TERMINAL_GLOW_LIFETIME
       });
 
-      triggerSynapticRelease?.(bouton);
+      if (typeof triggerSynapticRelease === "function") {
+        triggerSynapticRelease(bouton);
+      }
+
       terminalSpikes.splice(i, 1);
     }
   }
@@ -189,9 +199,12 @@ function updateTerminalDots() {
   // Glow decay
   for (let i = terminalGlows.length - 1; i >= 0; i--) {
     terminalGlows[i].life--;
-    if (terminalGlows[i].life <= 0) terminalGlows.splice(i, 1);
+    if (terminalGlows[i].life <= 0) {
+      terminalGlows.splice(i, 1);
+    }
   }
 }
+
 
 // =====================================================
 // DRAW AXON + TERMINALS
