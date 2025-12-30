@@ -133,9 +133,6 @@ function setup() {
   // ===================================================
   initBackgroundIons();
   initAxonIons();
-  initSomaIons();  
-
-
 
   // ---------------------------------------------------
   // INITIAL MODE
