@@ -16,6 +16,13 @@ window.ecsIons = {
   AxonKStatic: [],
   
 };
+// -----------------------------------------------------
+// Na⁺ → AP CAUSAL GATING
+// -----------------------------------------------------
+window.naTriggeredAP = false;
+window.naWaveStarted = false;
+
+
 // Axonal K⁺ efflux particles (AP-coupled)
 window.ecsIons.AxonKFlux = [];
 window.ecsIons.AxonNaWave = [];
@@ -67,12 +74,6 @@ const AXON_NA_WAVE_RADIUS = 28; // controls Na⁺ influx distance ONLY
 const NA_APPROACH_DECAY = 0.99;  // Na⁺ only
 
 
-// Na⁺ wave precedes AP
-const AXON_NA_PHASE_LEAD = 0.05;
-const AXON_NA_SPAWN_INTERVAL = 0.04;
-
-let lastAxonNaWavePhase = -Infinity;
-
 // -----------------------------------------------------
 // AXONAL K⁺ EFFLUX (AP-LOCKED)
 // -----------------------------------------------------
@@ -92,19 +93,21 @@ const AXON_K_PHASE_STEP = 0.045;
 // =====================================================
 const AXON_NA_LEAD_SEGMENTS = 40; // 🔥 this is your 5× knob
 
-function triggerAxonNaWave() {
+function triggerAxonNaWave(startIdx = null) {
   if (!neuron?.axon?.path) return;
-  if (window.currentAxonAPPhase == null) return;
 
   const path = neuron.axon.path;
 
   // 🔑 CURRENT AP POSITION
-  const apIdx = floor(
-    window.currentAxonAPPhase * (path.length - 2)
-  );
+  const apIdx = (window.currentAxonAPPhase != null)
+    ? floor(window.currentAxonAPPhase * (path.length - 2))
+    : 1; // fallback to hillock / AIS
+
 
   // 🔑 PUSH Na⁺ AHEAD SPATIALLY
-  const naIdx = apIdx + AXON_NA_LEAD_SEGMENTS;
+  const naIdx = startIdx !== null
+    ? startIdx           // 🔥 hillock / AIS
+    : apIdx + AXON_NA_LEAD_SEGMENTS;
 
   if (naIdx <= 0 || naIdx >= path.length - 1) return;
 
@@ -126,14 +129,16 @@ function triggerAxonNaWave() {
     const side = i % 2 === 0 ? 1 : -1;
 
     ecsIons.AxonNaWave.push({
-      // NEW (decoupled)
-      x: p1.x + nx * AXON_NA_WAVE_RADIUS * side,
-      y: p1.y + ny * AXON_NA_WAVE_RADIUS * side,
+    x: p1.x + nx * AXON_NA_WAVE_RADIUS * side,
+    y: p1.y + ny * AXON_NA_WAVE_RADIUS * side,
+  
+    vx: -nx * AXON_NA_WAVE_SPEED * side,
+    vy: -ny * AXON_NA_WAVE_SPEED * side,
+  
+    axonIdx: naIdx,          // ✅ REQUIRED
+    life: AXON_NA_WAVE_LIFETIME
+  });
 
-      vx: -nx * AXON_NA_WAVE_SPEED * side,
-      vy: -ny * AXON_NA_WAVE_SPEED * side,
-      life: AXON_NA_WAVE_LIFETIME
-    });
   }
 }
 
@@ -224,21 +229,16 @@ function drawExtracellularIons() {
     lastAxonKPhase = -Infinity;
   }
 
-  if (apPhase != null && apPhase < lastAxonNaWavePhase) {
-    lastAxonNaWavePhase = -Infinity;
-  }
-
   // ==============================
   // 🟡 Na⁺ PRE-DEPOLARIZATION WAVE
   // Spatially LEADS AP (index-based)
   // ==============================
- if (
-  apPhase != null &&
-  abs(apPhase - lastAxonNaWavePhase) > AXON_NA_SPAWN_INTERVAL
-) {
-  triggerAxonNaWave();
-  lastAxonNaWavePhase = apPhase;
-}
+  if (!window.naWaveStarted && ecsIons.AxonNaWave.length === 0) {
+    triggerAxonNaWave(1);
+    window.naWaveStarted = true;
+  }
+
+
 
 // ---- DRAW Na⁺ WAVE (ROBUST INFLOW) ----
 fill(getColor("sodium", 140));
@@ -265,6 +265,10 @@ ecsIons.AxonNaWave = ecsIons.AxonNaWave.filter(p => {
     if (c) {
 
       const d = dist(p.x, p.y, c.x, c.y);
+    // 🔑 Na⁺ reached hillock → allow AP
+    if (!window.naTriggeredAP && p.axonIdx <= 1) {
+      window.naTriggeredAP = true;
+}
 
       // once recruited, ignore velocity entirely
       if (d < AXON_NA_WAVE_RADIUS * 0.9) {
