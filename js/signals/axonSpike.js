@@ -14,13 +14,12 @@ const AXON_TERMINAL_START       = 0.75;
 // =====================================================
 // Na⁺ → AP COUPLING (TEACHING KNOBS)
 // =====================================================
-const PRE_AP_SPEED    = 0.02;  // invisible Na⁺-priming front
+const PRE_AP_SPEED = window.PRE_AP_SPEED ?? 0.02;
 
 // -----------------------------------------------------
 // Invisible pre-AP state (driver ONLY)
 // -----------------------------------------------------
-window.preAxonAPPhase  = null; // [0–1] along axon
-window.apDelayCounter = 0;
+window.preAxonAPPhase = null; // [0–1] along axon
 
 // -----------------------------------------------------
 // Ion gating (K⁺ must trail visible AP)
@@ -97,12 +96,10 @@ function updateAxonSpikes() {
     window.preAxonAPPhase += PRE_AP_SPEED;
 
     // Drive Na⁺ wave spatially
-    if (typeof triggerAxonNaWave === "function") {
-      triggerAxonNaWave();
-    }
+    triggerAxonNaWave?.();
 
     // Stop invisible front once visible AP exists
-    if (axonSpikes.length > 0) {
+    if (axonSpikes.length > 0 || window.preAxonAPPhase >= 1) {
       window.preAxonAPPhase = null;
     }
   }
@@ -122,7 +119,7 @@ function updateAxonSpikes() {
     // K⁺ efflux (TRAILS visible AP ONLY)
     // -------------------------------------------
     if (
-      typeof triggerAxonKEfflux === "function" &&
+      triggerAxonKEfflux &&
       s.phase - s.lastKEffluxPhase > AXON_K_RELEASE_INTERVAL
     ) {
       triggerAxonKEfflux(s.phase);
@@ -182,13 +179,11 @@ function updateTerminalDots() {
       // -----------------------------
       // Metabolic signaling
       // -----------------------------
-      if (!state.paused && typeof logEvent === "function") {
-        logEvent(
-          "vascular",
-          "Neural firing increases local metabolic demand",
-          "neurovascular"
-        );
-      }
+      logEvent?.(
+        "vascular",
+        "Neural firing increases local metabolic demand",
+        "neurovascular"
+      );
 
       extractOxygenNearNeuron1?.();
       extractGlucoseNearNeuron1?.();
@@ -276,4 +271,3 @@ function drawAxonSpikes() {
 window.updateAxonSpikes = updateAxonSpikes;
 window.spawnAxonSpike  = spawnAxonSpike;
 window.drawAxonSpikes  = drawAxonSpikes;
-
