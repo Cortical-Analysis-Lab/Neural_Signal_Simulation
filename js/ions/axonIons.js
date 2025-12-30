@@ -36,6 +36,10 @@ const AXON_NA_WAVE_LIFETIME = 28;
 const AXON_NA_WAVE_COUNT    = 2;
 const NA_APPROACH_DECAY     = 0.99;
 
+// 🆕 Density + termination control
+const AXON_NA_MAX_PER_SEGMENT = 6;   // max Na⁺ per axon index
+const AXON_NA_MIDLINE_RADIUS = 6;    // axon core cutoff
+
 // -----------------------------------------------------
 // K⁺ EFFLUX (VISIBLE AP DRIVEN)
 // -----------------------------------------------------
@@ -47,7 +51,7 @@ const AXON_K_PHASE_STEP     = 0.045;
 let lastAxonKPhase = -Infinity;
 
 // =====================================================
-// AXON Na⁺ WAVE — DRIVEN BY *PASSED-IN* AP PHASE
+// AXON Na⁺ WAVE — DRIVEN BY PASSED-IN AP PHASE
 // =====================================================
 function triggerAxonNaWave(apPhase) {
 
@@ -58,6 +62,12 @@ function triggerAxonNaWave(apPhase) {
   const idx  = Math.floor(apPhase * (path.length - 2));
 
   if (idx <= 0 || idx >= path.length - 1) return;
+
+  // ---------------------------------------------------
+  // Density clamp (prevents carpet effect)
+  // ---------------------------------------------------
+  const existing = ecsIons.AxonNaWave.filter(p => p.axonIdx === idx);
+  if (existing.length >= AXON_NA_MAX_PER_SEGMENT) return;
 
   const p1 = path[idx];
   const p2 = path[idx + 1];
@@ -138,7 +148,7 @@ function drawAxonIons() {
   noStroke();
 
   // ------------------------------
-  // Na⁺ WAVE (leading)
+  // Na⁺ WAVE (leading front)
   // ------------------------------
   fill(getColor("sodium", 140));
 
@@ -151,6 +161,13 @@ function drawAxonIons() {
 
     p.vx *= NA_APPROACH_DECAY;
     p.vy *= NA_APPROACH_DECAY;
+
+    // -------------------------------------------
+    // Kill Na⁺ when reaching axon midline
+    // -------------------------------------------
+    const center = neuron.axon.path[p.axonIdx];
+    const d = dist(p.x, p.y, center.x, center.y);
+    if (d < AXON_NA_MIDLINE_RADIUS) return false;
 
     text("Na⁺", p.x, p.y);
     return p.life > 0;
