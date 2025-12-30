@@ -66,7 +66,7 @@ const AXON_NA_WAVE_COUNT    = 3;
 
 // Na⁺ wave precedes AP
 const AXON_NA_PHASE_LEAD = 0.05;
-const AXON_NA_PHASE_STEP = 0.045;
+const AXON_NA_SPAWN_INTERVAL = 0.04;
 
 let lastAxonNaWavePhase = -Infinity;
 
@@ -81,7 +81,8 @@ const AXON_K_SPAWN_COUNT   = 3;
 // AXONAL K⁺ PHASE GATING
 // -----------------------------------------------------
 let lastAxonKPhase = -Infinity;
-const AXON_NA_SPAWN_INTERVAL = 0.04;
+const AXON_K_PHASE_STEP = 0.045;
+
 
 // =====================================================
 // AXONAL Na⁺ WAVE SPAWNER (PREDICTIVE)
