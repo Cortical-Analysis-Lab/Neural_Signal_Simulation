@@ -4,17 +4,21 @@
 console.log("soma loaded");
 
 // -----------------------------------------------------
+// Na⁺ → AP timing (TEACHING KNOBS)
+// -----------------------------------------------------
+const AP_DELAY_FRAMES = 6;   // 🔥 frames between soma Na⁺ influx and AP upstroke
+
+// -----------------------------------------------------
 // Action potential phases
 // -----------------------------------------------------
 const AP = {
   NONE: 0,
-  NA_COMMIT: 0.5,
+  NA_COMMIT: 0.5,   // soma Na⁺ influx, AIS priming
   UPSTROKE: 1,
   PEAK: 2,
   REPOLARIZE: 3,
   AHP: 4
 };
-
 
 // -----------------------------------------------------
 // Tunable AP parameters (biophysically inspired)
@@ -27,8 +31,6 @@ const AP_PARAMS = {
   ahpRate: 1.2,
   refractoryFrames: 25
 };
-
-
 
 // -----------------------------------------------------
 // Soma state
@@ -45,23 +47,25 @@ const soma = {
 };
 
 // -----------------------------------------------------
+// Invisible pre-AP front (driver for Na⁺ wave)
+// -----------------------------------------------------
+window.preAxonAPPhase = null;
+window.apDelayCounter = 0;
+
+// -----------------------------------------------------
 // PSP arrival at soma (EPSP / IPSP)
 // -----------------------------------------------------
 function addEPSPToSoma(amplitude, type, sourceNeuron = 1) {
 
   // 🚫 Ignore IPSPs originating from neuron 3
-  if (type !== "exc" && sourceNeuron === 3) {
-    return;
-  }
+  if (type !== "exc" && sourceNeuron === 3) return;
 
   const normalized = constrain((amplitude - 6) / 24, 0, 1);
   let deltaV;
 
   if (type === "exc") {
     deltaV = 3 + 28 * normalized * normalized;
-
-    // Driver synapse
-    if (normalized > 0.9) deltaV += 10;
+    if (normalized > 0.9) deltaV += 10; // driver synapse
   } else {
     deltaV = -(4 + 20 * normalized);
   }
@@ -77,7 +81,64 @@ function updateSoma() {
   switch (soma.apState) {
 
     // =================================================
-    // FAST DEPOLARIZATION (Na+)
+    // SUBTHRESHOLD DYNAMICS
+    // =================================================
+    case AP.NONE:
+
+      if (soma.refractory > 0) {
+        soma.refractory--;
+        soma.Vm = lerp(soma.Vm, soma.rest, 0.2);
+      }
+
+      else if (soma.Vm >= soma.threshold) {
+        soma.apState = AP.NA_COMMIT;
+
+        // 🟡 Soma Na⁺ influx (visual + conceptual)
+        triggerNaInfluxNeuron1();
+
+        // Reset Na⁺ wave + invisible AP
+        window.naWaveStarted    = false;
+        window.preAxonAPPhase   = null;
+        window.apDelayCounter   = 0;
+      }
+
+      else {
+        soma.Vm = lerp(soma.Vm, soma.rest, 0.05);
+      }
+      break;
+
+    // =================================================
+    // Na⁺ COMMIT (SOMA → AIS PRIMING)
+    // =================================================
+    case AP.NA_COMMIT:
+
+      // Partial depolarization from soma Na⁺ influx
+      soma.Vm += AP_PARAMS.upstrokeRate * 0.6;
+
+      // 🔑 Start invisible pre-AP front ONCE
+      if (window.preAxonAPPhase === null) {
+        window.preAxonAPPhase = 0;
+      }
+
+      // Advance invisible AP front (same geometry as real AP)
+      window.preAxonAPPhase += AXON_CONDUCTION_SPEED;
+
+      // 🔑 Trigger Na⁺ wave from invisible AP
+      if (!window.naWaveStarted) {
+        triggerAxonNaWave(1); // AIS / hillock
+        window.naWaveStarted = true;
+      }
+
+      // 🔥 Delay before full AP upstroke
+      window.apDelayCounter++;
+
+      if (window.apDelayCounter >= AP_DELAY_FRAMES) {
+        soma.apState = AP.UPSTROKE;
+      }
+      break;
+
+    // =================================================
+    // FAST DEPOLARIZATION (VISIBLE AP)
     // =================================================
     case AP.UPSTROKE:
       soma.Vm += AP_PARAMS.upstrokeRate;
@@ -87,11 +148,11 @@ function updateSoma() {
         soma.apState = AP.PEAK;
         soma.apTimer = AP_PARAMS.peakHold;
 
-        // 🔑 METABOLIC DEMAND SIGNAL (Neuron 1 fired)
+        // 🔑 Metabolic signal
         window.neuron1Fired = true;
         window.lastNeuron1SpikeTime = state.time;
 
-        // 🔔 LOG NEURAL EVENT (ONCE PER AP)
+        // 🔔 Log once
         if (typeof logEvent === "function") {
           logEvent(
             "neural",
@@ -102,29 +163,23 @@ function updateSoma() {
 
         spawnAxonSpike();
         console.log("⚡ ACTION POTENTIAL");
-
       }
       break;
 
     // =================================================
-    // PEAK (Na+ inactivation)
+    // PEAK (Na⁺ inactivation)
     // =================================================
     case AP.PEAK:
       soma.apTimer--;
-      if (soma.apTimer <= 0) {
-        soma.apState = AP.REPOLARIZE;
-      }
+      if (soma.apTimer <= 0) soma.apState = AP.REPOLARIZE;
       break;
 
     // =================================================
-    // REPOLARIZATION (K+ efflux)
+    // REPOLARIZATION (K⁺ efflux)
     // =================================================
     case AP.REPOLARIZE:
       soma.Vm -= AP_PARAMS.repolRate;
-
-      if (soma.Vm <= soma.rest) {
-        soma.apState = AP.AHP;
-      }
+      if (soma.Vm <= soma.rest) soma.apState = AP.AHP;
       break;
 
     // =================================================
@@ -136,55 +191,11 @@ function updateSoma() {
       if (abs(soma.Vm - AP_PARAMS.ahpTarget) < 0.5) {
         soma.apState = AP.NONE;
         soma.refractory = AP_PARAMS.refractoryFrames;
+
+        // Cleanup invisible AP
+        window.preAxonAPPhase = null;
       }
       break;
-
-    // =================================================
-    // SUBTHRESHOLD DYNAMICS
-    // =================================================
-    case AP.NONE:
-
-      if (soma.refractory > 0) {
-        soma.refractory--;
-        soma.Vm = lerp(soma.Vm, soma.rest, 0.2);
-      }
-
-     else if (
-      soma.Vm >= soma.threshold &&
-      soma.apState !== AP.NA_COMMIT
-    ) {
-      soma.apState = AP.NA_COMMIT;
-      triggerNaInfluxNeuron1();
-      window.naWaveStarted = false;
-    }
-
-
-      else {
-        soma.Vm = lerp(soma.Vm, soma.rest, 0.05);
-      }
-      break;
-
-      case AP.NA_COMMIT:
-
-        // partial depolarization from soma Na⁺ influx
-        soma.Vm += AP_PARAMS.upstrokeRate * 0.6;
-      
-        // 🔑 START INVISIBLE PRE-AP FRONT (ONCE)
-        if (window.preAxonAPPhase === null) {
-          window.preAxonAPPhase  = 0;
-          window.apDelayCounter = 0;
-        }
-      
-        // wait for delay, then allow real AP
-        window.apDelayCounter++;
-      
-        if (window.apDelayCounter >= AP_DELAY_FRAMES) {
-          soma.apState = AP.UPSTROKE;
-        }
-      
-        break;
-
-
   }
 
   // ===================================================
