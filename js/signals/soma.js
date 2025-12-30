@@ -1,187 +1,202 @@
 // =====================================================
-// SOMA MEMBRANE POTENTIAL + ACTION POTENTIAL MODEL
+// AXON IONS — HALOS, Na⁺ WAVE, K⁺ EFFLUX
 // =====================================================
-console.log("soma loaded");
+console.log("🧬 axonIons loaded");
 
 // -----------------------------------------------------
-// Na⁺ → AP timing (TEACHING KNOBS)
+// GLOBAL ECS STORAGE (RELOAD-SAFE)
 // -----------------------------------------------------
-const AP_DELAY_FRAMES = 6;   // frames between soma Na⁺ influx and AP upstroke
+window.ecsIons = window.ecsIons || {};
 
-// -----------------------------------------------------
-// Action potential phases
-// -----------------------------------------------------
-const AP = {
-  NONE: 0,
-  NA_COMMIT: 0.5,   // soma Na⁺ influx, AIS priming
-  UPSTROKE: 1,
-  PEAK: 2,
-  REPOLARIZE: 3,
-  AHP: 4
-};
+ecsIons.AxonNaStatic = ecsIons.AxonNaStatic || [];
+ecsIons.AxonKStatic  = ecsIons.AxonKStatic  || [];
+ecsIons.AxonNaWave   = ecsIons.AxonNaWave   || [];
+ecsIons.AxonKFlux    = ecsIons.AxonKFlux    || [];
 
 // -----------------------------------------------------
-// Tunable AP parameters (biophysically inspired)
+// AXON HALO GEOMETRY (STATIC CONTEXT)
 // -----------------------------------------------------
-const AP_PARAMS = {
-  upstrokeRate: 7.5,     // fast Na⁺ influx
-  peakHold: 2,           // frames at peak
-  repolRate: 5.0,        // K⁺ efflux
-  ahpTarget: -78,        // after-hyperpolarization
-  ahpRate: 1.2,
-  refractoryFrames: 25
-};
+const AXON_HALO_RADIUS    = 28;
+const AXON_HALO_THICKNESS = 4;
 
 // -----------------------------------------------------
-// Soma state
+// HALO DYNAMICS (SUBTLE, BACKGROUND)
 // -----------------------------------------------------
-const soma = {
-  Vm: -65,
-  VmDisplay: -65,
-  rest: -65,
-  threshold: -50,
-
-  apState: AP.NONE,
-  apTimer: 0,
-  refractory: 0,
-  delayCounter: 0,
-
-  invisibleAPRequested: false   // 🔑 NEW
-};
+const HALO_NA_PERTURB = 0.04;
+const HALO_K_PUSH     = 1.6;
+const HALO_NA_RELAX   = 0.95;
+const HALO_K_RELAX    = 0.80;
 
 // -----------------------------------------------------
-// PSP arrival at soma (EPSP / IPSP)
+// 🧠 Na⁺ WAVE — TEACHING / TUNING KNOBS
 // -----------------------------------------------------
-function addEPSPToSoma(amplitude, type, sourceNeuron = 1) {
+const AXON_NA_WAVE_SPEED     = 1.6;   // inward speed
+const AXON_NA_WAVE_RADIUS   = 28;    // spawn distance from membrane
+const AXON_NA_WAVE_LIFETIME = 28;    // frames before decay
 
-  // Ignore IPSPs originating from neuron 3
-  if (type !== "exc" && sourceNeuron === 3) return;
+const AXON_NA_WAVE_COUNT    = 1;     // particles spawned PER SIDE per frame
+const AXON_NA_MAX_PER_SIDE  = 3;     // density clamp per axon segment
+const AXON_NA_MIDLINE_RADIUS = 6;    // cutoff when reaching axon core
 
-  const normalized = constrain((amplitude - 6) / 24, 0, 1);
-  let deltaV;
+const NA_APPROACH_DECAY = 0.99;      // velocity damping
 
-  if (type === "exc") {
-    deltaV = 3 + 28 * normalized * normalized;
-    if (normalized > 0.9) deltaV += 10; // driver synapse
-  } else {
-    deltaV = -(4 + 20 * normalized);
-  }
+// -----------------------------------------------------
+// K⁺ EFFLUX — VISIBLE AP DRIVEN
+// -----------------------------------------------------
+const AXON_K_FLUX_SPEED     = 1.6;
+const AXON_K_FLUX_LIFETIME  = 40;
+const AXON_K_SPAWN_COUNT    = 3;
+const AXON_K_PHASE_STEP     = 0.045;
 
-  soma.Vm += deltaV;
+let lastAxonKPhase = -Infinity;
+
+// =====================================================
+// AXON Na⁺ WAVE — DRIVEN BY INVISIBLE AP PHASE
+// =====================================================
+function triggerAxonNaWave(apPhase) {
+
+  if (!neuron?.axon?.path || apPhase == null) return;
+
+  const path = neuron.axon.path;
+  const idx  = Math.floor(apPhase * (path.length - 2));
+  if (idx <= 0 || idx >= path.length - 1) return;
+
+  const p1 = path[idx];
+  const p2 = path[idx + 1];
+
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  const len = Math.hypot(dx, dy) || 1;
+
+  // inward membrane normal
+  const nx = -dy / len;
+  const ny =  dx / len;
+
+  // ---------------------------------------------------
+  // BILATERAL SPAWNING (LEFT + RIGHT)
+  // ---------------------------------------------------
+  [-1, +1].forEach(side => {
+
+    // density clamp PER SIDE
+    const existing = ecsIons.AxonNaWave.filter(
+      p => p.axonIdx === idx && p.side === side
+    );
+    if (existing.length >= AXON_NA_MAX_PER_SIDE) return;
+
+    for (let i = 0; i < AXON_NA_WAVE_COUNT; i++) {
+
+      ecsIons.AxonNaWave.push({
+        x: p1.x + nx * AXON_NA_WAVE_RADIUS * side,
+        y: p1.y + ny * AXON_NA_WAVE_RADIUS * side,
+
+        vx: -nx * AXON_NA_WAVE_SPEED * side,
+        vy: -ny * AXON_NA_WAVE_SPEED * side,
+
+        axonIdx: idx,
+        side,
+        life: AXON_NA_WAVE_LIFETIME
+      });
+    }
+  });
 }
 
-// -----------------------------------------------------
-// Soma update (physiology-first)
-// -----------------------------------------------------
-function updateSoma() {
+// =====================================================
+// AXON K⁺ EFFLUX — DRIVEN BY VISIBLE AP
+// =====================================================
+function triggerAxonKEfflux(apPhase) {
 
-  switch (soma.apState) {
+  if (!neuron?.axon?.path || apPhase == null) return;
+  if (Math.abs(apPhase - lastAxonKPhase) < AXON_K_PHASE_STEP) return;
+  lastAxonKPhase = apPhase;
 
-    // =================================================
-    // SUBTHRESHOLD DYNAMICS
-    // =================================================
-    case AP.NONE:
+  const path = neuron.axon.path;
+  const idx  = Math.floor(apPhase * (path.length - 2));
+  if (idx <= 0 || idx >= path.length - 1) return;
 
-      if (soma.refractory > 0) {
-        soma.refractory--;
-        soma.Vm = lerp(soma.Vm, soma.rest, 0.2);
-      }
+  const p1 = path[idx];
+  const p2 = path[idx + 1];
 
-      else if (soma.Vm >= soma.threshold) {
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  const len = Math.hypot(dx, dy) || 1;
 
-        soma.apState = AP.NA_COMMIT;
-        soma.delayCounter = 0;
-        soma.invisibleAPRequested = false;
+  const nx = -dy / len;
+  const ny =  dx / len;
 
-        // Soma Na⁺ influx (visual + conceptual)
-        triggerNaInfluxNeuron1?.();
+  for (let i = 0; i < AXON_K_SPAWN_COUNT; i++) {
+    const side = i % 2 === 0 ? 1 : -1;
 
-        // 🔑 Request invisible axonal AP ONCE
-        if (!soma.invisibleAPRequested) {
-          spawnInvisibleAxonAP?.();
-          soma.invisibleAPRequested = true;
-        }
-      }
-
-      else {
-        soma.Vm = lerp(soma.Vm, soma.rest, 0.05);
-      }
-      break;
-
-    // =================================================
-    // Na⁺ COMMIT (SOMA → AIS PRIMING)
-    // =================================================
-    case AP.NA_COMMIT:
-
-      soma.Vm += AP_PARAMS.upstrokeRate * 0.6;
-      soma.delayCounter++;
-
-      if (soma.delayCounter >= AP_DELAY_FRAMES) {
-        soma.apState = AP.UPSTROKE;
-      }
-      break;
-
-    // =================================================
-    // FAST DEPOLARIZATION (VISIBLE AP)
-    // =================================================
-    case AP.UPSTROKE:
-
-      soma.Vm += AP_PARAMS.upstrokeRate;
-
-      if (soma.Vm >= 40) {
-
-        soma.Vm = 40;
-        soma.apState = AP.PEAK;
-        soma.apTimer = AP_PARAMS.peakHold;
-
-        // Metabolic coupling
-        window.neuron1Fired = true;
-        window.lastNeuron1SpikeTime = state.time;
-
-        logEvent?.(
-          "neural",
-          "Action potential generated at the soma",
-          "soma"
-        );
-
-        // 🔴 Spawn visible axonal AP
-        spawnAxonSpike?.();
-      }
-      break;
-
-    // =================================================
-    // PEAK (Na⁺ inactivation)
-    // =================================================
-    case AP.PEAK:
-      soma.apTimer--;
-      if (soma.apTimer <= 0) soma.apState = AP.REPOLARIZE;
-      break;
-
-    // =================================================
-    // REPOLARIZATION (K⁺ efflux)
-    // =================================================
-    case AP.REPOLARIZE:
-      soma.Vm -= AP_PARAMS.repolRate;
-      if (soma.Vm <= soma.rest) soma.apState = AP.AHP;
-      break;
-
-    // =================================================
-    // AFTER-HYPERPOLARIZATION
-    // =================================================
-    case AP.AHP:
-
-      soma.Vm = lerp(soma.Vm, AP_PARAMS.ahpTarget, 0.15);
-
-      if (abs(soma.Vm - AP_PARAMS.ahpTarget) < 0.5) {
-        soma.apState = AP.NONE;
-        soma.refractory = AP_PARAMS.refractoryFrames;
-        soma.invisibleAPRequested = false;   // 🔑 RESET
-      }
-      break;
+    ecsIons.AxonKFlux.push({
+      x: p1.x + nx * AXON_HALO_RADIUS * side,
+      y: p1.y + ny * AXON_HALO_RADIUS * side,
+      vx: nx * AXON_K_FLUX_SPEED * side,
+      vy: ny * AXON_K_FLUX_SPEED * side,
+      life: AXON_K_FLUX_LIFETIME
+    });
   }
-
-  // ===================================================
-  // DISPLAY smoothing ONLY
-  // ===================================================
-  soma.VmDisplay = lerp(soma.VmDisplay, soma.Vm, 0.25);
 }
+
+// =====================================================
+// DRAW
+// =====================================================
+function drawAxonIons() {
+  push();
+  textAlign(CENTER, CENTER);
+  noStroke();
+
+  // ------------------------------
+  // Na⁺ WAVE (LEADING FRONT)
+  // ------------------------------
+  fill(getColor("sodium", 140));
+
+  ecsIons.AxonNaWave = ecsIons.AxonNaWave.filter(p => {
+
+    p.life--;
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vx *= NA_APPROACH_DECAY;
+    p.vy *= NA_APPROACH_DECAY;
+
+    // kill at axon midline
+    const center = neuron.axon.path[p.axonIdx];
+    if (dist(p.x, p.y, center.x, center.y) < AXON_NA_MIDLINE_RADIUS) {
+      return false;
+    }
+
+    text("Na⁺", p.x, p.y);
+    return p.life > 0;
+  });
+
+  // ------------------------------
+  // K⁺ EFFLUX (TRAILING)
+  // ------------------------------
+  fill(getColor("potassium", 130));
+
+  ecsIons.AxonKFlux = ecsIons.AxonKFlux.filter(p => {
+    p.life--;
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vx *= 0.96;
+    p.vy *= 0.96;
+    text("K⁺", p.x, p.y);
+    return p.life > 0;
+  });
+
+  pop();
+}
+
+// =====================================================
+// INITIALIZATION
+// =====================================================
+function initAxonIons() {
+  ecsIons.AxonNaStatic.length = 0;
+  ecsIons.AxonKStatic.length  = 0;
+}
+
+// =====================================================
+// EXPORTS
+// =====================================================
+window.triggerAxonNaWave   = triggerAxonNaWave;
+window.triggerAxonKEfflux = triggerAxonKEfflux;
+window.drawAxonIons       = drawAxonIons;
+window.initAxonIons       = initAxonIons;
