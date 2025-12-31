@@ -16,8 +16,8 @@ console.log("⚡ myelinAP loaded");
 // CONDUCTION SPEEDS (TEACHING-SAFE)
 // -----------------------------------------------------
 // NOTE: These MUST be slower than visual ion motion
-const MYELIN_SPEED_NODE   = 0.0045;
-const MYELIN_SPEED_SHEATH = 0.010;
+const MYELIN_SPEED_NODE   = 0.008;
+const MYELIN_SPEED_SHEATH = 0.02;
 
 // Visible AP size
 const AP_RADIUS = 10;
