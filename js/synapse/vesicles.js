@@ -1,7 +1,7 @@
 console.log("🫧 synapse/vesicles loaded");
 
 // =====================================================
-// VESICLE SYSTEM — PRESYNAPTIC LOCAL SPACE
+// SYNAPTIC VESICLE SYSTEM — PRESYNAPTIC LOCAL SPACE
 // =====================================================
 // ✔ Thick border circles
 // ✔ Empty → loaded → release → recycle
@@ -10,43 +10,43 @@ console.log("🫧 synapse/vesicles loaded");
 // =====================================================
 
 // -----------------------------------------------------
-// STORAGE (RELOAD SAFE, NAMESPACED)
+// STORAGE (RELOAD SAFE, FULLY NAMESPACED)
 // -----------------------------------------------------
-window.synapticVesicles = window.synapticVesicles || [];
-var synapticVesicles = window.synapticVesicles;
+window.synapseVesicles = window.synapseVesicles || [];
+var synapseVesicles = window.synapseVesicles;
 
 // -----------------------------------------------------
-// TUNING CONSTANTS
+// TUNING CONSTANTS (NAMESPACED)
 // -----------------------------------------------------
-var VESICLE_RADIUS = 10;
-var VESICLE_STROKE = 4;
+var SYNAPSE_VESICLE_RADIUS = 10;
+var SYNAPSE_VESICLE_STROKE = 4;
 
-var MAX_LOADED_VESICLES = 6;
+var SYNAPSE_MAX_LOADED_VESICLES = 6;
 
-var BACK_ZONE_Y  = -90;
-var FRONT_ZONE_Y = -25;
+var SYNAPSE_BACK_ZONE_Y  = -90;
+var SYNAPSE_FRONT_ZONE_Y = -25;
 
-var LOAD_DISTANCE = 14;
+var SYNAPSE_LOAD_DISTANCE = 14;
 
 // -----------------------------------------------------
-// COLORS (ES5 SAFE)
+// COLORS (NAMESPACED, ES5 SAFE)
 // -----------------------------------------------------
-function COLOR_EMPTY() {
+function synapseColorEmpty() {
   return color(210, 220, 235);
 }
 
-function COLOR_LOADED() {
+function synapseColorLoaded() {
   return color(180, 120, 255);
 }
 
-function COLOR_BORDER() {
+function synapseColorBorder() {
   return color(40);
 }
 
 // -----------------------------------------------------
-// VESICLE STATES
+// VESICLE STATES (NAMESPACED)
 // -----------------------------------------------------
-var STATES = {
+var SYNAPSE_VESICLE_STATES = {
   EMPTY:     "empty",
   LOADING:   "loading",
   LOADED:    "loaded",
@@ -58,134 +58,154 @@ var STATES = {
 // -----------------------------------------------------
 // SPAWN EMPTY VESICLE (BACK OF PRESYNAPSE)
 // -----------------------------------------------------
-function spawnEmptyVesicle() {
-  synapticVesicles.push({
+function spawnSynapseEmptyVesicle() {
+  synapseVesicles.push({
     x: random(-40, 40),
-    y: random(BACK_ZONE_Y - 10, BACK_ZONE_Y + 10),
+    y: random(
+      SYNAPSE_BACK_ZONE_Y - 10,
+      SYNAPSE_BACK_ZONE_Y + 10
+    ),
     vx: random(-0.3, 0.3),
     vy: random(0.3, 0.6),
 
     fillLevel: 0,
-    state: STATES.EMPTY,
+    state: SYNAPSE_VESICLE_STATES.EMPTY,
     timer: 0
   });
 }
 
 // -----------------------------------------------------
-// ATP / H+ INTERACTION (SYMBOLIC)
+// ATP / H+ LOADING LOGIC (SYMBOLIC)
 // -----------------------------------------------------
-function attemptLoading(v) {
-  if (v.state !== STATES.EMPTY) return;
+function attemptSynapseVesicleLoading(v) {
+  if (v.state !== SYNAPSE_VESICLE_STATES.EMPTY) return;
 
-  var nearLoader = abs(v.y - FRONT_ZONE_Y) < LOAD_DISTANCE;
-
-  if (nearLoader) {
-    v.state = STATES.LOADING;
+  if (abs(v.y - SYNAPSE_FRONT_ZONE_Y) < SYNAPSE_LOAD_DISTANCE) {
+    v.state = SYNAPSE_VESICLE_STATES.LOADING;
     v.fillLevel = 0;
   }
 }
 
 // -----------------------------------------------------
-// UPDATE VESICLE STATE MACHINE
+// UPDATE SYNAPTIC VESICLES (STATE MACHINE)
 // -----------------------------------------------------
-function updateVesicles() {
+function updateSynapseVesicles() {
 
   // Maintain population
   var loadedCount = 0;
-  for (var i = 0; i < synapticVesicles.length; i++) {
-    if (synapticVesicles[i].state === STATES.LOADED) loadedCount++;
+  for (var i = 0; i < synapseVesicles.length; i++) {
+    if (synapseVesicles[i].state === SYNAPSE_VESICLE_STATES.LOADED) {
+      loadedCount++;
+    }
   }
 
-  if (synapticVesicles.length < 10 && loadedCount < MAX_LOADED_VESICLES) {
-    spawnEmptyVesicle();
+  if (
+    synapseVesicles.length < 10 &&
+    loadedCount < SYNAPSE_MAX_LOADED_VESICLES
+  ) {
+    spawnSynapseEmptyVesicle();
   }
 
-  for (var i = 0; i < synapticVesicles.length; i++) {
-    var v = synapticVesicles[i];
+  for (var i = 0; i < synapseVesicles.length; i++) {
+    var v = synapseVesicles[i];
 
-    if (v.state === STATES.EMPTY) {
+    // EMPTY → LOADING
+    if (v.state === SYNAPSE_VESICLE_STATES.EMPTY) {
       v.y += v.vy;
       v.x += v.vx;
-      attemptLoading(v);
+      attemptSynapseVesicleLoading(v);
     }
 
-    else if (v.state === STATES.LOADING) {
+    // LOADING
+    else if (v.state === SYNAPSE_VESICLE_STATES.LOADING) {
       v.fillLevel += 0.04;
       if (v.fillLevel >= 1) {
         v.fillLevel = 1;
-        v.state = STATES.LOADED;
-        v.y = random(FRONT_ZONE_Y - 10, FRONT_ZONE_Y + 10);
+        v.state = SYNAPSE_VESICLE_STATES.LOADED;
+        v.y = random(
+          SYNAPSE_FRONT_ZONE_Y - 10,
+          SYNAPSE_FRONT_ZONE_Y + 10
+        );
         v.x = random(-50, 50);
       }
     }
 
-    else if (v.state === STATES.LOADED) {
+    // LOADED (DOCKED)
+    else if (v.state === SYNAPSE_VESICLE_STATES.LOADED) {
       v.x += sin(frameCount * 0.02 + v.y) * 0.2;
     }
 
-    else if (v.state === STATES.SNARED) {
+    // SNARED → FUSED
+    else if (v.state === SYNAPSE_VESICLE_STATES.SNARED) {
       v.y += 0.8;
       if (v.y > -5) {
-        v.state = STATES.FUSED;
+        v.state = SYNAPSE_VESICLE_STATES.FUSED;
         v.timer = 0;
       }
     }
 
-    else if (v.state === STATES.FUSED) {
+    // FUSED
+    else if (v.state === SYNAPSE_VESICLE_STATES.FUSED) {
       v.timer++;
       if (v.timer > 20) {
-        v.state = STATES.RECYCLING;
+        v.state = SYNAPSE_VESICLE_STATES.RECYCLING;
         v.fillLevel = 0;
       }
     }
 
-    else if (v.state === STATES.RECYCLING) {
+    // RECYCLING → EMPTY
+    else if (v.state === SYNAPSE_VESICLE_STATES.RECYCLING) {
       v.y -= 1.2;
-      if (v.y < BACK_ZONE_Y) {
-        v.state = STATES.EMPTY;
+      if (v.y < SYNAPSE_BACK_ZONE_Y) {
+        v.state = SYNAPSE_VESICLE_STATES.EMPTY;
       }
     }
   }
 }
 
 // -----------------------------------------------------
-// ACTION POTENTIAL TRIGGER
+// AP TRIGGER — RELEASE LOADED VESICLES
 // -----------------------------------------------------
-function triggerVesicleRelease() {
-  for (var i = 0; i < synapticVesicles.length; i++) {
-    if (synapticVesicles[i].state === STATES.LOADED) {
-      synapticVesicles[i].state = STATES.SNARED;
+function triggerSynapseVesicleRelease() {
+  for (var i = 0; i < synapseVesicles.length; i++) {
+    if (synapseVesicles[i].state === SYNAPSE_VESICLE_STATES.LOADED) {
+      synapseVesicles[i].state = SYNAPSE_VESICLE_STATES.SNARED;
     }
   }
 }
 
 // -----------------------------------------------------
-// DRAW VESICLES (LOCAL SPACE)
+// DRAW SYNAPTIC VESICLES (LOCAL SPACE)
 // -----------------------------------------------------
-function drawVesicles() {
+function drawSynapseVesicles() {
   push();
-  strokeWeight(VESICLE_STROKE);
+  strokeWeight(SYNAPSE_VESICLE_STROKE);
 
-  for (var i = 0; i < synapticVesicles.length; i++) {
-    var v = synapticVesicles[i];
+  for (var i = 0; i < synapseVesicles.length; i++) {
+    var v = synapseVesicles[i];
 
-    stroke(COLOR_BORDER());
+    stroke(synapseColorBorder());
+    fill(
+      v.state === SYNAPSE_VESICLE_STATES.LOADED ||
+      v.state === SYNAPSE_VESICLE_STATES.FUSED
+        ? synapseColorLoaded()
+        : synapseColorEmpty()
+    );
 
-    if (v.state === STATES.LOADED || v.state === STATES.FUSED) {
-      fill(COLOR_LOADED());
-    } else {
-      fill(COLOR_EMPTY());
-    }
+    ellipse(
+      v.x,
+      v.y,
+      SYNAPSE_VESICLE_RADIUS * 2
+    );
 
-    ellipse(v.x, v.y, VESICLE_RADIUS * 2);
-
+    // Neurotransmitter fill
     if (v.fillLevel > 0) {
       noStroke();
       fill(200, 140, 255, 180);
       ellipse(
         v.x,
         v.y,
-        VESICLE_RADIUS * 2 * v.fillLevel
+        SYNAPSE_VESICLE_RADIUS * 2 * v.fillLevel
       );
     }
   }
