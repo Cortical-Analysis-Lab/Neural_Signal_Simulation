@@ -4,30 +4,24 @@
 // ✔ Continuous electrical conduction under myelin
 // ✔ Faster under myelin, slower at nodes
 // ✔ Visible at nodes only
-// ✔ Na⁺ influx triggered at NEXT node (pre-node segment)
+// ✔ Na⁺ influx triggered BEFORE node
 // ✔ K⁺ efflux triggered AT node
-// ✔ Reuses terminal propagation + neurotransmitter release
+// ✔ Geometry-accurate (phase-based)
 // =====================================================
 
 console.log("myelinAP loaded");
 
 // -----------------------------------------------------
-// Parameters (still slow for verification)
+// Parameters
 // -----------------------------------------------------
-const MYELIN_SPEED_NODE   = 0.035; // exposed / nodal
-const MYELIN_SPEED_SHEATH = 0.08;  // insulated / internodal
+const MYELIN_SPEED_NODE   = 0.035;
+const MYELIN_SPEED_SHEATH = 0.08;
 const AP_RADIUS = 10;
 
 // -----------------------------------------------------
 // Active myelinated APs
 // -----------------------------------------------------
 const myelinAPs = [];
-
-// -----------------------------------------------------
-// Node trigger guards (prevent retriggering)
-// -----------------------------------------------------
-let lastNaNodeIdx = -1;
-let lastKNodeIdx  = -1;
 
 // -----------------------------------------------------
 // Spawn AP at axon hillock
@@ -40,7 +34,12 @@ function spawnMyelinAP() {
     if (last.phase < 0.08) return;
   }
 
-  myelinAPs.push({ phase: 0 });
+  myelinAPs.push({
+    phase: 0,
+    lastPhase: 0,
+    firedNa: new Set(),
+    firedK:  new Set()
+  });
 }
 
 // -----------------------------------------------------
@@ -50,7 +49,6 @@ function isPhaseUnderMyelin(phase, sheathCount = 4) {
   for (let s = 1; s <= sheathCount; s++) {
     const center = s / (sheathCount + 1);
     const halfWidth = 0.03;
-
     if (phase > center - halfWidth && phase < center + halfWidth) {
       return true;
     }
@@ -64,11 +62,12 @@ function isPhaseUnderMyelin(phase, sheathCount = 4) {
 function updateMyelinAPs() {
 
   const nodes = neuron?.axon?.nodes;
-  if (!nodes || nodes.length < 2) return;
+  if (!nodes || nodes.length === 0) return;
 
   for (let i = myelinAPs.length - 1; i >= 0; i--) {
 
     const ap = myelinAPs[i];
+    ap.lastPhase = ap.phase;
 
     // -----------------------------
     // Continuous conduction
@@ -80,62 +79,54 @@ function updateMyelinAPs() {
       : MYELIN_SPEED_NODE;
 
     // -----------------------------
-    // Map phase → node index
+    // NODE-CROSSED DETECTION
     // -----------------------------
-    const nodeFloat = ap.phase * (nodes.length - 1);
-    const nodeIdx   = Math.floor(nodeFloat);
+    for (let n = 0; n < nodes.length; n++) {
 
-    // -----------------------------
-    // 🔵 Na⁺ INFLUX (PRE-NODE)
-    // Triggered when AP enters the
-    // segment BEFORE the node
-    // -----------------------------
-    if (
-      nodeIdx > lastNaNodeIdx &&
-      nodes[nodeIdx + 1]
-    ) {
-      lastNaNodeIdx = nodeIdx;
+      const node = nodes[n];
+      if (node.phase == null) continue;
 
-      if (typeof triggerNodeNaInflux === "function") {
-        triggerNodeNaInflux(nodeIdx + 1);
+      // 🔵 Na⁺ — just BEFORE node
+      if (
+        ap.lastPhase < node.phase &&
+        ap.phase >= node.phase &&
+        !ap.firedNa.has(n)
+      ) {
+        ap.firedNa.add(n);
+
+        if (typeof triggerNodeNaInflux === "function") {
+          triggerNodeNaInflux(n);
+        }
+      }
+
+      // 🟣 K⁺ — AT node (same moment, separate visual)
+      if (
+        ap.lastPhase < node.phase &&
+        ap.phase >= node.phase &&
+        !ap.firedK.has(n)
+      ) {
+        ap.firedK.add(n);
+
+        if (typeof triggerNodeKEfflux === "function") {
+          triggerNodeKEfflux(n);
+        }
       }
     }
 
     // -----------------------------
-    // 🟣 K⁺ EFFLUX (AT NODE)
-    // Triggered when AP reaches node
-    // -----------------------------
-    if (
-      nodeIdx > lastKNodeIdx &&
-      nodes[nodeIdx]
-    ) {
-      lastKNodeIdx = nodeIdx;
-
-      if (typeof triggerNodeKEfflux === "function") {
-        triggerNodeKEfflux(nodeIdx);
-      }
-    }
-
-    // -----------------------------
-    // Terminal handoff (unchanged)
+    // Terminal handoff
     // -----------------------------
     if (ap.phase >= AXON_TERMINAL_START) {
-
       if (typeof spawnTerminalSpikes === "function") {
         spawnTerminalSpikes();
       }
-
       myelinAPs.splice(i, 1);
-      lastNaNodeIdx = -1;
-      lastKNodeIdx  = -1;
       continue;
     }
 
     // Safety cleanup
     if (ap.phase >= 1) {
       myelinAPs.splice(i, 1);
-      lastNaNodeIdx = -1;
-      lastKNodeIdx  = -1;
     }
   }
 }
