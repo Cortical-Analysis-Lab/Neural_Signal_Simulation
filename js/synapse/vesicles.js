@@ -13,39 +13,47 @@ console.log("🫧 synapse/vesicles loaded");
 // STORAGE (RELOAD SAFE)
 // -----------------------------------------------------
 window.synapticVesicles = window.synapticVesicles || [];
-const vesicles = window.synapticVesicles;
+var vesicles = window.synapticVesicles;
 
 // -----------------------------------------------------
 // TUNING CONSTANTS
 // -----------------------------------------------------
-const VESICLE_RADIUS = 10;
-const VESICLE_STROKE = 4;
+var VESICLE_RADIUS = 10;
+var VESICLE_STROKE = 4;
 
-const MAX_LOADED_VESICLES = 6;
+var MAX_LOADED_VESICLES = 6;
 
-const BACK_ZONE_Y  = -90;
-const FRONT_ZONE_Y = -25;
+var BACK_ZONE_Y  = -90;
+var FRONT_ZONE_Y = -25;
 
-const LOAD_DISTANCE = 14;
-const FUSE_DISTANCE = 6;
+var LOAD_DISTANCE = 14;
+var FUSE_DISTANCE = 6;
 
 // -----------------------------------------------------
-// COLORS
+// COLORS (ES5 SAFE)
 // -----------------------------------------------------
-const COLOR_EMPTY = () => color(210, 220, 235);
-const COLOR_LOADED = () => color(180, 120, 255);
-const COLOR_BORDER = () => color(40);
+function COLOR_EMPTY() {
+  return color(210, 220, 235);
+}
+
+function COLOR_LOADED() {
+  return color(180, 120, 255);
+}
+
+function COLOR_BORDER() {
+  return color(40);
+}
 
 // -----------------------------------------------------
 // VESICLE STATES
 // -----------------------------------------------------
-const STATES = {
-  EMPTY:        "empty",
-  LOADING:      "loading",
-  LOADED:       "loaded",
-  SNARED:       "snared",
-  FUSED:        "fused",
-  RECYCLING:    "recycling"
+var STATES = {
+  EMPTY:     "empty",
+  LOADING:   "loading",
+  LOADED:    "loaded",
+  SNARED:    "snared",
+  FUSED:     "fused",
+  RECYCLING: "recycling"
 };
 
 // -----------------------------------------------------
@@ -70,7 +78,7 @@ function spawnEmptyVesicle() {
 function attemptLoading(v) {
   if (v.state !== STATES.EMPTY) return;
 
-  const nearLoader = abs(v.y - FRONT_ZONE_Y) < LOAD_DISTANCE;
+  var nearLoader = abs(v.y - FRONT_ZONE_Y) < LOAD_DISTANCE;
 
   if (nearLoader) {
     v.state = STATES.LOADING;
@@ -84,12 +92,17 @@ function attemptLoading(v) {
 function updateVesicles() {
 
   // Maintain population
-  const loadedCount = vesicles.filter(v => v.state === STATES.LOADED).length;
+  var loadedCount = 0;
+  for (var i = 0; i < vesicles.length; i++) {
+    if (vesicles[i].state === STATES.LOADED) loadedCount++;
+  }
+
   if (vesicles.length < 10 && loadedCount < MAX_LOADED_VESICLES) {
     spawnEmptyVesicle();
   }
 
-  vesicles.forEach(v => {
+  for (var i = 0; i < vesicles.length; i++) {
+    var v = vesicles[i];
 
     // -----------------------------
     // EMPTY → LOADING
@@ -151,18 +164,18 @@ function updateVesicles() {
         v.state = STATES.EMPTY;
       }
     }
-  });
+  }
 }
 
 // -----------------------------------------------------
 // ACTION POTENTIAL TRIGGER
 // -----------------------------------------------------
 function triggerVesicleRelease() {
-  vesicles.forEach(v => {
-    if (v.state === STATES.LOADED) {
-      v.state = STATES.SNARED;
+  for (var i = 0; i < vesicles.length; i++) {
+    if (vesicles[i].state === STATES.LOADED) {
+      vesicles[i].state = STATES.SNARED;
     }
-  });
+  }
 }
 
 // -----------------------------------------------------
@@ -170,10 +183,10 @@ function triggerVesicleRelease() {
 // -----------------------------------------------------
 function drawVesicles() {
   push();
-  noFill();
   strokeWeight(VESICLE_STROKE);
 
-  vesicles.forEach(v => {
+  for (var i = 0; i < vesicles.length; i++) {
+    var v = vesicles[i];
 
     stroke(COLOR_BORDER());
 
@@ -195,7 +208,7 @@ function drawVesicles() {
         VESICLE_RADIUS * 2 * v.fillLevel
       );
     }
-  });
+  }
 
   pop();
 }
