@@ -376,3 +376,30 @@ function updateOverviewUI() {
   if (myelinUI) myelinUI.style.display = visible ? "flex" : "none";
   if (logUI) logUI.style.display = visible ? "flex" : "none";
 }
+function mousePressed() {
+  if (typeof handleNodeMousePressed === "function") {
+    const mx = (mouseX - width / 2) / camera.zoom + camera.x;
+    const my = (mouseY - height / 2) / camera.zoom + camera.y;
+    handleNodeMousePressed(mx, my);
+  }
+}
+
+function mouseDragged() {
+  if (typeof handleNodeMouseDragged === "function") {
+    const mx = (mouseX - width / 2) / camera.zoom + camera.x;
+    const my = (mouseY - height / 2) / camera.zoom + camera.y;
+    handleNodeMouseDragged(mx, my);
+  }
+}
+
+function mouseReleased() {
+  if (typeof handleNodeMouseReleased === "function") {
+    handleNodeMouseReleased();
+  }
+}
+
+function keyPressed() {
+  if (typeof handleNodeKeyPress === "function") {
+    handleNodeKeyPress(key);
+  }
+}
