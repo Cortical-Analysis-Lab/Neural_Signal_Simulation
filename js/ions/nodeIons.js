@@ -2,16 +2,15 @@
 // NODE IONS — MYELINATED AXON (Na⁺ / K⁺)
 // =====================================================
 // ✔ Node-of-Ranvier only
-// ✔ Same spatial range as axon halo
-// ✔ Directed Na⁺ influx (outer → membrane)
-// ✔ Gentle K⁺ efflux (membrane → halo)
-// ✔ No runaway trajectories
+// ✔ Na⁺ spawns in halo → moves INTO axon
+// ✔ K⁺ settles into halo → fades
+// ✔ Same spatial scale as axonIons
 // =====================================================
 
 console.log("🧬 nodeIons loaded");
 
 // -----------------------------------------------------
-// GLOBAL STORAGE (RELOAD SAFE)
+// GLOBAL STORAGE
 // -----------------------------------------------------
 window.ecsIons = window.ecsIons || {};
 ecsIons.NodeNa = ecsIons.NodeNa || [];
@@ -20,13 +19,14 @@ ecsIons.NodeK  = ecsIons.NodeK  || [];
 // -----------------------------------------------------
 // MATCH AXON HALO GEOMETRY
 // -----------------------------------------------------
-const NODE_HALO_RADIUS    = 28; // MATCHES AXON_HALO_RADIUS
+const NODE_HALO_RADIUS    = 28; // same as AXON_HALO_RADIUS
 const NODE_HALO_THICKNESS = 4;
+const AXON_RADIUS        = 10;
 
 // -----------------------------------------------------
-// LIFETIME (SHORT, READABLE)
+// LIFETIME
 // -----------------------------------------------------
-const NODE_NA_LIFETIME = 26;
+const NODE_NA_LIFETIME = 22;
 const NODE_K_LIFETIME  = 34;
 
 // -----------------------------------------------------
@@ -36,16 +36,13 @@ const NODE_NA_BURST_PER_SIDE = 3;
 const NODE_K_BURST_COUNT    = 4;
 
 // -----------------------------------------------------
-// MOTION (HALO-BOUND)
+// MOTION
 // -----------------------------------------------------
-const NA_INWARD_GAIN = 0.10;   // pull toward membrane
-const K_OUTWARD_GAIN = 0.08;   // push toward halo center
-
-const NA_RELAX = 0.88;
-const K_RELAX  = 0.86;
+const NA_INWARD_SPEED = 1.2;   // strong inward drive
+const K_RELAX         = 0.86;
 
 // -----------------------------------------------------
-// Na⁺ INFLUX — OUTER HALO → MEMBRANE
+// Na⁺ INFLUX — HALO → AXON (ONE-WAY)
 // -----------------------------------------------------
 function triggerNodeNaInflux(nodeIdx) {
 
@@ -64,13 +61,16 @@ function triggerNodeNaInflux(nodeIdx) {
       const x = node.x + side * r;
       const y = node.y + random(-4, 4);
 
+      // unit vector pointing inward
+      const dx = node.x - x;
+      const dy = node.y - y;
+      const len = Math.hypot(dx, dy) || 1;
+
       ecsIons.NodeNa.push({
         x,
         y,
-        x0: node.x + side * NODE_HALO_RADIUS,
-        y0: node.y,
-        vx: (node.x - x) * NA_INWARD_GAIN,
-        vy: (node.y - y) * NA_INWARD_GAIN,
+        vx: (dx / len) * NA_INWARD_SPEED,
+        vy: (dy / len) * NA_INWARD_SPEED,
         life: NODE_NA_LIFETIME
       });
     }
@@ -78,7 +78,7 @@ function triggerNodeNaInflux(nodeIdx) {
 }
 
 // -----------------------------------------------------
-// K⁺ EFFLUX — MEMBRANE → HALO (SETTLES)
+// K⁺ EFFLUX — MEMBRANE → HALO (SETTLING)
 // -----------------------------------------------------
 function triggerNodeKEfflux(nodeIdx) {
 
@@ -106,15 +106,15 @@ function triggerNodeKEfflux(nodeIdx) {
       y,
       x0: tx,
       y0: ty,
-      vx: (tx - x) * K_OUTWARD_GAIN,
-      vy: (ty - y) * K_OUTWARD_GAIN,
+      vx: (tx - x) * 0.08,
+      vy: (ty - y) * 0.08,
       life: NODE_K_LIFETIME
     });
   }
 }
 
 // -----------------------------------------------------
-// DRAW — HALO-CONSTRAINED MOTION
+// DRAW
 // -----------------------------------------------------
 function drawNodeIons() {
   push();
@@ -122,36 +122,32 @@ function drawNodeIons() {
   noStroke();
 
   // -----------------------------
-  // Na⁺ — INWARD FLUX
+  // Na⁺ — INWARD CROSSING
   // -----------------------------
-  fill(getColor("sodium", 180));
+  fill(getColor("sodium", 190));
 
   ecsIons.NodeNa = ecsIons.NodeNa.filter(p => {
     p.life--;
-
-    // gentle attraction toward membrane
-    p.vx += (p.x0 - p.x) * 0.06;
-    p.vy += (p.y0 - p.y) * 0.06;
-
-    p.vx *= NA_RELAX;
-    p.vy *= NA_RELAX;
-
     p.x += p.vx;
     p.y += p.vy;
+
+    // remove once inside axon core
+    if (dist(p.x, p.y, neuron.axon.nodes[0].x, neuron.axon.nodes[0].y) < AXON_RADIUS) {
+      return false;
+    }
 
     text("Na⁺", p.x, p.y);
     return p.life > 0;
   });
 
   // -----------------------------
-  // K⁺ — OUTWARD SETTLING
+  // K⁺ — HALO SETTLING
   // -----------------------------
   fill(getColor("potassium", 160));
 
   ecsIons.NodeK = ecsIons.NodeK.filter(p => {
     p.life--;
 
-    // gentle attraction toward halo band
     p.vx += (p.x0 - p.x) * 0.04;
     p.vy += (p.y0 - p.y) * 0.04;
 
