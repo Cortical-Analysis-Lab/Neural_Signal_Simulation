@@ -1,5 +1,5 @@
 // =====================================================
-// BACKGROUND ECS IONS — STATIC CONTEXT
+// BACKGROUND ECS IONS — STATIC CONTEXT (EXCLUSION-AWARE)
 // =====================================================
 console.log("🧂 backgroundIons loaded");
 
@@ -19,15 +19,65 @@ const ION_TEXT_SIZE_NA = 10;
 const ION_TEXT_SIZE_K  = 11;
 
 // -----------------------------------------------------
+// EXCLUSION CONSTANTS
+// -----------------------------------------------------
+const ARTERY_EXCLUSION_RADIUS = 80; // lumen + wall + buffer
+const TRACE_PADDING = 10;
+
+// -----------------------------------------------------
+// Utility — point near artery?
+// -----------------------------------------------------
+function isInsideArteryExclusion(x, y) {
+  if (!window.arteryPath || arteryPath.length === 0) return false;
+
+  for (let i = 0; i < arteryPath.length; i++) {
+    const p = arteryPath[i];
+    const d = dist(x, y, p.x, p.y);
+    if (d < ARTERY_EXCLUSION_RADIUS) return true;
+  }
+  return false;
+}
+
+// -----------------------------------------------------
+// Utility — inside voltage trace box?
+// (Matches voltageTrace.js exactly)
+// -----------------------------------------------------
+function isInsideVoltageTrace(x, y) {
+
+  const x0 = neuron.somaRadius * 0.6;
+  const y0 = neuron.somaRadius + 50;
+
+  const traceWidth  = 200;
+  const traceHeight = 85;
+
+  return (
+    x > x0 - TRACE_PADDING &&
+    x < x0 + traceWidth + TRACE_PADDING &&
+    y > y0 - TRACE_PADDING &&
+    y < y0 + traceHeight + TRACE_PADDING
+  );
+}
+
+// -----------------------------------------------------
+// VALID SPAWN TEST
+// -----------------------------------------------------
+function isValidECSLocation(x, y) {
+  return (
+    !isInsideArteryExclusion(x, y) &&
+    !isInsideVoltageTrace(x, y)
+  );
+}
+
+// -----------------------------------------------------
 // INITIALIZATION
 // -----------------------------------------------------
 function initBackgroundIons() {
 
-  // clear without breaking shared references
+  // Clear without breaking references
   ecsIons.Na.length = 0;
   ecsIons.K.length  = 0;
 
-  const b = {
+  const bounds = {
     xmin: -width * 0.9,
     xmax:  width * 0.9,
     ymin: -height * 0.9,
@@ -35,10 +85,17 @@ function initBackgroundIons() {
   };
 
   function spawn(type) {
-    ecsIons[type].push({
-      x: random(b.xmin, b.xmax),
-      y: random(b.ymin, b.ymax)
-    });
+    let tries = 0;
+    while (tries < 1000) {
+      const x = random(bounds.xmin, bounds.xmax);
+      const y = random(bounds.ymin, bounds.ymax);
+
+      if (isValidECSLocation(x, y)) {
+        ecsIons[type].push({ x, y });
+        return;
+      }
+      tries++;
+    }
   }
 
   for (let i = 0; i < ECS_ION_COUNTS.Na; i++) spawn("Na");
@@ -67,5 +124,5 @@ function drawBackgroundIons() {
 // -----------------------------------------------------
 // EXPORTS
 // -----------------------------------------------------
-window.initBackgroundIons = initBackgroundIons;
+window.initBackgroundIons  = initBackgroundIons;
 window.drawBackgroundIons = drawBackgroundIons;
