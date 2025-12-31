@@ -5,9 +5,9 @@
 // ✔ Nodes are TRUE gaps between sheaths
 // ✔ First node at axon initial segment (AIS)
 // ✔ Node phase computed from TRUE path distance
-// ✔ Passive debug markers at SHEATH midpoints (dots)
-// ✔ NO user interaction, NO input hooks
-// ✔ Sheaths are HALF-LENGTH and EVENLY SPACED
+// ✔ Sheaths only in MID-AXON region
+// ✔ Passive debug dots at sheath midpoints
+// ✔ NO user interaction
 // =====================================================
 
 console.log("myelinGeometry loaded");
@@ -15,9 +15,13 @@ console.log("myelinGeometry loaded");
 // -----------------------------------------------------
 // TEACHING PARAMETERS
 // -----------------------------------------------------
-const SHEATH_LENGTH = 14; // 🔑 cut in half (was 28)
-const NODE_LENGTH   = 10; // unchanged
-const DEBUG_DOT_OFFSET = 6; // px normal offset from sheath
+const SHEATH_LENGTH = 14; // px
+const NODE_LENGTH   = 10; // px
+
+const MYELIN_START_FRACTION = 0.12; // after AIS
+const MYELIN_END_FRACTION   = 0.82; // before terminals
+
+const DEBUG_DOT_OFFSET = 6;
 
 // -----------------------------------------------------
 // Generate myelin geometry from axon path
@@ -61,13 +65,8 @@ function generateMyelinGeometry(axonPath) {
 
     while (nextDistance < segEnd) {
 
-      const blockLen = placingSheath
-        ? SHEATH_LENGTH
-        : NODE_LENGTH;
-
+      const blockLen = placingSheath ? SHEATH_LENGTH : NODE_LENGTH;
       const blockEnd = nextDistance + blockLen;
-
-      // Block continues into next segment — defer cleanly
       if (blockEnd > segEnd) break;
 
       const t0 = (nextDistance - segStart) / segLen;
@@ -78,17 +77,25 @@ function generateMyelinGeometry(axonPath) {
       const x1 = lerp(p1.x, p2.x, t1);
       const y1 = lerp(p1.y, p2.y, t1);
 
+      const centerDist  = (nextDistance + blockEnd) * 0.5;
+      const centerPhase = centerDist / totalLen;
+
       if (placingSheath) {
 
         // -----------------------------
-        // MYELIN SHEATH SEGMENT
+        // MYELIN SHEATH (MID-AXON ONLY)
         // -----------------------------
-        sheaths.push({ x0, y0, x1, y1 });
+        if (
+          centerPhase > MYELIN_START_FRACTION &&
+          centerPhase < MYELIN_END_FRACTION
+        ) {
+          sheaths.push({ x0, y0, x1, y1 });
+        }
 
       } else {
 
         // -----------------------------
-        // NODE OF RANVIER (TRUE GAP)
+        // NODE OF RANVIER
         // -----------------------------
         const cx = (x0 + x1) * 0.5;
         const cy = (y0 + y1) * 0.5;
@@ -110,7 +117,7 @@ function generateMyelinGeometry(axonPath) {
 }
 
 // -----------------------------------------------------
-// DEBUG DRAW — SHEATH MIDPOINT DOTS (PASSIVE)
+// DEBUG DRAW — SHEATH MIDPOINT DOTS
 // -----------------------------------------------------
 function drawMyelinSheathDebugDots() {
 
