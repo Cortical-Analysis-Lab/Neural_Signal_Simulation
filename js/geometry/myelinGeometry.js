@@ -4,6 +4,7 @@
 // ✔ Nodes are TRUE gaps (not sheath centers)
 // ✔ First node at axon initial segment
 // ✔ Even spacing thereafter
+// ✔ Phase-aware (for AP timing)
 // ✔ Optional debug drawing
 // =====================================================
 
@@ -24,6 +25,17 @@ function generateMyelinNodes(axonPath) {
 
   const nodes = [];
 
+  // ---------------------------------------------------
+  // Compute total axon length (for phase mapping)
+  // ---------------------------------------------------
+  let totalLength = 0;
+  for (let i = 0; i < axonPath.length - 1; i++) {
+    totalLength += dist(
+      axonPath[i].x, axonPath[i].y,
+      axonPath[i + 1].x, axonPath[i + 1].y
+    );
+  }
+
   let distanceAlong = 0;
   let nextNodeAt = 0; // first node at hillock
 
@@ -42,11 +54,14 @@ function generateMyelinNodes(axonPath) {
       const x = lerp(p1.x, p2.x, t);
       const y = lerp(p1.y, p2.y, t);
 
+      const phase = nextNodeAt / totalLength;
+
       nodes.push({
         x,
         y,
         pathIndex: i,
-        length: NODE_LENGTH
+        length: NODE_LENGTH,
+        phase     // 🔑 CRITICAL: AP timing anchor
       });
 
       nextNodeAt += INTERNODE_LENGTH + NODE_LENGTH;
@@ -83,5 +98,5 @@ function drawMyelinNodeDebug() {
 // -----------------------------------------------------
 // EXPORTS
 // -----------------------------------------------------
-window.generateMyelinNodes     = generateMyelinNodes;
-window.drawMyelinNodeDebug     = drawMyelinNodeDebug;
+window.generateMyelinNodes = generateMyelinNodes;
+window.drawMyelinNodeDebug = drawMyelinNodeDebug;
