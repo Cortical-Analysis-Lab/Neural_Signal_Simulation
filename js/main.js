@@ -282,9 +282,10 @@ function draw() {
   }
 }
 
-  if (window.myelinEnabled && typeof drawMyelinNodeDebug === "function") {
-  drawMyelinNodeDebug();
+if (window.myelinEnabled && typeof drawMyelinSheathDebugDots === "function") {
+  drawMyelinSheathDebugDots();
 }
+
 
 
 
