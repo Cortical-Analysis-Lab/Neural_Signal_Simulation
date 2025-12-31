@@ -417,15 +417,13 @@ function mouseDragged() {
 
   if (
     window.myelinEnabled &&
-    window.nodeEditMode &&        // 🔑 THIS WAS MISSING
     state.mode === "overview" &&
-    typeof handleNodeMousePressed === "function"
+    typeof handleNodeMouseDragged === "function"
   ) {
-    const consumed = handleNodeMousePressed(mx, my);
-    if (consumed) return;
+    handleNodeMouseDragged(mx, my);
   }
-
 }
+
 
 function mouseReleased() {
   if (typeof handleNodeMouseReleased === "function") {
