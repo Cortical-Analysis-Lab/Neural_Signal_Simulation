@@ -7,15 +7,20 @@ console.log("🧠 soma loaded");
 // 🧠 TEACHING / TIMING KNOBS
 // -----------------------------------------------------
 
+// 🔹 total delay between soma Na⁺ influx and visible AP release
+const AP_DELAY_FRAMES = 14;
 const AP_DELAY_FRAMES = 18;
-const INVISIBLE_AP_OFFSET = 14; // < AP_DELAY_FRAMES
+
+// 🔹 invisible AP fires AFTER Na⁺ influx but BEFORE visible AP
+const INVISIBLE_AP_OFFSET = 8;   // must be < AP_DELAY_FRAMES
+const INVISIBLE_AP_OFFSET = 14;   // must be < AP_DELAY_FRAMES
 
 // -----------------------------------------------------
 // ACTION POTENTIAL PHASES
 // -----------------------------------------------------
 const AP = {
   NONE: 0,
-  NA_COMMIT: 0.5,
+  NA_COMMIT: 0.5,   // soma Na⁺ influx + AIS priming window
   UPSTROKE: 1,
   PEAK: 2,
   REPOLARIZE: 3,
@@ -26,12 +31,12 @@ const AP = {
 // BIOPHYSICALLY INSPIRED PARAMETERS
 // -----------------------------------------------------
 const AP_PARAMS = {
-  upstrokeTau: 0.35,        // Na⁺ activation steepness
-  peakHold: 6,              // rounded peak duration
-  repolTau: 0.18,           // K⁺-dominated decay
+  upstrokeRate: 7.5,
+  peakHold: 2,
+  repolRate: 5.0,
   ahpTarget: -78,
-  ahpTau: 0.06,             // slower Na⁺/K⁺ recovery
-  refractoryFrames: 32      // longer recovery window
+  ahpRate: 1.2,
+  refractoryFrames: 25
 };
 
 // -----------------------------------------------------
@@ -86,7 +91,7 @@ function updateSoma() {
 
       if (soma.refractory > 0) {
         soma.refractory--;
-        soma.Vm = lerp(soma.Vm, soma.rest, 0.15);
+        soma.Vm = lerp(soma.Vm, soma.rest, 0.2);
         break;
       }
 
@@ -97,9 +102,11 @@ function updateSoma() {
         soma.invisibleAPFired = false;
         soma.visibleAPReleased = false;
 
+        // 🟡 SOMA Na⁺ INFLUX (always first)
         triggerNaInfluxNeuron1?.();
-      } else {
-        soma.Vm = lerp(soma.Vm, soma.rest, 0.04);
+      }
+      else {
+        soma.Vm = lerp(soma.Vm, soma.rest, 0.05);
       }
       break;
 
@@ -110,9 +117,10 @@ function updateSoma() {
 
       soma.delayCounter++;
 
-      // gentle sigmoid depolarization
-      soma.Vm += (soma.threshold - soma.Vm) * 0.25;
+      // gentle depolarization plateau (NOT the spike)
+      soma.Vm += AP_PARAMS.upstrokeRate * 0.35;
 
+      // 👻 INVISIBLE AP (Na⁺ wave driver)
       if (
         !soma.invisibleAPFired &&
         soma.delayCounter >= INVISIBLE_AP_OFFSET
@@ -121,6 +129,7 @@ function updateSoma() {
         soma.invisibleAPFired = true;
       }
 
+      // 🔴 RELEASE visible AP ONLY after full delay
       if (
         !soma.visibleAPReleased &&
         soma.delayCounter >= AP_DELAY_FRAMES
@@ -131,14 +140,14 @@ function updateSoma() {
       break;
 
     // =================================================
-    // FAST DEPOLARIZATION (SIGMOID)
+    // FAST DEPOLARIZATION (VISIBLE AP)
     // =================================================
-    case AP.UPSTROKE: {
+    case AP.UPSTROKE:
 
-      const target = 42;
-      soma.Vm += (target - soma.Vm) * AP_PARAMS.upstrokeTau;
+      soma.Vm += AP_PARAMS.upstrokeRate;
 
-      if (soma.Vm >= 39) {
+      if (soma.Vm >= 40) {
+
         soma.Vm = 40;
         soma.apState = AP.PEAK;
         soma.apTimer = AP_PARAMS.peakHold;
@@ -152,44 +161,35 @@ function updateSoma() {
           "soma"
         );
 
+        // 🔴 Visible axonal AP (K⁺ wave follows this)
         spawnAxonSpike?.();
       }
       break;
-    }
 
     // =================================================
-    // ROUNDED PEAK (Na⁺/K⁺ OVERLAP)
+    // PEAK
     // =================================================
-    case AP.PEAK: {
-
-      const t = 1 - soma.apTimer / AP_PARAMS.peakHold;
-      soma.Vm = 40 - 4 * (1 - cos(t * PI)); // rounded dome
-
+    case AP.PEAK:
       soma.apTimer--;
       if (soma.apTimer <= 0) soma.apState = AP.REPOLARIZE;
       break;
-    }
 
     // =================================================
-    // REPOLARIZATION (ASYMPTOTIC)
+    // REPOLARIZATION
     // =================================================
     case AP.REPOLARIZE:
-
-      soma.Vm += (soma.rest - soma.Vm) * AP_PARAMS.repolTau;
-
-      if (soma.Vm <= soma.rest + 0.5) {
-        soma.apState = AP.AHP;
-      }
+      soma.Vm -= AP_PARAMS.repolRate;
+      if (soma.Vm <= soma.rest) soma.apState = AP.AHP;
       break;
 
     // =================================================
-    // AFTER-HYPERPOLARIZATION (Na⁺/K⁺ EXCHANGE)
+    // AFTER-HYPERPOLARIZATION
     // =================================================
     case AP.AHP:
 
-      soma.Vm += (AP_PARAMS.ahpTarget - soma.Vm) * AP_PARAMS.ahpTau;
+      soma.Vm = lerp(soma.Vm, AP_PARAMS.ahpTarget, 0.15);
 
-      if (abs(soma.Vm - AP_PARAMS.ahpTarget) < 0.6) {
+      if (abs(soma.Vm - AP_PARAMS.ahpTarget) < 0.5) {
         soma.apState = AP.NONE;
         soma.refractory = AP_PARAMS.refractoryFrames;
       }
@@ -197,9 +197,9 @@ function updateSoma() {
   }
 
   // ---------------------------------------------------
-  // DISPLAY SMOOTHING (VISUAL ONLY)
+  // DISPLAY SMOOTHING ONLY
   // ---------------------------------------------------
-  soma.VmDisplay = lerp(soma.VmDisplay, soma.Vm, 0.18);
+  soma.VmDisplay = lerp(soma.VmDisplay, soma.Vm, 0.25);
 }
 
 // =====================================================
