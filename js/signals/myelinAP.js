@@ -7,32 +7,37 @@
 // ✔ Na⁺ influx triggered just BEFORE node
 // ✔ K⁺ efflux triggered AT node
 // ✔ Uses node.phase from geometry (NO guessing)
+// ✔ Stable (no freezing, no NaN, no boundary stalls)
 // =====================================================
 
-console.log("myelinAP loaded");
+console.log("⚡ myelinAP loaded");
 
 // -----------------------------------------------------
-// Parameters
+// CONDUCTION SPEEDS (TEACHING-SAFE)
 // -----------------------------------------------------
-const MYELIN_SPEED_NODE   = 0.035;
-const MYELIN_SPEED_SHEATH = 0.08;
+// NOTE: These MUST be slower than visual ion motion
+const MYELIN_SPEED_NODE   = 0.0045;
+const MYELIN_SPEED_SHEATH = 0.010;
+
+// Visible AP size
 const AP_RADIUS = 10;
 
 // -----------------------------------------------------
-// Active myelinated APs
+// ACTIVE MYELINATED APS
 // -----------------------------------------------------
 const myelinAPs = [];
 
 // -----------------------------------------------------
-// Spawn AP at axon initial segment (AIS)
+// SPAWN AP AT AXON INITIAL SEGMENT (AIS)
 // -----------------------------------------------------
 function spawnMyelinAP() {
+
   if (!window.myelinEnabled) return;
 
   // Prevent unrealistically dense firing
   if (myelinAPs.length > 0) {
     const last = myelinAPs[myelinAPs.length - 1];
-    if (last.phase < 0.05) return;
+    if (last.phase < 0.06) return;
   }
 
   myelinAPs.push({
@@ -44,31 +49,33 @@ function spawnMyelinAP() {
 }
 
 // -----------------------------------------------------
-// Helper — visual-only myelin occlusion
-// Uses node.phase midpoints ONLY
+// VISUAL-ONLY MYELIN OCCLUSION
+// (midpoint between node phases)
 // -----------------------------------------------------
 function isPhaseUnderMyelin(phase) {
+
   const nodes = neuron?.axon?.nodes;
   if (!nodes || nodes.length < 2) return false;
 
   for (let i = 0; i < nodes.length - 1; i++) {
+
     const a = nodes[i].phase;
     const b = nodes[i + 1].phase;
-
     if (a == null || b == null) continue;
 
     const center = (a + b) * 0.5;
-    const half   = (b - a) * 0.25;
+    const half   = (b - a) * 0.35;
 
     if (phase > center - half && phase < center + half) {
       return true;
     }
   }
+
   return false;
 }
 
 // -----------------------------------------------------
-// Update AP propagation + node-gated ion flow
+// UPDATE AP PROPAGATION + NODE EVENTS
 // -----------------------------------------------------
 function updateMyelinAPs() {
 
@@ -81,7 +88,7 @@ function updateMyelinAPs() {
     ap.lastPhase = ap.phase;
 
     // -----------------------------
-    // Continuous conduction
+    // CONTINUOUS CONDUCTION
     // -----------------------------
     const underMyelin = isPhaseUnderMyelin(ap.phase);
 
@@ -89,12 +96,8 @@ function updateMyelinAPs() {
       ? MYELIN_SPEED_SHEATH
       : MYELIN_SPEED_NODE;
 
-    // 🔑 CRITICAL FIX:
-    // Prevent NaN / freeze at exact node boundaries
-    if (!isFinite(ap.phase)) {
-      myelinAPs.splice(i, 1);
-      continue;
-    }
+    // Clamp for numerical safety
+    ap.phase = constrain(ap.phase, 0, 1);
 
     // -----------------------------
     // NODE-CROSSED DETECTION
@@ -104,7 +107,7 @@ function updateMyelinAPs() {
       const nodePhase = nodes[n].phase;
       if (nodePhase == null) continue;
 
-      // 🔵 Na⁺ — just BEFORE node
+      // 🔵 Na⁺ — just BEFORE node crossing
       if (
         ap.lastPhase < nodePhase &&
         ap.phase >= nodePhase &&
@@ -114,7 +117,7 @@ function updateMyelinAPs() {
         triggerNodeNaInflux?.(n);
       }
 
-      // 🟣 K⁺ — AT node
+      // 🟣 K⁺ — AT node (same crossing)
       if (
         ap.lastPhase < nodePhase &&
         ap.phase >= nodePhase &&
@@ -126,7 +129,7 @@ function updateMyelinAPs() {
     }
 
     // -----------------------------
-    // Terminal handoff
+    // TERMINAL HANDOFF
     // -----------------------------
     if (ap.phase >= AXON_TERMINAL_START) {
       spawnTerminalSpikes?.();
@@ -134,7 +137,7 @@ function updateMyelinAPs() {
       continue;
     }
 
-    // Safety cleanup
+    // Final cleanup
     if (ap.phase >= 1) {
       myelinAPs.splice(i, 1);
     }
@@ -142,13 +145,13 @@ function updateMyelinAPs() {
 }
 
 // -----------------------------------------------------
-// Draw AP (visible only at nodes)
+// DRAW AP (VISIBLE ONLY AT NODES)
 // -----------------------------------------------------
 function drawMyelinAPs() {
 
   myelinAPs.forEach(ap => {
 
-    // visually hide under myelin
+    // Hide under myelin
     if (isPhaseUnderMyelin(ap.phase)) return;
 
     const p = getAxonPoint(ap.phase);
@@ -163,7 +166,7 @@ function drawMyelinAPs() {
 }
 
 // -----------------------------------------------------
-// Public API
+// EXPORTS
 // -----------------------------------------------------
 window.spawnMyelinAP    = spawnMyelinAP;
 window.updateMyelinAPs = updateMyelinAPs;
