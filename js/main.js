@@ -130,8 +130,6 @@ function setup() {
 
 neuron.axon.nodes = generateMyelinNodes(neuron.axon.path);
 
-neuron.axon.nodes   = geom.nodes;
-
   initNeuron2();
   initNeuron3();
   initAstrocyte();
