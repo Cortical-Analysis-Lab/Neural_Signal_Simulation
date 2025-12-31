@@ -89,8 +89,12 @@ function updateMyelinAPs() {
       ? MYELIN_SPEED_SHEATH
       : MYELIN_SPEED_NODE;
 
-    // Clamp — PREVENT FREEZE / NAN DRIFT
-    ap.phase = constrain(ap.phase, 0, 1);
+    // 🔑 CRITICAL FIX:
+    // Prevent NaN / freeze at exact node boundaries
+    if (!isFinite(ap.phase)) {
+      myelinAPs.splice(i, 1);
+      continue;
+    }
 
     // -----------------------------
     // NODE-CROSSED DETECTION
@@ -107,10 +111,7 @@ function updateMyelinAPs() {
         !ap.firedNa.has(n)
       ) {
         ap.firedNa.add(n);
-
-        if (typeof triggerNodeNaInflux === "function") {
-          triggerNodeNaInflux(n);
-        }
+        triggerNodeNaInflux?.(n);
       }
 
       // 🟣 K⁺ — AT node
@@ -120,10 +121,7 @@ function updateMyelinAPs() {
         !ap.firedK.has(n)
       ) {
         ap.firedK.add(n);
-
-        if (typeof triggerNodeKEfflux === "function") {
-          triggerNodeKEfflux(n);
-        }
+        triggerNodeKEfflux?.(n);
       }
     }
 
@@ -131,9 +129,7 @@ function updateMyelinAPs() {
     // Terminal handoff
     // -----------------------------
     if (ap.phase >= AXON_TERMINAL_START) {
-      if (typeof spawnTerminalSpikes === "function") {
-        spawnTerminalSpikes();
-      }
+      spawnTerminalSpikes?.();
       myelinAPs.splice(i, 1);
       continue;
     }
