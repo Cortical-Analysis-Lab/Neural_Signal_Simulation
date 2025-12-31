@@ -4,9 +4,9 @@
 // ✔ Continuous electrical conduction under myelin
 // ✔ Faster under myelin, slower at nodes
 // ✔ Visible at nodes only
-// ✔ Na⁺ influx triggered BEFORE node
+// ✔ Na⁺ influx triggered JUST BEFORE node
 // ✔ K⁺ efflux triggered AT node
-// ✔ Geometry-accurate (phase-based)
+// ✔ Geometry-accurate (path-index based, NOT guessed)
 // =====================================================
 
 console.log("myelinAP loaded");
@@ -44,6 +44,7 @@ function spawnMyelinAP() {
 
 // -----------------------------------------------------
 // Helper — is phase under myelin?
+// (visual-only gating, not physiology)
 // -----------------------------------------------------
 function isPhaseUnderMyelin(phase, sheathCount = 4) {
   for (let s = 1; s <= sheathCount; s++) {
@@ -57,12 +58,23 @@ function isPhaseUnderMyelin(phase, sheathCount = 4) {
 }
 
 // -----------------------------------------------------
+// Helper — convert node.pathIndex → phase
+// -----------------------------------------------------
+function nodePhaseFromPathIndex(node) {
+  const path = neuron?.axon?.path;
+  if (!path || path.length < 2) return null;
+
+  return node.pathIndex / (path.length - 1);
+}
+
+// -----------------------------------------------------
 // Update AP propagation + node-gated ion flow
 // -----------------------------------------------------
 function updateMyelinAPs() {
 
   const nodes = neuron?.axon?.nodes;
-  if (!nodes || nodes.length === 0) return;
+  const path  = neuron?.axon?.path;
+  if (!nodes || !path || nodes.length === 0) return;
 
   for (let i = myelinAPs.length - 1; i >= 0; i--) {
 
@@ -84,12 +96,13 @@ function updateMyelinAPs() {
     for (let n = 0; n < nodes.length; n++) {
 
       const node = nodes[n];
-      if (node.phase == null) continue;
+      const nodePhase = nodePhaseFromPathIndex(node);
+      if (nodePhase == null) continue;
 
       // 🔵 Na⁺ — just BEFORE node
       if (
-        ap.lastPhase < node.phase &&
-        ap.phase >= node.phase &&
+        ap.lastPhase < nodePhase &&
+        ap.phase >= nodePhase &&
         !ap.firedNa.has(n)
       ) {
         ap.firedNa.add(n);
@@ -99,10 +112,10 @@ function updateMyelinAPs() {
         }
       }
 
-      // 🟣 K⁺ — AT node (same moment, separate visual)
+      // 🟣 K⁺ — AT node (same crossing)
       if (
-        ap.lastPhase < node.phase &&
-        ap.phase >= node.phase &&
+        ap.lastPhase < nodePhase &&
+        ap.phase >= nodePhase &&
         !ap.firedK.has(n)
       ) {
         ap.firedK.add(n);
@@ -117,9 +130,11 @@ function updateMyelinAPs() {
     // Terminal handoff
     // -----------------------------
     if (ap.phase >= AXON_TERMINAL_START) {
+
       if (typeof spawnTerminalSpikes === "function") {
         spawnTerminalSpikes();
       }
+
       myelinAPs.splice(i, 1);
       continue;
     }
