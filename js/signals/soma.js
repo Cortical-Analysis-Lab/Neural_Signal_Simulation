@@ -8,12 +8,12 @@ console.log("🧠 soma loaded");
 // -----------------------------------------------------
 
 // 🔹 total delay between soma Na⁺ influx and visible AP release
-const AP_DELAY_FRAMES = 14;
-const AP_DELAY_FRAMES = 18;
+// (use ONE value at a time)
+const AP_DELAY_FRAMES = 18; // try 14 vs 18 for teaching
 
 // 🔹 invisible AP fires AFTER Na⁺ influx but BEFORE visible AP
-const INVISIBLE_AP_OFFSET = 8;   // must be < AP_DELAY_FRAMES
-const INVISIBLE_AP_OFFSET = 14;   // must be < AP_DELAY_FRAMES
+// must be < AP_DELAY_FRAMES
+const INVISIBLE_AP_OFFSET = 14; // try 8 vs 14 for teaching
 
 // -----------------------------------------------------
 // ACTION POTENTIAL PHASES
