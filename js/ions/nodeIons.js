@@ -41,9 +41,8 @@ const K_RELAX         = 0.86;
 function getNodeNormal(nodeIdx) {
   const path = neuron?.axon?.path;
   const node = neuron?.axon?.nodes?.[nodeIdx];
-  if (!path || !node) return null;
+  if (!path || !node || path.length < 2) return null;
 
-  // find closest path index to node
   let bestIdx = 0;
   let bestD = Infinity;
 
@@ -55,6 +54,12 @@ function getNodeNormal(nodeIdx) {
     }
   }
 
+  // 🔑 CRITICAL FIX:
+  // If this is the FIRST node, force use of the first segment
+  if (nodeIdx === 0) {
+    bestIdx = 0;
+  }
+
   const p1 = path[bestIdx];
   const p2 = path[bestIdx + 1];
 
@@ -62,7 +67,6 @@ function getNodeNormal(nodeIdx) {
   const dy = p2.y - p1.y;
   const len = Math.hypot(dx, dy) || 1;
 
-  // normal (perpendicular to tangent)
   return {
     nx: -dy / len,
     ny:  dx / len
