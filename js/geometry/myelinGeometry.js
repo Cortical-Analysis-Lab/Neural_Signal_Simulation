@@ -16,7 +16,7 @@ console.log("myelinGeometry loaded");
 // TEACHING PARAMETERS
 // -----------------------------------------------------
 const SHEATH_LENGTH = 14; // px (visual only)
-const NODE_LENGTH   = 10; // px (visual only)
+const NODE_LENGTH   = 28; // px (visual only)
 
 // Fractional region of axon that is myelinated
 const MYELIN_START_FRACTION = 0.12; // after AIS
