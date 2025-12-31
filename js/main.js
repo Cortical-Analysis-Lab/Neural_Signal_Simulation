@@ -376,18 +376,49 @@ function updateOverviewUI() {
   if (myelinUI) myelinUI.style.display = visible ? "flex" : "none";
   if (logUI) logUI.style.display = visible ? "flex" : "none";
 }
+// =====================================================
+// INPUT ROUTING — SINGLE SOURCE OF TRUTH
+// =====================================================
+
 function mousePressed() {
-  if (typeof handleNodeMousePressed === "function") {
-    const mx = (mouseX - width / 2) / camera.zoom + camera.x;
-    const my = (mouseY - height / 2) / camera.zoom + camera.y;
-    handleNodeMousePressed(mx, my);
+
+  // Convert screen → world coordinates
+  const mx = (mouseX - width / 2) / camera.zoom + camera.x;
+  const my = (mouseY - height / 2) / camera.zoom + camera.y;
+
+  // --------------------------------------------------
+  // 1️⃣ NODE EDITING (only when myelin enabled)
+  // --------------------------------------------------
+  if (
+    window.myelinEnabled &&
+    state.mode === "overview" &&
+    typeof handleNodeMousePressed === "function"
+  ) {
+    const consumed = handleNodeMousePressed(mx, my);
+    if (consumed) return;
+  }
+
+  // --------------------------------------------------
+  // 2️⃣ SYNAPSE / BOUTON INTERACTION
+  // --------------------------------------------------
+  if (
+    state.mode === "overview" &&
+    typeof handleSynapseMousePressed === "function"
+  ) {
+    handleSynapseMousePressed(mx, my);
   }
 }
 
 function mouseDragged() {
-  if (typeof handleNodeMouseDragged === "function") {
-    const mx = (mouseX - width / 2) / camera.zoom + camera.x;
-    const my = (mouseY - height / 2) / camera.zoom + camera.y;
+
+  const mx = (mouseX - width / 2) / camera.zoom + camera.x;
+  const my = (mouseY - height / 2) / camera.zoom + camera.y;
+
+  if (
+    window.myelinEnabled &&
+    state.mode === "overview" &&
+    typeof handleNodeMouseDragged === "function"
+  ) {
     handleNodeMouseDragged(mx, my);
   }
 }
@@ -398,8 +429,3 @@ function mouseReleased() {
   }
 }
 
-function keyPressed() {
-  if (typeof handleNodeKeyPress === "function") {
-    handleNodeKeyPress(key);
-  }
-}
