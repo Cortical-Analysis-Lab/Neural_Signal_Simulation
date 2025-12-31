@@ -14,9 +14,9 @@ console.log("myelinGeometry loaded");
 // -----------------------------------------------------
 // TEACHING PARAMETERS
 // -----------------------------------------------------
-const SHEATH_LENGTH = 28; // px
-const NODE_LENGTH   = 10; // px
-const DEBUG_DOT_OFFSET = 6; // px normal offset from sheath
+const SHEATH_LENGTH    = 28; // px
+const NODE_LENGTH      = 10; // px
+const DEBUG_DOT_OFFSET = 6;  // px (normal offset from sheath)
 
 // -----------------------------------------------------
 // Generate myelin geometry from axon path
@@ -47,7 +47,7 @@ function generateMyelinGeometry(axonPath) {
   // WALK PATH IN TRUE PHYSICAL BLOCKS
   // -----------------------------------------------
   let nextDistance  = 0;
-  let placingSheath = false; // 🔑 START WITH NODE AT AIS
+  let placingSheath = false; // 🔑 start with NODE at AIS
 
   for (let i = 0; i < axonPath.length - 1; i++) {
 
@@ -78,7 +78,21 @@ function generateMyelinGeometry(axonPath) {
         // -----------------------------
         // MYELIN SHEATH SEGMENT
         // -----------------------------
-        sheaths.push({ x0, y0, x1, y1 });
+        const mx = (x0 + x1) * 0.5;
+        const my = (y0 + y1) * 0.5;
+
+        const dx = x1 - x0;
+        const dy = y1 - y0;
+        const len = Math.hypot(dx, dy) || 1;
+
+        const nx = -dy / len;
+        const ny =  dx / len;
+
+        sheaths.push({
+          x0, y0, x1, y1,
+          mx, my,
+          nx, ny
+        });
 
       } else {
 
@@ -114,24 +128,12 @@ function drawMyelinSheathDebugDots() {
 
   push();
   noStroke();
-  fill(0, 180, 255); // soft cyan-blue
+  fill(0, 180, 255); // cyan-blue
 
   sheaths.forEach(s => {
-
-    const mx = (s.x0 + s.x1) * 0.5;
-    const my = (s.y0 + s.y1) * 0.5;
-
-    // Normal vector for visual offset
-    const dx = s.x1 - s.x0;
-    const dy = s.y1 - s.y0;
-    const len = Math.hypot(dx, dy) || 1;
-
-    const nx = -dy / len;
-    const ny =  dx / len;
-
     ellipse(
-      mx + nx * DEBUG_DOT_OFFSET,
-      my + ny * DEBUG_DOT_OFFSET,
+      s.mx + s.nx * DEBUG_DOT_OFFSET,
+      s.my + s.ny * DEBUG_DOT_OFFSET,
       5,
       5
     );
@@ -143,5 +145,5 @@ function drawMyelinSheathDebugDots() {
 // -----------------------------------------------------
 // EXPORTS
 // -----------------------------------------------------
-window.generateMyelinGeometry     = generateMyelinGeometry;
-window.drawMyelinSheathDebugDots  = drawMyelinSheathDebugDots;
+window.generateMyelinGeometry    = generateMyelinGeometry;
+window.drawMyelinSheathDebugDots = drawMyelinSheathDebugDots;
