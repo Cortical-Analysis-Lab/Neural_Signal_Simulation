@@ -128,9 +128,8 @@ function setup() {
   initAxonPath(neuron);
   initArtery();
 
-const geom = generateMyelinGeometry(neuron.axon.path);
+neuron.axon.nodes = generateMyelinNodes(neuron.axon.path);
 
-neuron.axon.sheaths = geom.sheaths;
 neuron.axon.nodes   = geom.nodes;
 
   initNeuron2();
