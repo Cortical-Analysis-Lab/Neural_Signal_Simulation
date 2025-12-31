@@ -5,9 +5,8 @@
 // ✔ Nodes are TRUE gaps between sheaths
 // ✔ First node at axon initial segment (AIS)
 // ✔ Node phase computed from TRUE path distance
-// ✔ Debug rectangles match visual gaps exactly
-// ✔ Nodes draggable with mouse (NO keyboard)
-// ✔ Right-click dumps coordinates
+// ✔ Passive debug markers at SHEATH midpoints (dots)
+// ✔ NO user interaction, NO input hooks
 // =====================================================
 
 console.log("myelinGeometry loaded");
@@ -17,11 +16,7 @@ console.log("myelinGeometry loaded");
 // -----------------------------------------------------
 const SHEATH_LENGTH = 28; // px
 const NODE_LENGTH   = 10; // px
-
-// -----------------------------------------------------
-// INTERNAL STATE
-// -----------------------------------------------------
-let draggedNode = null;
+const DEBUG_DOT_OFFSET = 6; // px normal offset from sheath
 
 // -----------------------------------------------------
 // Generate myelin geometry from axon path
@@ -68,7 +63,6 @@ function generateMyelinGeometry(axonPath) {
       const blockLen = placingSheath ? SHEATH_LENGTH : NODE_LENGTH;
       const blockEnd = nextDistance + blockLen;
 
-      // defer to next segment if block overflows
       if (blockEnd > segEnd) break;
 
       const t0 = (nextDistance - segStart) / segLen;
@@ -97,8 +91,7 @@ function generateMyelinGeometry(axonPath) {
         nodes.push({
           x: cx,
           y: cy,
-          length: NODE_LENGTH,
-          phase: nextDistance / totalLen, // authoritative
+          phase: nextDistance / totalLen,
           isFirst: nodes.length === 0
         });
       }
@@ -112,111 +105,43 @@ function generateMyelinGeometry(axonPath) {
 }
 
 // -----------------------------------------------------
-// DEBUG DRAW — NODE RECTANGLES
+// DEBUG DRAW — SHEATH MIDPOINT DOTS (PASSIVE)
 // -----------------------------------------------------
-function drawMyelinNodeDebug() {
+function drawMyelinSheathDebugDots() {
 
-  const nodes = neuron?.axon?.nodes;
-  if (!nodes) return;
+  const sheaths = neuron?.axon?.sheaths;
+  if (!sheaths || sheaths.length === 0) return;
 
   push();
-  rectMode(CENTER);
-  textAlign(CENTER, CENTER);
-  textSize(10);
-  strokeWeight(2);
+  noStroke();
+  fill(0, 180, 255); // soft cyan-blue
 
-  nodes.forEach((n, i) => {
+  sheaths.forEach(s => {
 
-    // Cyan = AIS node, Blue = others
-    stroke(n.isFirst ? color(0, 255, 255) : color(80, 140, 255));
-    noFill();
-    rect(n.x, n.y, n.length * 2, n.length * 2);
+    const mx = (s.x0 + s.x1) * 0.5;
+    const my = (s.y0 + s.y1) * 0.5;
 
-    noStroke();
-    fill(0, 200, 255);
-    text(i, n.x, n.y - n.length - 6);
+    // Normal vector for visual offset
+    const dx = s.x1 - s.x0;
+    const dy = s.y1 - s.y0;
+    const len = Math.hypot(dx, dy) || 1;
+
+    const nx = -dy / len;
+    const ny =  dx / len;
+
+    ellipse(
+      mx + nx * DEBUG_DOT_OFFSET,
+      my + ny * DEBUG_DOT_OFFSET,
+      5,
+      5
+    );
   });
 
   pop();
 }
 
 // -----------------------------------------------------
-// MOUSE — PRESS
-// Returns TRUE if click was consumed
-// -----------------------------------------------------
-function handleNodeMousePressed(mx, my, button = LEFT) {
-
-  const nodes = neuron?.axon?.nodes;
-  if (!nodes) return false;
-
-  for (let n of nodes) {
-
-    const hit =
-      Math.abs(mx - n.x) < n.length &&
-      Math.abs(my - n.y) < n.length;
-
-    if (!hit) continue;
-
-    // -----------------------------
-    // RIGHT CLICK → DUMP COORDS
-    // -----------------------------
-    if (button === RIGHT) {
-      dumpNodeCoordinates();
-      return true;
-    }
-
-    // -----------------------------
-    // LEFT CLICK → DRAG NODE
-    // -----------------------------
-    draggedNode = n;
-    return true; // 🔑 consume click, block synapse
-  }
-
-  return false; // let synapse system handle click
-}
-
-// -----------------------------------------------------
-// MOUSE — DRAG
-// -----------------------------------------------------
-function handleNodeMouseDragged(mx, my) {
-  if (draggedNode) {
-    draggedNode.x = mx;
-    draggedNode.y = my;
-  }
-}
-
-// -----------------------------------------------------
-// MOUSE — RELEASE
-// -----------------------------------------------------
-function handleNodeMouseReleased() {
-  draggedNode = null;
-}
-
-// -----------------------------------------------------
-// DUMP NODE COORDINATES (COPY/PASTE READY)
-// -----------------------------------------------------
-function dumpNodeCoordinates() {
-
-  const nodes = neuron?.axon?.nodes;
-  if (!nodes) return;
-
-  console.log("🟦 HARD-CODED NODE LIST:");
-  console.log(JSON.stringify(
-    nodes.map(n => ({
-      x: Number(n.x.toFixed(2)),
-      y: Number(n.y.toFixed(2)),
-      phase: Number(n.phase.toFixed(4))
-    })),
-    null,
-    2
-  ));
-}
-
-// -----------------------------------------------------
 // EXPORTS
 // -----------------------------------------------------
-window.generateMyelinGeometry  = generateMyelinGeometry;
-window.drawMyelinNodeDebug     = drawMyelinNodeDebug;
-window.handleNodeMousePressed  = handleNodeMousePressed;
-window.handleNodeMouseDragged  = handleNodeMouseDragged;
-window.handleNodeMouseReleased = handleNodeMouseReleased;
+window.generateMyelinGeometry     = generateMyelinGeometry;
+window.drawMyelinSheathDebugDots  = drawMyelinSheathDebugDots;
