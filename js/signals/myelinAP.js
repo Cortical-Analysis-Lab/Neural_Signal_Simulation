@@ -1,10 +1,10 @@
 // =====================================================
 // MYELINATED AXON ACTION POTENTIAL (CONTINUOUS + OCCLUDED)
 // =====================================================
-// ✔ Continuous electrical conduction under myelin
+// ✔ Continuous electrical conduction
 // ✔ Faster under myelin, slower at nodes
-// ✔ Visible at nodes only
-// ✔ Na⁺ influx triggered JUST BEFORE node
+// ✔ Visible only at nodes
+// ✔ Na⁺ influx triggered just BEFORE node
 // ✔ K⁺ efflux triggered AT node
 // ✔ Uses node.phase from geometry (NO guessing)
 // =====================================================
@@ -45,7 +45,7 @@ function spawnMyelinAP() {
 
 // -----------------------------------------------------
 // Helper — visual-only myelin occlusion
-// (does NOT affect timing)
+// Uses node.phase midpoints ONLY
 // -----------------------------------------------------
 function isPhaseUnderMyelin(phase) {
   const nodes = neuron?.axon?.nodes;
@@ -55,7 +55,8 @@ function isPhaseUnderMyelin(phase) {
     const a = nodes[i].phase;
     const b = nodes[i + 1].phase;
 
-    // midpoint between nodes = sheath center
+    if (a == null || b == null) continue;
+
     const center = (a + b) * 0.5;
     const half   = (b - a) * 0.25;
 
@@ -87,6 +88,9 @@ function updateMyelinAPs() {
     ap.phase += underMyelin
       ? MYELIN_SPEED_SHEATH
       : MYELIN_SPEED_NODE;
+
+    // Clamp — PREVENT FREEZE / NAN DRIFT
+    ap.phase = constrain(ap.phase, 0, 1);
 
     // -----------------------------
     // NODE-CROSSED DETECTION
@@ -127,11 +131,9 @@ function updateMyelinAPs() {
     // Terminal handoff
     // -----------------------------
     if (ap.phase >= AXON_TERMINAL_START) {
-
       if (typeof spawnTerminalSpikes === "function") {
         spawnTerminalSpikes();
       }
-
       myelinAPs.splice(i, 1);
       continue;
     }
