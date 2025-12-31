@@ -377,3 +377,58 @@ function updateOverviewUI() {
   if (logUI) logUI.style.display = visible ? "flex" : "none";
 }
 
+// =====================================================
+// INPUT ROUTING — SINGLE SOURCE OF TRUTH
+// =====================================================
+
+function mousePressed() {
+
+  // Convert screen → world coordinates
+  const mx = (mouseX - width / 2) / camera.zoom + camera.x;
+  const my = (mouseY - height / 2) / camera.zoom + camera.y;
+
+  // --------------------------------------------------
+  // 1️⃣ NODE EDITING (only when myelin enabled)
+  // --------------------------------------------------
+  if (
+    window.myelinEnabled &&
+    state.mode === "overview" &&
+    typeof handleNodeMousePressed === "function"
+  ) {
+    const consumed = handleNodeMousePressed(mx, my);
+    if (consumed) return;
+  }
+
+  // --------------------------------------------------
+  // 2️⃣ SYNAPSE / BOUTON INTERACTION
+  // --------------------------------------------------
+  if (
+    state.mode === "overview" &&
+    typeof handleSynapseMousePressed === "function"
+  ) {
+    handleSynapseMousePressed(mx, my);
+  }
+}
+
+function mouseDragged() {
+
+  const mx = (mouseX - width / 2) / camera.zoom + camera.x;
+  const my = (mouseY - height / 2) / camera.zoom + camera.y;
+
+  if (
+    window.myelinEnabled &&
+    window.nodeEditMode &&        // 🔑 THIS WAS MISSING
+    state.mode === "overview" &&
+    typeof handleNodeMousePressed === "function"
+  ) {
+    const consumed = handleNodeMousePressed(mx, my);
+    if (consumed) return;
+  }
+
+}
+
+function mouseReleased() {
+  if (typeof handleNodeMouseReleased === "function") {
+    handleNodeMouseReleased();
+  }
+}
