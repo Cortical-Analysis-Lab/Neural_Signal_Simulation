@@ -5,7 +5,7 @@
 // ✔ Nodes are TRUE gaps between sheaths
 // ✔ First node at axon initial segment (AIS)
 // ✔ Node phase computed from TRUE path distance
-// ✔ Sheaths only in MID-AXON region
+// ✔ Sheaths restricted to MID-AXON region
 // ✔ Passive debug dots at sheath midpoints
 // ✔ NO user interaction
 // =====================================================
@@ -15,12 +15,14 @@ console.log("myelinGeometry loaded");
 // -----------------------------------------------------
 // TEACHING PARAMETERS
 // -----------------------------------------------------
-const SHEATH_LENGTH = 14; // px
-const NODE_LENGTH   = 10; // px
+const SHEATH_LENGTH = 14; // px (visual only)
+const NODE_LENGTH   = 10; // px (visual only)
 
+// Fractional region of axon that is myelinated
 const MYELIN_START_FRACTION = 0.12; // after AIS
 const MYELIN_END_FRACTION   = 0.82; // before terminals
 
+// Debug dot offset (normal to axon)
 const DEBUG_DOT_OFFSET = 6;
 
 // -----------------------------------------------------
@@ -52,7 +54,7 @@ function generateMyelinGeometry(axonPath) {
   // WALK PATH IN TRUE PHYSICAL BLOCKS
   // -----------------------------------------------
   let nextDistance  = 0;
-  let placingSheath = false; // start with NODE at AIS
+  let placingSheath = false; // 🔑 START WITH NODE AT AIS
 
   for (let i = 0; i < axonPath.length - 1; i++) {
 
@@ -67,6 +69,7 @@ function generateMyelinGeometry(axonPath) {
 
       const blockLen = placingSheath ? SHEATH_LENGTH : NODE_LENGTH;
       const blockEnd = nextDistance + blockLen;
+
       if (blockEnd > segEnd) break;
 
       const t0 = (nextDistance - segStart) / segLen;
@@ -95,7 +98,7 @@ function generateMyelinGeometry(axonPath) {
       } else {
 
         // -----------------------------
-        // NODE OF RANVIER
+        // NODE OF RANVIER (TRUE GAP)
         // -----------------------------
         const cx = (x0 + x1) * 0.5;
         const cy = (y0 + y1) * 0.5;
@@ -117,7 +120,7 @@ function generateMyelinGeometry(axonPath) {
 }
 
 // -----------------------------------------------------
-// DEBUG DRAW — SHEATH MIDPOINT DOTS
+// DEBUG DRAW — SHEATH MIDPOINT DOTS (PASSIVE)
 // -----------------------------------------------------
 function drawMyelinSheathDebugDots() {
 
@@ -126,7 +129,7 @@ function drawMyelinSheathDebugDots() {
 
   push();
   noStroke();
-  fill(0, 180, 255);
+  fill(0, 180, 255); // cyan debug dots
 
   sheaths.forEach(s => {
 
