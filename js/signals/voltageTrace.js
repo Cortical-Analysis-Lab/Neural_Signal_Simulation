@@ -21,7 +21,7 @@ const vmTrace = [];
 function updateVoltageTrace() {
   if (typeof soma === "undefined") return;
 
-  vmTrace.push(soma.VmDisplay);
+vmTrace.push(soma.Vm);
   if (vmTrace.length > VM_TRACE_LENGTH) {
     vmTrace.shift();
   }
