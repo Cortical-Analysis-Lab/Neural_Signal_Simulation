@@ -2,7 +2,7 @@
 // NODE IONS — MYELINATED AXON (Na⁺ / K⁺)
 // =====================================================
 // ✔ Node-authoritative (node center is ground truth)
-// ✔ Na⁺ spawns in halo → drawn INTO node only
+// ✔ Na⁺ spawns in halo → moves INTO node only
 // ✔ K⁺ expelled → relaxes locally around node halo
 // ✔ No sheath interaction possible
 // ✔ Works for all nodes including first
@@ -18,47 +18,28 @@ ecsIons.NodeNa = ecsIons.NodeNa || [];
 ecsIons.NodeK  = ecsIons.NodeK  || [];
 
 // -----------------------------------------------------
-// GEOMETRY (MATCH AXON HALO)
+// GEOMETRY (MATCH VISUAL AXON SCALE)
 // -----------------------------------------------------
-const NODE_HALO_RADIUS    = 28;
+const NODE_HALO_RADIUS    = 26;
 const NODE_HALO_THICKNESS = 4;
-const AXON_RADIUS        = 10;
 
 // -----------------------------------------------------
-// TUNING
+// LIFETIME / BURST TUNING
 // -----------------------------------------------------
-const NODE_NA_LIFETIME = 22;
-const NODE_K_LIFETIME  = 34;
+const NODE_NA_LIFETIME = 26;
+const NODE_K_LIFETIME  = 38;
 
-const NODE_NA_BURST_PER_SIDE = 4;
-const NODE_K_BURST_COUNT    = 5;
-
-const NA_INWARD_FORCE = 0.18;
-const K_RELAX         = 0.86;
+const NODE_NA_BURST_COUNT = 6;
+const NODE_K_BURST_COUNT  = 6;
 
 // -----------------------------------------------------
-// Utility — robust node normal (visual only)
+// MOTION TUNING (SLOW + MYELIN-COMPATIBLE)
 // -----------------------------------------------------
-function getNodeNormal(nodeIdx) {
+const NA_INWARD_FORCE = 0.10;
+const NA_DAMPING      = 0.75;
 
-  const path = neuron?.axon?.path;
-  const node = neuron?.axon?.nodes?.[nodeIdx];
-  if (!path || !node || path.length < 2) return { nx: 0, ny: 0 };
-
-  let idx = constrain(node.pathIndex ?? 0, 0, path.length - 2);
-
-  const p1 = path[idx];
-  const p2 = path[idx + 1];
-
-  const dx = p2.x - p1.x;
-  const dy = p2.y - p1.y;
-  const len = Math.hypot(dx, dy) || 1;
-
-  return {
-    nx: -dy / len,
-    ny:  dx / len
-  };
-}
+const K_RELAX_FORCE   = 0.035;
+const K_DAMPING       = 0.88;
 
 // -----------------------------------------------------
 // Na⁺ INFLUX — HALO → NODE CENTER
@@ -70,28 +51,23 @@ function triggerNodeNaInflux(nodeIdx) {
   const node = neuron?.axon?.nodes?.[nodeIdx];
   if (!node) return;
 
-  for (let side of [-1, +1]) {
-    for (let i = 0; i < NODE_NA_BURST_PER_SIDE; i++) {
+  for (let i = 0; i < NODE_NA_BURST_COUNT; i++) {
 
-      const angle = random(TWO_PI);
-      const r = random(
-        NODE_HALO_RADIUS,
-        NODE_HALO_RADIUS + NODE_HALO_THICKNESS
-      );
+    const angle = random(TWO_PI);
+    const r = random(
+      NODE_HALO_RADIUS,
+      NODE_HALO_RADIUS + NODE_HALO_THICKNESS
+    );
 
-      const x = node.x + cos(angle) * r;
-      const y = node.y + sin(angle) * r;
-
-      ecsIons.NodeNa.push({
-        x,
-        y,
-        targetX: node.x,
-        targetY: node.y,
-        vx: 0,
-        vy: 0,
-        life: NODE_NA_LIFETIME
-      });
-    }
+    ecsIons.NodeNa.push({
+      x: node.x + cos(angle) * r,
+      y: node.y + sin(angle) * r,
+      tx: node.x,
+      ty: node.y,
+      vx: 0,
+      vy: 0,
+      life: NODE_NA_LIFETIME
+    });
   }
 }
 
@@ -113,16 +89,13 @@ function triggerNodeKEfflux(nodeIdx) {
       NODE_HALO_RADIUS + NODE_HALO_THICKNESS
     );
 
-    const x0 = node.x + cos(angle) * r;
-    const y0 = node.y + sin(angle) * r;
-
     ecsIons.NodeK.push({
       x: node.x,
       y: node.y,
-      x0,
-      y0,
-      vx: (x0 - node.x) * 0.08,
-      vy: (y0 - node.y) * 0.08,
+      tx: node.x + cos(angle) * r,
+      ty: node.y + sin(angle) * r,
+      vx: 0,
+      vy: 0,
       life: NODE_K_LIFETIME
     });
   }
@@ -132,6 +105,7 @@ function triggerNodeKEfflux(nodeIdx) {
 // DRAW
 // -----------------------------------------------------
 function drawNodeIons() {
+
   push();
   textAlign(CENTER, CENTER);
   noStroke();
@@ -139,19 +113,19 @@ function drawNodeIons() {
   // -----------------------------
   // Na⁺ — ATTRACTED INTO NODE
   // -----------------------------
-  fill(getColor("sodium", 190));
+  fill(getColor("sodium", 180));
 
   ecsIons.NodeNa = ecsIons.NodeNa.filter(p => {
     p.life--;
 
-    const dx = p.targetX - p.x;
-    const dy = p.targetY - p.y;
+    const dx = p.tx - p.x;
+    const dy = p.ty - p.y;
 
     p.vx += dx * NA_INWARD_FORCE;
     p.vy += dy * NA_INWARD_FORCE;
 
-    p.vx *= 0.72;
-    p.vy *= 0.72;
+    p.vx *= NA_DAMPING;
+    p.vy *= NA_DAMPING;
 
     p.x += p.vx;
     p.y += p.vy;
@@ -163,16 +137,16 @@ function drawNodeIons() {
   // -----------------------------
   // K⁺ — RELAXES IN NODE HALO
   // -----------------------------
-  fill(getColor("potassium", 160));
+  fill(getColor("potassium", 150));
 
   ecsIons.NodeK = ecsIons.NodeK.filter(p => {
     p.life--;
 
-    p.vx += (p.x0 - p.x) * 0.04;
-    p.vy += (p.y0 - p.y) * 0.04;
+    p.vx += (p.tx - p.x) * K_RELAX_FORCE;
+    p.vy += (p.ty - p.y) * K_RELAX_FORCE;
 
-    p.vx *= K_RELAX;
-    p.vy *= K_RELAX;
+    p.vx *= K_DAMPING;
+    p.vy *= K_DAMPING;
 
     p.x += p.vx;
     p.y += p.vy;
