@@ -129,7 +129,9 @@ function setup() {
   initArtery();
 
   const geom = generateMyelinGeometry(neuron.axon.path);
-  neuron.axon.nodes = geom.nodes;
+  neuron.axon.nodes   = geom.nodes;
+  neuron.axon.sheaths = geom.sheaths; // 🔑 THIS WAS MISSING
+
 
   initNeuron2();
   initNeuron3();
