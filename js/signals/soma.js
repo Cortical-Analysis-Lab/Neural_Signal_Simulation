@@ -111,7 +111,8 @@ function updateSoma() {
       soma.delayCounter++;
 
       // gentle sigmoid depolarization
-      soma.Vm += (soma.threshold - soma.Vm) * 0.25;
+      // Hold Vm just above threshold WITHOUT visible ramp
+      soma.Vm = lerp(soma.Vm, soma.threshold + 2, 0.65);
 
       if (
         !soma.invisibleAPFired &&
