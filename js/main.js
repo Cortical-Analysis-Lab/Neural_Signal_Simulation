@@ -284,6 +284,10 @@ function draw() {
   }
 }
 
+  if (window.myelinEnabled && typeof drawMyelinNodeDebug === "function") {
+  drawMyelinNodeDebug();
+}
+
 
 
   // ---------------------------------------------------
