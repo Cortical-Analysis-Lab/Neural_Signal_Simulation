@@ -10,10 +10,10 @@ console.log("🫧 synapse/vesicles loaded");
 // =====================================================
 
 // -----------------------------------------------------
-// STORAGE (RELOAD SAFE)
+// STORAGE (RELOAD SAFE, NAMESPACED)
 // -----------------------------------------------------
 window.synapticVesicles = window.synapticVesicles || [];
-var vesicles = window.synapticVesicles;
+var synapticVesicles = window.synapticVesicles;
 
 // -----------------------------------------------------
 // TUNING CONSTANTS
@@ -27,7 +27,6 @@ var BACK_ZONE_Y  = -90;
 var FRONT_ZONE_Y = -25;
 
 var LOAD_DISTANCE = 14;
-var FUSE_DISTANCE = 6;
 
 // -----------------------------------------------------
 // COLORS (ES5 SAFE)
@@ -60,7 +59,7 @@ var STATES = {
 // SPAWN EMPTY VESICLE (BACK OF PRESYNAPSE)
 // -----------------------------------------------------
 function spawnEmptyVesicle() {
-  vesicles.push({
+  synapticVesicles.push({
     x: random(-40, 40),
     y: random(BACK_ZONE_Y - 10, BACK_ZONE_Y + 10),
     vx: random(-0.3, 0.3),
@@ -93,29 +92,23 @@ function updateVesicles() {
 
   // Maintain population
   var loadedCount = 0;
-  for (var i = 0; i < vesicles.length; i++) {
-    if (vesicles[i].state === STATES.LOADED) loadedCount++;
+  for (var i = 0; i < synapticVesicles.length; i++) {
+    if (synapticVesicles[i].state === STATES.LOADED) loadedCount++;
   }
 
-  if (vesicles.length < 10 && loadedCount < MAX_LOADED_VESICLES) {
+  if (synapticVesicles.length < 10 && loadedCount < MAX_LOADED_VESICLES) {
     spawnEmptyVesicle();
   }
 
-  for (var i = 0; i < vesicles.length; i++) {
-    var v = vesicles[i];
+  for (var i = 0; i < synapticVesicles.length; i++) {
+    var v = synapticVesicles[i];
 
-    // -----------------------------
-    // EMPTY → LOADING
-    // -----------------------------
     if (v.state === STATES.EMPTY) {
       v.y += v.vy;
       v.x += v.vx;
       attemptLoading(v);
     }
 
-    // -----------------------------
-    // LOADING (H+ in, ATP → ADP+Pi)
-    // -----------------------------
     else if (v.state === STATES.LOADING) {
       v.fillLevel += 0.04;
       if (v.fillLevel >= 1) {
@@ -126,16 +119,10 @@ function updateVesicles() {
       }
     }
 
-    // -----------------------------
-    // LOADED (DOCKED, WAITING)
-    // -----------------------------
     else if (v.state === STATES.LOADED) {
       v.x += sin(frameCount * 0.02 + v.y) * 0.2;
     }
 
-    // -----------------------------
-    // SNARED → FUSED
-    // -----------------------------
     else if (v.state === STATES.SNARED) {
       v.y += 0.8;
       if (v.y > -5) {
@@ -144,9 +131,6 @@ function updateVesicles() {
       }
     }
 
-    // -----------------------------
-    // FUSED (NEUROTRANSMITTER DUMP)
-    // -----------------------------
     else if (v.state === STATES.FUSED) {
       v.timer++;
       if (v.timer > 20) {
@@ -155,9 +139,6 @@ function updateVesicles() {
       }
     }
 
-    // -----------------------------
-    // RECYCLING → EMPTY
-    // -----------------------------
     else if (v.state === STATES.RECYCLING) {
       v.y -= 1.2;
       if (v.y < BACK_ZONE_Y) {
@@ -171,9 +152,9 @@ function updateVesicles() {
 // ACTION POTENTIAL TRIGGER
 // -----------------------------------------------------
 function triggerVesicleRelease() {
-  for (var i = 0; i < vesicles.length; i++) {
-    if (vesicles[i].state === STATES.LOADED) {
-      vesicles[i].state = STATES.SNARED;
+  for (var i = 0; i < synapticVesicles.length; i++) {
+    if (synapticVesicles[i].state === STATES.LOADED) {
+      synapticVesicles[i].state = STATES.SNARED;
     }
   }
 }
@@ -185,8 +166,8 @@ function drawVesicles() {
   push();
   strokeWeight(VESICLE_STROKE);
 
-  for (var i = 0; i < vesicles.length; i++) {
-    var v = vesicles[i];
+  for (var i = 0; i < synapticVesicles.length; i++) {
+    var v = synapticVesicles[i];
 
     stroke(COLOR_BORDER());
 
@@ -198,7 +179,6 @@ function drawVesicles() {
 
     ellipse(v.x, v.y, VESICLE_RADIUS * 2);
 
-    // Neurotransmitter fill (vacuum loading)
     if (v.fillLevel > 0) {
       noStroke();
       fill(200, 140, 255, 180);
