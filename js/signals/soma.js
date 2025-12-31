@@ -108,24 +108,27 @@ function updateSoma() {
     // =================================================
     case AP.NA_COMMIT:
 
-    soma.delayCounter++;
-  
-    // ✔ Freeze Vm at threshold (no plateau growth)
-    soma.Vm = soma.threshold;
-  
-    if (
-      !soma.invisibleAPFired &&
-      soma.delayCounter >= INVISIBLE_AP_OFFSET
-    ) {
-      spawnInvisibleAxonAP?.();
-      soma.invisibleAPFired = true;
-    }
-  
-    if (soma.delayCounter >= AP_DELAY_FRAMES) {
-      soma.apState = AP.UPSTROKE;
-    }
-    break;
+      soma.delayCounter++;
 
+      // gentle sigmoid depolarization
+      soma.Vm += (soma.threshold - soma.Vm) * 0.25;
+
+      if (
+        !soma.invisibleAPFired &&
+        soma.delayCounter >= INVISIBLE_AP_OFFSET
+      ) {
+        spawnInvisibleAxonAP?.();
+        soma.invisibleAPFired = true;
+      }
+
+      if (
+        !soma.visibleAPReleased &&
+        soma.delayCounter >= AP_DELAY_FRAMES
+      ) {
+        soma.apState = AP.UPSTROKE;
+        soma.visibleAPReleased = true;
+      }
+      break;
 
     // =================================================
     // FAST DEPOLARIZATION (SIGMOID)
