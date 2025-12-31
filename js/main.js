@@ -131,7 +131,7 @@ function setup() {
   const geom = generateMyelinGeometry(neuron.axon.path);
   neuron.axon.nodes = geom.nodes;
 
-
+  initNeuron2();
   initNeuron3();
   initAstrocyte();
 
