@@ -128,14 +128,9 @@ function setup() {
   initAxonPath(neuron);
   initArtery();
 
- const geom = generateMyelinGeometry(neuron.axon.path);
+  const geom = generateMyelinGeometry(neuron.axon.path);
   neuron.axon.nodes = geom.nodes;
-  
-  // 🔑 ASSIGN PHASE TO EACH NODE (REQUIRED)
-  const pathLen = neuron.axon.path.length - 1;
-  neuron.axon.nodes.forEach(node => {
-    node.phase = node.pathIndex / pathLen;
-  });
+
 
   initNeuron3();
   initAstrocyte();
