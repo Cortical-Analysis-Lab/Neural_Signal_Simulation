@@ -2,10 +2,10 @@
 // NODE IONS — MYELINATED AXON (Na⁺ / K⁺)
 // =====================================================
 // ✔ Node-of-Ranvier only
-// ✔ Event-driven
-// ✔ Directed transmembrane flux
-// ✔ Na⁺ drawn INTO axon
-// ✔ K⁺ expelled OUT of axon
+// ✔ Same spatial range as axon halo
+// ✔ Directed Na⁺ influx (outer → membrane)
+// ✔ Gentle K⁺ efflux (membrane → halo)
+// ✔ No runaway trajectories
 // =====================================================
 
 console.log("🧬 nodeIons loaded");
@@ -18,93 +18,103 @@ ecsIons.NodeNa = ecsIons.NodeNa || [];
 ecsIons.NodeK  = ecsIons.NodeK  || [];
 
 // -----------------------------------------------------
-// VISUAL / PHYSIOLOGY TUNING
+// MATCH AXON HALO GEOMETRY
 // -----------------------------------------------------
-
-// Radii
-const NODE_RADIUS          = 10;
-const NODE_NA_SPAWN_RADIUS = 20;
-const NODE_K_SPAWN_RADIUS  = 12;
-
-// Lifetimes
-const NODE_NA_LIFETIME = 34;
-const NODE_K_LIFETIME  = 46;
-
-// Burst sizes
-const NODE_NA_BURST_PER_SIDE = 4;
-const NODE_K_BURST_COUNT    = 6;
-
-// Force magnitudes
-const NA_ATTRACTION_FORCE = 0.9;   // pull inward
-const K_REPULSION_FORCE   = 1.4;   // push outward
-
-// Damping
-const NA_DAMPING = 0.90;
-const K_DAMPING  = 0.88;
+const NODE_HALO_RADIUS    = 28; // MATCHES AXON_HALO_RADIUS
+const NODE_HALO_THICKNESS = 4;
 
 // -----------------------------------------------------
-// Na⁺ INFLUX — STRONGLY INWARD
+// LIFETIME (SHORT, READABLE)
+// -----------------------------------------------------
+const NODE_NA_LIFETIME = 26;
+const NODE_K_LIFETIME  = 34;
+
+// -----------------------------------------------------
+// BURST COUNTS
+// -----------------------------------------------------
+const NODE_NA_BURST_PER_SIDE = 3;
+const NODE_K_BURST_COUNT    = 4;
+
+// -----------------------------------------------------
+// MOTION (HALO-BOUND)
+// -----------------------------------------------------
+const NA_INWARD_GAIN = 0.10;   // pull toward membrane
+const K_OUTWARD_GAIN = 0.08;   // push toward halo center
+
+const NA_RELAX = 0.88;
+const K_RELAX  = 0.86;
+
+// -----------------------------------------------------
+// Na⁺ INFLUX — OUTER HALO → MEMBRANE
 // -----------------------------------------------------
 function triggerNodeNaInflux(nodeIdx) {
 
   if (!window.myelinEnabled) return;
-
   const node = neuron?.axon?.nodes?.[nodeIdx];
   if (!node) return;
 
   [-1, +1].forEach(side => {
     for (let i = 0; i < NODE_NA_BURST_PER_SIDE; i++) {
 
-      const x = node.x + side * NODE_NA_SPAWN_RADIUS;
-      const y = node.y + random(-6, 6);
+      const r = random(
+        NODE_HALO_RADIUS,
+        NODE_HALO_RADIUS + NODE_HALO_THICKNESS
+      );
+
+      const x = node.x + side * r;
+      const y = node.y + random(-4, 4);
 
       ecsIons.NodeNa.push({
         x,
         y,
-
-        // initial velocity toward node
-        vx: (node.x - x) * 0.08,
-        vy: (node.y - y) * 0.08,
-
-        life: NODE_NA_LIFETIME + random(-6, 6)
+        x0: node.x + side * NODE_HALO_RADIUS,
+        y0: node.y,
+        vx: (node.x - x) * NA_INWARD_GAIN,
+        vy: (node.y - y) * NA_INWARD_GAIN,
+        life: NODE_NA_LIFETIME
       });
     }
   });
 }
 
 // -----------------------------------------------------
-// K⁺ EFFLUX — STRONGLY OUTWARD
+// K⁺ EFFLUX — MEMBRANE → HALO (SETTLES)
 // -----------------------------------------------------
 function triggerNodeKEfflux(nodeIdx) {
 
   if (!window.myelinEnabled) return;
-
   const node = neuron?.axon?.nodes?.[nodeIdx];
   if (!node) return;
 
   for (let i = 0; i < NODE_K_BURST_COUNT; i++) {
 
     const angle = random(TWO_PI);
-    const r = NODE_K_SPAWN_RADIUS;
+    const r0 = NODE_HALO_RADIUS * 0.7;
+    const rT = random(
+      NODE_HALO_RADIUS,
+      NODE_HALO_RADIUS + NODE_HALO_THICKNESS
+    );
 
-    const x = node.x + cos(angle) * r;
-    const y = node.y + sin(angle) * r;
+    const x = node.x + cos(angle) * r0;
+    const y = node.y + sin(angle) * r0;
+
+    const tx = node.x + cos(angle) * rT;
+    const ty = node.y + sin(angle) * rT;
 
     ecsIons.NodeK.push({
       x,
       y,
-
-      // initial velocity away from node
-      vx: cos(angle) * K_REPULSION_FORCE,
-      vy: sin(angle) * K_REPULSION_FORCE,
-
-      life: NODE_K_LIFETIME + random(-8, 8)
+      x0: tx,
+      y0: ty,
+      vx: (tx - x) * K_OUTWARD_GAIN,
+      vy: (ty - y) * K_OUTWARD_GAIN,
+      life: NODE_K_LIFETIME
     });
   }
 }
 
 // -----------------------------------------------------
-// DRAW — APPLY FORCE FIELDS EACH FRAME
+// DRAW — HALO-CONSTRAINED MOTION
 // -----------------------------------------------------
 function drawNodeIons() {
   push();
@@ -112,77 +122,50 @@ function drawNodeIons() {
   noStroke();
 
   // -----------------------------
-  // Na⁺ — ATTRACTIVE FIELD
+  // Na⁺ — INWARD FLUX
   // -----------------------------
-  fill(getColor("sodium", 200));
+  fill(getColor("sodium", 180));
 
   ecsIons.NodeNa = ecsIons.NodeNa.filter(p => {
     p.life--;
 
-    // Pull toward nearest node center
-    const node = findClosestNode(p.x, p.y);
-    if (node) {
-      const dx = node.x - p.x;
-      const dy = node.y - p.y;
-      p.vx += dx * 0.02 * NA_ATTRACTION_FORCE;
-      p.vy += dy * 0.02 * NA_ATTRACTION_FORCE;
-    }
+    // gentle attraction toward membrane
+    p.vx += (p.x0 - p.x) * 0.06;
+    p.vy += (p.y0 - p.y) * 0.06;
+
+    p.vx *= NA_RELAX;
+    p.vy *= NA_RELAX;
 
     p.x += p.vx;
     p.y += p.vy;
-    p.vx *= NA_DAMPING;
-    p.vy *= NA_DAMPING;
 
     text("Na⁺", p.x, p.y);
     return p.life > 0;
   });
 
   // -----------------------------
-  // K⁺ — REPULSIVE FIELD
+  // K⁺ — OUTWARD SETTLING
   // -----------------------------
-  fill(getColor("potassium", 180));
+  fill(getColor("potassium", 160));
 
   ecsIons.NodeK = ecsIons.NodeK.filter(p => {
     p.life--;
 
-    const node = findClosestNode(p.x, p.y);
-    if (node) {
-      const dx = p.x - node.x;
-      const dy = p.y - node.y;
-      p.vx += dx * 0.03 * K_REPULSION_FORCE;
-      p.vy += dy * 0.03 * K_REPULSION_FORCE;
-    }
+    // gentle attraction toward halo band
+    p.vx += (p.x0 - p.x) * 0.04;
+    p.vy += (p.y0 - p.y) * 0.04;
+
+    p.vx *= K_RELAX;
+    p.vy *= K_RELAX;
 
     p.x += p.vx;
     p.y += p.vy;
-    p.vx *= K_DAMPING;
-    p.vy *= K_DAMPING;
 
     text("K⁺", p.x, p.y);
     return p.life > 0;
   });
 
   pop();
-}
-
-// -----------------------------------------------------
-// UTILITY — NEAREST NODE
-// -----------------------------------------------------
-function findClosestNode(x, y) {
-  const nodes = neuron?.axon?.nodes;
-  if (!nodes || nodes.length === 0) return null;
-
-  let best = null;
-  let bestD = Infinity;
-
-  for (const n of nodes) {
-    const d = dist(x, y, n.x, n.y);
-    if (d < bestD) {
-      bestD = d;
-      best = n;
-    }
-  }
-  return best;
 }
 
 // -----------------------------------------------------
