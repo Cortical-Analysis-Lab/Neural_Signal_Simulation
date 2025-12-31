@@ -20,6 +20,26 @@ const POST_X = +180;
 const NEURON_Y = 40;
 
 // =====================================================
+// SYNAPSE VIEW — USER INPUT (LOCAL ONLY)
+// =====================================================
+// Spacebar fires ONE terminal AP per press
+
+let spaceWasDown = false;
+
+function handleSynapseInput() {
+  const spaceDown = keyIsDown(32); // Spacebar
+
+  // Rising edge: UP → DOWN
+  if (spaceDown && !spaceWasDown) {
+    if (typeof triggerTerminalAP === "function") {
+      triggerTerminalAP();
+    }
+  }
+
+  spaceWasDown = spaceDown;
+}
+
+// =====================================================
 // MAIN VIEW — ORCHESTRATOR ONLY
 // =====================================================
 function drawSynapseView() {
@@ -31,9 +51,11 @@ function drawSynapseView() {
   resetMatrix();
 
   // ---------------------------------------------------
-  // ⚡ SYNAPSE-LOCAL PHYSIOLOGY UPDATE
+  // ⚡ SYNAPSE-LOCAL INPUT + PHYSIOLOGY
   // (APs only exist meaningfully here)
   // ---------------------------------------------------
+  handleSynapseInput();
+
   if (typeof updateVoltageWave === "function") {
     updateVoltageWave();
   }
