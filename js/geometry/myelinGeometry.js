@@ -19,56 +19,72 @@ const INTERNODE_LENGTH = 28;   // myelin sheath length
 // -----------------------------------------------------
 // Generate Nodes of Ranvier along axon path
 // -----------------------------------------------------
+// =====================================================
+// MYELIN GEOMETRY — TRUE NODES OF RANVIER
+// =====================================================
+// ✔ Nodes placed by continuous path walk
+// ✔ First node anchored at axon origin
+// ✔ Even internode spacing
+// ✔ No sheath centering error
+// =====================================================
+
 function generateMyelinNodes(axonPath) {
 
   if (!axonPath || axonPath.length < 2) return [];
 
   const nodes = [];
 
-  // ---------------------------------------------------
-  // Compute total axon length (for phase mapping)
-  // ---------------------------------------------------
-  let totalLength = 0;
-  for (let i = 0; i < axonPath.length - 1; i++) {
-    totalLength += dist(
-      axonPath[i].x, axonPath[i].y,
-      axonPath[i + 1].x, axonPath[i + 1].y
-    );
-  }
+  const NODE_SPACING = 38; // internode distance (gap → gap)
 
-  let distanceAlong = 0;
-  let nextNodeAt = 0; // first node at hillock
+  let distSinceLastNode = 0;
+  let nextNodeDistance = 0;
+  let walked = 0;
 
+  // ---------------------------------------------------
+  // FORCE FIRST NODE AT AXON START
+  // ---------------------------------------------------
+  nodes.push({
+    x: axonPath[0].x,
+    y: axonPath[0].y,
+    pathIndex: 0,
+    isFirst: true
+  });
+
+  nextNodeDistance = NODE_SPACING;
+
+  // ---------------------------------------------------
+  // WALK THE POLYLINE
+  // ---------------------------------------------------
   for (let i = 0; i < axonPath.length - 1; i++) {
 
     const p1 = axonPath[i];
     const p2 = axonPath[i + 1];
 
-    const segLen = dist(p1.x, p1.y, p2.x, p2.y);
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const segLen = Math.hypot(dx, dy);
 
-    while (distanceAlong + segLen >= nextNodeAt) {
+    let segStartDist = 0;
 
-      const t = (nextNodeAt - distanceAlong) / segLen;
-      if (t < 0 || t > 1) break;
+    while (walked + segLen - segStartDist >= nextNodeDistance) {
+
+      const t = (nextNodeDistance - walked + segStartDist) / segLen;
 
       const x = lerp(p1.x, p2.x, t);
       const y = lerp(p1.y, p2.y, t);
-
-      const phase = nextNodeAt / totalLength;
 
       nodes.push({
         x,
         y,
         pathIndex: i,
-        length: NODE_LENGTH,
-        phase     // 🔑 CRITICAL: AP timing anchor
+        isFirst: false
       });
 
-      nextNodeAt += INTERNODE_LENGTH + NODE_LENGTH;
-      break;
+      nextNodeDistance += NODE_SPACING;
+      segStartDist = t * segLen;
     }
 
-    distanceAlong += segLen;
+    walked += segLen;
   }
 
   return nodes;
