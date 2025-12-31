@@ -2,7 +2,7 @@ console.log("🟡 preSynapse loaded");
 
 // =====================================================
 // PRESYNAPTIC AP CONDUCTION PATH
-// (Captured in VIEW SPACE — needs calibration)
+// (Captured in VIEW SPACE — calibrated to neuron geometry)
 // =====================================================
 const PRESYNAPTIC_AP_PATH = [
   { x: 153.1, y:  4.7 },
@@ -21,7 +21,7 @@ const PRESYNAPTIC_AP_PATH = [
 ];
 
 // =====================================================
-// 🔧 CALIBRATION CONSTANTS (THIS IS THE FIX)
+// 🔧 CALIBRATION CONSTANTS (AUTHORITATIVE)
 // =====================================================
 
 // Empirically determined: neuron geometry units / capture units
@@ -29,12 +29,12 @@ const AP_PATH_SCALE = 6.0;
 
 // Align path to synaptic face (x = 0 in neuronShape)
 const AP_PATH_OFFSET = {
-  x: -170,   // ≈ barThick / 2
+  x: -170,   // ≈ half bar thickness
   y: 0
 };
 
 // =====================================================
-// PATH TRANSFORMS (ORDER MATTERS)
+// PATH TRANSFORM (ORDER MATTERS)
 // =====================================================
 function calibratePath(path) {
   return path.map(p => ({
@@ -44,31 +44,43 @@ function calibratePath(path) {
 }
 
 // =====================================================
-// PRESYNAPTIC NEURON (GEOMETRY + DEBUG DOTS)
+// PRESYNAPTIC NEURON
+// Geometry + AP + Vesicles (LOCAL SPACE ONLY)
 // =====================================================
 function drawPreSynapse() {
   push();
 
-  // Presynaptic orientation
+  // -----------------------------------------------
+  // Presynaptic orientation (faces synaptic cleft)
+  // -----------------------------------------------
   scale(-1, 1);
 
-  // Neuron geometry (canonical)
+  // -----------------------------------------------
+  // Neuron geometry (canonical, pure)
+  // -----------------------------------------------
   drawTNeuronShape(1);
 
-  // Calibrated AP path
-  const calibratedPath = calibratePath(PRESYNAPTIC_AP_PATH);
+  // -----------------------------------------------
+  // Vesicle lifecycle system (local space)
+  // -----------------------------------------------
+  updateVesicles();
+  drawVesicles();
 
-  drawAPDebugDots(calibratedPath);
+  // -----------------------------------------------
+  // Calibrated AP path (debug visualization)
+  // -----------------------------------------------
+  if (window.apActive) {
+    const calibratedPath = calibratePath(PRESYNAPTIC_AP_PATH);
+    drawAPDebugDots(calibratedPath);
+  }
 
   pop();
 }
 
 // =====================================================
-// DEBUG: FLASHING GREEN DOTS
+// DEBUG: FLASHING GREEN AP DOTS
 // =====================================================
 function drawAPDebugDots(path) {
-  if (!window.apActive) return;
-
   const pulse = 0.5 + 0.5 * sin(frameCount * 0.2);
 
   push();
@@ -85,4 +97,15 @@ function drawAPDebugDots(path) {
 
   blendMode(BLEND);
   pop();
+}
+
+// =====================================================
+// AP → VESICLE COUPLING (EVENT-DRIVEN)
+// =====================================================
+// Call this ONCE when AP reaches terminal
+// (do NOT gate on frameCount here)
+function triggerPresynapticRelease() {
+  if (typeof triggerVesicleRelease === "function") {
+    triggerVesicleRelease();
+  }
 }
