@@ -3,11 +3,6 @@ console.log("🫧 synapse/vesicles loaded");
 // =====================================================
 // SYNAPTIC VESICLE SYSTEM — PRESYNAPTIC LOCAL SPACE
 // =====================================================
-// ✔ Clustered vesicles (no column)
-// ✔ ATP/H+ priming BEFORE loading
-// ✔ One vesicle loads at a time
-// ✔ Geometry-correct (x = 0 membrane)
-// =====================================================
 
 // -----------------------------------------------------
 // STORAGE (RELOAD SAFE)
@@ -15,16 +10,15 @@ console.log("🫧 synapse/vesicles loaded");
 window.synapseVesicles = window.synapseVesicles || [];
 var synapseVesicles = window.synapseVesicles;
 
-var synapseH = [];
+var synapseH   = [];
 var synapseATP = [];
 
 // -----------------------------------------------------
 // GEOMETRY CONSTANTS
 // -----------------------------------------------------
-var SYNAPSE_MEMBRANE_X = 0;
-var SYNAPSE_CLUSTER_X = 120;
+var SYNAPSE_MEMBRANE_X      = 0;
+var SYNAPSE_CLUSTER_X      = 120;
 var SYNAPSE_CLUSTER_RADIUS = 70;
-var SYNAPSE_BAR_HALF_Y = 200;
 
 // -----------------------------------------------------
 // VISUAL CONSTANTS
@@ -37,13 +31,13 @@ var SYNAPSE_MAX_LOADED_VESICLES = 6;
 // STATES
 // -----------------------------------------------------
 var SYNAPSE_VESICLE_STATES = {
-  EMPTY:    "empty",
-  PRIMING:  "priming",   // ATP/H+ step
-  LOADING:  "loading",   // neurotransmitter uptake
-  LOADED:   "loaded",
-  SNARED:   "snared",
-  FUSED:    "fused",
-  RECYCLING:"recycling"
+  EMPTY:     "empty",
+  PRIMING:   "priming",   // ATP / H+ step
+  LOADING:   "loading",   // neurotransmitter uptake
+  LOADED:    "loaded",
+  SNARED:    "snared",
+  FUSED:     "fused",
+  RECYCLING: "recycling"
 };
 
 // -----------------------------------------------------
@@ -57,8 +51,8 @@ function synapseColorBorder() { return color(40); }
 // SPAWN EMPTY VESICLE (CLUSTERED)
 // -----------------------------------------------------
 function spawnSynapseEmptyVesicle() {
-  const a = random(TWO_PI);
-  const r = random(0, SYNAPSE_CLUSTER_RADIUS);
+  var a = random(TWO_PI);
+  var r = random(0, SYNAPSE_CLUSTER_RADIUS);
 
   synapseVesicles.push({
     x: SYNAPSE_CLUSTER_X + cos(a) * r,
@@ -76,18 +70,19 @@ function spawnPrimingParticles(v) {
 
   // H+ ion (enters vesicle)
   synapseH.push({
-    x: v.x - 30,
+    x: v.x - 24,
     y: v.y,
     vx: 1.6,
     target: v
   });
 
-  // ATP (bounces → ADP + Pi)
+  // ATP (single bounce → ADP + Pi → disappear)
   synapseATP.push({
-    x: v.x - 45,
-    y: v.y + random(-10, 10),
-    vx: 1.4,
-    bounced: false
+    x: v.x - 36,
+    y: v.y + random(-8, 8),
+    vx: 1.2,
+    bounced: false,
+    life: 22
   });
 }
 
@@ -101,8 +96,8 @@ function updateSynapseVesicles() {
     spawnSynapseEmptyVesicle();
   }
 
-  // Only one vesicle may PRIME or LOAD at a time
-  const busy = synapseVesicles.find(v =>
+  // Only ONE vesicle may prime or load
+  var busy = synapseVesicles.find(v =>
     v.state === SYNAPSE_VESICLE_STATES.PRIMING ||
     v.state === SYNAPSE_VESICLE_STATES.LOADING
   );
@@ -115,7 +110,7 @@ function updateSynapseVesicles() {
     if (
       v.state === SYNAPSE_VESICLE_STATES.EMPTY &&
       !busy &&
-      v.x < SYNAPSE_CLUSTER_X + 10
+      v.x < SYNAPSE_CLUSTER_X + 8
     ) {
       v.state = SYNAPSE_VESICLE_STATES.PRIMING;
       v.timer = 0;
@@ -123,23 +118,21 @@ function updateSynapseVesicles() {
     }
 
     // -------------------------
-    // PRIMING (ATP/H+)
+    // PRIMING (ATP / H+)
     // -------------------------
     if (v.state === SYNAPSE_VESICLE_STATES.PRIMING) {
       v.timer++;
-
-      if (v.timer > 40) {   // priming duration
+      if (v.timer > 40) {
         v.state = SYNAPSE_VESICLE_STATES.LOADING;
         v.fillLevel = 0;
       }
     }
 
     // -------------------------
-    // LOADING (NT uptake)
+    // LOADING (1 vesicle only)
     // -------------------------
     if (v.state === SYNAPSE_VESICLE_STATES.LOADING) {
       v.fillLevel += 0.025;
-
       if (v.fillLevel >= 1) {
         v.fillLevel = 1;
         v.state = SYNAPSE_VESICLE_STATES.LOADED;
@@ -192,7 +185,7 @@ function updateSynapseVesicles() {
 }
 
 // -----------------------------------------------------
-// NO-OVERLAP REPULSION
+// SOFT NO-OVERLAP REPULSION
 // -----------------------------------------------------
 function applyVesicleSeparation() {
   for (let i = 0; i < synapseVesicles.length; i++) {
@@ -231,19 +224,23 @@ function updatePrimingParticles() {
     }
   }
 
-  // ATP → ADP + Pi
-  for (let a of synapseATP) {
-    if (!a.bounced) {
-      a.x += a.vx;
+  // ATP → ADP + Pi → disappear
+  for (let i = synapseATP.length - 1; i >= 0; i--) {
+    const a = synapseATP[i];
+    a.x += a.vx;
+    a.life--;
 
+    if (!a.bounced) {
       for (let v of synapseVesicles) {
         if (dist(a.x, a.y, v.x, v.y) < 10) {
-          a.vx *= -1;
+          a.vx *= -0.35;   // small bounce
           a.bounced = true;
         }
       }
-    } else {
-      a.x += a.vx;
+    }
+
+    if (a.life <= 0) {
+      synapseATP.splice(i, 1);
     }
   }
 }
@@ -280,11 +277,7 @@ function drawSynapseVesicles() {
     if (v.fillLevel > 0) {
       noStroke();
       fill(200, 140, 255, 180);
-      ellipse(
-        v.x,
-        v.y,
-        SYNAPSE_VESICLE_RADIUS * 2 * v.fillLevel
-      );
+      ellipse(v.x, v.y, SYNAPSE_VESICLE_RADIUS * 2 * v.fillLevel);
     }
   }
 
