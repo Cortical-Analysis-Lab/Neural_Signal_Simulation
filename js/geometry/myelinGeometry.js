@@ -15,8 +15,8 @@ console.log("myelinGeometry loaded");
 // -----------------------------------------------------
 // TEACHING PARAMETERS
 // -----------------------------------------------------
-const SHEATH_LENGTH = 28;
-const NODE_LENGTH   = 10;
+const SHEATH_LENGTH = 28; // px
+const NODE_LENGTH   = 10; // px
 
 // -----------------------------------------------------
 // INTERNAL STATE
@@ -52,7 +52,7 @@ function generateMyelinGeometry(axonPath) {
   // WALK PATH IN TRUE PHYSICAL BLOCKS
   // -----------------------------------------------
   let nextDistance  = 0;
-  let placingSheath = false; // start with NODE at AIS
+  let placingSheath = false; // 🔑 START WITH NODE AT AIS
 
   for (let i = 0; i < axonPath.length - 1; i++) {
 
@@ -68,6 +68,7 @@ function generateMyelinGeometry(axonPath) {
       const blockLen = placingSheath ? SHEATH_LENGTH : NODE_LENGTH;
       const blockEnd = nextDistance + blockLen;
 
+      // defer to next segment if block overflows
       if (blockEnd > segEnd) break;
 
       const t0 = (nextDistance - segStart) / segLen;
@@ -80,10 +81,16 @@ function generateMyelinGeometry(axonPath) {
 
       if (placingSheath) {
 
+        // -----------------------------
+        // MYELIN SHEATH SEGMENT
+        // -----------------------------
         sheaths.push({ x0, y0, x1, y1 });
 
       } else {
 
+        // -----------------------------
+        // NODE OF RANVIER (TRUE GAP)
+        // -----------------------------
         const cx = (x0 + x1) * 0.5;
         const cy = (y0 + y1) * 0.5;
 
@@ -91,7 +98,7 @@ function generateMyelinGeometry(axonPath) {
           x: cx,
           y: cy,
           length: NODE_LENGTH,
-          phase: nextDistance / totalLen,
+          phase: nextDistance / totalLen, // authoritative
           isFirst: nodes.length === 0
         });
       }
@@ -120,12 +127,13 @@ function drawMyelinNodeDebug() {
 
   nodes.forEach((n, i) => {
 
-    stroke(n.isFirst ? color(0,255,255) : color(80,140,255));
+    // Cyan = AIS node, Blue = others
+    stroke(n.isFirst ? color(0, 255, 255) : color(80, 140, 255));
     noFill();
     rect(n.x, n.y, n.length * 2, n.length * 2);
 
     noStroke();
-    fill(0,200,255);
+    fill(0, 200, 255);
     text(i, n.x, n.y - n.length - 6);
   });
 
@@ -144,24 +152,27 @@ function handleNodeMousePressed(mx, my, button = LEFT) {
   for (let n of nodes) {
 
     const hit =
-      abs(mx - n.x) < n.length &&
-      abs(my - n.y) < n.length;
+      Math.abs(mx - n.x) < n.length &&
+      Math.abs(my - n.y) < n.length;
 
-    if (hit) {
+    if (!hit) continue;
 
-      // Right-click → dump immediately
-      if (button === RIGHT) {
-        dumpNodeCoordinates();
-        return true;
-      }
-
-      // Left-click → drag
-      draggedNode = n;
-      return true; // 🔑 consume click (blocks synapse click)
+    // -----------------------------
+    // RIGHT CLICK → DUMP COORDS
+    // -----------------------------
+    if (button === RIGHT) {
+      dumpNodeCoordinates();
+      return true;
     }
+
+    // -----------------------------
+    // LEFT CLICK → DRAG NODE
+    // -----------------------------
+    draggedNode = n;
+    return true; // 🔑 consume click, block synapse
   }
 
-  return false; // let synapse system handle it
+  return false; // let synapse system handle click
 }
 
 // -----------------------------------------------------
@@ -182,7 +193,7 @@ function handleNodeMouseReleased() {
 }
 
 // -----------------------------------------------------
-// DUMP NODE COORDINATES
+// DUMP NODE COORDINATES (COPY/PASTE READY)
 // -----------------------------------------------------
 function dumpNodeCoordinates() {
 
