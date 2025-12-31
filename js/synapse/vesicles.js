@@ -6,7 +6,7 @@ console.log("🫧 synapse/vesicles loaded");
 // ✔ Thick border circles
 // ✔ Empty → loaded → release → recycle
 // ✔ Event-driven AP release
-// ✔ Teaching-first visuals
+// ✔ Geometry-correct (x = 0 membrane)
 // =====================================================
 
 // -----------------------------------------------------
@@ -16,42 +16,31 @@ window.synapseVesicles = window.synapseVesicles || [];
 var synapseVesicles = window.synapseVesicles;
 
 // -----------------------------------------------------
-// TUNING CONSTANTS (NAMESPACED)
+// VISUAL CONSTANTS
 // -----------------------------------------------------
 var SYNAPSE_VESICLE_RADIUS = 10;
 var SYNAPSE_VESICLE_STROKE = 4;
-
-var SYNAPSE_MAX_LOADED_VESICLES = 6;
 
 // -----------------------------------------------------
 // GEOMETRY-AWARE PRESYNAPTIC BOUNDS
 // (Derived from neuronShape.js)
 // -----------------------------------------------------
+var SYNAPSE_MEMBRANE_X = 0;      // synaptic face
+var SYNAPSE_INNER_X    = 220;    // cytosolic depth
+var SYNAPSE_BAR_HALF_Y = 200;    // vertical half-height
 
-var SYNAPSE_MEMBRANE_X = 0;          // synaptic face
-var SYNAPSE_INNER_X    = 220;        // cytosolic depth
-var SYNAPSE_BAR_HALF_Y = 200;        // vertical half-height
-
-
-var SYNAPSE_LOAD_DISTANCE = 14;
-
-// -----------------------------------------------------
-// COLORS (NAMESPACED, ES5 SAFE)
-// -----------------------------------------------------
-function synapseColorEmpty() {
-  return color(210, 220, 235);
-}
-
-function synapseColorLoaded() {
-  return color(180, 120, 255);
-}
-
-function synapseColorBorder() {
-  return color(40);
-}
+var SYNAPSE_LOAD_DISTANCE_X = 40;
+var SYNAPSE_MAX_LOADED_VESICLES = 6;
 
 // -----------------------------------------------------
-// VESICLE STATES (NAMESPACED)
+// COLORS (ES5 SAFE)
+// -----------------------------------------------------
+function synapseColorEmpty()  { return color(210, 220, 235); }
+function synapseColorLoaded() { return color(180, 120, 255); }
+function synapseColorBorder() { return color(40); }
+
+// -----------------------------------------------------
+// VESICLE STATES
 // -----------------------------------------------------
 var SYNAPSE_VESICLE_STATES = {
   EMPTY:     "empty",
@@ -63,7 +52,7 @@ var SYNAPSE_VESICLE_STATES = {
 };
 
 // -----------------------------------------------------
-// SPAWN EMPTY VESICLE (BACK OF PRESYNAPSE)
+// SPAWN EMPTY VESICLE (INSIDE CYTOSOL)
 // -----------------------------------------------------
 function spawnSynapseEmptyVesicle() {
   synapseVesicles.push({
@@ -72,7 +61,7 @@ function spawnSynapseEmptyVesicle() {
       -SYNAPSE_BAR_HALF_Y + 40,
        SYNAPSE_BAR_HALF_Y - 40
     ),
-    vx: random(-0.3, -0.6),   // drift toward membrane
+    vx: random(-0.4, -0.7),   // drift toward membrane
     vy: random(-0.2,  0.2),
 
     fillLevel: 0,
@@ -81,16 +70,17 @@ function spawnSynapseEmptyVesicle() {
   });
 }
 
-
 // -----------------------------------------------------
-// ATP / H+ LOADING LOGIC (SYMBOLIC)
+// LOADING CHECK (NEAR MEMBRANE)
 // -----------------------------------------------------
 function attemptSynapseVesicleLoading(v) {
   if (v.state !== SYNAPSE_VESICLE_STATES.EMPTY) return;
 
-  if (v.x < 40) {   // near synaptic membrane
+  if (v.x <= SYNAPSE_LOAD_DISTANCE_X) {
     v.state = SYNAPSE_VESICLE_STATES.LOADING;
     v.fillLevel = 0;
+    v.vx = 0;
+    v.vy = 0;
   }
 }
 
@@ -99,7 +89,7 @@ function attemptSynapseVesicleLoading(v) {
 // -----------------------------------------------------
 function updateSynapseVesicles() {
 
-  // Maintain population
+  // Maintain vesicle pool
   var loadedCount = 0;
   for (var i = 0; i < synapseVesicles.length; i++) {
     if (synapseVesicles[i].state === SYNAPSE_VESICLE_STATES.LOADED) {
@@ -119,56 +109,48 @@ function updateSynapseVesicles() {
 
     // EMPTY → LOADING
     if (v.state === SYNAPSE_VESICLE_STATES.EMPTY) {
-      v.y += v.vy;
       v.x += v.vx;
+      v.y += v.vy;
       attemptSynapseVesicleLoading(v);
     }
 
-    // LOADING
+    // LOADING (vacuum fill)
     else if (v.state === SYNAPSE_VESICLE_STATES.LOADING) {
       v.fillLevel += 0.04;
       if (v.fillLevel >= 1) {
         v.fillLevel = 1;
         v.state = SYNAPSE_VESICLE_STATES.LOADED;
-        v.y = random(
-          SYNAPSE_FRONT_ZONE_Y - 10,
-          SYNAPSE_FRONT_ZONE_Y + 10
-        );
-        v.x = random(-50, 50);
       }
     }
 
-    // LOADED (DOCKED)
+    // LOADED (DOCKED AT MEMBRANE)
     else if (v.state === SYNAPSE_VESICLE_STATES.LOADED) {
-      v.x += sin(frameCount * 0.02 + v.y) * 0.2;
+      v.y += sin(frameCount * 0.03 + v.x) * 0.25;
     }
 
     // SNARED → FUSED
     else if (v.state === SYNAPSE_VESICLE_STATES.SNARED) {
-      v.x -= 1.4;   // pulled INTO membrane
+      v.x -= 1.4;
       if (v.x <= SYNAPSE_MEMBRANE_X + 2) {
         v.state = SYNAPSE_VESICLE_STATES.FUSED;
         v.timer = 0;
       }
     }
 
-
     // FUSED
     else if (v.state === SYNAPSE_VESICLE_STATES.FUSED) {
       v.timer++;
-      if (v.timer > 20) {
+      if (v.timer > 18) {
         v.state = SYNAPSE_VESICLE_STATES.RECYCLING;
-        v.fillLevel = 0;
       }
     }
 
     // RECYCLING → EMPTY
     else if (v.state === SYNAPSE_VESICLE_STATES.RECYCLING) {
-     v.x += 1.8;  // pulled back into cytosol
-    if (v.x > SYNAPSE_INNER_X) {
-      v.state = SYNAPSE_VESICLE_STATES.EMPTY;
-    }
-
+      v.x += 1.8;
+      if (v.x >= SYNAPSE_INNER_X) {
+        v.state = SYNAPSE_VESICLE_STATES.EMPTY;
+      }
     }
   }
 }
@@ -185,7 +167,7 @@ function triggerSynapseVesicleRelease() {
 }
 
 // -----------------------------------------------------
-// DRAW SYNAPTIC VESICLES (LOCAL SPACE)
+// DRAW SYNAPTIC VESICLES
 // -----------------------------------------------------
 function drawSynapseVesicles() {
   push();
@@ -202,13 +184,8 @@ function drawSynapseVesicles() {
         : synapseColorEmpty()
     );
 
-    ellipse(
-      v.x,
-      v.y,
-      SYNAPSE_VESICLE_RADIUS * 2
-    );
+    ellipse(v.x, v.y, SYNAPSE_VESICLE_RADIUS * 2);
 
-    // Neurotransmitter fill
     if (v.fillLevel > 0) {
       noStroke();
       fill(200, 140, 255, 180);
