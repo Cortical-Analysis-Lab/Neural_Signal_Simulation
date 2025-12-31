@@ -7,6 +7,7 @@
 // ✔ No spacing drift across segments
 // ✔ Node phase computed from TRUE path distance
 // ✔ Debug rectangles match visual gaps exactly
+// ✔ Nodes can be interactively repositioned
 // =====================================================
 
 console.log("myelinGeometry loaded");
@@ -16,6 +17,12 @@ console.log("myelinGeometry loaded");
 // -----------------------------------------------------
 const SHEATH_LENGTH = 28;   // px
 const NODE_LENGTH   = 10;   // px
+
+// -----------------------------------------------------
+// INTERNAL STATE (EDITOR)
+// -----------------------------------------------------
+window.nodeEditMode = false;
+let draggedNode = null;
 
 // -----------------------------------------------------
 // Generate myelin geometry from axon path
@@ -62,7 +69,6 @@ function generateMyelinGeometry(axonPath) {
       const blockLen = placingSheath ? SHEATH_LENGTH : NODE_LENGTH;
       const blockEnd = nextDistance + blockLen;
 
-      // If block would extend beyond this segment, defer
       if (blockEnd > segEnd) break;
 
       const t0 = (nextDistance - segStart) / segLen;
@@ -75,16 +81,10 @@ function generateMyelinGeometry(axonPath) {
 
       if (placingSheath) {
 
-        // -----------------------------
-        // MYELIN SHEATH SEGMENT
-        // -----------------------------
         sheaths.push({ x0, y0, x1, y1 });
 
       } else {
 
-        // -----------------------------
-        // NODE OF RANVIER (TRUE GAP)
-        // -----------------------------
         const cx = (x0 + x1) * 0.5;
         const cy = (y0 + y1) * 0.5;
 
@@ -92,7 +92,7 @@ function generateMyelinGeometry(axonPath) {
           x: cx,
           y: cy,
           length: NODE_LENGTH,
-          phase: nextDistance / totalLen, // 🔑 authoritative phase
+          phase: nextDistance / totalLen, // authoritative
           isFirst: nodes.length === 0
         });
       }
@@ -111,10 +111,7 @@ function generateMyelinGeometry(axonPath) {
 function drawMyelinNodeDebug() {
 
   const nodes = neuron?.axon?.nodes;
-  if (!nodes || nodes.length === 0) {
-    console.warn("⚠️ No myelin nodes to draw");
-    return;
-  }
+  if (!nodes || nodes.length === 0) return;
 
   push();
   rectMode(CENTER);
@@ -124,13 +121,13 @@ function drawMyelinNodeDebug() {
 
   nodes.forEach((n, i) => {
 
-    // Cyan = first node (AIS), Blue = others
-    stroke(n.isFirst ? color(0, 255, 255) : color(80, 140, 255));
+    // Cyan = first node (AIS)
+    stroke(n.isFirst ? color(0,255,255) : color(80,140,255));
     noFill();
     rect(n.x, n.y, n.length * 2, n.length * 2);
 
     noStroke();
-    fill(0, 200, 255);
+    fill(0,200,255);
     text(i, n.x, n.y - n.length - 6);
   });
 
@@ -138,7 +135,78 @@ function drawMyelinNodeDebug() {
 }
 
 // -----------------------------------------------------
+// NODE EDITING — MOUSE HANDLERS
+// -----------------------------------------------------
+function handleNodeMousePressed(mx, my) {
+
+  if (!window.nodeEditMode) return;
+
+  const nodes = neuron?.axon?.nodes;
+  if (!nodes) return;
+
+  for (let n of nodes) {
+    if (
+      abs(mx - n.x) < n.length &&
+      abs(my - n.y) < n.length
+    ) {
+      draggedNode = n;
+      break;
+    }
+  }
+}
+
+function handleNodeMouseDragged(mx, my) {
+  if (draggedNode && window.nodeEditMode) {
+    draggedNode.x = mx;
+    draggedNode.y = my;
+  }
+}
+
+function handleNodeMouseReleased() {
+  draggedNode = null;
+}
+
+// -----------------------------------------------------
+// EXPORT HARD-CODED NODE LIST
+// -----------------------------------------------------
+function dumpNodeCoordinates() {
+
+  const nodes = neuron?.axon?.nodes;
+  if (!nodes) return;
+
+  console.log("🟦 HARD-CODED NODE LIST:");
+  console.log(JSON.stringify(
+    nodes.map(n => ({
+      x: Number(n.x.toFixed(2)),
+      y: Number(n.y.toFixed(2)),
+      phase: Number(n.phase.toFixed(4))
+    })),
+    null,
+    2
+  ));
+}
+
+// -----------------------------------------------------
+// KEYBOARD CONTROLS
+// -----------------------------------------------------
+function handleNodeKeyPress(key) {
+
+  if (key === 'N') {
+    window.nodeEditMode = !window.nodeEditMode;
+    console.log(`🟦 Node edit mode: ${window.nodeEditMode}`);
+  }
+
+  if (key === 'D') {
+    dumpNodeCoordinates();
+  }
+}
+
+// -----------------------------------------------------
 // EXPORTS
 // -----------------------------------------------------
-window.generateMyelinGeometry = generateMyelinGeometry;
-window.drawMyelinNodeDebug    = drawMyelinNodeDebug;
+window.generateMyelinGeometry   = generateMyelinGeometry;
+window.drawMyelinNodeDebug      = drawMyelinNodeDebug;
+window.handleNodeMousePressed   = handleNodeMousePressed;
+window.handleNodeMouseDragged   = handleNodeMouseDragged;
+window.handleNodeMouseReleased  = handleNodeMouseReleased;
+window.handleNodeKeyPress       = handleNodeKeyPress;
