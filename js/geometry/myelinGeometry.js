@@ -92,7 +92,7 @@ function generateMyelinGeometry(axonPath) {
           x: cx,
           y: cy,
           length: NODE_LENGTH,
-          phase: nextDistance / totalLen, // authoritative
+          phase: nextDistance / totalLen,
           isFirst: nodes.length === 0
         });
       }
@@ -121,7 +121,6 @@ function drawMyelinNodeDebug() {
 
   nodes.forEach((n, i) => {
 
-    // Cyan = first node (AIS)
     stroke(n.isFirst ? color(0,255,255) : color(80,140,255));
     noFill();
     rect(n.x, n.y, n.length * 2, n.length * 2);
@@ -136,30 +135,34 @@ function drawMyelinNodeDebug() {
 
 // -----------------------------------------------------
 // NODE EDITING — MOUSE HANDLERS
+// 🔑 RETURNS TRUE IF EVENT IS CONSUMED
 // -----------------------------------------------------
 function handleNodeMousePressed(mx, my) {
 
-  if (!window.nodeEditMode) return;
+  if (!window.nodeEditMode) return false;
 
   const nodes = neuron?.axon?.nodes;
-  if (!nodes) return;
+  if (!nodes) return false;
 
   for (let n of nodes) {
     if (
-      abs(mx - n.x) < n.length &&
-      abs(my - n.y) < n.length
+      abs(mx - n.x) <= n.length &&
+      abs(my - n.y) <= n.length
     ) {
       draggedNode = n;
-      break;
+      return true; // 🔑 CLAIM CLICK
     }
   }
+
+  return false;
 }
 
 function handleNodeMouseDragged(mx, my) {
-  if (draggedNode && window.nodeEditMode) {
-    draggedNode.x = mx;
-    draggedNode.y = my;
-  }
+  if (!window.nodeEditMode) return;
+  if (!draggedNode) return;
+
+  draggedNode.x = mx;
+  draggedNode.y = my;
 }
 
 function handleNodeMouseReleased() {
