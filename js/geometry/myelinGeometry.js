@@ -3,8 +3,9 @@
 // =====================================================
 // ✔ Sheaths are primary geometry
 // ✔ Nodes are TRUE gaps between sheaths
-// ✔ First node at axon initial segment
-// ✔ No spacing math drift
+// ✔ First node at axon initial segment (AIS)
+// ✔ No spacing drift across segments
+// ✔ Node phase computed from true path distance
 // ✔ Debug rectangles match visual gaps exactly
 // =====================================================
 
@@ -28,27 +29,43 @@ function generateMyelinGeometry(axonPath) {
   const sheaths = [];
   const nodes   = [];
 
-  let walked = 0;
-  let placingSheath = false; // start with NODE at hillock
+  // -----------------------------------------------
+  // Precompute cumulative path length
+  // -----------------------------------------------
+  const cumulative = [0];
+  let totalLen = 0;
+
+  for (let i = 0; i < axonPath.length - 1; i++) {
+    const a = axonPath[i];
+    const b = axonPath[i + 1];
+    totalLen += dist(a.x, a.y, b.x, b.y);
+    cumulative.push(totalLen);
+  }
+
+  // -----------------------------------------------
+  // Walk the path in fixed blocks
+  // -----------------------------------------------
+  let nextDistance   = 0;
+  let placingSheath  = false; // start with NODE at AIS
 
   for (let i = 0; i < axonPath.length - 1; i++) {
 
     const p1 = axonPath[i];
     const p2 = axonPath[i + 1];
 
-    const dx = p2.x - p1.x;
-    const dy = p2.y - p1.y;
-    const segLen = Math.hypot(dx, dy);
+    const segLen = dist(p1.x, p1.y, p2.x, p2.y);
+    let segStart = cumulative[i];
+    let segEnd   = cumulative[i + 1];
 
-    let segWalk = 0;
-
-    while (segWalk < segLen) {
+    while (nextDistance < segEnd) {
 
       const blockLen = placingSheath ? SHEATH_LENGTH : NODE_LENGTH;
-      if (segWalk + blockLen > segLen) break;
+      const blockEnd = nextDistance + blockLen;
 
-      const t0 = segWalk / segLen;
-      const t1 = (segWalk + blockLen) / segLen;
+      if (blockEnd > segEnd) break;
+
+      const t0 = (nextDistance - segStart) / segLen;
+      const t1 = (blockEnd     - segStart) / segLen;
 
       const x0 = lerp(p1.x, p2.x, t0);
       const y0 = lerp(p1.y, p2.y, t0);
@@ -56,18 +73,26 @@ function generateMyelinGeometry(axonPath) {
       const y1 = lerp(p1.y, p2.y, t1);
 
       if (placingSheath) {
+
         sheaths.push({ x0, y0, x1, y1 });
+
       } else {
+
+        const cx = (x0 + x1) * 0.5;
+        const cy = (y0 + y1) * 0.5;
+
         nodes.push({
-          x: (x0 + x1) * 0.5,
-          y: (y0 + y1) * 0.5,
-          length: NODE_LENGTH
+          x: cx,
+          y: cy,
+          length: NODE_LENGTH,
+          pathIndex: i,
+          phase: nextDistance / totalLen,
+          isFirst: nodes.length === 0
         });
       }
 
       placingSheath = !placingSheath;
-      segWalk += blockLen;
-      walked  += blockLen;
+      nextDistance += blockLen;
     }
   }
 
@@ -80,7 +105,10 @@ function generateMyelinGeometry(axonPath) {
 function drawMyelinNodeDebug() {
 
   const nodes = neuron?.axon?.nodes;
-  if (!nodes || nodes.length === 0) return;
+  if (!nodes || nodes.length === 0) {
+    console.warn("⚠️ No myelin nodes to draw");
+    return;
+  }
 
   push();
   rectMode(CENTER);
@@ -90,8 +118,7 @@ function drawMyelinNodeDebug() {
 
   nodes.forEach((n, i) => {
 
-    // Cyan for first node, blue for others
-    stroke(i === 0 ? color(0,255,255) : color(80,140,255));
+    stroke(n.isFirst ? color(0,255,255) : color(80,140,255));
     noFill();
     rect(n.x, n.y, n.length * 2, n.length * 2);
 
