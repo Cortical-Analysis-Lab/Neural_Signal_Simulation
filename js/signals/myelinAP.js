@@ -6,7 +6,7 @@
 // ✔ Visible at nodes only
 // ✔ Na⁺ influx triggered JUST BEFORE node
 // ✔ K⁺ efflux triggered AT node
-// ✔ Geometry-accurate (path-index based, NOT guessed)
+// ✔ Uses node.phase from geometry (NO guessing)
 // =====================================================
 
 console.log("myelinAP loaded");
@@ -24,14 +24,15 @@ const AP_RADIUS = 10;
 const myelinAPs = [];
 
 // -----------------------------------------------------
-// Spawn AP at axon hillock
+// Spawn AP at axon initial segment (AIS)
 // -----------------------------------------------------
 function spawnMyelinAP() {
   if (!window.myelinEnabled) return;
 
+  // Prevent unrealistically dense firing
   if (myelinAPs.length > 0) {
     const last = myelinAPs[myelinAPs.length - 1];
-    if (last.phase < 0.08) return;
+    if (last.phase < 0.05) return;
   }
 
   myelinAPs.push({
@@ -43,28 +44,26 @@ function spawnMyelinAP() {
 }
 
 // -----------------------------------------------------
-// Helper — is phase under myelin?
-// (visual-only gating, not physiology)
+// Helper — visual-only myelin occlusion
+// (does NOT affect timing)
 // -----------------------------------------------------
-function isPhaseUnderMyelin(phase, sheathCount = 4) {
-  for (let s = 1; s <= sheathCount; s++) {
-    const center = s / (sheathCount + 1);
-    const halfWidth = 0.03;
-    if (phase > center - halfWidth && phase < center + halfWidth) {
+function isPhaseUnderMyelin(phase) {
+  const nodes = neuron?.axon?.nodes;
+  if (!nodes || nodes.length < 2) return false;
+
+  for (let i = 0; i < nodes.length - 1; i++) {
+    const a = nodes[i].phase;
+    const b = nodes[i + 1].phase;
+
+    // midpoint between nodes = sheath center
+    const center = (a + b) * 0.5;
+    const half   = (b - a) * 0.25;
+
+    if (phase > center - half && phase < center + half) {
       return true;
     }
   }
   return false;
-}
-
-// -----------------------------------------------------
-// Helper — convert node.pathIndex → phase
-// -----------------------------------------------------
-function nodePhaseFromPathIndex(node) {
-  const path = neuron?.axon?.path;
-  if (!path || path.length < 2) return null;
-
-  return node.pathIndex / (path.length - 1);
 }
 
 // -----------------------------------------------------
@@ -73,8 +72,7 @@ function nodePhaseFromPathIndex(node) {
 function updateMyelinAPs() {
 
   const nodes = neuron?.axon?.nodes;
-  const path  = neuron?.axon?.path;
-  if (!nodes || !path || nodes.length === 0) return;
+  if (!nodes || nodes.length === 0) return;
 
   for (let i = myelinAPs.length - 1; i >= 0; i--) {
 
@@ -95,8 +93,7 @@ function updateMyelinAPs() {
     // -----------------------------
     for (let n = 0; n < nodes.length; n++) {
 
-      const node = nodes[n];
-      const nodePhase = nodePhaseFromPathIndex(node);
+      const nodePhase = nodes[n].phase;
       if (nodePhase == null) continue;
 
       // 🔵 Na⁺ — just BEFORE node
@@ -112,7 +109,7 @@ function updateMyelinAPs() {
         }
       }
 
-      // 🟣 K⁺ — AT node (same crossing)
+      // 🟣 K⁺ — AT node
       if (
         ap.lastPhase < nodePhase &&
         ap.phase >= nodePhase &&
@@ -150,8 +147,10 @@ function updateMyelinAPs() {
 // Draw AP (visible only at nodes)
 // -----------------------------------------------------
 function drawMyelinAPs() {
+
   myelinAPs.forEach(ap => {
 
+    // visually hide under myelin
     if (isPhaseUnderMyelin(ap.phase)) return;
 
     const p = getAxonPoint(ap.phase);
