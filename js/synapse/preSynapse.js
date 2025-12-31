@@ -45,7 +45,8 @@ function calibratePath(path) {
 
 // =====================================================
 // PRESYNAPTIC NEURON
-// Geometry + AP + Vesicles (LOCAL SPACE ONLY)
+// Geometry + Terminal AP + Synapse Vesicles
+// (LOCAL SPACE ONLY)
 // =====================================================
 function drawPreSynapse() {
   push();
@@ -61,16 +62,33 @@ function drawPreSynapse() {
   drawTNeuronShape(1);
 
   // -----------------------------------------------
-  // Vesicle lifecycle system (local space)
+  // Synaptic vesicle lifecycle (LOCAL, NAMESPACED)
   // -----------------------------------------------
-  updateVesicles();
-  drawVesicles();
+  if (typeof updateSynapseVesicles === "function") {
+    updateSynapseVesicles();
+  }
+
+  if (typeof drawSynapseVesicles === "function") {
+    drawSynapseVesicles();
+  }
 
   // -----------------------------------------------
-  // Calibrated AP path (debug visualization)
+  // Terminal AP (visual + causal)
+  // -----------------------------------------------
+  const calibratedPath = calibratePath(PRESYNAPTIC_AP_PATH);
+
+  if (typeof updateTerminalAP === "function") {
+    updateTerminalAP(calibratedPath);
+  }
+
+  if (typeof drawTerminalAP === "function") {
+    drawTerminalAP(calibratedPath);
+  }
+
+  // -----------------------------------------------
+  // Optional debug: AP path dots
   // -----------------------------------------------
   if (window.apActive) {
-    const calibratedPath = calibratePath(PRESYNAPTIC_AP_PATH);
     drawAPDebugDots(calibratedPath);
   }
 
@@ -78,7 +96,7 @@ function drawPreSynapse() {
 }
 
 // =====================================================
-// DEBUG: FLASHING GREEN AP DOTS
+// DEBUG: FLASHING GREEN AP DOTS (OPTIONAL)
 // =====================================================
 function drawAPDebugDots(path) {
   const pulse = 0.5 + 0.5 * sin(frameCount * 0.2);
@@ -87,7 +105,9 @@ function drawAPDebugDots(path) {
   blendMode(ADD);
   noStroke();
 
-  for (const p of path) {
+  for (let i = 0; i < path.length; i++) {
+    const p = path[i];
+
     fill(80, 255, 120, 120 * pulse);
     circle(p.x, p.y, 18);
 
@@ -100,12 +120,11 @@ function drawAPDebugDots(path) {
 }
 
 // =====================================================
-// AP → VESICLE COUPLING (EVENT-DRIVEN)
+// AP → SYNAPTIC VESICLE COUPLING (EVENT-DRIVEN)
 // =====================================================
-// Call this ONCE when AP reaches terminal
-// (do NOT gate on frameCount here)
+// Called ONCE by terminalAP.js when AP reaches terminal
 function triggerPresynapticRelease() {
-  if (typeof triggerVesicleRelease === "function") {
-    triggerVesicleRelease();
+  if (typeof triggerSynapseVesicleRelease === "function") {
+    triggerSynapseVesicleRelease();
   }
 }
