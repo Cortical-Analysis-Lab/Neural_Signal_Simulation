@@ -78,62 +78,20 @@ function drawOrganicBranch(branch, baseColor) {
 // =====================================================
 // MYELIN RENDERING (OVERVIEW ONLY)
 // =====================================================
-function drawMyelinSheath(neuron) {
+function drawMyelinSheathsFromGeometry() {
   if (!window.myelinEnabled) return;
-  if (!neuron?.axon?.path) return;
 
-  const path = neuron.axon.path;
+  const sheaths = neuron?.axon?.sheaths;
+  if (!sheaths || sheaths.length === 0) return;
 
-  // ============================
-  // Tuned visual parameters
-  // ============================
-  const AXON_CORE_WIDTH = 6;
-  const MYELIN_WIDTH   = 14;
-  const SHEATH_LENGTH  = 8;
-  const SHEATH_COUNT   = 4;
-
-    // ============================
-  // 2. Precompute cumulative distance
-  // ============================
-  const cumDist = [0];
-  for (let i = 1; i < path.length; i++) {
-    cumDist[i] = cumDist[i - 1] +
-      dist(path[i - 1].x, path[i - 1].y, path[i].x, path[i].y);
-  }
-  const totalLength = cumDist[cumDist.length - 1];
-
-  // ============================
-  // 3. Draw evenly spaced sheaths
-  // ============================
   stroke(getColor("myelin"));
-  strokeWeight(MYELIN_WIDTH);
+  strokeWeight(14);
   strokeCap(ROUND);
   noFill();
 
-  for (let s = 1; s <= SHEATH_COUNT; s++) {
-    const targetDist = (s / (SHEATH_COUNT + 1)) * totalLength;
-
-    let idx = 0;
-    while (idx < cumDist.length && cumDist[idx] < targetDist) idx++;
-    if (idx <= 0 || idx >= path.length - 1) continue;
-
-    const p    = path[idx];
-    const prev = path[idx - 1];
-    const next = path[idx + 1];
-
-    const dx = next.x - prev.x;
-    const dy = next.y - prev.y;
-    const len = Math.hypot(dx, dy) || 1;
-
-    const ux = dx / len;
-    const uy = dy / len;
-
-    const half = SHEATH_LENGTH * 0.5;
-    line(
-      p.x - ux * half, p.y - uy * half,
-      p.x + ux * half, p.y + uy * half
-    );
-  }
+  sheaths.forEach(s => {
+    line(s.x0, s.y0, s.x1, s.y1);
+  });
 }
 
   // =====================================================
@@ -234,7 +192,7 @@ function drawNeuron1() {
   }
 
   // 3️⃣ Myelin LAST (hides AP under sheath)
-  drawMyelinSheath(neuron);
+  drawMyelinSheathsFromGeometry();
 
   // ---------------- AXON TERMINALS ----------------
   neuron.axon.terminalBranches.forEach(b => {
