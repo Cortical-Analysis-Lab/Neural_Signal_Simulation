@@ -1,87 +1,87 @@
 // =====================================================
-// MYELIN GEOMETRY — SHEATHS + NODES OF RANVIER (NEURON 1)
+// MYELIN GEOMETRY — NODES OF RANVIER (NEURON 1)
 // =====================================================
-// ✔ Pure geometry
-// ✔ No drawing
-// ✔ No AP logic
-// ✔ No ion logic
-// ✔ Explicit sheath vs node separation
+// ✔ Nodes are TRUE gaps (not sheath centers)
+// ✔ First node at axon initial segment
+// ✔ Even spacing thereafter
+// ✔ Optional debug drawing
 // =====================================================
 
 console.log("myelinGeometry loaded");
 
 // -----------------------------------------------------
-// Generate myelin sheaths + nodes of Ranvier
+// TEACHING PARAMETERS
 // -----------------------------------------------------
-// axonPath : [{ x, y }]
-// spacing  : px between sheaths
-//
-// Returns:
-// {
-//   sheaths: [{ x, y, pathIndex }],
-//   nodes:   [{ x, y, pathIndex }]
-// }
+const NODE_LENGTH      = 10;   // visual gap length
+const INTERNODE_LENGTH = 28;   // myelin sheath length
+
 // -----------------------------------------------------
-function generateMyelinGeometry(axonPath, spacing = 36) {
-  if (!axonPath || axonPath.length < 2) {
-    return { sheaths: [], nodes: [] };
-  }
+// Generate Nodes of Ranvier along axon path
+// -----------------------------------------------------
+function generateMyelinNodes(axonPath) {
 
-  const sheaths = [];
-  const nodes   = [];
+  if (!axonPath || axonPath.length < 2) return [];
 
-  let accumulated = 0;
+  const nodes = [];
 
-  // ---------------------------------------------------
-  // 1) Generate MYELIN SHEATH CENTERS
-  // ---------------------------------------------------
-  for (let i = 1; i < axonPath.length; i++) {
-    const a = axonPath[i - 1];
-    const b = axonPath[i];
+  let distanceAlong = 0;
+  let nextNodeAt = 0; // first node at hillock
 
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
-    const segLen = Math.hypot(dx, dy);
+  for (let i = 0; i < axonPath.length - 1; i++) {
 
-    accumulated += segLen;
+    const p1 = axonPath[i];
+    const p2 = axonPath[i + 1];
 
-    if (accumulated >= spacing) {
-      sheaths.push({
-        x: b.x,
-        y: b.y,
-        pathIndex: i
+    const segLen = dist(p1.x, p1.y, p2.x, p2.y);
+
+    while (distanceAlong + segLen >= nextNodeAt) {
+
+      const t = (nextNodeAt - distanceAlong) / segLen;
+      if (t < 0 || t > 1) break;
+
+      const x = lerp(p1.x, p2.x, t);
+      const y = lerp(p1.y, p2.y, t);
+
+      nodes.push({
+        x,
+        y,
+        pathIndex: i,
+        length: NODE_LENGTH
       });
-      accumulated = 0;
+
+      nextNodeAt += INTERNODE_LENGTH + NODE_LENGTH;
+      break;
     }
+
+    distanceAlong += segLen;
   }
 
-  // ---------------------------------------------------
-  // 2) Generate NODES OF RANVIER (GAPS)
-  // ---------------------------------------------------
-
-  // 🔑 First node — BEFORE first sheath (critical fix)
-  nodes.push({
-    x: axonPath[0].x,
-    y: axonPath[0].y,
-    pathIndex: 0
-  });
-
-  // Nodes BETWEEN sheaths
-  for (let i = 0; i < sheaths.length - 1; i++) {
-    const a = sheaths[i];
-    const b = sheaths[i + 1];
-
-    nodes.push({
-      x: (a.x + b.x) / 2,
-      y: (a.y + b.y) / 2,
-      pathIndex: Math.floor((a.pathIndex + b.pathIndex) / 2)
-    });
-  }
-
-  return { sheaths, nodes };
+  return nodes;
 }
 
 // -----------------------------------------------------
-// Public API
+// DEBUG DRAW — NODE LOCATIONS
 // -----------------------------------------------------
-window.generateMyelinGeometry = generateMyelinGeometry;
+function drawMyelinNodeDebug() {
+
+  const nodes = neuron?.axon?.nodes;
+  if (!nodes) return;
+
+  push();
+  rectMode(CENTER);
+  noFill();
+  stroke(80, 140, 255, 180); // blue
+  strokeWeight(1);
+
+  nodes.forEach(n => {
+    rect(n.x, n.y, n.length * 2, n.length * 2);
+  });
+
+  pop();
+}
+
+// -----------------------------------------------------
+// EXPORTS
+// -----------------------------------------------------
+window.generateMyelinNodes     = generateMyelinNodes;
+window.drawMyelinNodeDebug     = drawMyelinNodeDebug;
