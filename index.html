@@ -99,6 +99,8 @@
 ===================================================== -->
 <script src="js/signals/axonSpike.js"></script>
 <script src="js/signals/myelinAP.js"></script>
+
+<!-- ⚠️ Legacy vesicleBurst REMAINS for neuron view -->
 <script src="js/signals/vesicleBurst.js"></script>
 
 <!-- =====================================================
@@ -117,18 +119,13 @@
      IONS (SPLIT, ORDER MATTERS)
 ===================================================== -->
 
-<!-- Background ECS ions -->
 <script src="js/ions/backgroundIons.js"></script>
-
-<!-- Soma-specific Na⁺ / K⁺ flux -->
 <script src="js/ions/somaIons.js"></script>
-
-<!-- Axonal Na⁺ wave + K⁺ efflux -->
 <script src="js/ions/axonIons.js"></script>
 <script src="js/ions/nodeIons.js"></script>
 
 <!-- =====================================================
-     SYNAPSE MODULES
+     SYNAPSE MODULES (LOCAL SPACE)
 ===================================================== -->
 
 <!-- Shared neuron shape -->
@@ -136,6 +133,12 @@
 
 <!-- Astrocyte synapse geometry -->
 <script src="js/synapse/astrocyteSynapse.js"></script>
+
+<!-- 🫧 Vesicle lifecycle (MUST load BEFORE preSynapse) -->
+<script src="js/synapse/vesicles.js"></script>
+
+<!-- ⚡ Terminal AP (MUST load BEFORE preSynapse) -->
+<script src="js/synapse/terminalAP.js"></script>
 
 <!-- Pre / Post synaptic specializations -->
 <script src="js/synapse/preSynapse.js"></script>
