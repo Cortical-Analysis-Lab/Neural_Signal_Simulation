@@ -35,8 +35,8 @@ const NODE_K_BURST_COUNT  = 6;
 // -----------------------------------------------------
 // MOTION TUNING (SLOW + MYELIN-COMPATIBLE)
 // -----------------------------------------------------
-const NA_INWARD_FORCE = 0.10;
-const NA_DAMPING      = 0.75;
+const NA_INWARD_FORCE = 0.07;
+const NA_DAMPING      = 0.60;
 
 const K_RELAX_FORCE   = 0.035;
 const K_DAMPING       = 0.88;
