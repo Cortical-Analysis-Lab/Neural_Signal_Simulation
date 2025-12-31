@@ -23,8 +23,15 @@ var SYNAPSE_VESICLE_STROKE = 4;
 
 var SYNAPSE_MAX_LOADED_VESICLES = 6;
 
-var SYNAPSE_BACK_ZONE_Y  = -90;
-var SYNAPSE_FRONT_ZONE_Y = -25;
+// -----------------------------------------------------
+// GEOMETRY-AWARE PRESYNAPTIC BOUNDS
+// (Derived from neuronShape.js)
+// -----------------------------------------------------
+
+var SYNAPSE_MEMBRANE_X = 0;          // synaptic face
+var SYNAPSE_INNER_X    = 220;        // cytosolic depth
+var SYNAPSE_BAR_HALF_Y = 200;        // vertical half-height
+
 
 var SYNAPSE_LOAD_DISTANCE = 14;
 
@@ -60,13 +67,13 @@ var SYNAPSE_VESICLE_STATES = {
 // -----------------------------------------------------
 function spawnSynapseEmptyVesicle() {
   synapseVesicles.push({
-    x: random(-40, 40),
+    x: random(80, SYNAPSE_INNER_X),
     y: random(
-      SYNAPSE_BACK_ZONE_Y - 10,
-      SYNAPSE_BACK_ZONE_Y + 10
+      -SYNAPSE_BAR_HALF_Y + 40,
+       SYNAPSE_BAR_HALF_Y - 40
     ),
-    vx: random(-0.3, 0.3),
-    vy: random(0.3, 0.6),
+    vx: random(-0.3, -0.6),   // drift toward membrane
+    vy: random(-0.2,  0.2),
 
     fillLevel: 0,
     state: SYNAPSE_VESICLE_STATES.EMPTY,
@@ -74,13 +81,14 @@ function spawnSynapseEmptyVesicle() {
   });
 }
 
+
 // -----------------------------------------------------
 // ATP / H+ LOADING LOGIC (SYMBOLIC)
 // -----------------------------------------------------
 function attemptSynapseVesicleLoading(v) {
   if (v.state !== SYNAPSE_VESICLE_STATES.EMPTY) return;
 
-  if (abs(v.y - SYNAPSE_FRONT_ZONE_Y) < SYNAPSE_LOAD_DISTANCE) {
+  if (v.x < 40) {   // near synaptic membrane
     v.state = SYNAPSE_VESICLE_STATES.LOADING;
     v.fillLevel = 0;
   }
@@ -137,12 +145,13 @@ function updateSynapseVesicles() {
 
     // SNARED → FUSED
     else if (v.state === SYNAPSE_VESICLE_STATES.SNARED) {
-      v.y += 0.8;
-      if (v.y > -5) {
+      v.x -= 1.4;   // pulled INTO membrane
+      if (v.x <= SYNAPSE_MEMBRANE_X + 2) {
         v.state = SYNAPSE_VESICLE_STATES.FUSED;
         v.timer = 0;
       }
     }
+
 
     // FUSED
     else if (v.state === SYNAPSE_VESICLE_STATES.FUSED) {
@@ -155,10 +164,11 @@ function updateSynapseVesicles() {
 
     // RECYCLING → EMPTY
     else if (v.state === SYNAPSE_VESICLE_STATES.RECYCLING) {
-      v.y -= 1.2;
-      if (v.y < SYNAPSE_BACK_ZONE_Y) {
-        v.state = SYNAPSE_VESICLE_STATES.EMPTY;
-      }
+     v.x += 1.8;  // pulled back into cytosol
+    if (v.x > SYNAPSE_INNER_X) {
+      v.state = SYNAPSE_VESICLE_STATES.EMPTY;
+    }
+
     }
   }
 }
