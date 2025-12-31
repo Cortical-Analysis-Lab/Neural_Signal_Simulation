@@ -4,24 +4,23 @@
 // ✔ Sheaths are primary geometry
 // ✔ Nodes are TRUE gaps between sheaths
 // ✔ First node at axon initial segment (AIS)
-// ✔ No spacing drift across segments
 // ✔ Node phase computed from TRUE path distance
 // ✔ Debug rectangles match visual gaps exactly
-// ✔ Nodes can be interactively repositioned
+// ✔ Nodes draggable with mouse (NO keyboard)
+// ✔ Right-click dumps coordinates
 // =====================================================
 
 console.log("myelinGeometry loaded");
 
 // -----------------------------------------------------
-// TEACHING PARAMETERS (VISUAL GROUND TRUTH)
+// TEACHING PARAMETERS
 // -----------------------------------------------------
-const SHEATH_LENGTH = 28;   // px
-const NODE_LENGTH   = 10;   // px
+const SHEATH_LENGTH = 28;
+const NODE_LENGTH   = 10;
 
 // -----------------------------------------------------
-// INTERNAL STATE (EDITOR)
+// INTERNAL STATE
 // -----------------------------------------------------
-window.nodeEditMode = false;
 let draggedNode = null;
 
 // -----------------------------------------------------
@@ -53,7 +52,7 @@ function generateMyelinGeometry(axonPath) {
   // WALK PATH IN TRUE PHYSICAL BLOCKS
   // -----------------------------------------------
   let nextDistance  = 0;
-  let placingSheath = false; // 🔑 START WITH NODE AT AIS
+  let placingSheath = false; // start with NODE at AIS
 
   for (let i = 0; i < axonPath.length - 1; i++) {
 
@@ -106,12 +105,12 @@ function generateMyelinGeometry(axonPath) {
 }
 
 // -----------------------------------------------------
-// DEBUG DRAW — NODE LOCATIONS (WORLD SPACE)
+// DEBUG DRAW — NODE RECTANGLES
 // -----------------------------------------------------
 function drawMyelinNodeDebug() {
 
   const nodes = neuron?.axon?.nodes;
-  if (!nodes || nodes.length === 0) return;
+  if (!nodes) return;
 
   push();
   rectMode(CENTER);
@@ -134,43 +133,56 @@ function drawMyelinNodeDebug() {
 }
 
 // -----------------------------------------------------
-// NODE EDITING — MOUSE HANDLERS
-// 🔑 RETURNS TRUE IF EVENT IS CONSUMED
+// MOUSE — PRESS
+// Returns TRUE if click was consumed
 // -----------------------------------------------------
-function handleNodeMousePressed(mx, my) {
-
-  if (!window.nodeEditMode) return false;
+function handleNodeMousePressed(mx, my, button = LEFT) {
 
   const nodes = neuron?.axon?.nodes;
   if (!nodes) return false;
 
   for (let n of nodes) {
-    if (
-      abs(mx - n.x) <= n.length &&
-      abs(my - n.y) <= n.length
-    ) {
+
+    const hit =
+      abs(mx - n.x) < n.length &&
+      abs(my - n.y) < n.length;
+
+    if (hit) {
+
+      // Right-click → dump immediately
+      if (button === RIGHT) {
+        dumpNodeCoordinates();
+        return true;
+      }
+
+      // Left-click → drag
       draggedNode = n;
-      return true; // 🔑 CLAIM CLICK
+      return true; // 🔑 consume click (blocks synapse click)
     }
   }
 
-  return false;
+  return false; // let synapse system handle it
 }
 
+// -----------------------------------------------------
+// MOUSE — DRAG
+// -----------------------------------------------------
 function handleNodeMouseDragged(mx, my) {
-  if (!window.nodeEditMode) return;
-  if (!draggedNode) return;
-
-  draggedNode.x = mx;
-  draggedNode.y = my;
+  if (draggedNode) {
+    draggedNode.x = mx;
+    draggedNode.y = my;
+  }
 }
 
+// -----------------------------------------------------
+// MOUSE — RELEASE
+// -----------------------------------------------------
 function handleNodeMouseReleased() {
   draggedNode = null;
 }
 
 // -----------------------------------------------------
-// EXPORT HARD-CODED NODE LIST
+// DUMP NODE COORDINATES
 // -----------------------------------------------------
 function dumpNodeCoordinates() {
 
@@ -190,26 +202,10 @@ function dumpNodeCoordinates() {
 }
 
 // -----------------------------------------------------
-// KEYBOARD CONTROLS
-// -----------------------------------------------------
-function handleNodeKeyPress(key) {
-
-  if (key === 'N') {
-    window.nodeEditMode = !window.nodeEditMode;
-    console.log(`🟦 Node edit mode: ${window.nodeEditMode}`);
-  }
-
-  if (key === 'D') {
-    dumpNodeCoordinates();
-  }
-}
-
-// -----------------------------------------------------
 // EXPORTS
 // -----------------------------------------------------
-window.generateMyelinGeometry   = generateMyelinGeometry;
-window.drawMyelinNodeDebug      = drawMyelinNodeDebug;
-window.handleNodeMousePressed   = handleNodeMousePressed;
-window.handleNodeMouseDragged   = handleNodeMouseDragged;
-window.handleNodeMouseReleased  = handleNodeMouseReleased;
-window.handleNodeKeyPress       = handleNodeKeyPress;
+window.generateMyelinGeometry  = generateMyelinGeometry;
+window.drawMyelinNodeDebug     = drawMyelinNodeDebug;
+window.handleNodeMousePressed  = handleNodeMousePressed;
+window.handleNodeMouseDragged  = handleNodeMouseDragged;
+window.handleNodeMouseReleased = handleNodeMouseReleased;
