@@ -1,10 +1,10 @@
 // =====================================================
 // NODE IONS — MYELINATED AXON (Na⁺ / K⁺)
 // =====================================================
-// ✔ Node-of-Ranvier only
-// ✔ Na⁺ spawns in halo → moves INTO axon
-// ✔ K⁺ settles into halo → fades
-// ✔ Same spatial scale as axonIons
+// ✔ Geometry-correct (local membrane normal)
+// ✔ Na⁺ enters ONLY at nodes
+// ✔ K⁺ settles around node halo
+// ✔ No sheath interaction
 // =====================================================
 
 console.log("🧬 nodeIons loaded");
@@ -19,36 +19,68 @@ ecsIons.NodeK  = ecsIons.NodeK  || [];
 // -----------------------------------------------------
 // MATCH AXON HALO GEOMETRY
 // -----------------------------------------------------
-const NODE_HALO_RADIUS    = 28; // same as AXON_HALO_RADIUS
+const NODE_HALO_RADIUS    = 28;
 const NODE_HALO_THICKNESS = 4;
 const AXON_RADIUS        = 10;
 
 // -----------------------------------------------------
-// LIFETIME
+// TUNING
 // -----------------------------------------------------
 const NODE_NA_LIFETIME = 22;
 const NODE_K_LIFETIME  = 34;
 
-// -----------------------------------------------------
-// BURST COUNTS
-// -----------------------------------------------------
 const NODE_NA_BURST_PER_SIDE = 3;
 const NODE_K_BURST_COUNT    = 4;
 
-// -----------------------------------------------------
-// MOTION
-// -----------------------------------------------------
-const NA_INWARD_SPEED = 1.2;   // strong inward drive
+const NA_INWARD_SPEED = 1.3;
 const K_RELAX         = 0.86;
 
 // -----------------------------------------------------
-// Na⁺ INFLUX — HALO → AXON (ONE-WAY)
+// Utility — local membrane normal at node
+// -----------------------------------------------------
+function getNodeNormal(nodeIdx) {
+  const path = neuron?.axon?.path;
+  const node = neuron?.axon?.nodes?.[nodeIdx];
+  if (!path || !node) return null;
+
+  // find closest path index to node
+  let bestIdx = 0;
+  let bestD = Infinity;
+
+  for (let i = 0; i < path.length - 1; i++) {
+    const d = dist(node.x, node.y, path[i].x, path[i].y);
+    if (d < bestD) {
+      bestD = d;
+      bestIdx = i;
+    }
+  }
+
+  const p1 = path[bestIdx];
+  const p2 = path[bestIdx + 1];
+
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  const len = Math.hypot(dx, dy) || 1;
+
+  // normal (perpendicular to tangent)
+  return {
+    nx: -dy / len,
+    ny:  dx / len
+  };
+}
+
+// -----------------------------------------------------
+// Na⁺ INFLUX — HALO → NODE (NORMAL-ALIGNED)
 // -----------------------------------------------------
 function triggerNodeNaInflux(nodeIdx) {
 
   if (!window.myelinEnabled) return;
+
   const node = neuron?.axon?.nodes?.[nodeIdx];
-  if (!node) return;
+  const normal = getNodeNormal(nodeIdx);
+  if (!node || !normal) return;
+
+  const { nx, ny } = normal;
 
   [-1, +1].forEach(side => {
     for (let i = 0; i < NODE_NA_BURST_PER_SIDE; i++) {
@@ -58,19 +90,14 @@ function triggerNodeNaInflux(nodeIdx) {
         NODE_HALO_RADIUS + NODE_HALO_THICKNESS
       );
 
-      const x = node.x + side * r;
-      const y = node.y + random(-4, 4);
-
-      // unit vector pointing inward
-      const dx = node.x - x;
-      const dy = node.y - y;
-      const len = Math.hypot(dx, dy) || 1;
+      const x = node.x + nx * r * side;
+      const y = node.y + ny * r * side;
 
       ecsIons.NodeNa.push({
         x,
         y,
-        vx: (dx / len) * NA_INWARD_SPEED,
-        vy: (dy / len) * NA_INWARD_SPEED,
+        vx: -nx * NA_INWARD_SPEED * side,
+        vy: -ny * NA_INWARD_SPEED * side,
         life: NODE_NA_LIFETIME
       });
     }
@@ -78,28 +105,33 @@ function triggerNodeNaInflux(nodeIdx) {
 }
 
 // -----------------------------------------------------
-// K⁺ EFFLUX — MEMBRANE → HALO (SETTLING)
+// K⁺ EFFLUX — NODE → HALO (NORMAL-ALIGNED)
 // -----------------------------------------------------
 function triggerNodeKEfflux(nodeIdx) {
 
   if (!window.myelinEnabled) return;
+
   const node = neuron?.axon?.nodes?.[nodeIdx];
-  if (!node) return;
+  const normal = getNodeNormal(nodeIdx);
+  if (!node || !normal) return;
+
+  const { nx, ny } = normal;
 
   for (let i = 0; i < NODE_K_BURST_COUNT; i++) {
 
-    const angle = random(TWO_PI);
+    const side = i % 2 === 0 ? 1 : -1;
+
     const r0 = NODE_HALO_RADIUS * 0.7;
     const rT = random(
       NODE_HALO_RADIUS,
       NODE_HALO_RADIUS + NODE_HALO_THICKNESS
     );
 
-    const x = node.x + cos(angle) * r0;
-    const y = node.y + sin(angle) * r0;
+    const x = node.x + nx * r0 * side;
+    const y = node.y + ny * r0 * side;
 
-    const tx = node.x + cos(angle) * rT;
-    const ty = node.y + sin(angle) * rT;
+    const tx = node.x + nx * rT * side;
+    const ty = node.y + ny * rT * side;
 
     ecsIons.NodeK.push({
       x,
@@ -122,7 +154,7 @@ function drawNodeIons() {
   noStroke();
 
   // -----------------------------
-  // Na⁺ — INWARD CROSSING
+  // Na⁺ — ENTERS AXON
   // -----------------------------
   fill(getColor("sodium", 190));
 
@@ -131,17 +163,15 @@ function drawNodeIons() {
     p.x += p.vx;
     p.y += p.vy;
 
-    // remove once inside axon core
-    if (dist(p.x, p.y, neuron.axon.nodes[0].x, neuron.axon.nodes[0].y) < AXON_RADIUS) {
-      return false;
-    }
+    // remove once inside axon
+    if (p.life <= 0) return false;
 
     text("Na⁺", p.x, p.y);
-    return p.life > 0;
+    return true;
   });
 
   // -----------------------------
-  // K⁺ — HALO SETTLING
+  // K⁺ — SETTLES IN HALO
   // -----------------------------
   fill(getColor("potassium", 160));
 
