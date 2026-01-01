@@ -17,17 +17,17 @@ let synapseATP = [];
 // -----------------------------------------------------
 // SHORT ALIASES → GLOBAL CONSTANTS
 // -----------------------------------------------------
-const MEMBRANE_X  = window.SYNAPSE_MEMBRANE_X;
-const CENTER_X    = window.SYNAPSE_TERMINAL_CENTER_X;
-const CENTER_Y    = window.SYNAPSE_TERMINAL_CENTER_Y;
-const RADIUS      = window.SYNAPSE_TERMINAL_RADIUS;
-const BACK_OFFSET = window.SYNAPSE_BACK_OFFSET_X;
+const MEMBRANE_X   = window.SYNAPSE_MEMBRANE_X;
+const CENTER_X     = window.SYNAPSE_TERMINAL_CENTER_X;
+const CENTER_Y     = window.SYNAPSE_TERMINAL_CENTER_Y;
+const RADIUS       = window.SYNAPSE_TERMINAL_RADIUS;
+const BACK_OFFSET  = window.SYNAPSE_BACK_OFFSET_X;
 
 const V_RADIUS     = window.SYNAPSE_VESICLE_RADIUS;
 const V_STROKE     = window.SYNAPSE_VESICLE_STROKE;
 const MAX_VESICLES = window.SYNAPSE_MAX_VESICLES;
 
-// Vesicles may approach membrane very closely but not cross
+// Vesicles may approach membrane but never cross it
 const MIN_VESICLE_X = MEMBRANE_X + 1.5;
 
 // -----------------------------------------------------
@@ -37,13 +37,13 @@ let loaderActive = false;
 let loaderIndex  = 0;
 
 // -----------------------------------------------------
-// STATES (LOADING ONLY)
+// STATES (LOADING ONLY — RELEASE HANDLED ELSEWHERE)
 // -----------------------------------------------------
 const VESICLE_STATE = {
-  EMPTY:    "empty",
-  PRIMING:  "priming",
-  LOADING:  "loading",
-  LOADED:   "loaded"
+  EMPTY:   "empty",
+  PRIMING:"priming",
+  LOADING:"loading",
+  LOADED: "loaded"
 };
 
 // -----------------------------------------------------
@@ -57,10 +57,14 @@ function ntColor()       { return color(185, 120, 255, 210); }
 // HARD GEOMETRY CONSTRAINT
 // ✔ Capsule interior
 // ✔ Soft membrane plane
+// ✔ DOES NOT interfere with DOCKING
 // -----------------------------------------------------
 function constrainToTerminal(v) {
 
-  // --- membrane plane (SOFT) ---
+  // Allow vesicleRelease.js to fully control docking
+  if (v.state === "DOCKING" || v.state === "FUSED") return;
+
+  // --- soft membrane plane ---
   if (v.x < MIN_VESICLE_X) {
     v.x = MIN_VESICLE_X;
   }
@@ -71,7 +75,6 @@ function constrainToTerminal(v) {
   const d  = Math.sqrt(dx * dx + dy * dy);
 
   const maxR = RADIUS - V_RADIUS - 1;
-
   if (d > maxR) {
     const s = maxR / d;
     v.x = CENTER_X + dx * s;
@@ -83,7 +86,7 @@ function constrainToTerminal(v) {
 // SPAWN EMPTY VESICLE
 // ✔ Back cytosol
 // ✔ Biased toward active zone
-// ✔ Each vesicle gets its own docking offset
+// ✔ Each vesicle gets a UNIQUE docking lane
 // -----------------------------------------------------
 function spawnSynapseEmptyVesicle() {
 
@@ -94,7 +97,8 @@ function spawnSynapseEmptyVesicle() {
     x: CENTER_X + BACK_OFFSET + cos(a) * r * 0.45,
     y: CENTER_Y + sin(a) * r * 0.45,
 
-    dockOffsetY: random(-18, 18), // ⭐ CRITICAL FIX
+    // ⭐ Prevents vertical stacking during docking
+    dockOffsetY: random(-18, 18),
 
     state: VESICLE_STATE.EMPTY,
     timer: 0,
