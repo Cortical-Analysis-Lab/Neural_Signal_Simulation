@@ -113,6 +113,10 @@ function drawSynapseView() {
   push();
   translate(PRE_X, NEURON_Y);
 
+  // ✅ CRITICAL FIX:
+  // Flip ENTIRE presynaptic system (geometry + vesicles + APs)
+  scale(-1, 1);
+
   // Geometry + vesicle drawing + terminal AP visuals
   if (typeof drawPreSynapse === "function") {
     drawPreSynapse();
