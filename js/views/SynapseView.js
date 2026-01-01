@@ -69,7 +69,8 @@ function drawSynapseView() {
 
   // ---------------------------------------------------
   // VESICLE LIFECYCLE — AUTHORITATIVE ORDER
-  // (ALL IN PRESYNAPTIC LOCAL SPACE)
+  // ⚠️ MUST RUN BEFORE ANY TRANSFORMS
+  // ⚠️ PRESYNAPTIC LOCAL SPACE (UNFLIPPED)
   // ---------------------------------------------------
   if (typeof updateSynapseVesicles === "function") {
     updateSynapseVesicles();     // loading / priming
@@ -92,7 +93,7 @@ function drawSynapseView() {
   );
 
   // ---------------------------------------------------
-  // APPLY VISUAL SCALE (ONCE, AFTER UPDATES)
+  // APPLY VISUAL SCALE (ONCE)
   // ---------------------------------------------------
   scale(SYNAPSE_SCALE);
 
@@ -107,31 +108,42 @@ function drawSynapseView() {
     drawAstrocyteSynapse();
   }
 
-  // ---------------------------------------------------
+  // ===================================================
   // PRESYNAPTIC NEURON (LEFT)
-  // ---------------------------------------------------
+  // ===================================================
   push();
   translate(PRE_X, NEURON_Y);
 
-  // ✅ CRITICAL FIX:
-  // Flip ENTIRE presynaptic system (geometry + vesicles + APs)
+  // ---------------------------------------------------
+  // ✅ CRITICAL FRAME FIX
+  // ---------------------------------------------------
+  // Flip ENTIRE presynaptic coordinate system:
+  // • neuron geometry
+  // • vesicles
+  // • docking plane
+  // • AP path
+  //
+  // Vesicle *physics* already ran in unflipped space
+  // This flip is VISUAL ONLY
+  // ---------------------------------------------------
   scale(-1, 1);
 
-  // Geometry + vesicle drawing + terminal AP visuals
+  // Geometry + vesicles + terminal AP visuals
   if (typeof drawPreSynapse === "function") {
     drawPreSynapse();
   }
 
-  // 🔵 OPTIONAL DEBUG: synapseConstants geometry overlay
+  // 🔵 DEBUG: synapseConstants anchors
+  // These should now line up PERFECTLY
   if (typeof drawSynapseConstantDebug === "function") {
     drawSynapseConstantDebug();
   }
 
   pop();
 
-  // ---------------------------------------------------
+  // ===================================================
   // POSTSYNAPTIC NEURON (RIGHT)
-  // ---------------------------------------------------
+  // ===================================================
   push();
   translate(POST_X, NEURON_Y);
 
