@@ -16,10 +16,12 @@ var synapseATP = [];
 // -----------------------------------------------------
 // GEOMETRY
 // -----------------------------------------------------
-var SYNAPSE_MEMBRANE_X      = 0;
-var SYNAPSE_CLUSTER_X      = 120;
-var SYNAPSE_CLUSTER_Y      = 0;
-var SYNAPSE_CLUSTER_RADIUS = 95;
+var SYNAPSE_MEMBRANE_X = 0;
+
+// Back (cytosolic) loading region
+var SYNAPSE_BACK_X      = 160;
+var SYNAPSE_BACK_RADIUS = 90;
+var SYNAPSE_BACK_Y      = 0;
 
 // -----------------------------------------------------
 // VISUALS
@@ -62,15 +64,15 @@ function ntColor() {
 }
 
 // -----------------------------------------------------
-// SPAWN EMPTY VESICLE (SPREAD CLUSTER)
+// SPAWN EMPTY VESICLE (BACK CLUSTER)
 // -----------------------------------------------------
 function spawnSynapseEmptyVesicle() {
   var a = random(TWO_PI);
-  var r = random(40, SYNAPSE_CLUSTER_RADIUS);
+  var r = random(30, SYNAPSE_BACK_RADIUS);
 
   synapseVesicles.push({
-    x: SYNAPSE_CLUSTER_X + cos(a) * r,
-    y: SYNAPSE_CLUSTER_Y + sin(a) * r,
+    x: SYNAPSE_BACK_X + cos(a) * r,
+    y: SYNAPSE_BACK_Y + sin(a) * r,
     state: SYNAPSE_VESICLE_STATES.EMPTY,
     timer: 0,
     nts: []
@@ -78,26 +80,35 @@ function spawnSynapseEmptyVesicle() {
 }
 
 // -----------------------------------------------------
-// SPAWN ATP + H+ (TARGETED)
+// SPAWN ATP + H+ (OMNIDIRECTIONAL APPROACH)
 // -----------------------------------------------------
 function spawnPrimingParticles(v) {
 
-  // H+ — must collide with vesicle
+  // Random approach angle
+  var a = random(TWO_PI);
+  var d = 26;
+
+  // H+
   synapseH.push({
-    x: v.x - 22,
-    y: v.y + 6,
-    vx: 0.8,
-    target: v
+    x: v.x + cos(a) * d,
+    y: v.y + sin(a) * d,
+    vx: -cos(a) * 0.6,
+    vy: -sin(a) * 0.6,
+    target: v,
+    life: 40   // ⏱️ minimum lifetime before uptake
   });
 
-  // ATP — upper approach
+  // ATP (different angle)
+  var a2 = a + random(PI / 3, PI / 1.5);
+
   synapseATP.push({
-    x: v.x - 30,
-    y: v.y - 6,
-    vx: 0.5,
+    x: v.x + cos(a2) * (d + 6),
+    y: v.y + sin(a2) * (d + 6),
+    vx: -cos(a2) * 0.4,
+    vy: -sin(a2) * 0.4,
     state: "ATP",
     alpha: 255,
-    life: 80
+    life: 90
   });
 }
 
@@ -110,7 +121,7 @@ function updateSynapseVesicles() {
     spawnSynapseEmptyVesicle();
   }
 
-  // One-at-a-time loader
+  // One-at-a-time loader (round robin)
   if (!synapseLoaderActive) {
     var v = synapseVesicles[synapseLoaderIndex % synapseVesicles.length];
     if (v.state === SYNAPSE_VESICLE_STATES.EMPTY) {
@@ -124,9 +135,7 @@ function updateSynapseVesicles() {
 
   for (let v of synapseVesicles) {
 
-    // -----------------------------
     // PRIMING
-    // -----------------------------
     if (v.state === SYNAPSE_VESICLE_STATES.PRIMING) {
       v.timer++;
       if (v.timer > 45) {
@@ -135,9 +144,7 @@ function updateSynapseVesicles() {
       }
     }
 
-    // -----------------------------
     // LOADING — NT accumulation
-    // -----------------------------
     if (v.state === SYNAPSE_VESICLE_STATES.LOADING) {
       if (v.nts.length < 14 && frameCount % 7 === 0) {
         v.nts.push({
@@ -154,14 +161,10 @@ function updateSynapseVesicles() {
       }
     }
 
-    // -----------------------------
-    // LOADED — STAY PUT (KEY FIX)
-    // -----------------------------
-    // No recentering, no drift
+    // LOADED — STAY WHERE IT LOADED
+    // (no recentering, no drift)
 
-    // -----------------------------
     // SNARED → FUSED
-    // -----------------------------
     if (v.state === SYNAPSE_VESICLE_STATES.SNARED) {
       v.x -= 1.4;
       if (v.x <= SYNAPSE_MEMBRANE_X + 2) {
@@ -170,9 +173,7 @@ function updateSynapseVesicles() {
       }
     }
 
-    // -----------------------------
     // FUSED → RECYCLING
-    // -----------------------------
     if (v.state === SYNAPSE_VESICLE_STATES.FUSED) {
       v.timer++;
       if (v.timer > 18) {
@@ -181,19 +182,15 @@ function updateSynapseVesicles() {
       }
     }
 
-    // -----------------------------
-    // RECYCLING
-    // -----------------------------
+    // RECYCLING → BACK
     if (v.state === SYNAPSE_VESICLE_STATES.RECYCLING) {
       v.x += 1.8;
-      if (v.x >= SYNAPSE_CLUSTER_X) {
+      if (v.x >= SYNAPSE_BACK_X) {
         v.state = SYNAPSE_VESICLE_STATES.EMPTY;
       }
     }
 
-    // -----------------------------
     // NT particle motion
-    // -----------------------------
     for (let p of v.nts) {
       p.x += p.vx;
       p.y += p.vy;
@@ -236,30 +233,37 @@ function applyVesicleSeparation() {
 }
 
 // -----------------------------------------------------
-// UPDATE ATP / H+ (H+ MUST HIT VESICLE)
+// UPDATE ATP / H+
 // -----------------------------------------------------
 function updatePrimingParticles() {
 
-  // H+ → disappear ONLY on collision
+  // H+ → disappear ONLY after lifetime AND collision
   for (let i = synapseH.length - 1; i >= 0; i--) {
     const h = synapseH[i];
     h.x += h.vx;
+    h.y += h.vy;
+    h.life--;
 
-    if (dist(h.x, h.y, h.target.x, h.target.y) < SYNAPSE_VESICLE_RADIUS) {
+    if (
+      h.life <= 0 &&
+      dist(h.x, h.y, h.target.x, h.target.y) < SYNAPSE_VESICLE_RADIUS
+    ) {
       synapseH.splice(i, 1);
     }
   }
 
-  // ATP → ADP + Pi
+  // ATP → ADP + Pi → slow fade
   for (let i = synapseATP.length - 1; i >= 0; i--) {
     const a = synapseATP[i];
     a.x += a.vx;
+    a.y += a.vy;
 
     if (a.state === "ATP") {
       for (let v of synapseVesicles) {
         if (dist(a.x, a.y, v.x, v.y) < SYNAPSE_VESICLE_RADIUS) {
           a.state = "ADP";
-          a.vx = -0.12;
+          a.vx *= -0.3;
+          a.vy *= -0.3;
         }
       }
     } else {
