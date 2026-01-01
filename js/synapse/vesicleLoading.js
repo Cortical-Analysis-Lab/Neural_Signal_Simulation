@@ -27,6 +27,9 @@ const V_RADIUS     = window.SYNAPSE_VESICLE_RADIUS;
 const V_STROKE     = window.SYNAPSE_VESICLE_STROKE;
 const MAX_VESICLES = window.SYNAPSE_MAX_VESICLES;
 
+// Vesicles may approach membrane but never cross it
+const MIN_VESICLE_X = MEMBRANE_X + V_RADIUS + 1;
+
 // -----------------------------------------------------
 // CONTROL
 // -----------------------------------------------------
@@ -34,7 +37,7 @@ let loaderActive = false;
 let loaderIndex  = 0;
 
 // -----------------------------------------------------
-// STATES (AUTHORITATIVE)
+// STATES (AUTHORITATIVE — LOADING ONLY)
 // -----------------------------------------------------
 const VESICLE_STATE = {
   EMPTY:   "empty",
@@ -51,9 +54,17 @@ function vesicleFill()   { return color(245, 225, 140, 35); }
 function ntColor()       { return color(185, 120, 255, 210); }
 
 // -----------------------------------------------------
-// HARD GEOMETRY CONSTRAINT — CAPSULE
+// HARD GEOMETRY CONSTRAINT
+// Capsule interior + planar membrane
 // -----------------------------------------------------
 function constrainToTerminal(v) {
+
+  // --- membrane plane ---
+  if (v.x < MIN_VESICLE_X) {
+    v.x = MIN_VESICLE_X;
+  }
+
+  // --- capsule boundary ---
   const dx = v.x - CENTER_X;
   const dy = v.y - CENTER_Y;
   const d  = Math.sqrt(dx*dx + dy*dy);
@@ -67,7 +78,8 @@ function constrainToTerminal(v) {
 }
 
 // -----------------------------------------------------
-// SPAWN EMPTY VESICLE (BACK, BUT NEAR ACTIVE ZONE)
+// SPAWN EMPTY VESICLE
+// Back cytosol, but near active zone
 // -----------------------------------------------------
 function spawnSynapseEmptyVesicle() {
 
@@ -84,14 +96,15 @@ function spawnSynapseEmptyVesicle() {
 }
 
 // -----------------------------------------------------
-// SPAWN ATP + H+ (OMNIDIRECTIONAL, NON-OVERLAPPING)
+// SPAWN ATP + H+
+// Omnidirectional, visually separated
 // -----------------------------------------------------
 function spawnPrimingParticles(v) {
 
   const a = random(TWO_PI);
   const d = 30;
 
-  // H+ (enters vesicle)
+  // H+ → enters vesicle
   synapseH.push({
     x: v.x + cos(a) * d,
     y: v.y + sin(a) * d,
@@ -101,7 +114,7 @@ function spawnPrimingParticles(v) {
     life: 60
   });
 
-  // ATP (bounce → ADP + Pi)
+  // ATP → bounce → ADP + Pi
   const a2 = a + random(PI / 2, PI);
   synapseATP.push({
     x: v.x + cos(a2) * (d + 6),
@@ -119,7 +132,7 @@ function spawnPrimingParticles(v) {
 // -----------------------------------------------------
 function updateSynapseVesicles() {
 
-  // Maintain fixed pool
+  // Maintain fixed vesicle pool
   while (synapseVesicles.length < MAX_VESICLES) {
     spawnSynapseEmptyVesicle();
   }
@@ -222,7 +235,7 @@ function updatePrimingParticles() {
         }
       }
     } else {
-      a.alpha -= 1.5; // slower fade
+      a.alpha -= 1.5; // slow fade
     }
 
     a.life--;
