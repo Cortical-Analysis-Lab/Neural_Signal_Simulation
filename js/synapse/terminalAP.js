@@ -59,7 +59,7 @@ function updateTerminalAP(path) {
     terminalAP.fired = true;
 
     if (typeof triggerPresynapticRelease === "function") {
-      triggerPresynapticRelease();
+      triggerVesicleReleaseFromAP();
     }
   }
 
