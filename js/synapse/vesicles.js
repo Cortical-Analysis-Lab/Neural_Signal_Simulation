@@ -73,6 +73,7 @@ function spawnSynapseEmptyVesicle() {
 // -----------------------------------------------------
 function spawnPrimingParticles(v) {
 
+  // H+ ion
   synapseH.push({
     x: v.x - 24,
     y: v.y,
@@ -80,12 +81,13 @@ function spawnPrimingParticles(v) {
     target: v
   });
 
+  // ATP molecule
   synapseATP.push({
     x: v.x - 36,
     y: v.y + random(-8, 8),
     vx: 1.2,
-    bounced: false,
-    life: 20
+    state: "ATP",
+    life: 30
   });
 }
 
@@ -100,9 +102,7 @@ function updateSynapseVesicles() {
 
   for (let v of synapseVesicles) {
 
-    // ---------------------------------
-    // EMPTY → PRIMING (SINGLE LOCK)
-    // ---------------------------------
+    // EMPTY → PRIMING
     if (
       v.state === SYNAPSE_VESICLE_STATES.EMPTY &&
       !synapseLoaderActive &&
@@ -114,9 +114,7 @@ function updateSynapseVesicles() {
       spawnPrimingParticles(v);
     }
 
-    // ---------------------------------
     // PRIMING
-    // ---------------------------------
     if (v.state === SYNAPSE_VESICLE_STATES.PRIMING) {
       v.timer++;
       if (v.timer > 40) {
@@ -125,9 +123,7 @@ function updateSynapseVesicles() {
       }
     }
 
-    // ---------------------------------
     // LOADING
-    // ---------------------------------
     if (v.state === SYNAPSE_VESICLE_STATES.LOADING) {
       v.fillLevel += 0.025;
       if (v.fillLevel >= 1) {
@@ -137,23 +133,15 @@ function updateSynapseVesicles() {
       }
     }
 
-    // ---------------------------------
-    // LOADED (STABLE CLUSTER — FIXED)
-    // ---------------------------------
+    // LOADED (STABLE CLUSTER)
     if (v.state === SYNAPSE_VESICLE_STATES.LOADED) {
-
-      // Local jitter
       v.x += sin(frameCount * 0.02 + v.y) * 0.15;
       v.y += cos(frameCount * 0.02 + v.x) * 0.15;
-
-      // Restoring forces (CRITICAL)
       v.x += (SYNAPSE_CLUSTER_X - v.x) * 0.02;
       v.y += (SYNAPSE_CLUSTER_Y - v.y) * 0.02;
     }
 
-    // ---------------------------------
     // SNARED → FUSED
-    // ---------------------------------
     if (v.state === SYNAPSE_VESICLE_STATES.SNARED) {
       v.x -= 1.6;
       if (v.x <= SYNAPSE_MEMBRANE_X + 2) {
@@ -162,9 +150,7 @@ function updateSynapseVesicles() {
       }
     }
 
-    // ---------------------------------
     // FUSED → RECYCLING
-    // ---------------------------------
     if (v.state === SYNAPSE_VESICLE_STATES.FUSED) {
       v.timer++;
       if (v.timer > 18) {
@@ -173,9 +159,7 @@ function updateSynapseVesicles() {
       }
     }
 
-    // ---------------------------------
     // RECYCLING
-    // ---------------------------------
     if (v.state === SYNAPSE_VESICLE_STATES.RECYCLING) {
       v.x += 2.0;
       if (v.x >= SYNAPSE_CLUSTER_X) {
@@ -186,6 +170,44 @@ function updateSynapseVesicles() {
 
   applyVesicleSeparation();
   updatePrimingParticles();
+}
+
+// -----------------------------------------------------
+// UPDATE ATP / H+
+// -----------------------------------------------------
+function updatePrimingParticles() {
+
+  // H+ enters vesicle
+  for (let i = synapseH.length - 1; i >= 0; i--) {
+    const h = synapseH[i];
+    h.x += h.vx;
+    if (dist(h.x, h.y, h.target.x, h.target.y) < 6) {
+      synapseH.splice(i, 1);
+    }
+  }
+
+  // ATP → ADP + Pi
+  for (let i = synapseATP.length - 1; i >= 0; i--) {
+    const a = synapseATP[i];
+
+    if (a.state === "ATP") {
+      a.x += a.vx;
+
+      for (let v of synapseVesicles) {
+        if (dist(a.x, a.y, v.x, v.y) < 10) {
+          a.state = "ADP";
+          a.vx = -0.4;   // small bounce
+          a.life = 15;   // short visibility
+        }
+      }
+    } else {
+      a.life--;
+    }
+
+    if (a.life <= 0) {
+      synapseATP.splice(i, 1);
+    }
+  }
 }
 
 // -----------------------------------------------------
@@ -209,39 +231,6 @@ function applyVesicleSeparation() {
         b.x -= (dx / d) * push;
         b.y -= (dy / d) * push;
       }
-    }
-  }
-}
-
-// -----------------------------------------------------
-// UPDATE ATP / H+
-// -----------------------------------------------------
-function updatePrimingParticles() {
-
-  for (let i = synapseH.length - 1; i >= 0; i--) {
-    const h = synapseH[i];
-    h.x += h.vx;
-    if (dist(h.x, h.y, h.target.x, h.target.y) < 6) {
-      synapseH.splice(i, 1);
-    }
-  }
-
-  for (let i = synapseATP.length - 1; i >= 0; i--) {
-    const a = synapseATP[i];
-    a.x += a.vx;
-    a.life--;
-
-    if (!a.bounced) {
-      for (let v of synapseVesicles) {
-        if (dist(a.x, a.y, v.x, v.y) < 10) {
-          a.vx *= -0.35;
-          a.bounced = true;
-        }
-      }
-    }
-
-    if (a.life <= 0) {
-      synapseATP.splice(i, 1);
     }
   }
 }
@@ -282,14 +271,22 @@ function drawSynapseVesicles() {
     }
   }
 
-  noStroke();
+  // H+ (TEXT)
   fill(255, 80, 80);
-  for (let h of synapseH) circle(h.x, h.y, 5);
+  textSize(12);
+  for (let h of synapseH) {
+    text("H⁺", h.x - 4, h.y + 4);
+  }
 
+  // ATP / ADP + Pi
   fill(120, 200, 255);
   textSize(10);
   for (let a of synapseATP) {
-    text(a.bounced ? "ADP + Pi" : "ATP", a.x, a.y);
+    text(
+      a.state === "ATP" ? "ATP" : "ADP + Pi",
+      a.x,
+      a.y
+    );
   }
 
   pop();
