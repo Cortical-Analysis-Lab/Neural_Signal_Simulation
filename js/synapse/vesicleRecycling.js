@@ -1,94 +1,64 @@
 console.log("♻️ synapse/vesicleRecycling loaded");
 
 // =====================================================
-// VESICLE RECYCLING — ENDOCYTOSIS + RETURN
+// VESICLE RECYCLING — ENDOCYTOSIS → NEW VESICLE
 // =====================================================
-// ✔ Uses shared geometry from synapseConstants.js
-// ✔ Receives vesicles ONLY from vesicleRelease.js
-// ✔ Returns vesicles to EMPTY state for reloading
-// ✔ No loading logic here
-// ✔ No release logic here
+//
+// ✔ Receives membrane "ghosts"
+// ✔ Generates NEW vesicles
+// ✔ No coupling to release logic
 // =====================================================
 
 // -----------------------------------------------------
-// SHORT ALIASES → GLOBAL CONSTANTS
+// ENDOCYTOSIS SEEDS (membrane patches)
 // -----------------------------------------------------
-const CENTER_X    = window.SYNAPSE_TERMINAL_CENTER_X;
-const CENTER_Y    = window.SYNAPSE_TERMINAL_CENTER_Y;
-const RADIUS      = window.SYNAPSE_TERMINAL_RADIUS;
-const BACK_OFFSET = window.SYNAPSE_BACK_OFFSET_X;
+window.endocytosisSeeds = window.endocytosisSeeds || [];
 
-const V_RADIUS    = window.SYNAPSE_VESICLE_RADIUS;
+// Called by vesicleRelease.js
+function spawnEndocytosisSeed(x, y) {
+  endocytosisSeeds.push({
+    x,
+    y,
+    timer: 0
+  });
+}
 
 // -----------------------------------------------------
 // UPDATE RECYCLING
 // -----------------------------------------------------
 function updateVesicleRecycling() {
 
-  for (const v of synapseVesicles) {
+  const CENTER_X = window.SYNAPSE_TERMINAL_CENTER_X;
+  const CENTER_Y = window.SYNAPSE_TERMINAL_CENTER_Y;
+  const RADIUS   = window.SYNAPSE_TERMINAL_RADIUS;
+  const BACK     = window.SYNAPSE_BACK_OFFSET_X;
+
+  for (let i = endocytosisSeeds.length - 1; i >= 0; i--) {
+    const e = endocytosisSeeds[i];
+    e.timer++;
+
+    // Slow inward pull
+    e.x += 1.2;
+    e.y += (CENTER_Y - e.y) * 0.05;
 
     // ---------------------------------------------
-    // READY_FOR_RECYCLING → EMPTY
+    // Endocytosis complete → spawn NEW vesicle
     // ---------------------------------------------
-    if (v.state === "READY_FOR_RECYCLING") {
+    if (e.timer > 40) {
 
-      // -----------------------------------------
-      // ENDOCYTOSIS: smooth inward pull
-      // -----------------------------------------
-      v.x += 1.6;
+      const a = random(TWO_PI);
+      const r = random(18, RADIUS - 20);
 
-      // 🔑 DO NOT vertically center
-      // Preserve docking lane separation
-      // (this was causing stacking before)
-      if (v.dockOffsetY !== undefined) {
-        v.y += (v.dockOffsetY - v.y) * 0.02;
-      }
+      synapseVesicles.push({
+        x: CENTER_X + BACK + cos(a) * r * 0.5,
+        y: CENTER_Y + sin(a) * r * 0.5,
+        dockOffsetY: random(-18, 18),
+        state: VESICLE_STATE.EMPTY,
+        timer: 0,
+        nts: []
+      });
 
-      // -----------------------------------------
-      // ARRIVED BACK IN CYTOSOL
-      // -----------------------------------------
-      if (v.x >= CENTER_X + BACK_OFFSET) {
-
-        // Redistribute vesicle in back cytosol
-        const a = random(TWO_PI);
-        const r = random(
-          18,
-          RADIUS - V_RADIUS - 8
-        );
-
-        v.x =
-          CENTER_X +
-          BACK_OFFSET +
-          cos(a) * r * 0.55;
-
-        v.y =
-          CENTER_Y +
-          sin(a) * r * 0.55;
-
-        // -------------------------------------
-        // FULL RESET — return to loader
-        // -------------------------------------
-        v.state = VESICLE_STATE.EMPTY;
-        v.timer = 0;
-        v.nts.length = 0;
-
-        // Assign NEW docking lane for next cycle
-        v.dockOffsetY = random(-18, 18);
-      }
-
-      // -----------------------------------------
-      // HARD GEOMETRY SAFETY (CAPSULE ONLY)
-      // -----------------------------------------
-      const dx = v.x - CENTER_X;
-      const dy = v.y - CENTER_Y;
-      const d  = Math.sqrt(dx * dx + dy * dy);
-
-      const maxR = RADIUS - V_RADIUS - 1;
-      if (d > maxR) {
-        const s = maxR / d;
-        v.x = CENTER_X + dx * s;
-        v.y = CENTER_Y + dy * s;
-      }
+      endocytosisSeeds.splice(i, 1);
     }
   }
 }
