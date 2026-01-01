@@ -18,8 +18,8 @@ var synapseATP = [];
 // -----------------------------------------------------
 var SYNAPSE_MEMBRANE_X      = 0;
 var SYNAPSE_CLUSTER_X      = 120;
-var SYNAPSE_CLUSTER_RADIUS = 70;
 var SYNAPSE_CLUSTER_Y      = 0;
+var SYNAPSE_CLUSTER_RADIUS = 95;   // ⬅ increased spacing
 
 // -----------------------------------------------------
 // VISUALS
@@ -47,32 +47,38 @@ var SYNAPSE_VESICLE_STATES = {
 };
 
 // -----------------------------------------------------
-// COLORS
+// COLORS (MATCH NEURON)
 // -----------------------------------------------------
-function synapseColorEmpty()  { return color(210, 220, 235, 160); }
-function synapseColorBorder() { return color(40); }
+function vesicleBorderColor() {
+  return color(245, 225, 140); // same yellow as neuron outline
+}
 
-// Neurotransmitter particles
-function ntColor() { return color(185, 120, 255, 200); }
+function vesicleFillColor() {
+  return color(245, 225, 140, 35); // translucent neuron cytosol
+}
+
+function ntColor() {
+  return color(185, 120, 255, 210);
+}
 
 // -----------------------------------------------------
-// SPAWN EMPTY VESICLE
+// SPAWN EMPTY VESICLE (SPREAD CLUSTER)
 // -----------------------------------------------------
 function spawnSynapseEmptyVesicle() {
   var a = random(TWO_PI);
-  var r = random(0, SYNAPSE_CLUSTER_RADIUS);
+  var r = random(40, SYNAPSE_CLUSTER_RADIUS); // avoid center pileup
 
   synapseVesicles.push({
     x: SYNAPSE_CLUSTER_X + cos(a) * r,
     y: SYNAPSE_CLUSTER_Y + sin(a) * r,
     state: SYNAPSE_VESICLE_STATES.EMPTY,
     timer: 0,
-    nts: [] // neurotransmitter particles
+    nts: []
   });
 }
 
 // -----------------------------------------------------
-// SPAWN ATP + H+ (OFFSET PATHS)
+// SPAWN ATP + H+
 // -----------------------------------------------------
 function spawnPrimingParticles(v) {
 
@@ -91,7 +97,7 @@ function spawnPrimingParticles(v) {
     vx: 0.5,
     state: "ATP",
     alpha: 255,
-    life: 70
+    life: 80
   });
 }
 
@@ -104,7 +110,7 @@ function updateSynapseVesicles() {
     spawnSynapseEmptyVesicle();
   }
 
-  // Round-robin priming
+  // One-at-a-time loader (round robin)
   if (!synapseLoaderActive) {
     var v = synapseVesicles[synapseLoaderIndex % synapseVesicles.length];
     if (v.state === SYNAPSE_VESICLE_STATES.EMPTY) {
@@ -127,27 +133,27 @@ function updateSynapseVesicles() {
       }
     }
 
-    // LOADING — add particles gradually
+    // LOADING — gradual NT accumulation
     if (v.state === SYNAPSE_VESICLE_STATES.LOADING) {
-      if (v.nts.length < 12 && frameCount % 8 === 0) {
+      if (v.nts.length < 14 && frameCount % 7 === 0) {
         v.nts.push({
           x: random(-4, 4),
           y: random(-4, 4),
-          vx: random(-0.4, 0.4),
-          vy: random(-0.4, 0.4)
+          vx: random(-0.35, 0.35),
+          vy: random(-0.35, 0.35)
         });
       }
 
-      if (v.nts.length >= 12) {
+      if (v.nts.length >= 14) {
         v.state = SYNAPSE_VESICLE_STATES.LOADED;
         synapseLoaderActive = false;
       }
     }
 
-    // LOADED — confined motion
+    // LOADED — confined, centered
     if (v.state === SYNAPSE_VESICLE_STATES.LOADED) {
-      v.x += (SYNAPSE_CLUSTER_X - v.x) * 0.02;
-      v.y += (SYNAPSE_CLUSTER_Y - v.y) * 0.02;
+      v.x += (SYNAPSE_CLUSTER_X - v.x) * 0.025;
+      v.y += (SYNAPSE_CLUSTER_Y - v.y) * 0.025;
     }
 
     // SNARED → FUSED
@@ -176,7 +182,7 @@ function updateSynapseVesicles() {
       }
     }
 
-    // Update neurotransmitter particles
+    // NT particle motion
     for (let p of v.nts) {
       p.x += p.vx;
       p.y += p.vy;
@@ -189,7 +195,46 @@ function updateSynapseVesicles() {
     }
   }
 
+  applyVesicleSeparation();
   updatePrimingParticles();
+}
+
+// -----------------------------------------------------
+// STRONGER NO-OVERLAP + RADIAL SPREAD
+// -----------------------------------------------------
+function applyVesicleSeparation() {
+
+  // Pairwise repulsion
+  for (let i = 0; i < synapseVesicles.length; i++) {
+    for (let j = i + 1; j < synapseVesicles.length; j++) {
+
+      const a = synapseVesicles[i];
+      const b = synapseVesicles[j];
+      const dx = a.x - b.x;
+      const dy = a.y - b.y;
+      const d  = sqrt(dx*dx + dy*dy);
+      const minD = SYNAPSE_VESICLE_RADIUS * 2.6;
+
+      if (d > 0 && d < minD) {
+        const push = (minD - d) * 0.08;
+        a.x += (dx/d) * push;
+        a.y += (dy/d) * push;
+        b.x -= (dx/d) * push;
+        b.y -= (dy/d) * push;
+      }
+    }
+  }
+
+  // Radial restoring force (prevents pile-up)
+  for (let v of synapseVesicles) {
+    const dx = v.x - SYNAPSE_CLUSTER_X;
+    const dy = v.y - SYNAPSE_CLUSTER_Y;
+    const d  = sqrt(dx*dx + dy*dy) || 1;
+
+    const targetR = SYNAPSE_CLUSTER_RADIUS * 0.6;
+    v.x += (dx/d) * (targetR - d) * 0.01;
+    v.y += (dy/d) * (targetR - d) * 0.01;
+  }
 }
 
 // -----------------------------------------------------
@@ -197,7 +242,7 @@ function updateSynapseVesicles() {
 // -----------------------------------------------------
 function updatePrimingParticles() {
 
-  // H+ → disappears into vesicle
+  // H+
   for (let i = synapseH.length - 1; i >= 0; i--) {
     const h = synapseH[i];
     h.x += h.vx;
@@ -219,7 +264,7 @@ function updatePrimingParticles() {
         }
       }
     } else {
-      a.alpha -= 6; // slower fade
+      a.alpha -= 4;
     }
 
     a.life--;
@@ -249,9 +294,9 @@ function drawSynapseVesicles() {
 
   for (let v of synapseVesicles) {
 
-    // Vesicle membrane + cytosol
-    stroke(synapseColorBorder());
-    fill(synapseColorEmpty());
+    // Vesicle shell + cytosol
+    stroke(vesicleBorderColor());
+    fill(vesicleFillColor());
     ellipse(v.x, v.y, SYNAPSE_VESICLE_RADIUS * 2);
 
     // Neurotransmitter particles
