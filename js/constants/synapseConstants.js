@@ -13,7 +13,12 @@ window.SYNAPSE_BAR_HALF  = 140;
 window.SYNAPSE_TERMINAL_CENTER_X = SYNAPSE_BAR_THICK / 2;
 window.SYNAPSE_TERMINAL_CENTER_Y = 0;
 window.SYNAPSE_TERMINAL_RADIUS   = SYNAPSE_BAR_HALF - 10;
-window.SYNAPSE_BACK_OFFSET_X     = 30;
+
+// ✅ NEW: vesicles may approach membrane but not cross it
+window.SYNAPSE_MIN_VESICLE_X =
+  window.SYNAPSE_MEMBRANE_X + window.SYNAPSE_VESICLE_RADIUS + 1;
+
+window.SYNAPSE_BACK_OFFSET_X = 30;
 
 // Vesicle visuals
 window.SYNAPSE_VESICLE_RADIUS = 10;
