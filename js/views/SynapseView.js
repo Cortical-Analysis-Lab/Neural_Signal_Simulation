@@ -11,7 +11,7 @@ const SYNAPSE_SCALE = 1.45;
 const SYNAPSE_SCREEN_X = 0.5;
 const SYNAPSE_SCREEN_Y = 0.55;
 
-// Horizontal separation (synaptic cleft width)
+// Horizontal separation (controls synaptic cleft width)
 const PRE_X  = -180;
 const POST_X = +180;
 
@@ -26,17 +26,18 @@ const NEURON_Y = 40;
 let spaceWasDown = false;
 
 function handleSynapseInput() {
+
   const spaceDown = keyIsDown(32); // Spacebar
 
-  // Rising edge detection
+  // Rising edge: UP → DOWN
   if (spaceDown && !spaceWasDown) {
 
-    // Terminal AP visual + logic
+    // Terminal AP (visual + timing)
     if (typeof triggerTerminalAP === "function") {
       triggerTerminalAP();
     }
 
-    // Vesicle release coupling
+    // Vesicle release coupling (event-driven)
     if (typeof triggerVesicleReleaseFromAP === "function") {
       triggerVesicleReleaseFromAP();
     }
@@ -57,18 +58,19 @@ function drawSynapseView() {
   resetMatrix();
 
   // ---------------------------------------------------
-  // LOCAL INPUT + PHYSIOLOGY
+  // LOCAL INPUT + PHYSIOLOGY (NO TRANSFORMS YET)
   // ---------------------------------------------------
   handleSynapseInput();
 
-  // Presynaptic AP waveform (terminal-local)
+  // Terminal-local AP waveform
   if (typeof updateVoltageWave === "function") {
     updateVoltageWave();
   }
 
   // ---------------------------------------------------
-  // VESICLE LIFECYCLE (STRICT ORDER)
-// ---------------------------------------------------
+  // VESICLE LIFECYCLE — AUTHORITATIVE ORDER
+  // (ALL IN PRESYNAPTIC LOCAL SPACE)
+  // ---------------------------------------------------
   if (typeof updateSynapseVesicles === "function") {
     updateSynapseVesicles();     // loading / priming
   }
@@ -90,7 +92,7 @@ function drawSynapseView() {
   );
 
   // ---------------------------------------------------
-  // APPLY VISUAL SCALE (ONCE)
+  // APPLY VISUAL SCALE (ONCE, AFTER UPDATES)
   // ---------------------------------------------------
   scale(SYNAPSE_SCALE);
 
@@ -101,14 +103,26 @@ function drawSynapseView() {
   // ---------------------------------------------------
   // ASTROCYTE (FIXED ABOVE CLEFT)
   // ---------------------------------------------------
-  drawAstrocyteSynapse();
+  if (typeof drawAstrocyteSynapse === "function") {
+    drawAstrocyteSynapse();
+  }
 
   // ---------------------------------------------------
   // PRESYNAPTIC NEURON (LEFT)
   // ---------------------------------------------------
   push();
   translate(PRE_X, NEURON_Y);
-  drawPreSynapse();              // geometry + vesicle draw
+
+  // Geometry + vesicle drawing + terminal AP visuals
+  if (typeof drawPreSynapse === "function") {
+    drawPreSynapse();
+  }
+
+  // 🔵 OPTIONAL DEBUG: synapseConstants geometry overlay
+  if (typeof drawSynapseConstantDebug === "function") {
+    drawSynapseConstantDebug();
+  }
+
   pop();
 
   // ---------------------------------------------------
@@ -116,7 +130,11 @@ function drawSynapseView() {
   // ---------------------------------------------------
   push();
   translate(POST_X, NEURON_Y);
-  drawPostSynapse();
+
+  if (typeof drawPostSynapse === "function") {
+    drawPostSynapse();
+  }
+
   pop();
 
   pop();
