@@ -42,36 +42,28 @@ function calibratePath(path) {
 
 // =====================================================
 // PRESYNAPTIC NEURON
-// GEOMETRY + VISUALS ONLY (NO STATE UPDATES)
+// GEOMETRY + VISUALS ONLY
+// (NO STATE UPDATES, NO FLIPS)
 // =====================================================
 function drawPreSynapse() {
   push();
 
   // -----------------------------------------------
-  // Face synaptic cleft
-  // -----------------------------------------------
-  scale(-1, 1);
-
-  // -----------------------------------------------
-  // Neuron geometry (pure)
+  // Neuron geometry (pure, canonical orientation)
   // -----------------------------------------------
   drawTNeuronShape(1);
 
   // -----------------------------------------------
-  // Vesicles (DRAW ONLY — already updated elsewhere)
+  // Vesicles (DRAW ONLY — physics handled upstream)
   // -----------------------------------------------
   if (typeof drawSynapseVesicles === "function") {
     drawSynapseVesicles();
   }
 
   // -----------------------------------------------
-  // Terminal AP (visual only)
+  // Terminal AP (VISUAL ONLY)
   // -----------------------------------------------
   const calibratedPath = calibratePath(PRESYNAPTIC_AP_PATH);
-
-  if (typeof updateTerminalAP === "function") {
-    updateTerminalAP(calibratedPath);
-  }
 
   if (typeof drawTerminalAP === "function") {
     drawTerminalAP(calibratedPath);
