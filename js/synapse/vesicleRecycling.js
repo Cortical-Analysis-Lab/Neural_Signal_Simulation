@@ -13,7 +13,6 @@ console.log("♻️ synapse/vesicleRecycling loaded");
 // -----------------------------------------------------
 // SHORT ALIASES → GLOBAL CONSTANTS
 // -----------------------------------------------------
-const MEMBRANE_X  = window.SYNAPSE_MEMBRANE_X;
 const CENTER_X    = window.SYNAPSE_TERMINAL_CENTER_X;
 const CENTER_Y    = window.SYNAPSE_TERMINAL_CENTER_Y;
 const RADIUS      = window.SYNAPSE_TERMINAL_RADIUS;
@@ -34,12 +33,16 @@ function updateVesicleRecycling() {
     if (v.state === "READY_FOR_RECYCLING") {
 
       // -----------------------------------------
-      // ENDOCYTOSIS: pull vesicle inward
+      // ENDOCYTOSIS: smooth inward pull
       // -----------------------------------------
       v.x += 1.6;
 
-      // Gentle vertical relaxation (prevents stacking)
-      v.y += (CENTER_Y - v.y) * 0.04;
+      // 🔑 DO NOT vertically center
+      // Preserve docking lane separation
+      // (this was causing stacking before)
+      if (v.dockOffsetY !== undefined) {
+        v.y += (v.dockOffsetY - v.y) * 0.02;
+      }
 
       // -----------------------------------------
       // ARRIVED BACK IN CYTOSOL
@@ -68,18 +71,14 @@ function updateVesicleRecycling() {
         v.state = VESICLE_STATE.EMPTY;
         v.timer = 0;
         v.nts.length = 0;
+
+        // Assign NEW docking lane for next cycle
+        v.dockOffsetY = random(-18, 18);
       }
 
       // -----------------------------------------
-      // HARD GEOMETRY SAFETY
-      // (Capsule interior + membrane plane)
+      // HARD GEOMETRY SAFETY (CAPSULE ONLY)
       // -----------------------------------------
-      // Prevent crossing membrane
-      if (v.x < MEMBRANE_X + V_RADIUS + 1) {
-        v.x = MEMBRANE_X + V_RADIUS + 1;
-      }
-
-      // Prevent exiting capsule
       const dx = v.x - CENTER_X;
       const dy = v.y - CENTER_Y;
       const d  = Math.sqrt(dx * dx + dy * dy);
