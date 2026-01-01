@@ -65,7 +65,11 @@ function drawPreSynapse() {
   // Synaptic vesicle lifecycle (LOCAL, NAMESPACED)
   // -----------------------------------------------
   if (typeof updateSynapseVesicles === "function") {
-    updateSynapseVesicles();
+    updateVesicleLoading();
+    updateVesicleRelease();
+    updateVesicleRecycling();
+    drawSynapseVesicles();
+
   }
 
   if (typeof drawSynapseVesicles === "function") {
