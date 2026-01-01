@@ -17,18 +17,18 @@ let synapseATP = [];
 // -----------------------------------------------------
 // SHORT ALIASES → GLOBAL CONSTANTS
 // -----------------------------------------------------
-const MEMBRANE_X   = window.SYNAPSE_MEMBRANE_X;
-const CENTER_X     = window.SYNAPSE_TERMINAL_CENTER_X;
-const CENTER_Y     = window.SYNAPSE_TERMINAL_CENTER_Y;
-const RADIUS       = window.SYNAPSE_TERMINAL_RADIUS;
-const BACK_OFFSET  = window.SYNAPSE_BACK_OFFSET_X;
+const MEMBRANE_X  = window.SYNAPSE_MEMBRANE_X;
+const CENTER_X    = window.SYNAPSE_TERMINAL_CENTER_X;
+const CENTER_Y    = window.SYNAPSE_TERMINAL_CENTER_Y;
+const RADIUS      = window.SYNAPSE_TERMINAL_RADIUS;
+const BACK_OFFSET = window.SYNAPSE_BACK_OFFSET_X;
 
 const V_RADIUS     = window.SYNAPSE_VESICLE_RADIUS;
 const V_STROKE     = window.SYNAPSE_VESICLE_STROKE;
 const MAX_VESICLES = window.SYNAPSE_MAX_VESICLES;
 
-// Vesicles may approach membrane but never cross it
-const MIN_VESICLE_X = MEMBRANE_X + V_RADIUS + 1;
+// Vesicles may approach membrane very closely but not cross
+const MIN_VESICLE_X = MEMBRANE_X + 1.5;
 
 // -----------------------------------------------------
 // CONTROL
@@ -37,13 +37,13 @@ let loaderActive = false;
 let loaderIndex  = 0;
 
 // -----------------------------------------------------
-// STATES (AUTHORITATIVE — LOADING ONLY)
+// STATES (LOADING ONLY)
 // -----------------------------------------------------
 const VESICLE_STATE = {
-  EMPTY:   "empty",
-  PRIMING:"priming",
-  LOADING:"loading",
-  LOADED: "loaded"
+  EMPTY:    "empty",
+  PRIMING:  "priming",
+  LOADING:  "loading",
+  LOADED:   "loaded"
 };
 
 // -----------------------------------------------------
@@ -55,11 +55,12 @@ function ntColor()       { return color(185, 120, 255, 210); }
 
 // -----------------------------------------------------
 // HARD GEOMETRY CONSTRAINT
-// Capsule interior + planar membrane
+// ✔ Capsule interior
+// ✔ Soft membrane plane
 // -----------------------------------------------------
 function constrainToTerminal(v) {
 
-  // --- membrane plane ---
+  // --- membrane plane (SOFT) ---
   if (v.x < MIN_VESICLE_X) {
     v.x = MIN_VESICLE_X;
   }
@@ -67,9 +68,10 @@ function constrainToTerminal(v) {
   // --- capsule boundary ---
   const dx = v.x - CENTER_X;
   const dy = v.y - CENTER_Y;
-  const d  = Math.sqrt(dx*dx + dy*dy);
+  const d  = Math.sqrt(dx * dx + dy * dy);
 
   const maxR = RADIUS - V_RADIUS - 1;
+
   if (d > maxR) {
     const s = maxR / d;
     v.x = CENTER_X + dx * s;
@@ -79,16 +81,21 @@ function constrainToTerminal(v) {
 
 // -----------------------------------------------------
 // SPAWN EMPTY VESICLE
-// Back cytosol, but near active zone
+// ✔ Back cytosol
+// ✔ Biased toward active zone
+// ✔ Each vesicle gets its own docking offset
 // -----------------------------------------------------
 function spawnSynapseEmptyVesicle() {
 
   const a = random(TWO_PI);
-  const r = random(18, RADIUS - 22);
+  const r = random(18, RADIUS - 24);
 
   synapseVesicles.push({
     x: CENTER_X + BACK_OFFSET + cos(a) * r * 0.45,
     y: CENTER_Y + sin(a) * r * 0.45,
+
+    dockOffsetY: random(-18, 18), // ⭐ CRITICAL FIX
+
     state: VESICLE_STATE.EMPTY,
     timer: 0,
     nts: []
@@ -116,6 +123,7 @@ function spawnPrimingParticles(v) {
 
   // ATP → bounce → ADP + Pi
   const a2 = a + random(PI / 2, PI);
+
   synapseATP.push({
     x: v.x + cos(a2) * (d + 6),
     y: v.y + sin(a2) * (d + 6),
@@ -140,12 +148,14 @@ function updateSynapseVesicles() {
   // 🔒 One vesicle primes/loads at a time
   if (!loaderActive) {
     const v = synapseVesicles[loaderIndex % synapseVesicles.length];
+
     if (v.state === VESICLE_STATE.EMPTY) {
       v.state = VESICLE_STATE.PRIMING;
       v.timer = 0;
       loaderActive = true;
       spawnPrimingParticles(v);
     }
+
     loaderIndex++;
   }
 
@@ -188,7 +198,7 @@ function updateSynapseVesicles() {
       p.x += p.vx;
       p.y += p.vy;
 
-      if (Math.sqrt(p.x*p.x + p.y*p.y) > V_RADIUS - 3) {
+      if (Math.sqrt(p.x * p.x + p.y * p.y) > V_RADIUS - 3) {
         p.vx *= -1;
         p.vy *= -1;
       }
@@ -235,7 +245,7 @@ function updatePrimingParticles() {
         }
       }
     } else {
-      a.alpha -= 1.5; // slow fade
+      a.alpha -= 1.5;
     }
 
     a.life--;
