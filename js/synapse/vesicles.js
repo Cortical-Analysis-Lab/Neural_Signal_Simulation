@@ -28,7 +28,7 @@ var SYNAPSE_VESICLE_RADIUS = 10;
 var SYNAPSE_VESICLE_STROKE = 4;
 
 // -----------------------------------------------------
-// CONTROL (CRITICAL FIX)
+// CONTROL
 // -----------------------------------------------------
 var synapseLoaderActive = false;
 
@@ -133,20 +133,21 @@ function updateSynapseVesicles() {
       if (v.fillLevel >= 1) {
         v.fillLevel = 1;
         v.state = SYNAPSE_VESICLE_STATES.LOADED;
-        synapseLoaderActive = false; // 🔓 release lock
+        synapseLoaderActive = false;
       }
     }
 
     // ---------------------------------
-    // LOADED (CONFINED WIGGLE)
+    // LOADED (STABLE CLUSTER — FIXED)
     // ---------------------------------
     if (v.state === SYNAPSE_VESICLE_STATES.LOADED) {
 
-      // Tangential wiggle
+      // Local jitter
       v.x += sin(frameCount * 0.02 + v.y) * 0.15;
       v.y += cos(frameCount * 0.02 + v.x) * 0.15;
 
-      // Vertical restoring force (CRITICAL FIX)
+      // Restoring forces (CRITICAL)
+      v.x += (SYNAPSE_CLUSTER_X - v.x) * 0.02;
       v.y += (SYNAPSE_CLUSTER_Y - v.y) * 0.02;
     }
 
@@ -217,7 +218,6 @@ function applyVesicleSeparation() {
 // -----------------------------------------------------
 function updatePrimingParticles() {
 
-  // H+
   for (let i = synapseH.length - 1; i >= 0; i--) {
     const h = synapseH[i];
     h.x += h.vx;
@@ -226,7 +226,6 @@ function updatePrimingParticles() {
     }
   }
 
-  // ATP → ADP + Pi → disappear
   for (let i = synapseATP.length - 1; i >= 0; i--) {
     const a = synapseATP[i];
     a.x += a.vx;
@@ -283,12 +282,10 @@ function drawSynapseVesicles() {
     }
   }
 
-  // H+
   noStroke();
   fill(255, 80, 80);
   for (let h of synapseH) circle(h.x, h.y, 5);
 
-  // ATP / ADP + Pi
   fill(120, 200, 255);
   textSize(10);
   for (let a of synapseATP) {
