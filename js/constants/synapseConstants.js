@@ -28,7 +28,7 @@ window.SYNAPSE_MEMBRANE_X = 0;
 window.SYNAPSE_DOCK_X = 16;
 
 // Back-loading offset (cytosolic pool)
-window.SYNAPSE_BACK_OFFSET_X = 30;
+window.SYNAPSE_BACK_OFFSET_X = 10;
 
 // -----------------------------------------------------
 // Vesicle visuals
