@@ -3,47 +3,76 @@ console.log("🧠 synapseConstants loaded");
 // =====================================================
 // SHARED SYNAPSE CONSTANTS (AUTHORITATIVE)
 // =====================================================
+//
+// ⚠️ All vesicle physics must reference THIS FILE
+// ⚠️ Coordinates are PRESYNAPTIC LOCAL SPACE
+// ⚠️ drawTNeuronShape() is the geometric truth
+// =====================================================
+
 
 // -----------------------------------------------------
-// Geometry (must match drawTNeuronShape)
+// TERMINAL CAPSULE GEOMETRY
 // -----------------------------------------------------
 
-// Capsule dimensions (from neuronShape.js)
+// From neuronShape.js (DO NOT GUESS THESE)
 window.SYNAPSE_BAR_THICK = 340;
 window.SYNAPSE_BAR_HALF  = 140;
 
-// Terminal center
+// Capsule center
 window.SYNAPSE_TERMINAL_CENTER_X = SYNAPSE_BAR_THICK / 2;
 window.SYNAPSE_TERMINAL_CENTER_Y = 0;
-window.SYNAPSE_TERMINAL_RADIUS   = SYNAPSE_BAR_HALF - 10;
+
+// Inner capsule radius (usable cytosol)
+window.SYNAPSE_TERMINAL_RADIUS = SYNAPSE_BAR_HALF - 10;
+
 
 // -----------------------------------------------------
-// Membrane & docking geometry
+// MEMBRANE & DOCKING GEOMETRY
 // -----------------------------------------------------
 
-// Logical membrane reference (do NOT dock to this)
+// Logical membrane reference (curved surface origin)
+// ❗ Vesicles should NOT snap here
 window.SYNAPSE_MEMBRANE_X = 0;
 
-// Visual docking plane (inside curved membrane face)
+// Visual docking plane (flat approximation INSIDE membrane)
+// ✔ Vesicles should snap here on fusion
 window.SYNAPSE_DOCK_X = 16;
 
-// Back-loading offset (cytosolic pool)
-window.SYNAPSE_BACK_OFFSET_X = 10;
 
 // -----------------------------------------------------
-// Vesicle visuals
+// BACK-POOL (CYTOSOLIC RESERVE)
 // -----------------------------------------------------
+
+// Offset from center where unloaded vesicles live
+window.SYNAPSE_BACK_OFFSET_X = 10;
+
+
+// -----------------------------------------------------
+// VESICLE VISUALS
+// -----------------------------------------------------
+
 window.SYNAPSE_VESICLE_RADIUS = 10;
 window.SYNAPSE_VESICLE_STROKE = 4;
 
-// Vesicle count
+
+// -----------------------------------------------------
+// VESICLE POOL SIZE
+// -----------------------------------------------------
+
 window.SYNAPSE_MAX_VESICLES = 10;
 
+
 // =====================================================
-// 🔵 DEBUG VISUALIZATION (OPTIONAL, SAFE)
+// 🔵 DEBUG VISUALIZATION — GEOMETRY ANCHORS
 // =====================================================
-// Renders large blue dots at key geometric anchors
-// Call drawSynapseConstantDebug() from SynapseView
+//
+// Draws large BLUE dots at:
+// • Terminal center
+// • Docking plane
+// • Membrane reference
+// • Back-loading pool
+//
+// Call from SynapseView *inside presynaptic transform*
 // =====================================================
 
 window.drawSynapseConstantDebug = function () {
@@ -51,60 +80,74 @@ window.drawSynapseConstantDebug = function () {
   push();
   noStroke();
   blendMode(ADD);
+  textSize(10);
+  textAlign(LEFT, CENTER);
 
-  // -------------------------------
-  // Terminal center
-  // -------------------------------
+  // ---------------------------------------------
+  // TERMINAL CENTER
+  // ---------------------------------------------
   fill(80, 160, 255, 220);
   circle(
     SYNAPSE_TERMINAL_CENTER_X,
     SYNAPSE_TERMINAL_CENTER_Y,
-    24
+    26
   );
 
-  // Label
-  fill(120, 190, 255, 240);
-  textSize(10);
-  textAlign(LEFT, CENTER);
-  text("CENTER", SYNAPSE_TERMINAL_CENTER_X + 14, SYNAPSE_TERMINAL_CENTER_Y);
+  fill(120, 190, 255);
+  text(
+    "CENTER",
+    SYNAPSE_TERMINAL_CENTER_X + 16,
+    SYNAPSE_TERMINAL_CENTER_Y
+  );
 
-  // -------------------------------
-  // Docking plane
-  // -------------------------------
+  // ---------------------------------------------
+  // DOCKING PLANE (ACTUAL FUSION TARGET)
+  // ---------------------------------------------
   fill(40, 120, 255, 220);
   circle(
     SYNAPSE_DOCK_X,
     SYNAPSE_TERMINAL_CENTER_Y,
-    20
+    22
   );
 
-  text("DOCK_X", SYNAPSE_DOCK_X + 10, SYNAPSE_TERMINAL_CENTER_Y - 12);
+  fill(100, 180, 255);
+  text(
+    "DOCK_X",
+    SYNAPSE_DOCK_X + 12,
+    SYNAPSE_TERMINAL_CENTER_Y - 12
+  );
 
-  // -------------------------------
-  // Membrane reference (x = 0)
-  // -------------------------------
+  // ---------------------------------------------
+  // MEMBRANE REFERENCE (x = 0)
+  // ---------------------------------------------
   fill(0, 90, 200, 180);
   circle(
     SYNAPSE_MEMBRANE_X,
     SYNAPSE_TERMINAL_CENTER_Y,
-    16
+    18
   );
 
-  text("MEMBRANE_X", SYNAPSE_MEMBRANE_X + 8, SYNAPSE_TERMINAL_CENTER_Y + 14);
+  fill(80, 140, 220);
+  text(
+    "MEMBRANE_X",
+    SYNAPSE_MEMBRANE_X + 10,
+    SYNAPSE_TERMINAL_CENTER_Y + 14
+  );
 
-  // -------------------------------
-  // Back-loading zone
-  // -------------------------------
+  // ---------------------------------------------
+  // BACK-LOADING ZONE
+  // ---------------------------------------------
   fill(100, 200, 255, 180);
   circle(
     SYNAPSE_TERMINAL_CENTER_X + SYNAPSE_BACK_OFFSET_X,
     SYNAPSE_TERMINAL_CENTER_Y,
-    18
+    20
   );
 
+  fill(140, 220, 255);
   text(
     "BACK_OFFSET",
-    SYNAPSE_TERMINAL_CENTER_X + SYNAPSE_BACK_OFFSET_X + 10,
+    SYNAPSE_TERMINAL_CENTER_X + SYNAPSE_BACK_OFFSET_X + 12,
     SYNAPSE_TERMINAL_CENTER_Y
   );
 
