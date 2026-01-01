@@ -1,33 +1,43 @@
 console.log("⚡ synapse/vesicleRelease loaded");
 
 // =====================================================
-// SYNAPTIC VESICLE RELEASE (AP-TRIGGERED)
+// VESICLE RELEASE — AP TRIGGERED
 // =====================================================
-// • Called once per terminal AP
-// • No timers, no frame logic
-// • Operates only on LOADED vesicles
-// =====================================================
+
+const MEMBRANE_X = 0;
 
 function triggerVesicleReleaseFromAP() {
 
-  if (!window.synapseVesicles) return;
-
-  let released = 0;
-
-  for (let v of synapseVesicles) {
-
+  for (const v of synapseVesicles) {
     if (v.state === VESICLE_STATE.LOADED) {
-      v.state = VESICLE_STATE.SNARED;
-      released++;
+      v.state = "docking";
+      v.timer = 0;
     }
   }
+}
 
-  // Optional teaching log
-  if (released > 0 && typeof logEvent === "function") {
-    logEvent(
-      "synapse",
-      `Action potential triggered vesicle fusion (${released})`,
-      "presynaptic terminal"
-    );
+function updateVesicleRelease() {
+
+  for (const v of synapseVesicles) {
+
+    if (v.state === "docking") {
+      v.x -= 2.0;
+      if (v.x <= MEMBRANE_X + 2) {
+        v.state = "fused";
+        v.timer = 0;
+
+        // Neurotransmitter dump
+        if (typeof spawnNeurotransmitterBurst === "function") {
+          spawnNeurotransmitterBurst(v.x, v.y);
+        }
+      }
+    }
+
+    if (v.state === "fused") {
+      v.timer++;
+      if (v.timer > 18) {
+        v.state = "recycling";
+      }
+    }
   }
 }
