@@ -1,7 +1,7 @@
 console.log("🔬 SynapseView — orchestrator loaded");
 
 // =====================================================
-// SCREEN-SPACE LAYOUT (TABLET+ STABLE)
+// SCREEN-SPACE LAYOUT (TABLET + DESKTOP STABLE)
 // =====================================================
 
 // Visual scale of synapse geometry
@@ -11,28 +11,34 @@ const SYNAPSE_SCALE = 1.45;
 const SYNAPSE_SCREEN_X = 0.5;
 const SYNAPSE_SCREEN_Y = 0.55;
 
-// Horizontal separation (controls synaptic cleft width)
+// Horizontal separation (synaptic cleft width)
 const PRE_X  = -180;
 const POST_X = +180;
 
 // Vertical offset of neurons relative to astrocyte
-// ↓ decrease this to move neurons UP
 const NEURON_Y = 40;
 
 // =====================================================
-// SYNAPSE VIEW — USER INPUT (LOCAL ONLY)
+// USER INPUT — SYNAPSE LOCAL ONLY
 // =====================================================
-// Spacebar fires ONE terminal AP per press
+// Spacebar fires exactly ONE terminal AP per press
 
 let spaceWasDown = false;
 
 function handleSynapseInput() {
   const spaceDown = keyIsDown(32); // Spacebar
 
-  // Rising edge: UP → DOWN
+  // Rising edge detection
   if (spaceDown && !spaceWasDown) {
+
+    // Terminal AP visual + logic
     if (typeof triggerTerminalAP === "function") {
       triggerTerminalAP();
+    }
+
+    // Vesicle release coupling
+    if (typeof triggerVesicleReleaseFromAP === "function") {
+      triggerVesicleReleaseFromAP();
     }
   }
 
@@ -46,23 +52,37 @@ function drawSynapseView() {
   push();
 
   // ---------------------------------------------------
-  // RESET ALL CAMERA / WORLD TRANSFORMS
+  // RESET CAMERA / WORLD SPACE
   // ---------------------------------------------------
   resetMatrix();
 
   // ---------------------------------------------------
-  // ⚡ SYNAPSE-LOCAL INPUT + PHYSIOLOGY
-  // (APs only exist meaningfully here)
+  // LOCAL INPUT + PHYSIOLOGY
   // ---------------------------------------------------
   handleSynapseInput();
 
+  // Presynaptic AP waveform (terminal-local)
   if (typeof updateVoltageWave === "function") {
     updateVoltageWave();
   }
 
   // ---------------------------------------------------
+  // VESICLE LIFECYCLE (STRICT ORDER)
+// ---------------------------------------------------
+  if (typeof updateSynapseVesicles === "function") {
+    updateSynapseVesicles();     // loading / priming
+  }
+
+  if (typeof updateVesicleRelease === "function") {
+    updateVesicleRelease();      // docking / fusion
+  }
+
+  if (typeof updateVesicleRecycling === "function") {
+    updateVesicleRecycling();    // endocytosis / return
+  }
+
+  // ---------------------------------------------------
   // SCREEN-RELATIVE ANCHOR
-  // (stable across tablet & desktop sizes)
   // ---------------------------------------------------
   translate(
     width  * SYNAPSE_SCREEN_X,
@@ -70,7 +90,7 @@ function drawSynapseView() {
   );
 
   // ---------------------------------------------------
-  // VISUAL SCALE (APPLIED ONCE)
+  // APPLY VISUAL SCALE (ONCE)
   // ---------------------------------------------------
   scale(SYNAPSE_SCALE);
 
@@ -88,7 +108,7 @@ function drawSynapseView() {
   // ---------------------------------------------------
   push();
   translate(PRE_X, NEURON_Y);
-  drawPreSynapse();
+  drawPreSynapse();              // geometry + vesicle draw
   pop();
 
   // ---------------------------------------------------
