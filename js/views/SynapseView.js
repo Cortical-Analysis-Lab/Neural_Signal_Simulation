@@ -1,7 +1,7 @@
 console.log("🔬 SynapseView — orchestrator loaded");
 
 // =====================================================
-// SCREEN-SPACE LAYOUT (TABLET + DESKTOP STABLE)
+// SCREEN-SPACE LAYOUT
 // =====================================================
 
 const SYNAPSE_SCALE    = 1.45;
@@ -16,24 +16,17 @@ const NEURON_Y = 40;
 // =====================================================
 // USER INPUT — SYNAPSE LOCAL ONLY
 // =====================================================
-// Spacebar fires exactly ONE terminal AP per press
-// =====================================================
 
 let spaceWasDown = false;
 
 function handleSynapseInput() {
 
-  const spaceDown = keyIsDown(32); // spacebar
+  const spaceDown = keyIsDown(32);
 
   if (spaceDown && !spaceWasDown) {
 
-    if (typeof triggerTerminalAP === "function") {
-      triggerTerminalAP();
-    }
-
-    if (typeof triggerVesicleReleaseFromAP === "function") {
-      triggerVesicleReleaseFromAP();
-    }
+    triggerTerminalAP?.();
+    triggerVesicleReleaseFromAP?.();
   }
 
   spaceWasDown = spaceDown;
@@ -41,8 +34,9 @@ function handleSynapseInput() {
 
 
 // =====================================================
-// ONE-TIME VESICLE POOL BOOTSTRAP
+// ENSURE VESICLE POOL EXISTS (ONCE)
 // =====================================================
+
 function ensureVesiclePoolInitialized() {
 
   if (!Array.isArray(window.synapseVesicles)) {
@@ -51,85 +45,39 @@ function ensureVesiclePoolInitialized() {
 
   const maxVes = window.SYNAPSE_MAX_VESICLES ?? 7;
 
-  // Populate cytosolic reserve ONCE
   if (window.synapseVesicles.length === 0) {
     for (let i = 0; i < maxVes; i++) {
-      if (typeof requestNewEmptyVesicle === "function") {
-        requestNewEmptyVesicle();
-      }
+      requestNewEmptyVesicle?.();
     }
   }
 }
 
 
 // =====================================================
-// MAIN VIEW — ORCHESTRATOR ONLY
+// MAIN VIEW
 // =====================================================
-//
-// ⚠️ THIS FILE:
-// • Does NOT move vesicles
-// • Does NOT enforce membrane constraints
-// • Does NOT run chemistry
-//
-// It ONLY:
-// • Orders subsystems
-// • Applies visual transforms
-// • Routes user input
-// =====================================================
+
 function drawSynapseView() {
   push();
-
-  // ---------------------------------------------------
-  // RESET CAMERA / WORLD SPACE
-  // ---------------------------------------------------
   resetMatrix();
 
-  // ---------------------------------------------------
-  // INPUT + TERMINAL PHYSIOLOGY
-  // ---------------------------------------------------
   handleSynapseInput();
+  updateVoltageWave?.();
 
-  if (typeof updateVoltageWave === "function") {
-    updateVoltageWave();
-  }
-
-  // ---------------------------------------------------
-  // 🔑 ENSURE VESICLE POOL EXISTS
-  // ---------------------------------------------------
   ensureVesiclePoolInitialized();
 
-  // ===================================================
-  // PRESYNAPTIC LOCAL UPDATE ORDER (AUTHORITATIVE)
-  // ===================================================
+  // ---------------------------------------------------
+  // AUTHORITATIVE UPDATE ORDER
+  // ---------------------------------------------------
+  updateVesicleMotion?.();
+  updateVesicleLoading?.();
+  updateVesicleRelease?.();
+  updateVesicleRecycling?.();
+  updateSynapticBurst?.();
 
-  // 1️⃣ Vesicle spatial authority
-  if (typeof updateVesicleMotion === "function") {
-    updateVesicleMotion();
-  }
-
-  // 2️⃣ Vesicle chemistry & loading
-  if (typeof updateVesicleLoading === "function") {
-    updateVesicleLoading();
-  }
-
-  // 3️⃣ Vesicle release (fusion)
-  if (typeof updateVesicleRelease === "function") {
-    updateVesicleRelease();
-  }
-
-  // 4️⃣ Vesicle recycling (endocytosis)
-  if (typeof updateVesicleRecycling === "function") {
-    updateVesicleRecycling();
-  }
-
-  // 5️⃣ Neurotransmitter diffusion
-  if (typeof updateSynapticBurst === "function") {
-    updateSynapticBurst();
-  }
-
-  // ===================================================
-  // SCREEN-RELATIVE ANCHOR
-  // ===================================================
+  // ---------------------------------------------------
+  // SCREEN ANCHOR
+  // ---------------------------------------------------
   translate(
     width  * SYNAPSE_SCREEN_X,
     height * SYNAPSE_SCREEN_Y
@@ -141,62 +89,64 @@ function drawSynapseView() {
   strokeJoin(ROUND);
   strokeCap(ROUND);
 
-  // ---------------------------------------------------
-  // ASTROCYTE (FIXED ABOVE CLEFT)
-  // ---------------------------------------------------
-  if (typeof drawAstrocyteSynapse === "function") {
-    drawAstrocyteSynapse();
-  }
+  drawAstrocyteSynapse?.();
 
   // ===================================================
-  // PRESYNAPTIC NEURON (LEFT)
+  // PRESYNAPTIC SIDE
   // ===================================================
   push();
   translate(PRE_X, NEURON_Y);
 
-  // ---------------------------------------------------
-  // VISUAL-ONLY FLIP
-  // ⚠️ PHYSICS ALREADY RESOLVED UPSTREAM
-  // ---------------------------------------------------
+  // IMPORTANT: visual-only flip
   scale(-1, 1);
 
-  // Geometry (terminal membrane, shaft)
-  if (typeof drawPreSynapse === "function") {
-    drawPreSynapse();
-  }
+  drawPreSynapse?.();
 
-  // 🔵 VESICLE RESERVE RECTANGLE (DEBUG)
-  // Must be drawn AFTER flip, BEFORE vesicles
-  if (
-    window.SHOW_VESICLE_RESERVE_DEBUG === true &&
-    typeof drawVesicleReserveDebug === "function"
-  ) {
-    drawVesicleReserveDebug();
-  }
+  // ===================================================
+  // 🔵 FORCE-DRAW VESICLE RESERVE RECTANGLE
+  // ===================================================
+  drawVesicleReserveRectangle_FORCE();
 
-  // Vesicles + priming particles + NT contents
-  if (typeof drawSynapseVesicleGeometry === "function") {
-    drawSynapseVesicleGeometry();
-  }
-
-  // Neurotransmitter visuals (cleft-facing)
-  if (typeof drawSynapticBurst === "function") {
-    drawSynapticBurst();
-  }
+  // Vesicles
+  drawSynapseVesicleGeometry?.();
+  drawSynapticBurst?.();
 
   pop();
 
   // ===================================================
-  // POSTSYNAPTIC NEURON (RIGHT)
+  // POSTSYNAPTIC SIDE
   // ===================================================
   push();
   translate(POST_X, NEURON_Y);
-
-  if (typeof drawPostSynapse === "function") {
-    drawPostSynapse();
-  }
-
+  drawPostSynapse?.();
   pop();
 
+  pop();
+}
+
+
+// =====================================================
+// 🔵 HARD DEBUG RECTANGLE (CANNOT FAIL)
+// =====================================================
+
+function drawVesicleReserveRectangle_FORCE() {
+
+  const r = window.SYNAPSE_VESICLE_RADIUS;
+
+  const xMin = window.SYNAPSE_VESICLE_STOP_X + 12 + r;
+  const xMax = xMin + 36 - r * 2;
+
+  const yCenter = window.SYNAPSE_TERMINAL_CENTER_Y;
+  const yHalf   = window.SYNAPSE_TERMINAL_RADIUS * 0.55;
+
+  const yMin = yCenter - yHalf + r;
+  const yMax = yCenter + yHalf - r;
+
+  push();
+  noFill();
+  stroke(80, 160, 255, 240); // BRIGHT BLUE
+  strokeWeight(3);
+  rectMode(CORNERS);
+  rect(xMin, yMin, xMax, yMax);
   pop();
 }
