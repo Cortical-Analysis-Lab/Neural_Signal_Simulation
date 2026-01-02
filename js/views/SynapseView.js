@@ -99,9 +99,11 @@ function drawSynapseView() {
   drawPreSynapse?.();
 
   // ===================================================
-  // 🔵 VESICLE RESERVE RECTANGLE (FORCED, AUTHORITATIVE)
+  // 🔵 VESICLE RESERVE RECTANGLE (AUTHORITATIVE)
   // ===================================================
-  drawVesicleReserveRectangle_FORCE();
+  if (window.SHOW_VESICLE_RESERVE_DEBUG === true) {
+    drawVesicleReserveRectangle_FORCE();
+  }
 
   // Vesicles + contents
   drawSynapseVesicleGeometry?.();
@@ -122,43 +124,24 @@ function drawSynapseView() {
 
 
 // =====================================================
-// 🔵 HARD DEBUG RECTANGLE — CANNOT FAIL
+// 🔵 AUTHORITATIVE DEBUG RECTANGLE
 // =====================================================
-// Matches vesiclePool geometry but:
-// • 4× wider
-// • 1.5× taller
-// • shifted deeper into cytosol
+// ✔ Uses vesiclePool geometry directly
+// ✔ Zero duplication
+// ✔ Cannot drift from physics
 // =====================================================
 
 function drawVesicleReserveRectangle_FORCE() {
 
-  const r = window.SYNAPSE_VESICLE_RADIUS;
+  if (typeof getVesicleReserveRect !== "function") return;
 
-  // ---------------------------------------------------
-  // DEPTH (BACK OF CYTOSOL)
-  // ---------------------------------------------------
-  const xMax = window.SYNAPSE_VESICLE_STOP_X + 18;
-  const xMin = xMax + (36 * 4);
-
-  // ---------------------------------------------------
-  // HEIGHT (TALLER)
-  // ---------------------------------------------------
-  const yCenter = window.SYNAPSE_TERMINAL_CENTER_Y;
-  const yHalf   = window.SYNAPSE_TERMINAL_RADIUS * 0.55 * 1.5;
-
-  const yMin = yCenter - yHalf + r;
-  const yMax = yCenter + yHalf - r;
+  const r = getVesicleReserveRect();
 
   push();
   noFill();
-  stroke(80, 160, 255, 240); // BRIGHT BLUE
+  stroke(80, 160, 255, 240); // bright blue
   strokeWeight(3);
   rectMode(CORNERS);
-  rect(
-    xMin + r,
-    yMin,
-    xMax - r,
-    yMax
-  );
+  rect(r.xMin, r.yMin, r.xMax, r.yMax);
   pop();
 }
