@@ -1,4 +1,4 @@
-console.log("♻️ synapse/vesicleRecycling loaded");
+console.log("♻️ vesicleRecycling loaded");
 
 // =====================================================
 // VESICLE RECYCLING — BIOLOGICAL ENDOCYTOSIS
