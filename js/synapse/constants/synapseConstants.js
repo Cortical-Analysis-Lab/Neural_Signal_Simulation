@@ -102,9 +102,10 @@ window.SYNAPSE_LOAD_MAX_OFFSET = 46;
 //
 window.SYNAPSE_VESICLE_Y_SPREAD = 0.9;
 
-// -----------------------------------------------------
-// Proton (H⁺) priming dynamics
-// -----------------------------------------------------
+
+// =====================================================
+// PROTON (H⁺) PRIMING DYNAMICS
+// =====================================================
 //
 // Faster than diffusion but still smooth.
 // Lifetime must exceed travel distance.
@@ -112,9 +113,10 @@ window.SYNAPSE_VESICLE_Y_SPREAD = 0.9;
 window.SYNAPSE_H_SPEED = 0.22;
 window.SYNAPSE_H_LIFE  = 260;
 
-// -----------------------------------------------------
-// ATP priming + hydrolysis dynamics
-// -----------------------------------------------------
+
+// =====================================================
+// ATP PRIMING + HYDROLYSIS DYNAMICS
+// =====================================================
 //
 // ATP must:
 // • reach vesicle
@@ -126,9 +128,10 @@ window.SYNAPSE_ATP_SPEED  = 0.26;
 window.SYNAPSE_ATP_LIFE   = 320;
 window.SYNAPSE_ATP_BOUNCE = 0.45;
 
-// -----------------------------------------------------
-// Neurotransmitter loading
-// -----------------------------------------------------
+
+// =====================================================
+// NEUROTRANSMITTER LOADING
+// =====================================================
 //
 // Symbolic vesicle content and packing rate
 //
