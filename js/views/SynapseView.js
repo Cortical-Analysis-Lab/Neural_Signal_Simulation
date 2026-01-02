@@ -8,20 +8,21 @@ const SYNAPSE_SCALE    = 1.45;
 const SYNAPSE_SCREEN_X = 0.5;
 const SYNAPSE_SCREEN_Y = 0.55;
 
-const PRE_X  = -180;
-const POST_X = +180;
+const PRE_X   = -180;
+const POST_X  = +180;
 const NEURON_Y = 40;
 
 
 // =====================================================
 // USER INPUT — SYNAPSE LOCAL ONLY
 // =====================================================
+// Spacebar fires exactly ONE terminal AP per press
 
 let spaceWasDown = false;
 
 function handleSynapseInput() {
 
-  const spaceDown = keyIsDown(32);
+  const spaceDown = keyIsDown(32); // spacebar
 
   if (spaceDown && !spaceWasDown) {
 
@@ -64,6 +65,17 @@ function ensureVesiclePoolInitialized() {
 // =====================================================
 // MAIN VIEW — ORCHESTRATOR ONLY
 // =====================================================
+//
+// ⚠️ THIS FILE:
+// • Does NOT move vesicles
+// • Does NOT enforce membrane constraints
+// • Does NOT run chemistry
+//
+// It ONLY:
+// • Orders subsystems
+// • Applies visual transforms
+// • Routes user input
+// =====================================================
 function drawSynapseView() {
   push();
 
@@ -82,7 +94,7 @@ function drawSynapseView() {
   }
 
   // ---------------------------------------------------
-  // 🔑 CRITICAL: ENSURE VESICLES EXIST
+  // 🔑 ENSURE VESICLE POOL EXISTS
   // ---------------------------------------------------
   ensureVesiclePoolInitialized();
 
@@ -90,7 +102,7 @@ function drawSynapseView() {
   // PRESYNAPTIC LOCAL UPDATE ORDER (AUTHORITATIVE)
   // ===================================================
 
-  // 1️⃣ Vesicle spatial authority
+  // 1️⃣ Vesicle motion & collision authority
   if (typeof updateVesicleMotion === "function") {
     updateVesicleMotion();
   }
@@ -100,12 +112,12 @@ function drawSynapseView() {
     updateVesicleLoading();
   }
 
-  // 3️⃣ Vesicle release
+  // 3️⃣ Vesicle release (fusion)
   if (typeof updateVesicleRelease === "function") {
     updateVesicleRelease();
   }
 
-  // 4️⃣ Vesicle recycling
+  // 4️⃣ Vesicle recycling (endocytosis)
   if (typeof updateVesicleRecycling === "function") {
     updateVesicleRecycling();
   }
@@ -130,7 +142,7 @@ function drawSynapseView() {
   strokeCap(ROUND);
 
   // ---------------------------------------------------
-  // ASTROCYTE
+  // ASTROCYTE (FIXED ABOVE CLEFT)
   // ---------------------------------------------------
   if (typeof drawAstrocyteSynapse === "function") {
     drawAstrocyteSynapse();
@@ -141,16 +153,31 @@ function drawSynapseView() {
   // ===================================================
   push();
   translate(PRE_X, NEURON_Y);
-  scale(-1, 1); // visual-only flip
 
+  // ---------------------------------------------------
+  // VISUAL-ONLY FLIP (PHYSICS ALREADY DONE)
+  // ---------------------------------------------------
+  scale(-1, 1);
+
+  // Geometry (terminal membrane, shaft)
   if (typeof drawPreSynapse === "function") {
     drawPreSynapse();
   }
 
+  // 🔵 VESICLE RESERVE DEBUG RECTANGLE (OPTIONAL)
+  if (
+    window.SHOW_VESICLE_RESERVE_DEBUG &&
+    typeof drawVesicleReserveDebug === "function"
+  ) {
+    drawVesicleReserveDebug();
+  }
+
+  // Vesicles + priming particles + NT contents
   if (typeof drawSynapseVesicleGeometry === "function") {
     drawSynapseVesicleGeometry();
   }
 
+  // Neurotransmitter visuals (cleft-facing)
   if (typeof drawSynapticBurst === "function") {
     drawSynapticBurst();
   }
