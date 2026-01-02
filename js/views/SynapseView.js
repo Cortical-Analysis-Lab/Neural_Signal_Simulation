@@ -18,6 +18,7 @@ const POST_X = +180;
 // Vertical offset of neurons relative to astrocyte
 const NEURON_Y = 40;
 
+
 // =====================================================
 // USER INPUT — SYNAPSE LOCAL ONLY
 // =====================================================
@@ -46,8 +47,20 @@ function handleSynapseInput() {
   spaceWasDown = spaceDown;
 }
 
+
 // =====================================================
 // MAIN VIEW — ORCHESTRATOR ONLY
+// =====================================================
+//
+// ⚠️ THIS FILE:
+// • Does NOT move vesicles
+// • Does NOT enforce membrane constraints
+// • Does NOT run chemistry
+//
+// It ONLY:
+// • Orders subsystems
+// • Applies visual transforms
+// • Routes user input
 // =====================================================
 function drawSynapseView() {
   push();
@@ -58,7 +71,7 @@ function drawSynapseView() {
   resetMatrix();
 
   // ---------------------------------------------------
-  // LOCAL INPUT + PHYSIOLOGY (NO TRANSFORMS YET)
+  // LOCAL INPUT + PHYSIOLOGY (NO TRANSFORMS)
   // ---------------------------------------------------
   handleSynapseInput();
 
@@ -67,31 +80,41 @@ function drawSynapseView() {
     updateVoltageWave();
   }
 
-  // ---------------------------------------------------
-  // VESICLE / NT LIFECYCLE — AUTHORITATIVE ORDER
+  // ===================================================
+  // PRESYNAPTIC LOCAL UPDATE ORDER (AUTHORITATIVE)
   //
-  // ⚠️ MUST RUN BEFORE ANY TRANSFORMS
-  // ⚠️ PRESYNAPTIC LOCAL SPACE (UNFLIPPED)
-  // ---------------------------------------------------
-  if (typeof updateSynapseVesicles === "function") {
-    updateSynapseVesicles();     // loading / priming
+  // ⚠️ MUST REMAIN IN THIS ORDER
+  // ⚠️ NO VISUAL TRANSFORMS YET
+  // ===================================================
+
+  // 1️⃣ Vesicle motion + collisions + membrane constraints
+  if (typeof updateVesicleMotion === "function") {
+    updateVesicleMotion();        // vesiclePool.js
   }
 
+  // 2️⃣ Vesicle chemistry & state machine
+  if (typeof updateVesicleLoading === "function") {
+    updateVesicleLoading();       // vesicleLoading.js
+  }
+
+  // 3️⃣ Vesicle release (docking → fusion → merge)
   if (typeof updateVesicleRelease === "function") {
-    updateVesicleRelease();      // docking → fusion → merge
+    updateVesicleRelease();
   }
 
+  // 4️⃣ Vesicle recycling (endocytosis → reserve pool)
   if (typeof updateVesicleRecycling === "function") {
-    updateVesicleRecycling();    // endocytosis → new vesicles
+    updateVesicleRecycling();
   }
 
+  // 5️⃣ Neurotransmitter diffusion (cleft)
   if (typeof updateSynapticBurst === "function") {
-    updateSynapticBurst();       // neurotransmitter diffusion
+    updateSynapticBurst();
   }
 
-  // ---------------------------------------------------
+  // ===================================================
   // SCREEN-RELATIVE ANCHOR
-  // ---------------------------------------------------
+  // ===================================================
   translate(
     width  * SYNAPSE_SCREEN_X,
     height * SYNAPSE_SCREEN_Y
@@ -121,16 +144,21 @@ function drawSynapseView() {
 
   // ---------------------------------------------------
   // VISUAL-ONLY COORDINATE FLIP
-  // (Physics already resolved upstream)
+  // ⚠️ PHYSICS ALREADY RESOLVED UPSTREAM
   // ---------------------------------------------------
   scale(-1, 1);
 
-  // Geometry + vesicles + terminal AP visuals
+  // Geometry (terminal membrane, dock, etc.)
   if (typeof drawPreSynapse === "function") {
     drawPreSynapse();
   }
 
-  // Neurotransmitter visuals (cleft-facing)
+  // Vesicles + priming particles + NT contents
+  if (typeof drawSynapseVesicleGeometry === "function") {
+    drawSynapseVesicleGeometry(); // vesicleGeometry.js
+  }
+
+  // Neurotransmitter release visuals (cleft-facing)
   if (typeof drawSynapticBurst === "function") {
     drawSynapticBurst();
   }
