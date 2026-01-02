@@ -21,10 +21,9 @@ let spaceWasDown = false;
 
 function handleSynapseInput() {
 
-  const spaceDown = keyIsDown(32);
+  const spaceDown = keyIsDown(32); // spacebar
 
   if (spaceDown && !spaceWasDown) {
-
     triggerTerminalAP?.();
     triggerVesicleReleaseFromAP?.();
   }
@@ -61,23 +60,20 @@ function drawSynapseView() {
   push();
   resetMatrix();
 
+  // ---------------- INPUT + PHYSIOLOGY ----------------
   handleSynapseInput();
   updateVoltageWave?.();
 
   ensureVesiclePoolInitialized();
 
-  // ---------------------------------------------------
-  // AUTHORITATIVE UPDATE ORDER
-  // ---------------------------------------------------
+  // ---------------- AUTHORITATIVE UPDATE ORDER --------
   updateVesicleMotion?.();
   updateVesicleLoading?.();
   updateVesicleRelease?.();
   updateVesicleRecycling?.();
   updateSynapticBurst?.();
 
-  // ---------------------------------------------------
-  // SCREEN ANCHOR
-  // ---------------------------------------------------
+  // ---------------- SCREEN ANCHOR ---------------------
   translate(
     width  * SYNAPSE_SCREEN_X,
     height * SYNAPSE_SCREEN_Y
@@ -97,17 +93,17 @@ function drawSynapseView() {
   push();
   translate(PRE_X, NEURON_Y);
 
-  // IMPORTANT: visual-only flip
+  // ⚠️ Visual-only flip (physics already resolved)
   scale(-1, 1);
 
   drawPreSynapse?.();
 
   // ===================================================
-  // 🔵 FORCE-DRAW VESICLE RESERVE RECTANGLE
+  // 🔵 VESICLE RESERVE RECTANGLE (FORCED, AUTHORITATIVE)
   // ===================================================
   drawVesicleReserveRectangle_FORCE();
 
-  // Vesicles
+  // Vesicles + contents
   drawSynapseVesicleGeometry?.();
   drawSynapticBurst?.();
 
@@ -126,18 +122,29 @@ function drawSynapseView() {
 
 
 // =====================================================
-// 🔵 HARD DEBUG RECTANGLE (CANNOT FAIL)
+// 🔵 HARD DEBUG RECTANGLE — CANNOT FAIL
+// =====================================================
+// Matches vesiclePool geometry but:
+// • 4× wider
+// • 1.5× taller
+// • shifted deeper into cytosol
 // =====================================================
 
 function drawVesicleReserveRectangle_FORCE() {
 
   const r = window.SYNAPSE_VESICLE_RADIUS;
 
-  const xMin = window.SYNAPSE_VESICLE_STOP_X + 12 + r;
-  const xMax = xMin + 36 - r * 2;
+  // ---------------------------------------------------
+  // DEPTH (BACK OF CYTOSOL)
+  // ---------------------------------------------------
+  const xMax = window.SYNAPSE_VESICLE_STOP_X + 18;
+  const xMin = xMax + (36 * 4);
 
+  // ---------------------------------------------------
+  // HEIGHT (TALLER)
+  // ---------------------------------------------------
   const yCenter = window.SYNAPSE_TERMINAL_CENTER_Y;
-  const yHalf   = window.SYNAPSE_TERMINAL_RADIUS * 0.55;
+  const yHalf   = window.SYNAPSE_TERMINAL_RADIUS * 0.55 * 1.5;
 
   const yMin = yCenter - yHalf + r;
   const yMax = yCenter + yHalf - r;
@@ -147,6 +154,11 @@ function drawVesicleReserveRectangle_FORCE() {
   stroke(80, 160, 255, 240); // BRIGHT BLUE
   strokeWeight(3);
   rectMode(CORNERS);
-  rect(xMin, yMin, xMax, yMax);
+  rect(
+    xMin + r,
+    yMin,
+    xMax - r,
+    yMax
+  );
   pop();
 }
