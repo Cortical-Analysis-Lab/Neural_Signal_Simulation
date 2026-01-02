@@ -29,7 +29,7 @@ function handleSynapseInput() {
 
   const spaceDown = keyIsDown(32); // Spacebar
 
-  // Rising edge: UP → DOWN
+  // Rising edge detection
   if (spaceDown && !spaceWasDown) {
 
     // Terminal AP (visual + timing)
@@ -69,6 +69,7 @@ function drawSynapseView() {
 
   // ---------------------------------------------------
   // VESICLE LIFECYCLE — AUTHORITATIVE ORDER
+  //
   // ⚠️ MUST RUN BEFORE ANY TRANSFORMS
   // ⚠️ PRESYNAPTIC LOCAL SPACE (UNFLIPPED)
   // ---------------------------------------------------
@@ -77,11 +78,16 @@ function drawSynapseView() {
   }
 
   if (typeof updateVesicleRelease === "function") {
-    updateVesicleRelease();      // docking / fusion
+    updateVesicleRelease();      // docking → fusion → merge
   }
 
   if (typeof updateVesicleRecycling === "function") {
-    updateVesicleRecycling();    // endocytosis / return
+    updateVesicleRecycling();    // endocytosis → refilling
+  }
+
+  // Neurotransmitter diffusion (decoupled system)
+  if (typeof updateSynapticBurst === "function") {
+    updateSynapticBurst();
   }
 
   // ---------------------------------------------------
@@ -133,8 +139,13 @@ function drawSynapseView() {
     drawPreSynapse();
   }
 
+  // Neurotransmitter visuals (cleft-facing)
+  if (typeof drawSynapticBurst === "function") {
+    drawSynapticBurst();
+  }
+
   // 🔵 DEBUG: synapseConstants anchors
-  // These should now line up PERFECTLY
+  // These should now align EXACTLY with membrane & vesicles
   if (typeof drawSynapseConstantDebug === "function") {
     drawSynapseConstantDebug();
   }
