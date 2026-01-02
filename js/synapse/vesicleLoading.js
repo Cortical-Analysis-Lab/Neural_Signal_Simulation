@@ -22,14 +22,13 @@ const CENTER_Y     = window.SYNAPSE_TERMINAL_CENTER_Y;
 const RADIUS       = window.SYNAPSE_TERMINAL_RADIUS;
 const BACK_OFFSET  = window.SYNAPSE_BACK_OFFSET_X;
 
-const STOP_X       = window.SYNAPSE_VESICLE_STOP_X;
 const DOCK_X       = window.SYNAPSE_DOCK_X;
 
 const V_RADIUS     = window.SYNAPSE_VESICLE_RADIUS;
 const V_STROKE     = window.SYNAPSE_VESICLE_STROKE;
 const MAX_VESICLES = window.SYNAPSE_MAX_VESICLES;
 
-// Vesicles load in a FORWARD cytosolic band
+// Forward cytosolic loading band
 const LOAD_MIN_X = DOCK_X + 28;
 const LOAD_MAX_X = CENTER_X + BACK_OFFSET + 8;
 
@@ -40,34 +39,32 @@ let loaderActive = false;
 let loaderIndex  = 0;
 
 // -----------------------------------------------------
-// STATES (LOADING ONLY)
+// STATES
 // -----------------------------------------------------
 const VESICLE_STATE = {
-  EMPTY:    "empty",
-  PRIMING:  "priming",
-  LOADING:  "loading",
-  LOADED:   "loaded"
+  EMPTY:   "empty",
+  PRIMING:"priming",
+  LOADING:"loading",
+  LOADED: "loaded"
 };
 
 // -----------------------------------------------------
 // COLORS
 // -----------------------------------------------------
 function vesicleBorder() { return color(245, 225, 140); }
-function vesicleFill()   { return color(245, 225, 140, 42); }
+function vesicleFill()   { return color(245, 225, 140, 40); }
 function ntColor()       { return color(185, 120, 255, 210); }
 
 // -----------------------------------------------------
-// SOFT GEOMETRY CONSTRAINT (STATE AWARE)
+// SOFT GEOMETRY CONSTRAINT
 // -----------------------------------------------------
 function constrainToTerminal(v) {
 
   if (v.state === VESICLE_STATE.LOADED) return;
 
-  // Soft forward band clamp
-  if (v.x < LOAD_MIN_X) v.x += (LOAD_MIN_X - v.x) * 0.15;
-  if (v.x > LOAD_MAX_X) v.x += (LOAD_MAX_X - v.x) * 0.12;
+  if (v.x < LOAD_MIN_X) v.x += (LOAD_MIN_X - v.x) * 0.08;
+  if (v.x > LOAD_MAX_X) v.x += (LOAD_MAX_X - v.x) * 0.06;
 
-  // Capsule interior
   const dx = v.x - CENTER_X;
   const dy = v.y - CENTER_Y;
   const d  = sqrt(dx*dx + dy*dy);
@@ -81,7 +78,7 @@ function constrainToTerminal(v) {
 }
 
 // -----------------------------------------------------
-// SPAWN EMPTY VESICLE (FORWARD CYTOSOL)
+// SPAWN EMPTY VESICLE
 // -----------------------------------------------------
 function spawnSynapseEmptyVesicle() {
 
@@ -91,9 +88,7 @@ function spawnSynapseEmptyVesicle() {
   synapseVesicles.push({
     x: random(LOAD_MIN_X, LOAD_MAX_X),
     y: CENTER_Y + sin(a) * r * 0.6,
-
     dockOffsetY: random(-20, 20),
-
     state: VESICLE_STATE.EMPTY,
     timer: 0,
     nts: []
@@ -101,36 +96,31 @@ function spawnSynapseEmptyVesicle() {
 }
 
 // -----------------------------------------------------
-// PRIMING PARTICLES — ATP + H+
+// SPAWN PRIMING PARTICLES
 // -----------------------------------------------------
 function spawnPrimingParticles(v) {
 
-  const a = random(TWO_PI);
-  const d = 38;
-
-  // ---------------- H+ PUMPING ----------------
+  // ---------- H+ (inward pumping) ----------
+  const a1 = random(TWO_PI);
   synapseH.push({
-    x: v.x + cos(a) * d,
-    y: v.y + sin(a) * d,
-
-    angle: a + PI,
-    radius: d,
-
+    x: v.x + cos(a1) * 46,
+    y: v.y + sin(a1) * 46,
+    vx: -cos(a1) * 0.12,
+    vy: -sin(a1) * 0.12,
     target: v,
-    life: 120
+    life: 180
   });
 
-  // ---------------- ATP ----------------
+  // ---------- ATP (collision + rebound) ----------
+  const a2 = random(TWO_PI);
   synapseATP.push({
-    x: v.x + cos(a + PI) * (d + 10),
-    y: v.y + sin(a + PI) * (d + 10),
-
-    vx: -cos(a) * 0.35,
-    vy: -sin(a) * 0.35,
-
+    x: v.x + cos(a2) * 52,
+    y: v.y + sin(a2) * 52,
+    vx: -cos(a2) * 0.18,
+    vy: -sin(a2) * 0.18,
     state: "ATP",
     alpha: 255,
-    life: 200
+    life: 260
   });
 }
 
@@ -143,10 +133,8 @@ function updateSynapseVesicles() {
     spawnSynapseEmptyVesicle();
   }
 
-  // One vesicle loads at a time
   if (!loaderActive) {
     const v = synapseVesicles[loaderIndex % synapseVesicles.length];
-
     if (v.state === VESICLE_STATE.EMPTY) {
       v.state = VESICLE_STATE.PRIMING;
       v.timer = 0;
@@ -158,24 +146,22 @@ function updateSynapseVesicles() {
 
   for (const v of synapseVesicles) {
 
-    // ---------- PRIMING ----------
     if (v.state === VESICLE_STATE.PRIMING) {
-      if (++v.timer > 120) {
+      if (++v.timer > 180) {
         v.state = VESICLE_STATE.LOADING;
         v.timer = 0;
         v.nts.length = 0;
       }
     }
 
-    // ---------- LOADING ----------
     if (v.state === VESICLE_STATE.LOADING) {
 
-      if (v.nts.length < 18 && frameCount % 9 === 0) {
+      if (v.nts.length < 18 && frameCount % 12 === 0) {
         v.nts.push({
           x: random(-3, 3),
           y: random(-3, 3),
-          vx: random(-0.22, 0.22),
-          vy: random(-0.22, 0.22)
+          vx: random(-0.18, 0.18),
+          vy: random(-0.18, 0.18)
         });
       }
 
@@ -185,7 +171,6 @@ function updateSynapseVesicles() {
       }
     }
 
-    // NT Brownian motion
     for (const p of v.nts) {
       p.x += p.vx;
       p.y += p.vy;
@@ -210,17 +195,16 @@ function updatePrimingParticles() {
   for (let i = synapseH.length - 1; i >= 0; i--) {
     const h = synapseH[i];
 
-    h.angle += 0.18;
-    h.radius *= 0.96;
-
-    h.x = h.target.x + cos(h.angle) * h.radius;
-    h.y = h.target.y + sin(h.angle) * h.radius;
-
+    h.x += h.vx;
+    h.y += h.vy;
     h.life--;
 
-    if (h.life < 40 || h.radius < V_RADIUS * 0.8) {
-      synapseH.splice(i, 1);
+    if (dist(h.x, h.y, h.target.x, h.target.y) < V_RADIUS * 0.85) {
+      synapseH.splice(i, 1); // absorbed into vesicle
+      continue;
     }
+
+    if (h.life <= 0) synapseH.splice(i, 1);
   }
 
   // ---------------- ATP ----------------
@@ -233,13 +217,14 @@ function updatePrimingParticles() {
     if (a.state === "ATP") {
       for (const v of synapseVesicles) {
         if (dist(a.x, a.y, v.x, v.y) < V_RADIUS) {
+          // bounce + hydrolysis
           a.state = "ADP";
-          a.vx *= -0.25;
-          a.vy *= -0.25;
+          a.vx *= -0.45;
+          a.vy *= -0.45;
         }
       }
     } else {
-      a.alpha -= 1.2;
+      a.alpha -= 0.9;
     }
 
     a.life--;
@@ -275,7 +260,7 @@ function drawSynapseVesicles() {
     text("H⁺", h.x - 4, h.y + 4);
   }
 
-  // ATP / ADP
+  // ATP / ADP + Pi
   textSize(10);
   for (const a of synapseATP) {
     fill(120, 200, 255, a.alpha);
