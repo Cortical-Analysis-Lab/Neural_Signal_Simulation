@@ -1,7 +1,7 @@
 console.log("⚡ synapse/vesicleRelease loaded");
 
 // =====================================================
-// VESICLE RELEASE — BIOLOGICAL FUSION MODEL
+// VESICLE RELEASE — BIOLOGICAL FUSION
 // Dock → Zipper → Pore → Open → Merge
 // =====================================================
 
@@ -12,13 +12,16 @@ function triggerVesicleReleaseFromAP() {
 
   for (const v of synapseVesicles) {
     if (v.state === VESICLE_STATE.LOADED) {
+
       v.state = "DOCKING";
       v.timer = 0;
 
       v.dockOffsetY ??= random(-16, 16);
+
+      // Fusion state variables
       v.fusionProgress = 0;
-      v.poreRadius = 0;
-      v.flatten = 0;
+      v.poreRadius     = 0;
+      v.flatten        = 0;
     }
   }
 }
@@ -38,6 +41,7 @@ function updateVesicleRelease() {
     if (v.state === "DOCKING") {
 
       v.x -= 1.2;
+
       const targetY = CENTER_Y + v.dockOffsetY;
       v.y += (targetY - v.y) * 0.12;
 
@@ -68,13 +72,18 @@ function updateVesicleRelease() {
       v.timer++;
       v.poreRadius = min(6, v.timer * 0.15);
 
-      if (typeof spawnNeurotransmitterBurst === "function") {
-        if (frameCount % 6 === 0) {
-          spawnNeurotransmitterBurst(v.x, v.y, 2);
-        }
+      // 🔔 EARLY RELEASE SIGNAL (small leak)
+      if (v.timer === 8) {
+        window.dispatchEvent(new CustomEvent("synapticRelease", {
+          detail: {
+            x: v.x,
+            y: v.y,
+            strength: 0.25
+          }
+        }));
       }
 
-      if (v.timer > 50) {
+      if (v.timer > 45) {
         v.state = "FUSION_OPEN";
         v.timer = 0;
       }
@@ -86,10 +95,15 @@ function updateVesicleRelease() {
       v.timer++;
       v.poreRadius = min(14, v.poreRadius + 0.3);
 
-      if (typeof spawnNeurotransmitterBurst === "function") {
-        if (frameCount % 3 === 0) {
-          spawnNeurotransmitterBurst(v.x, v.y, 6);
-        }
+      // 🔔 MAIN RELEASE
+      if (v.timer % 6 === 0) {
+        window.dispatchEvent(new CustomEvent("synapticRelease", {
+          detail: {
+            x: v.x,
+            y: v.y,
+            strength: 1.0
+          }
+        }));
       }
 
       if (v.timer > 40) {
