@@ -1,4 +1,4 @@
-console.log("⚡ synapse/vesicleRelease loaded");
+console.log("⚡ vesicleRelease loaded");
 
 // =====================================================
 // VESICLE RELEASE — BIOLOGICAL FUSION
@@ -6,11 +6,14 @@ console.log("⚡ synapse/vesicleRelease loaded");
 // =====================================================
 //
 // ✔ Slow, smooth transitions
-// ✔ No vesicle overlap
+// ✔ One vesicle per AP
 // ✔ Randomized fusion sites
 // ✔ Diffusive neurotransmitter release
 // ✔ Vesicle membrane fully absorbed
 // ✔ Hands membrane to recycling
+//
+// ⚠️ NO motion authority here
+// ⚠️ Uses window.synapseVesicles ONLY
 // =====================================================
 
 
@@ -25,30 +28,35 @@ const MERGE_TIME  = 260;
 
 
 // -----------------------------------------------------
-// AP TRIGGER — CALCIUM-GATED
+// AP TRIGGER — CALCIUM-GATED (ONE VESICLE)
 // -----------------------------------------------------
 function triggerVesicleReleaseFromAP() {
 
-  for (const v of synapseVesicles) {
+  const vesicles = window.synapseVesicles || [];
 
-    if (v.state === VESICLE_STATE.LOADED) {
+  // Choose ONE loaded vesicle (closest to dock if possible)
+  const candidates = vesicles.filter(v => v.state === "loaded");
 
-      v.state = "DOCKING";
-      v.timer = 0;
+  if (candidates.length === 0) return;
 
-      // Unique fusion site per vesicle
-      v.dockOffsetY = random(-24, 24);
+  // Bias toward vesicles already near membrane
+  candidates.sort((a, b) => a.x - b.x);
+  const v = candidates[0];
 
-      // Fusion visuals
-      v.fusionProgress = 0;
-      v.poreRadius     = 0;
-      v.flatten        = 0;
+  v.state = "DOCKING";
+  v.timer = 0;
 
-      // Lock fusion coordinates (prevents drift)
-      v.fusionX = null;
-      v.fusionY = null;
-    }
-  }
+  // Unique fusion site per vesicle
+  v.dockOffsetY = random(-24, 24);
+
+  // Fusion visuals
+  v.fusionProgress = 0;
+  v.poreRadius     = 0;
+  v.flatten        = 0;
+
+  // Lock fusion coordinates (prevents drift)
+  v.fusionX = null;
+  v.fusionY = null;
 }
 
 
@@ -57,26 +65,29 @@ function triggerVesicleReleaseFromAP() {
 // -----------------------------------------------------
 function updateVesicleRelease() {
 
+  const vesicles = window.synapseVesicles || [];
+
   const MEMBRANE_X = window.SYNAPSE_MEMBRANE_X;
   const CENTER_Y   = window.SYNAPSE_TERMINAL_CENTER_Y;
 
-  for (let i = synapseVesicles.length - 1; i >= 0; i--) {
-    const v = synapseVesicles[i];
+  for (let i = vesicles.length - 1; i >= 0; i--) {
+    const v = vesicles[i];
 
     // =================================================
-    // DOCKING — transport toward membrane
+    // DOCKING — directed transport to membrane
     // =================================================
     if (v.state === "DOCKING") {
 
       v.timer++;
 
-      v.x -= 0.45; // slow, visible transport
+      // Visual-only approach (vesiclePool enforces limits)
+      v.x -= 0.35;
       const targetY = CENTER_Y + v.dockOffsetY;
       v.y += (targetY - v.y) * 0.08;
 
       if (v.timer >= DOCK_TIME) {
 
-        v.x = MEMBRANE_X + 3;
+        v.x = MEMBRANE_X + 2;
         v.y = targetY;
 
         v.fusionX = v.x;
@@ -119,7 +130,7 @@ function updateVesicleRelease() {
             x: v.fusionX,
             y: v.fusionY,
             normalX: -1,
-            strength: 0.3
+            strength: 0.35
           }
         }));
       }
@@ -164,7 +175,7 @@ function updateVesicleRelease() {
       v.timer++;
       v.flatten = constrain(v.timer / MERGE_TIME, 0, 1);
 
-      // Vesicle flattens into membrane
+      // Vesicle collapses into membrane
       v.x = MEMBRANE_X + 1;
       v.y += (CENTER_Y - v.y) * 0.05;
 
@@ -175,8 +186,8 @@ function updateVesicleRelease() {
           spawnEndocytosisSeed(v.fusionX, v.fusionY);
         }
 
-        // Vesicle ceases to exist
-        synapseVesicles.splice(i, 1);
+        // Remove vesicle from pool
+        vesicles.splice(i, 1);
       }
     }
   }
