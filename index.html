@@ -129,19 +129,20 @@
 ===================================================== -->
 
 <!-- Synapse geometry -->
-<script src="js/synapse/neuronShape.js"></script>
-<script src="js/synapse/astrocyteSynapse.js"></script>
+<script src="js/synapse/geometry/neuronShape.js"></script>
+<script src="js/synapse/geometry/astrocyteSynapse.js"></script>
 <script src="js/synapse/geometry/vesicleGeometry.js"></script>
-  
+<script src="js/synapse/geometry/vesiclePooling.js"></script>
+ 
 
 <!-- SYNAPSE CONSTANTS -->
 <script src="js/synapse/constants/synapseConstants.js"></script>
 
-<!-- 🫧 Vesicle lifecycle (MUST load BEFORE preSynapse) -->
-<script src="js/synapse/vesicleLoading.js"></script>
-<script src="js/synapse/vesicleRelease.js"></script>
-<script src="js/synapse/synapticBurst.js"></script>
-<script src="js/synapse/vesicleRecycling.js"></script>
+<!-- Synapse Physiology -->
+<script src="js/synapse/physiology/vesicleLoading.js"></script>
+<script src="js/synapse/physiology/vesicleRelease.js"></script>
+<script src="js/synapse/physiology/synapticBurst.js"></script>
+<script src="js/synapse/physiology/vesicleRecycling.js"></script>
 
   
 <!-- ⚡ Terminal AP (MUST load BEFORE preSynapse) -->
