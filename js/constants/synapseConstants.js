@@ -73,8 +73,67 @@ window.SYNAPSE_VESICLE_STROKE = 4;
 // =====================================================
 // VESICLE POOL SIZE
 // =====================================================
-
+//
+// Reduced for readability and biological realism
+//
 window.SYNAPSE_MAX_VESICLES = 7;
+
+
+// =====================================================
+// VESICLE LOADING PHYSIOLOGY (AUTHORITATIVE)
+// =====================================================
+//
+// All loading behavior, timing, and spatial tuning
+// MUST be adjusted here — nowhere else.
+//
+
+// -----------------------------------------------------
+// Forward cytosolic loading band (relative to stop plane)
+// -----------------------------------------------------
+window.SYNAPSE_LOAD_MIN_OFFSET = 10;
+window.SYNAPSE_LOAD_MAX_OFFSET = 46;
+
+// -----------------------------------------------------
+// Vesicle spatial distribution
+// -----------------------------------------------------
+//
+// Controls vertical dispersion during spawning.
+// 1.0 = full capsule usage
+//
+window.SYNAPSE_VESICLE_Y_SPREAD = 0.9;
+
+// -----------------------------------------------------
+// Proton (H⁺) priming dynamics
+// -----------------------------------------------------
+//
+// Faster than diffusion but still smooth.
+// Lifetime must exceed travel distance.
+//
+window.SYNAPSE_H_SPEED = 0.22;
+window.SYNAPSE_H_LIFE  = 260;
+
+// -----------------------------------------------------
+// ATP priming + hydrolysis dynamics
+// -----------------------------------------------------
+//
+// ATP must:
+// • reach vesicle
+// • collide
+// • bounce
+// • then fade as ADP + Pi
+//
+window.SYNAPSE_ATP_SPEED  = 0.26;
+window.SYNAPSE_ATP_LIFE   = 320;
+window.SYNAPSE_ATP_BOUNCE = 0.45;
+
+// -----------------------------------------------------
+// Neurotransmitter loading
+// -----------------------------------------------------
+//
+// Symbolic vesicle content and packing rate
+//
+window.SYNAPSE_NT_TARGET    = 18;
+window.SYNAPSE_NT_PACK_RATE = 0.35;
 
 
 // =====================================================
@@ -122,7 +181,7 @@ window.drawSynapseConstantDebug = function () {
   );
 
   // ---------------------------------------------
-  // DOCKING PLANE (FUSION TARGET)
+  // DOCKING PLANE
   // ---------------------------------------------
   fill(40, 120, 255, 220);
   circle(
@@ -170,7 +229,7 @@ window.drawSynapseConstantDebug = function () {
   );
 
   // ---------------------------------------------
-  // BACK-LOADING ZONE
+  // BACK-POOL CENTER
   // ---------------------------------------------
   fill(100, 200, 255, 180);
   circle(
