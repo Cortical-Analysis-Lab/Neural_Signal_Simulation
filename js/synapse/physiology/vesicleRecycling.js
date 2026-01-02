@@ -7,12 +7,12 @@ console.log("♻️ vesicleRecycling loaded");
 //
 // ✔ Slow budding (visual)
 // ✔ Gradual vesicle formation
-// ✔ Migration back to cytosolic reserve
+// ✔ Safe return to cytosolic reserve
 // ✔ No coupling to release or NT logic
 //
 // ⚠️ NO motion authority
 // ⚠️ NO membrane enforcement
-// ⚠️ Uses window.synapseVesicles ONLY
+// ⚠️ VesiclePool owns placement & spacing
 // =====================================================
 
 
@@ -27,11 +27,9 @@ function spawnEndocytosisSeed(x, y) {
     x,
     y,
 
-    // lifecycle
     timer: 0,
     stage: "PATCH", // PATCH → BUD → PINCH
 
-    // geometry
     radius: 2,
     alpha: 180
   });
@@ -46,10 +44,7 @@ function updateVesicleRecycling() {
   const seeds    = window.endocytosisSeeds;
   const vesicles = window.synapseVesicles || [];
 
-  const CENTER_X = window.SYNAPSE_TERMINAL_CENTER_X;
-  const CENTER_Y = window.SYNAPSE_TERMINAL_CENTER_Y;
-  const RADIUS   = window.SYNAPSE_TERMINAL_RADIUS;
-  const BACK     = window.SYNAPSE_BACK_OFFSET_X;
+  const MAX_VES  = window.SYNAPSE_MAX_VESICLES;
   const V_RADIUS = window.SYNAPSE_VESICLE_RADIUS;
 
   for (let i = seeds.length - 1; i >= 0; i--) {
@@ -70,16 +65,12 @@ function updateVesicleRecycling() {
     }
 
     // =================================================
-    // BUD — vesicle grows inward
+    // BUD — vesicle grows (NO TRANSLATION)
     // =================================================
     else if (e.stage === "BUD") {
 
       e.radius = lerp(6, V_RADIUS, e.timer / 60);
       e.alpha  = lerp(180, 220, e.timer / 60);
-
-      // Gentle inward pull (visual only)
-      e.x += 0.35;
-      e.y += (CENTER_Y - e.y) * 0.03;
 
       if (e.timer >= 60) {
         e.stage = "PINCH";
@@ -88,7 +79,7 @@ function updateVesicleRecycling() {
     }
 
     // =================================================
-    // PINCH — scission & vesicle birth
+    // PINCH — scission & vesicle request
     // =================================================
     else if (e.stage === "PINCH") {
 
@@ -96,19 +87,26 @@ function updateVesicleRecycling() {
 
       if (e.timer >= 30) {
 
-        // Spawn ONE new EMPTY vesicle in cytosol
-        const a = random(TWO_PI);
-        const r = random(RADIUS * 0.25, RADIUS * 0.55);
+        // Respect pool size
+        if (vesicles.length < MAX_VES) {
 
-        vesicles.push({
-          x: CENTER_X + BACK + cos(a) * r * 0.5,
-          y: CENTER_Y + sin(a) * r * 0.5,
+          // Defer placement to vesiclePool
+          if (typeof requestNewEmptyVesicle === "function") {
+            requestNewEmptyVesicle();
+          } else {
+            // Fallback (safe)
+            vesicles.push({
+              x: window.SYNAPSE_TERMINAL_CENTER_X +
+                 window.SYNAPSE_BACK_OFFSET_X,
+              y: window.SYNAPSE_TERMINAL_CENTER_Y,
 
-          state: "empty",
-          primedH: false,
-          primedATP: false,
-          nts: []
-        });
+              state: "empty",
+              primedH: false,
+              primedATP: false,
+              nts: []
+            });
+          }
+        }
 
         seeds.splice(i, 1);
       }
