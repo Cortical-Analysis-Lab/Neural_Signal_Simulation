@@ -15,30 +15,35 @@ let synapseH   = [];
 let synapseATP = [];
 
 // -----------------------------------------------------
-// CONSTANT ALIASES (AUTHORITATIVE)
+// AUTHORITATIVE GEOMETRY (GLOBAL)
 // -----------------------------------------------------
-const CENTER_X     = window.SYNAPSE_TERMINAL_CENTER_X;
-const CENTER_Y     = window.SYNAPSE_TERMINAL_CENTER_Y;
-const RADIUS       = window.SYNAPSE_TERMINAL_RADIUS;
+const CX = window.SYNAPSE_TERMINAL_CENTER_X;
+const CY = window.SYNAPSE_TERMINAL_CENTER_Y;
+const R  = window.SYNAPSE_TERMINAL_RADIUS;
 
-const DOCK_X       = window.SYNAPSE_DOCK_X;
-const STOP_X       = window.SYNAPSE_VESICLE_STOP_X;
+const STOP_X = window.SYNAPSE_VESICLE_STOP_X;
 
-const V_RADIUS     = window.SYNAPSE_VESICLE_RADIUS;
-const V_STROKE     = window.SYNAPSE_VESICLE_STROKE;
-const MAX_VESICLES = window.SYNAPSE_MAX_VESICLES;
-
-// -----------------------------------------------------
-// FORWARD CYTOSOLIC LOADING BAND
-// -----------------------------------------------------
-const LOAD_MIN_X = STOP_X;
-const LOAD_MAX_X = STOP_X + 26;
+const V_RADIUS = window.SYNAPSE_VESICLE_RADIUS;
+const V_STROKE = window.SYNAPSE_VESICLE_STROKE;
+const MAX_VES  = window.SYNAPSE_MAX_VESICLES;
 
 // -----------------------------------------------------
-// LOADER CONTROL
+// AUTHORITATIVE LOADING PHYSIOLOGY (GLOBAL)
 // -----------------------------------------------------
-let loaderActive = false;
-let loaderIndex  = 0;
+const LOAD_MIN_X = STOP_X + window.SYNAPSE_LOAD_MIN_OFFSET;
+const LOAD_MAX_X = STOP_X + window.SYNAPSE_LOAD_MAX_OFFSET;
+
+const Y_SPREAD   = window.SYNAPSE_VESICLE_Y_SPREAD;
+
+const H_SPEED    = window.SYNAPSE_H_SPEED;
+const H_LIFE     = window.SYNAPSE_H_LIFE;
+
+const ATP_SPEED  = window.SYNAPSE_ATP_SPEED;
+const ATP_LIFE   = window.SYNAPSE_ATP_LIFE;
+const ATP_BOUNCE = window.SYNAPSE_ATP_BOUNCE;
+
+const NT_TARGET  = window.SYNAPSE_NT_TARGET;
+const NT_RATE    = window.SYNAPSE_NT_PACK_RATE;
 
 // -----------------------------------------------------
 // STATES
@@ -58,13 +63,7 @@ function vesicleFill()   { return color(245, 225, 140, 40); }
 function ntColor()       { return color(185, 120, 255, 210); }
 
 // -----------------------------------------------------
-// LOADING PARAMETERS
-// -----------------------------------------------------
-const NT_TARGET    = 18;
-const NT_PACK_RATE = 0.35;
-
-// -----------------------------------------------------
-// SOFT GEOMETRY CONSTRAINT
+// GEOMETRY CONSTRAINT (AUTHORITATIVE CAPSULE)
 // -----------------------------------------------------
 function constrainToTerminal(v) {
 
@@ -73,20 +72,20 @@ function constrainToTerminal(v) {
   if (v.x < LOAD_MIN_X) v.x += (LOAD_MIN_X - v.x) * 0.08;
   if (v.x > LOAD_MAX_X) v.x += (LOAD_MAX_X - v.x) * 0.06;
 
-  const dx = v.x - CENTER_X;
-  const dy = v.y - CENTER_Y;
+  const dx = v.x - CX;
+  const dy = v.y - CY;
   const d  = sqrt(dx*dx + dy*dy);
 
-  const maxR = RADIUS - V_RADIUS - 2;
+  const maxR = R - V_RADIUS - 2;
   if (d > maxR) {
     const s = maxR / d;
-    v.x = CENTER_X + dx * s;
-    v.y = CENTER_Y + dy * s;
+    v.x = CX + dx * s;
+    v.y = CY + dy * s;
   }
 }
 
 // -----------------------------------------------------
-// SOFT VESICLE REPULSION
+// SOFT VESICLE–VESICLE REPULSION
 // -----------------------------------------------------
 function applyVesicleRepulsion(v) {
   for (const u of synapseVesicles) {
@@ -106,16 +105,16 @@ function applyVesicleRepulsion(v) {
 }
 
 // -----------------------------------------------------
-// SPAWN EMPTY VESICLE
+// SPAWN EMPTY VESICLE (VOLUMETRIC, NOT LINEAR)
 // -----------------------------------------------------
 function spawnSynapseEmptyVesicle() {
 
   const a = random(TWO_PI);
-  const r = random(RADIUS * 0.25, RADIUS * 0.55);
+  const r = random(R * 0.25, R * 0.6);
 
   synapseVesicles.push({
     x: random(LOAD_MIN_X, LOAD_MAX_X),
-    y: CENTER_Y + sin(a) * r * 0.6,
+    y: CY + sin(a) * r * Y_SPREAD,
     state: VESICLE_STATE.EMPTY,
     primedH: false,
     primedATP: false,
@@ -124,32 +123,30 @@ function spawnSynapseEmptyVesicle() {
 }
 
 // -----------------------------------------------------
-// SPAWN PRIMING PARTICLES (CONCURRENT)
+// SPAWN PRIMING PARTICLES (H+ + ATP CONCURRENT)
 // -----------------------------------------------------
 function spawnPrimingParticles(v) {
 
-  // ---------- H+ ----------
   const a1 = random(TWO_PI);
   synapseH.push({
-    x: v.x + cos(a1) * 46,
-    y: v.y + sin(a1) * 46,
-    vx: -cos(a1) * 0.35,
-    vy: -sin(a1) * 0.35,
+    x: v.x + cos(a1) * 50,
+    y: v.y + sin(a1) * 50,
+    vx: -cos(a1) * H_SPEED,
+    vy: -sin(a1) * H_SPEED,
     target: v,
-    life: 120
+    life: H_LIFE
   });
 
-  // ---------- ATP ----------
   const a2 = random(TWO_PI);
   synapseATP.push({
-    x: v.x + cos(a2) * 52,
-    y: v.y + sin(a2) * 52,
-    vx: -cos(a2) * 0.42,
-    vy: -sin(a2) * 0.42,
+    x: v.x + cos(a2) * 56,
+    y: v.y + sin(a2) * 56,
+    vx: -cos(a2) * ATP_SPEED,
+    vy: -sin(a2) * ATP_SPEED,
     state: "ATP",
     alpha: 255,
     target: v,
-    life: 160
+    life: ATP_LIFE
   });
 }
 
@@ -158,25 +155,19 @@ function spawnPrimingParticles(v) {
 // -----------------------------------------------------
 function updateSynapseVesicles() {
 
-  while (synapseVesicles.length < MAX_VESICLES) {
+  while (synapseVesicles.length < MAX_VES) {
     spawnSynapseEmptyVesicle();
-  }
-
-  if (!loaderActive) {
-    const v = synapseVesicles[loaderIndex % synapseVesicles.length];
-    if (v.state === VESICLE_STATE.EMPTY) {
-      v.state = VESICLE_STATE.PRIMING;
-      v.primedH = false;
-      v.primedATP = false;
-      loaderActive = true;
-      spawnPrimingParticles(v);
-    }
-    loaderIndex++;
   }
 
   for (const v of synapseVesicles) {
 
-    // ---------------- PRIMING COMPLETE? ----------------
+    if (v.state === VESICLE_STATE.EMPTY) {
+      v.state = VESICLE_STATE.PRIMING;
+      v.primedH = false;
+      v.primedATP = false;
+      spawnPrimingParticles(v);
+    }
+
     if (
       v.state === VESICLE_STATE.PRIMING &&
       v.primedH &&
@@ -186,10 +177,9 @@ function updateSynapseVesicles() {
       v.nts.length = 0;
     }
 
-    // ---------------- LOADING ----------------
     if (v.state === VESICLE_STATE.LOADING) {
 
-      if (v.nts.length < NT_TARGET && random() < NT_PACK_RATE) {
+      if (v.nts.length < NT_TARGET && random() < NT_RATE) {
         v.nts.push({
           x: random(-3, 3),
           y: random(-3, 3),
@@ -200,7 +190,6 @@ function updateSynapseVesicles() {
 
       if (v.nts.length >= NT_TARGET) {
         v.state = VESICLE_STATE.LOADED;
-        loaderActive = false;
       }
     }
 
@@ -251,11 +240,11 @@ function updatePrimingParticles() {
       if (dist(a.x, a.y, a.target.x, a.target.y) < V_RADIUS) {
         a.state = "ADP";
         a.target.primedATP = true;
-        a.vx *= -0.45;
-        a.vy *= -0.45;
+        a.vx *= -ATP_BOUNCE;
+        a.vy *= -ATP_BOUNCE;
       }
     } else {
-      a.alpha -= 1.2;
+      a.alpha -= 1.0;
     }
 
     a.life--;
