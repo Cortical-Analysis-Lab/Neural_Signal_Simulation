@@ -31,7 +31,9 @@ const AP_PATH_OFFSET = {
 };
 
 // =====================================================
-// PATH TRANSFORM (ORDER MATTERS)
+// PATH TRANSFORM
+// ✔ SCALE → FLIP → OFFSET
+// ✔ CALLED PER DRAW (CHEAP, SAFE)
 // =====================================================
 function calibratePath(path) {
   return path.map(p => ({
@@ -43,18 +45,21 @@ function calibratePath(path) {
 // =====================================================
 // PRESYNAPTIC NEURON
 // GEOMETRY + VISUALS ONLY
-// (NO STATE UPDATES, NO FLIPS)
+// ❌ NO PHYSICS
+// ❌ NO STATE UPDATES
+// ❌ NO COORDINATE FLIPS
 // =====================================================
 function drawPreSynapse() {
   push();
 
   // -----------------------------------------------
-  // Neuron geometry (pure, canonical orientation)
+  // Neuron geometry (canonical orientation)
   // -----------------------------------------------
   drawTNeuronShape(1);
 
   // -----------------------------------------------
-  // Vesicles (DRAW ONLY — physics handled upstream)
+  // Vesicles (DRAW ONLY)
+  // Physics handled upstream in synapse lifecycle
   // -----------------------------------------------
   if (typeof drawSynapseVesicles === "function") {
     drawSynapseVesicles();
@@ -72,7 +77,7 @@ function drawPreSynapse() {
   // -----------------------------------------------
   // Optional debug: AP path dots
   // -----------------------------------------------
-  if (window.apActive) {
+  if (window.apActive === true) {
     drawAPDebugDots(calibratedPath);
   }
 
@@ -81,6 +86,7 @@ function drawPreSynapse() {
 
 // =====================================================
 // DEBUG: FLASHING GREEN AP DOTS
+// (Visual sanity check only)
 // =====================================================
 function drawAPDebugDots(path) {
   const pulse = 0.5 + 0.5 * sin(frameCount * 0.2);
@@ -102,7 +108,8 @@ function drawAPDebugDots(path) {
 }
 
 // =====================================================
-// AP → VESICLE RELEASE COUPLING (EVENT ONLY)
+// AP → VESICLE RELEASE COUPLING
+// EVENT-ONLY, SINGLE CALL
 // =====================================================
 // Called ONCE by terminalAP.js when AP reaches terminal
 function triggerPresynapticRelease() {
