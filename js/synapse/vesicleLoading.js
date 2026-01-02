@@ -2,7 +2,6 @@ console.log("🫧 synapse/vesicleLoading loaded");
 
 // =====================================================
 // SYNAPTIC VESICLE LOADING SYSTEM
-// Presynaptic cytosol → filled vesicle
 // =====================================================
 
 // -----------------------------------------------------
@@ -15,7 +14,7 @@ let synapseH   = [];
 let synapseATP = [];
 
 // -----------------------------------------------------
-// AUTHORITATIVE GEOMETRY
+// GEOMETRY (AUTHORITATIVE)
 // -----------------------------------------------------
 const CX = window.SYNAPSE_TERMINAL_CENTER_X;
 const CY = window.SYNAPSE_TERMINAL_CENTER_Y;
@@ -28,7 +27,7 @@ const V_STROKE = window.SYNAPSE_VESICLE_STROKE;
 const MAX_VES  = window.SYNAPSE_MAX_VESICLES;
 
 // -----------------------------------------------------
-// AUTHORITATIVE PHYSIOLOGY
+// PHYSIOLOGY (AUTHORITATIVE)
 // -----------------------------------------------------
 const LOAD_MIN_X = STOP_X + window.SYNAPSE_LOAD_MIN_OFFSET;
 const LOAD_MAX_X = STOP_X + window.SYNAPSE_LOAD_MAX_OFFSET;
@@ -44,7 +43,7 @@ const NT_TARGET  = window.SYNAPSE_NT_TARGET;
 const NT_RATE    = window.SYNAPSE_NT_PACK_RATE;
 
 // -----------------------------------------------------
-// MOTION (UNCHANGED FLOATING)
+// MOTION
 // -----------------------------------------------------
 const V_THERMAL = 0.018;
 const V_DRAG    = 0.992;
@@ -55,7 +54,7 @@ const V_DRAG    = 0.992;
 const VESICLE_STATE = {
   EMPTY:   "empty",
   PRIMING:"priming",
-  PRIMED: "primed",   // 👈 NEW VISIBLE DWELL
+  PRIMED: "primed",
   LOADING:"loading",
   LOADED: "loaded"
 };
@@ -68,10 +67,10 @@ function vesicleFill()   { return color(245, 225, 140, 40); }
 function ntColor()       { return color(185, 120, 255, 210); }
 
 // -----------------------------------------------------
-// ACTIVE VESICLE (SERIAL)
+// STRICT SINGLE-VESICLE GATE
 // -----------------------------------------------------
-function getActiveVesicle() {
-  return synapseVesicles.find(v =>
+function hasActiveVesicle() {
+  return synapseVesicles.some(v =>
     v.state === VESICLE_STATE.PRIMING ||
     v.state === VESICLE_STATE.PRIMED ||
     v.state === VESICLE_STATE.LOADING
@@ -79,7 +78,7 @@ function getActiveVesicle() {
 }
 
 // -----------------------------------------------------
-// SPAWN EMPTY VESICLE
+// SPAWN EMPTY VESICLE (SCATTERED)
 // -----------------------------------------------------
 function spawnSynapseEmptyVesicle() {
 
@@ -110,13 +109,13 @@ function spawnSynapseEmptyVesicle() {
     state: VESICLE_STATE.EMPTY,
     primedH: false,
     primedATP: false,
-    primedTimer: 0,   // 👈 new
+    primedTimer: 0,
     nts: []
   });
 }
 
 // -----------------------------------------------------
-// SPAWN PRIMING PARTICLES
+// SPAWN PRIMING PARTICLES (ONE TARGET ONLY)
 // -----------------------------------------------------
 function spawnPrimingParticles(v) {
 
@@ -152,9 +151,8 @@ function updateSynapseVesicles() {
     spawnSynapseEmptyVesicle();
   }
 
-  const active = getActiveVesicle();
-
-  if (!active) {
+  // 🔒 HARD SERIAL ENFORCEMENT
+  if (!hasActiveVesicle()) {
     const next = synapseVesicles.find(v => v.state === VESICLE_STATE.EMPTY);
     if (next) {
       next.state = VESICLE_STATE.PRIMING;
@@ -169,15 +167,22 @@ function updateSynapseVesicles() {
   for (const v of synapseVesicles) {
     v.vx += random(-V_THERMAL, V_THERMAL);
     v.vy += random(-V_THERMAL, V_THERMAL);
+
     v.x += v.vx;
     v.y += v.vy;
+
     v.vx *= V_DRAG;
     v.vy *= V_DRAG;
+
+    // 🚫 HARD STOP PLANE (NO CROSSING)
+    if (v.x < STOP_X + V_RADIUS) {
+      v.x = STOP_X + V_RADIUS;
+      v.vx = abs(v.vx) * 0.3;
+    }
   }
 
   for (const v of synapseVesicles) {
 
-    // -------- PRIMED DWELL --------
     if (
       v.state === VESICLE_STATE.PRIMING &&
       v.primedH && v.primedATP
@@ -187,16 +192,14 @@ function updateSynapseVesicles() {
     }
 
     if (v.state === VESICLE_STATE.PRIMED) {
-      if (++v.primedTimer > 45) {   // 👈 visible pause
+      if (++v.primedTimer > 45) {
         v.state = VESICLE_STATE.LOADING;
         v.nts.length = 0;
       }
     }
 
-    // -------- LOADING --------
     if (v.state === VESICLE_STATE.LOADING) {
 
-      // Slow, visible accumulation
       if (v.nts.length < NT_TARGET && frameCount % 6 === 0) {
         v.nts.push({
           x: random(-3, 3),
@@ -220,6 +223,20 @@ function updateSynapseVesicles() {
         p.vy *= -1;
       }
     }
+
+    // Capsule boundary
+    const dx = v.x - CX;
+    const dy = v.y - CY;
+    const d  = sqrt(dx*dx + dy*dy);
+    const maxR = R - V_RADIUS - 2;
+
+    if (d > maxR) {
+      const s = maxR / d;
+      v.x = CX + dx * s;
+      v.y = CY + dy * s;
+      v.vx *= -0.4;
+      v.vy *= -0.4;
+    }
   }
 
   updatePrimingParticles();
@@ -230,7 +247,6 @@ function updateSynapseVesicles() {
 // -----------------------------------------------------
 function updatePrimingParticles() {
 
-  // H+
   for (let i = synapseH.length - 1; i >= 0; i--) {
     const h = synapseH[i];
     h.x += h.vx;
@@ -246,7 +262,6 @@ function updatePrimingParticles() {
     if (h.life <= 0) synapseH.splice(i, 1);
   }
 
-  // ATP
   for (let i = synapseATP.length - 1; i >= 0; i--) {
     const a = synapseATP[i];
     a.x += a.vx;
@@ -260,7 +275,7 @@ function updatePrimingParticles() {
         a.vy *= -ATP_BOUNCE;
       }
     } else {
-      a.alpha -= 0.8;   // slower fade for visibility
+      a.alpha -= 0.8;
     }
 
     a.life--;
@@ -289,7 +304,6 @@ function drawSynapseVesicles() {
     }
   }
 
-  // Draw priming particles LAST (on top)
   fill(255, 90, 90);
   textSize(12);
   for (const h of synapseH) {
