@@ -26,18 +26,26 @@ const V_MIN_SEP = 2.1;
 // -----------------------------------------------------
 // CYTOSOLIC RESERVE RECTANGLE (AUTHORITATIVE)
 // -----------------------------------------------------
-// Vertical pool next to T-shaft
-// All FREE vesicles must remain inside this box
+// • 4× wider
+// • 1.5× taller
+// • Shifted BACK into cytosol (away from membrane)
 // -----------------------------------------------------
 function getVesicleReserveRect() {
 
   const r = window.SYNAPSE_VESICLE_RADIUS;
 
-  const xMin = window.SYNAPSE_VESICLE_STOP_X + 12;
-  const xMax = xMin + 36;
+  // -----------------------------------------------
+  // HORIZONTAL (DEPTH INTO CYTOSOL)
+  // -----------------------------------------------
+  // Start farther from stop plane and extend backward
+  const xMax = window.SYNAPSE_VESICLE_STOP_X + 18;
+  const xMin = xMax + (36 * 4); // 4× wider
 
+  // -----------------------------------------------
+  // VERTICAL (HEIGHT)
+  // -----------------------------------------------
   const yCenter = window.SYNAPSE_TERMINAL_CENTER_Y;
-  const yHalf   = window.SYNAPSE_TERMINAL_RADIUS * 0.55;
+  const yHalf   = window.SYNAPSE_TERMINAL_RADIUS * 0.55 * 1.5;
 
   return {
     xMin: xMin + r,
@@ -72,7 +80,7 @@ function updateVesicleMotion() {
 
   applyBrownianMotion(vesicles);
   resolveVesicleCollisions(vesicles);
-  enforceReserveRectangle(vesicles);   // ⬅️ NEW
+  enforceReserveRectangle(vesicles);
   enforceMembraneConstraints(vesicles);
   enforceCapsuleBoundary(vesicles);
 }
@@ -162,8 +170,7 @@ function enforceReserveRectangle(vesicles) {
     if (v.x < rect.xMin) {
       v.x = rect.xMin;
       v.vx = abs(v.vx) * V_REBOUND;
-    }
-    else if (v.x > rect.xMax) {
+    } else if (v.x > rect.xMax) {
       v.x = rect.xMax;
       v.vx = -abs(v.vx) * V_REBOUND;
     }
@@ -172,8 +179,7 @@ function enforceReserveRectangle(vesicles) {
     if (v.y < rect.yMin) {
       v.y = rect.yMin;
       v.vy = abs(v.vy) * V_REBOUND;
-    }
-    else if (v.y > rect.yMax) {
+    } else if (v.y > rect.yMax) {
       v.y = rect.yMax;
       v.vy = -abs(v.vy) * V_REBOUND;
     }
@@ -265,8 +271,8 @@ window.drawVesicleReserveDebug = function () {
 
   push();
   noFill();
-  stroke(80, 160, 255, 180);
-  strokeWeight(2);
+  stroke(80, 160, 255, 220);
+  strokeWeight(3);
   rectMode(CORNERS);
   rect(r.xMin, r.yMin, r.xMax, r.yMax);
   pop();
