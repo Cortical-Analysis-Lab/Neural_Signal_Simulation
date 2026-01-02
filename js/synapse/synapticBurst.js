@@ -7,23 +7,29 @@ console.log("🫧 synapticBurst loaded");
 //
 // ✔ Fan-shaped release
 // ✔ Biased away from presynaptic membrane
-// ✔ Distributed origin (fusion pore)
-// ✔ No jetting / no clumping
+// ✔ Distributed fusion pore origin
+// ✔ Diffusion-dominated (no jetting)
+// ✔ No clumping / no overlap artifacts
 // =====================================================
 
+// -----------------------------------------------------
+// STORAGE (GLOBAL, SAFE)
+// -----------------------------------------------------
 window.synapticNTs = window.synapticNTs || [];
 
 // -----------------------------------------------------
-// TUNING PARAMETERS
+// TUNING PARAMETERS (BIOLOGICAL SCALE)
 // -----------------------------------------------------
-const NT_BASE_COUNT      = 18;
-const NT_ARC_WIDTH       = Math.PI * 0.55;   // ~100° fan
-const NT_SPEED_MIN       = 0.35;
-const NT_SPEED_MAX       = 1.1;
-const NT_DRAG            = 0.965;
-const NT_DIFFUSION       = 0.08;
-const NT_LIFE_MIN        = 90;
-const NT_LIFE_MAX        = 150;
+const NT_BASE_COUNT   = 18;
+const NT_ARC_WIDTH   = Math.PI * 0.55;   // ~100° fan
+const NT_SPEED_MIN   = 0.25;
+const NT_SPEED_MAX   = 0.85;
+const NT_DRAG        = 0.968;
+const NT_DIFFUSION   = 0.07;
+
+const NT_LIFE_MIN    = 90;
+const NT_LIFE_MAX    = 150;
+const NT_RADIUS      = 3;
 
 // -----------------------------------------------------
 // EVENT LISTENER — BIOLOGICAL RELEASE
@@ -31,9 +37,9 @@ const NT_LIFE_MAX        = 150;
 // Expected payload:
 // {
 //   x, y,
-//   normalX: -1 or +1,
-//   spread: 0–1 (optional),
-//   strength: 0–1 (optional)
+//   normalX: -1 | +1   (cleft direction)
+//   spread: 0–1        (fan tightness)
+//   strength: 0–1     (quantal size)
 // }
 // -----------------------------------------------------
 window.addEventListener("synapticRelease", (e) => {
@@ -41,8 +47,8 @@ window.addEventListener("synapticRelease", (e) => {
   const {
     x,
     y,
-    normalX = -1,
-    spread  = 1,
+    normalX  = -1,
+    spread   = 1,
     strength = 1
   } = e.detail;
 
@@ -51,16 +57,19 @@ window.addEventListener("synapticRelease", (e) => {
   for (let i = 0; i < count; i++) {
 
     // ---------------------------------------------
-    // Angular fan around membrane normal
+    // Angular fan centered on membrane normal
     // ---------------------------------------------
+    const baseAngle = normalX < 0 ? Math.PI : 0;
+
     const theta =
-      atan2(0, normalX) +
+      baseAngle +
       random(-NT_ARC_WIDTH, NT_ARC_WIDTH) * spread;
 
     const speed = random(NT_SPEED_MIN, NT_SPEED_MAX);
 
     // ---------------------------------------------
     // Distributed fusion pore origin
+    // (prevents point-source jetting)
     // ---------------------------------------------
     const ox = x + random(-2.5, 2.5);
     const oy = y + random(-3.5, 3.5);
@@ -79,27 +88,27 @@ window.addEventListener("synapticRelease", (e) => {
 });
 
 // -----------------------------------------------------
-// UPDATE — DIFFUSION + DRAG
+// UPDATE — DIFFUSION DOMINATED
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
   for (let i = synapticNTs.length - 1; i >= 0; i--) {
     const p = synapticNTs[i];
 
-    // Diffusive jitter (Brownian-like)
+    // Brownian diffusion (dominant)
     p.vx += random(-NT_DIFFUSION, NT_DIFFUSION);
     p.vy += random(-NT_DIFFUSION, NT_DIFFUSION);
 
-    // Integrate motion
+    // Integrate
     p.x += p.vx;
     p.y += p.vy;
 
-    // Drag
+    // Drag (cleft viscosity)
     p.vx *= NT_DRAG;
     p.vy *= NT_DRAG;
 
-    // Fade
-    p.alpha -= 1.8;
+    // Fade & lifetime
+    p.alpha -= 1.6;
     p.life--;
 
     if (p.life <= 0 || p.alpha <= 0) {
@@ -118,7 +127,7 @@ function drawSynapticBurst() {
 
   for (const p of synapticNTs) {
     fill(185, 120, 255, p.alpha);
-    circle(p.x, p.y, 3);
+    circle(p.x, p.y, NT_RADIUS);
   }
 
   blendMode(BLEND);
