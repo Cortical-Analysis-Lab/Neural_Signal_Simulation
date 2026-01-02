@@ -23,14 +23,21 @@ const RADIUS       = window.SYNAPSE_TERMINAL_RADIUS;
 const BACK_OFFSET  = window.SYNAPSE_BACK_OFFSET_X;
 
 const DOCK_X       = window.SYNAPSE_DOCK_X;
+const STOP_X       = window.SYNAPSE_VESICLE_STOP_X;
 
 const V_RADIUS     = window.SYNAPSE_VESICLE_RADIUS;
 const V_STROKE     = window.SYNAPSE_VESICLE_STROKE;
 const MAX_VESICLES = window.SYNAPSE_MAX_VESICLES;
 
-// Forward cytosolic loading band
-const LOAD_MIN_X = DOCK_X + 28;
-const LOAD_MAX_X = CENTER_X + BACK_OFFSET + 8;
+// -----------------------------------------------------
+// FORWARD CYTOSOLIC LOADING BAND (PHYSIOLOGICALLY TIGHT)
+// -----------------------------------------------------
+//
+// Vesicles prime just behind the releasable pool,
+// never crossing the vesicle stop plane.
+//
+const LOAD_MIN_X = STOP_X + 10;
+const LOAD_MAX_X = STOP_X + 46;
 
 // -----------------------------------------------------
 // LOADER CONTROL
@@ -56,6 +63,12 @@ function vesicleFill()   { return color(245, 225, 140, 40); }
 function ntColor()       { return color(185, 120, 255, 210); }
 
 // -----------------------------------------------------
+// LOADING PARAMETERS (BIOLOGICALLY REASONABLE)
+// -----------------------------------------------------
+const NT_TARGET    = 18;    // typical vesicle content (symbolic)
+const NT_PACK_RATE = 0.35;  // stochastic packing probability per frame
+
+// -----------------------------------------------------
 // SOFT GEOMETRY CONSTRAINT
 // -----------------------------------------------------
 function constrainToTerminal(v) {
@@ -74,6 +87,28 @@ function constrainToTerminal(v) {
     const s = maxR / d;
     v.x = CENTER_X + dx * s;
     v.y = CENTER_Y + dy * s;
+  }
+}
+
+// -----------------------------------------------------
+// SOFT VESICLE–VESICLE REPULSION (NO OVERLAP)
+// -----------------------------------------------------
+function applyVesicleRepulsion(v) {
+
+  for (const u of synapseVesicles) {
+    if (u === v) continue;
+
+    const dx = v.x - u.x;
+    const dy = v.y - u.y;
+    const d  = sqrt(dx*dx + dy*dy);
+
+    const minD = V_RADIUS * 2.2;
+
+    if (d > 0 && d < minD) {
+      const push = (minD - d) * 0.015;
+      v.x += (dx / d) * push;
+      v.y += (dy / d) * push;
+    }
   }
 }
 
@@ -146,6 +181,7 @@ function updateSynapseVesicles() {
 
   for (const v of synapseVesicles) {
 
+    // ---------------- PRIMING ----------------
     if (v.state === VESICLE_STATE.PRIMING) {
       if (++v.timer > 180) {
         v.state = VESICLE_STATE.LOADING;
@@ -154,23 +190,25 @@ function updateSynapseVesicles() {
       }
     }
 
+    // ---------------- LOADING ----------------
     if (v.state === VESICLE_STATE.LOADING) {
 
-      if (v.nts.length < 18 && frameCount % 12 === 0) {
+      if (v.nts.length < NT_TARGET && random() < NT_PACK_RATE) {
         v.nts.push({
           x: random(-3, 3),
           y: random(-3, 3),
-          vx: random(-0.18, 0.18),
-          vy: random(-0.18, 0.18)
+          vx: random(-0.22, 0.22),
+          vy: random(-0.22, 0.22)
         });
       }
 
-      if (v.nts.length >= 18) {
+      if (v.nts.length >= NT_TARGET) {
         v.state = VESICLE_STATE.LOADED;
         loaderActive = false;
       }
     }
 
+    // ---------------- NT BROWNIAN MOTION ----------------
     for (const p of v.nts) {
       p.x += p.vx;
       p.y += p.vy;
@@ -180,6 +218,7 @@ function updateSynapseVesicles() {
       }
     }
 
+    applyVesicleRepulsion(v);
     constrainToTerminal(v);
   }
 
@@ -200,7 +239,7 @@ function updatePrimingParticles() {
     h.life--;
 
     if (dist(h.x, h.y, h.target.x, h.target.y) < V_RADIUS * 0.85) {
-      synapseH.splice(i, 1); // absorbed into vesicle
+      synapseH.splice(i, 1); // absorbed
       continue;
     }
 
@@ -217,7 +256,6 @@ function updatePrimingParticles() {
     if (a.state === "ATP") {
       for (const v of synapseVesicles) {
         if (dist(a.x, a.y, v.x, v.y) < V_RADIUS) {
-          // bounce + hydrolysis
           a.state = "ADP";
           a.vx *= -0.45;
           a.vy *= -0.45;
