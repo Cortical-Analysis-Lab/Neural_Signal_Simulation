@@ -2,48 +2,42 @@ console.log("🫧 vesiclePool loaded");
 
 // =====================================================
 // VESICLE POOL — MOTION & GEOMETRY AUTHORITY
-// -----------------------------------------------------
-// RESPONSIBILITIES:
+// =====================================================
+//
 // ✔ Vesicle Brownian motion
 // ✔ Vesicle–vesicle collision resolution
 // ✔ Vesicle–membrane & stop-plane enforcement
 // ✔ Capsule boundary enforcement
 //
-// NON-RESPONSIBILITIES:
-// ✘ Chemistry (H+, ATP, NT loading)
-// ✘ State transitions
-// ✘ Rendering
-//
-// This file is the FINAL authority on vesicle position.
-// If a vesicle crosses a boundary, it is a bug HERE.
+// ⚠️ RELEASE STATES ARE EXEMPT FROM MOTION & COLLISIONS
 // =====================================================
 
 
 // -----------------------------------------------------
-// REQUIRED GLOBALS (READ-ONLY)
+// LOCAL MOTION PARAMETERS
 // -----------------------------------------------------
-// window.synapseVesicles  → array of vesicles
-//
-// window.SYNAPSE_TERMINAL_CENTER_X
-// window.SYNAPSE_TERMINAL_CENTER_Y
-// window.SYNAPSE_TERMINAL_RADIUS
-//
-// window.SYNAPSE_VESICLE_RADIUS
-// window.SYNAPSE_VESICLE_STOP_X
-// -----------------------------------------------------
+const V_THERMAL = 0.018;
+const V_DRAG    = 0.992;
+const V_REBOUND = 0.35;
+const V_MIN_SEP = 2.1;
 
 
 // -----------------------------------------------------
-// LOCAL MOTION PARAMETERS (TUNABLE, SAFE)
+// RELEASE STATE GUARD
 // -----------------------------------------------------
-const V_THERMAL = 0.018;   // Brownian energy injection
-const V_DRAG    = 0.992;   // Cytosolic viscosity
-const V_REBOUND = 0.35;    // Wall bounce damping
-const V_MIN_SEP = 2.1;     // Vesicle diameter multiplier
+function isReleaseLocked(v) {
+  return (
+    v.state === "DOCKING" ||
+    v.state === "FUSION_ZIPPER" ||
+    v.state === "FUSION_PORE" ||
+    v.state === "FUSION_OPEN" ||
+    v.state === "MEMBRANE_MERGE"
+  );
+}
 
 
 // -----------------------------------------------------
-// MAIN UPDATE ENTRY POINT
+// MAIN UPDATE
 // -----------------------------------------------------
 function updateVesicleMotion() {
 
@@ -58,25 +52,23 @@ function updateVesicleMotion() {
 
 
 // -----------------------------------------------------
-// BROWNIAN MOTION (LOW-ENERGY, CONTINUOUS)
+// BROWNIAN MOTION
 // -----------------------------------------------------
 function applyBrownianMotion(vesicles) {
 
   for (const v of vesicles) {
 
-    // Initialize velocity if missing
+    if (isReleaseLocked(v)) continue;
+
     if (v.vx === undefined) v.vx = random(-0.02, 0.02);
     if (v.vy === undefined) v.vy = random(-0.02, 0.02);
 
-    // Thermal input
     v.vx += random(-V_THERMAL, V_THERMAL);
     v.vy += random(-V_THERMAL, V_THERMAL);
 
-    // Integrate
     v.x += v.vx;
     v.y += v.vy;
 
-    // Drag
     v.vx *= V_DRAG;
     v.vy *= V_DRAG;
   }
@@ -84,7 +76,7 @@ function applyBrownianMotion(vesicles) {
 
 
 // -----------------------------------------------------
-// VESICLE–VESICLE COLLISIONS (ELASTIC, DAMPED)
+// VESICLE–VESICLE COLLISIONS
 // -----------------------------------------------------
 function resolveVesicleCollisions(vesicles) {
 
@@ -97,6 +89,8 @@ function resolveVesicleCollisions(vesicles) {
       const a = vesicles[i];
       const b = vesicles[j];
 
+      if (isReleaseLocked(a) || isReleaseLocked(b)) continue;
+
       const dx = b.x - a.x;
       const dy = b.y - a.y;
       const d  = sqrt(dx * dx + dy * dy);
@@ -106,14 +100,12 @@ function resolveVesicleCollisions(vesicles) {
         const nx = dx / d;
         const ny = dy / d;
 
-        // Positional separation
         const overlap = (minD - d) * 0.5;
         a.x -= nx * overlap;
         a.y -= ny * overlap;
         b.x += nx * overlap;
         b.y += ny * overlap;
 
-        // Velocity exchange (soft elastic)
         const dvx = b.vx - a.vx;
         const dvy = b.vy - a.vy;
         const impulse = (dvx * nx + dvy * ny) * 0.4;
@@ -129,7 +121,7 @@ function resolveVesicleCollisions(vesicles) {
 
 
 // -----------------------------------------------------
-// MEMBRANE & STOP-PLANE ENFORCEMENT (HARD)
+// STOP-PLANE ENFORCEMENT
 // -----------------------------------------------------
 function enforceMembraneConstraints(vesicles) {
 
@@ -138,7 +130,8 @@ function enforceMembraneConstraints(vesicles) {
 
   for (const v of vesicles) {
 
-    // Vesicles may NEVER cross the stop plane
+    if (isReleaseLocked(v)) continue;
+
     if (v.x < stopX + r) {
       v.x = stopX + r;
       v.vx = abs(v.vx) * V_REBOUND;
@@ -148,7 +141,7 @@ function enforceMembraneConstraints(vesicles) {
 
 
 // -----------------------------------------------------
-// CAPSULE BOUNDARY ENFORCEMENT (RADIAL)
+// CAPSULE BOUNDARY
 // -----------------------------------------------------
 function enforceCapsuleBoundary(vesicles) {
 
@@ -161,6 +154,8 @@ function enforceCapsuleBoundary(vesicles) {
 
   for (const v of vesicles) {
 
+    if (isReleaseLocked(v)) continue;
+
     const dx = v.x - cx;
     const dy = v.y - cy;
     const d  = sqrt(dx * dx + dy * dy);
@@ -171,7 +166,6 @@ function enforceCapsuleBoundary(vesicles) {
       v.x = cx + dx * s;
       v.y = cy + dy * s;
 
-      // Reflect velocity inward
       v.vx *= -V_REBOUND;
       v.vy *= -V_REBOUND;
     }
@@ -180,6 +174,33 @@ function enforceCapsuleBoundary(vesicles) {
 
 
 // -----------------------------------------------------
-// PUBLIC EXPORT (GLOBAL)
+// SAFE SPAWN API (USED BY RECYCLING)
+// -----------------------------------------------------
+window.requestNewEmptyVesicle = function () {
+
+  const vesicles = window.synapseVesicles;
+  if (!vesicles) return;
+
+  if (vesicles.length >= window.SYNAPSE_MAX_VESICLES) return;
+
+  vesicles.push({
+    x: window.SYNAPSE_TERMINAL_CENTER_X +
+       window.SYNAPSE_BACK_OFFSET_X +
+       random(-8, 8),
+
+    y: window.SYNAPSE_TERMINAL_CENTER_Y +
+       random(
+         -window.SYNAPSE_TERMINAL_RADIUS * 0.4,
+          window.SYNAPSE_TERMINAL_RADIUS * 0.4
+       ),
+
+    state: "empty",
+    primedH: false,
+    primedATP: false,
+    nts: []
+  });
+};
+
+
 // -----------------------------------------------------
 window.updateVesicleMotion = updateVesicleMotion;
