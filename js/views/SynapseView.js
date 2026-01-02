@@ -68,7 +68,7 @@ function drawSynapseView() {
   }
 
   // ---------------------------------------------------
-  // VESICLE LIFECYCLE — AUTHORITATIVE ORDER
+  // VESICLE / NT LIFECYCLE — AUTHORITATIVE ORDER
   //
   // ⚠️ MUST RUN BEFORE ANY TRANSFORMS
   // ⚠️ PRESYNAPTIC LOCAL SPACE (UNFLIPPED)
@@ -82,12 +82,11 @@ function drawSynapseView() {
   }
 
   if (typeof updateVesicleRecycling === "function") {
-    updateVesicleRecycling();    // endocytosis → refilling
+    updateVesicleRecycling();    // endocytosis → new vesicles
   }
 
-  // Neurotransmitter diffusion (decoupled system)
   if (typeof updateSynapticBurst === "function") {
-    updateSynapticBurst();
+    updateSynapticBurst();       // neurotransmitter diffusion
   }
 
   // ---------------------------------------------------
@@ -121,16 +120,8 @@ function drawSynapseView() {
   translate(PRE_X, NEURON_Y);
 
   // ---------------------------------------------------
-  // ✅ CRITICAL FRAME FIX
-  // ---------------------------------------------------
-  // Flip ENTIRE presynaptic coordinate system:
-  // • neuron geometry
-  // • vesicles
-  // • docking plane
-  // • AP path
-  //
-  // Vesicle *physics* already ran in unflipped space
-  // This flip is VISUAL ONLY
+  // VISUAL-ONLY COORDINATE FLIP
+  // (Physics already resolved upstream)
   // ---------------------------------------------------
   scale(-1, 1);
 
@@ -142,12 +133,6 @@ function drawSynapseView() {
   // Neurotransmitter visuals (cleft-facing)
   if (typeof drawSynapticBurst === "function") {
     drawSynapticBurst();
-  }
-
-  // 🔵 DEBUG: synapseConstants anchors
-  // These should now align EXACTLY with membrane & vesicles
-  if (typeof drawSynapseConstantDebug === "function") {
-    drawSynapseConstantDebug();
   }
 
   pop();
