@@ -74,7 +74,7 @@ window.SYNAPSE_VESICLE_STROKE = 4;
 // VESICLE POOL SIZE
 // =====================================================
 
-window.SYNAPSE_MAX_VESICLES = 10;
+window.SYNAPSE_MAX_VESICLES = 7;
 
 
 // =====================================================
