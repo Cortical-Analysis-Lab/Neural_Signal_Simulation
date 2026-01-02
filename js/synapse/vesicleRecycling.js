@@ -1,119 +1,124 @@
-console.log("⚡ synapse/vesicleRelease loaded");
+console.log("♻️ synapse/vesicleRecycling loaded");
 
 // =====================================================
-// VESICLE RELEASE — BIOLOGICAL FUSION
-// Docking → Fusion Pore → Membrane Merge
+// VESICLE RECYCLING — BIOLOGICAL ENDOCYTOSIS
+// Membrane Patch → Bud → Pinch → Return
 // =====================================================
 //
-// ✔ Each vesicle gets a unique fusion site
-// ✔ Vesicles do NOT overlap
-// ✔ Fusion is gradual, not instantaneous
-// ✔ NT release is radial into cleft
+// ✔ Slow budding (visual)
+// ✔ Gradual vesicle formation
+// ✔ Migration back to loading zone
+// ✔ No coupling to release or NT logic
 // =====================================================
 
 // -----------------------------------------------------
-// CONFIG
+// ENDOCYTOSIS SEEDS (membrane patches)
 // -----------------------------------------------------
-const FUSION_SPREAD_Y = 26;     // vertical spread of fusion sites
-const FUSION_JITTER_X = 2.5;   // slight membrane roughness
-const FUSION_TIME     = 28;    // frames to fully merge
+window.endocytosisSeeds = window.endocytosisSeeds || [];
+
+// Called by vesicleRelease.js
+function spawnEndocytosisSeed(x, y) {
+  endocytosisSeeds.push({
+    x,
+    y,
+
+    // lifecycle
+    timer: 0,
+    stage: "PATCH", // PATCH → BUD → PINCH → RETURN
+
+    // geometry
+    radius: 2,
+    alpha: 180
+  });
+}
 
 // -----------------------------------------------------
-// AP TRIGGER
+// UPDATE RECYCLING
 // -----------------------------------------------------
-function triggerVesicleReleaseFromAP() {
+function updateVesicleRecycling() {
 
-  // Collect already-used fusion sites to avoid overlap
-  const usedSites = [];
+  const CENTER_X = window.SYNAPSE_TERMINAL_CENTER_X;
+  const CENTER_Y = window.SYNAPSE_TERMINAL_CENTER_Y;
+  const RADIUS   = window.SYNAPSE_TERMINAL_RADIUS;
+  const BACK     = window.SYNAPSE_BACK_OFFSET_X;
+  const V_RADIUS = window.SYNAPSE_VESICLE_RADIUS;
 
-  for (const v of synapseVesicles) {
+  for (let i = endocytosisSeeds.length - 1; i >= 0; i--) {
+    const e = endocytosisSeeds[i];
+    e.timer++;
 
-    if (v.state === VESICLE_STATE.LOADED) {
+    // =================================================
+    // PATCH — membrane indentation
+    // =================================================
+    if (e.stage === "PATCH") {
 
-      // -----------------------------
-      // Assign UNIQUE fusion site
-      // -----------------------------
-      let fy, tries = 0;
+      e.radius = lerp(2, 6, e.timer / 40);
 
-      do {
-        fy =
-          window.SYNAPSE_TERMINAL_CENTER_Y +
-          random(-FUSION_SPREAD_Y, FUSION_SPREAD_Y);
-        tries++;
-      } while (
-        usedSites.some(y => abs(y - fy) < window.SYNAPSE_VESICLE_RADIUS * 1.6) &&
-        tries < 10
-      );
+      if (e.timer > 40) {
+        e.stage = "BUD";
+        e.timer = 0;
+      }
+    }
 
-      usedSites.push(fy);
+    // =================================================
+    // BUD — vesicle grows outward
+    // =================================================
+    else if (e.stage === "BUD") {
 
-      v.fusionX =
-        window.SYNAPSE_DOCK_X + random(-FUSION_JITTER_X, FUSION_JITTER_X);
-      v.fusionY = fy;
+      e.radius = lerp(6, V_RADIUS, e.timer / 60);
+      e.alpha  = lerp(180, 220, e.timer / 60);
 
-      v.state = "DOCKING";
-      v.timer = 0;
-      v.fusionProgress = 0;
+      // Gentle inward pull
+      e.x += 0.3;
+      e.y += (CENTER_Y - e.y) * 0.03;
+
+      if (e.timer > 60) {
+        e.stage = "PINCH";
+        e.timer = 0;
+      }
+    }
+
+    // =================================================
+    // PINCH — scission event
+    // =================================================
+    else if (e.stage === "PINCH") {
+
+      e.radius = lerp(V_RADIUS, V_RADIUS * 0.85, e.timer / 30);
+
+      if (e.timer > 30) {
+
+        // Spawn NEW EMPTY vesicle
+        const a = random(TWO_PI);
+        const r = random(18, RADIUS - 24);
+
+        synapseVesicles.push({
+          x: CENTER_X + BACK + cos(a) * r * 0.5,
+          y: CENTER_Y + sin(a) * r * 0.5,
+
+          dockOffsetY: random(-18, 18),
+          state: VESICLE_STATE.EMPTY,
+          timer: 0,
+          nts: []
+        });
+
+        endocytosisSeeds.splice(i, 1);
+        continue;
+      }
     }
   }
 }
 
 // -----------------------------------------------------
-// UPDATE RELEASE
+// DRAW ENDOCYTOSIS (OPTIONAL BUT HIGHLY RECOMMENDED)
 // -----------------------------------------------------
-function updateVesicleRelease() {
+function drawVesicleRecycling() {
+  push();
+  noStroke();
 
-  for (let i = synapseVesicles.length - 1; i >= 0; i--) {
-    const v = synapseVesicles[i];
-
-    // ---------------------------------------------
-    // DOCKING → FUSION
-    // ---------------------------------------------
-    if (v.state === "DOCKING") {
-
-      // Smooth approach
-      v.x += (v.fusionX - v.x) * 0.22;
-      v.y += (v.fusionY - v.y) * 0.22;
-
-      if (dist(v.x, v.y, v.fusionX, v.fusionY) < 1.2) {
-        v.state = "FUSING";
-        v.timer = 0;
-
-        // Spawn NT burst ONCE, at correct site
-        if (typeof spawnSynapticBurst === "function") {
-          spawnSynapticBurst(
-            v.fusionX,
-            v.fusionY,
-            {
-              normalX: -1, // away from presynaptic membrane
-              spread: 0.9
-            }
-          );
-        }
-      }
-    }
-
-    // ---------------------------------------------
-    // FUSION → MEMBRANE MERGE
-    // ---------------------------------------------
-    else if (v.state === "FUSING") {
-
-      v.timer++;
-      v.fusionProgress = v.timer / FUSION_TIME;
-
-      // Vesicle flattens into membrane
-      v.radiusScale = lerp(1.0, 0.15, v.fusionProgress);
-      v.alpha       = lerp(255, 40, v.fusionProgress);
-
-      if (v.timer >= FUSION_TIME) {
-
-        // Hand membrane to recycling system
-        if (typeof spawnEndocytosisSeed === "function") {
-          spawnEndocytosisSeed(v.fusionX, v.fusionY);
-        }
-
-        synapseVesicles.splice(i, 1);
-      }
-    }
+  for (const e of endocytosisSeeds) {
+    fill(245, 225, 140, e.alpha);
+    ellipse(e.x, e.y, e.radius * 2);
   }
+
+  pop();
 }
