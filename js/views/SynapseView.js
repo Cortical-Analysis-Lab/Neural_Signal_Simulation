@@ -8,8 +8,8 @@ const SYNAPSE_SCALE    = 1.45;
 const SYNAPSE_SCREEN_X = 0.5;
 const SYNAPSE_SCREEN_Y = 0.55;
 
-const PRE_X   = -180;
-const POST_X  = +180;
+const PRE_X    = -180;
+const POST_X   = +180;
 const NEURON_Y = 40;
 
 
@@ -17,6 +17,7 @@ const NEURON_Y = 40;
 // USER INPUT — SYNAPSE LOCAL ONLY
 // =====================================================
 // Spacebar fires exactly ONE terminal AP per press
+// =====================================================
 
 let spaceWasDown = false;
 
@@ -52,7 +53,6 @@ function ensureVesiclePoolInitialized() {
 
   // Populate cytosolic reserve ONCE
   if (window.synapseVesicles.length === 0) {
-
     for (let i = 0; i < maxVes; i++) {
       if (typeof requestNewEmptyVesicle === "function") {
         requestNewEmptyVesicle();
@@ -102,7 +102,7 @@ function drawSynapseView() {
   // PRESYNAPTIC LOCAL UPDATE ORDER (AUTHORITATIVE)
   // ===================================================
 
-  // 1️⃣ Vesicle motion & collision authority
+  // 1️⃣ Vesicle spatial authority
   if (typeof updateVesicleMotion === "function") {
     updateVesicleMotion();
   }
@@ -155,7 +155,8 @@ function drawSynapseView() {
   translate(PRE_X, NEURON_Y);
 
   // ---------------------------------------------------
-  // VISUAL-ONLY FLIP (PHYSICS ALREADY DONE)
+  // VISUAL-ONLY FLIP
+  // ⚠️ PHYSICS ALREADY RESOLVED UPSTREAM
   // ---------------------------------------------------
   scale(-1, 1);
 
@@ -164,9 +165,10 @@ function drawSynapseView() {
     drawPreSynapse();
   }
 
-  // 🔵 VESICLE RESERVE DEBUG RECTANGLE (OPTIONAL)
+  // 🔵 VESICLE RESERVE RECTANGLE (DEBUG)
+  // Must be drawn AFTER flip, BEFORE vesicles
   if (
-    window.SHOW_VESICLE_RESERVE_DEBUG &&
+    window.SHOW_VESICLE_RESERVE_DEBUG === true &&
     typeof drawVesicleReserveDebug === "function"
   ) {
     drawVesicleReserveDebug();
