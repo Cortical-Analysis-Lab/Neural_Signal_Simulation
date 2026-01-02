@@ -31,7 +31,7 @@ const MAX_VESICLES = window.SYNAPSE_MAX_VESICLES;
 // -----------------------------------------------------
 // FORWARD CYTOSOLIC LOADING BAND
 // -----------------------------------------------------
-const LOAD_MIN_X = STOP_X + 5;
+const LOAD_MIN_X = STOP_X;
 const LOAD_MAX_X = STOP_X + 26;
 
 // -----------------------------------------------------
