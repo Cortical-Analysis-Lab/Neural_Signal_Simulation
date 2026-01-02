@@ -6,8 +6,9 @@ console.log("🫧 vesiclePool loaded");
 //
 // ✔ Vesicle Brownian motion
 // ✔ Vesicle–vesicle collision resolution
+// ✔ Vesicle reserve rectangle enforcement
 // ✔ Vesicle–membrane & stop-plane enforcement
-// ✔ Capsule boundary enforcement
+// ✔ Capsule boundary enforcement (secondary)
 //
 // ⚠️ RELEASE STATES ARE EXEMPT FROM MOTION & COLLISIONS
 // =====================================================
@@ -20,6 +21,31 @@ const V_THERMAL = 0.018;
 const V_DRAG    = 0.992;
 const V_REBOUND = 0.35;
 const V_MIN_SEP = 2.1;
+
+
+// -----------------------------------------------------
+// CYTOSOLIC RESERVE RECTANGLE (AUTHORITATIVE)
+// -----------------------------------------------------
+// Vertical pool next to T-shaft
+// All FREE vesicles must remain inside this box
+// -----------------------------------------------------
+function getVesicleReserveRect() {
+
+  const r = window.SYNAPSE_VESICLE_RADIUS;
+
+  const xMin = window.SYNAPSE_VESICLE_STOP_X + 12;
+  const xMax = xMin + 36;
+
+  const yCenter = window.SYNAPSE_TERMINAL_CENTER_Y;
+  const yHalf   = window.SYNAPSE_TERMINAL_RADIUS * 0.55;
+
+  return {
+    xMin: xMin + r,
+    xMax: xMax - r,
+    yMin: yCenter - yHalf + r,
+    yMax: yCenter + yHalf - r
+  };
+}
 
 
 // -----------------------------------------------------
@@ -46,6 +72,7 @@ function updateVesicleMotion() {
 
   applyBrownianMotion(vesicles);
   resolveVesicleCollisions(vesicles);
+  enforceReserveRectangle(vesicles);   // ⬅️ NEW
   enforceMembraneConstraints(vesicles);
   enforceCapsuleBoundary(vesicles);
 }
@@ -121,7 +148,41 @@ function resolveVesicleCollisions(vesicles) {
 
 
 // -----------------------------------------------------
-// STOP-PLANE ENFORCEMENT
+// RESERVE RECTANGLE ENFORCEMENT (PRIMARY)
+// -----------------------------------------------------
+function enforceReserveRectangle(vesicles) {
+
+  const rect = getVesicleReserveRect();
+
+  for (const v of vesicles) {
+
+    if (isReleaseLocked(v)) continue;
+
+    // X walls
+    if (v.x < rect.xMin) {
+      v.x = rect.xMin;
+      v.vx = abs(v.vx) * V_REBOUND;
+    }
+    else if (v.x > rect.xMax) {
+      v.x = rect.xMax;
+      v.vx = -abs(v.vx) * V_REBOUND;
+    }
+
+    // Y walls
+    if (v.y < rect.yMin) {
+      v.y = rect.yMin;
+      v.vy = abs(v.vy) * V_REBOUND;
+    }
+    else if (v.y > rect.yMax) {
+      v.y = rect.yMax;
+      v.vy = -abs(v.vy) * V_REBOUND;
+    }
+  }
+}
+
+
+// -----------------------------------------------------
+// STOP-PLANE ENFORCEMENT (SECONDARY)
 // -----------------------------------------------------
 function enforceMembraneConstraints(vesicles) {
 
@@ -141,7 +202,7 @@ function enforceMembraneConstraints(vesicles) {
 
 
 // -----------------------------------------------------
-// CAPSULE BOUNDARY
+// CAPSULE BOUNDARY (SAFETY NET)
 // -----------------------------------------------------
 function enforceCapsuleBoundary(vesicles) {
 
@@ -161,11 +222,9 @@ function enforceCapsuleBoundary(vesicles) {
     const d  = sqrt(dx * dx + dy * dy);
 
     if (d > maxR) {
-
       const s = maxR / d;
       v.x = cx + dx * s;
       v.y = cy + dy * s;
-
       v.vx *= -V_REBOUND;
       v.vy *= -V_REBOUND;
     }
@@ -183,22 +242,34 @@ window.requestNewEmptyVesicle = function () {
 
   if (vesicles.length >= window.SYNAPSE_MAX_VESICLES) return;
 
-  vesicles.push({
-    x: window.SYNAPSE_TERMINAL_CENTER_X +
-       window.SYNAPSE_BACK_OFFSET_X +
-       random(-8, 8),
+  const rect = getVesicleReserveRect();
 
-    y: window.SYNAPSE_TERMINAL_CENTER_Y +
-       random(
-         -window.SYNAPSE_TERMINAL_RADIUS * 0.4,
-          window.SYNAPSE_TERMINAL_RADIUS * 0.4
-       ),
+  vesicles.push({
+    x: random(rect.xMin, rect.xMax),
+    y: random(rect.yMin, rect.yMax),
 
     state: "empty",
     primedH: false,
     primedATP: false,
     nts: []
   });
+};
+
+
+// -----------------------------------------------------
+// OPTIONAL DEBUG DRAW (BLUE RESERVE RECTANGLE)
+// -----------------------------------------------------
+window.drawVesicleReserveDebug = function () {
+
+  const r = getVesicleReserveRect();
+
+  push();
+  noFill();
+  stroke(80, 160, 255, 180);
+  strokeWeight(2);
+  rectMode(CORNERS);
+  rect(r.xMin, r.yMin, r.xMax, r.yMax);
+  pop();
 };
 
 
