@@ -1,19 +1,15 @@
 console.log("⚡ vesicleRelease loaded");
 
 // =====================================================
-// VESICLE RELEASE — BIOLOGICAL FUSION
+// VESICLE RELEASE — BIOLOGICAL FUSION (STATE-ONLY)
 // Dock → Zipper → Pore → Open → Merge
 // =====================================================
 //
-// ✔ Slow, smooth transitions
 // ✔ One vesicle per AP
-// ✔ Randomized fusion sites
+// ✔ State-driven (NO motion authority)
+// ✔ Stable fusion site
 // ✔ Diffusive neurotransmitter release
-// ✔ Vesicle membrane fully absorbed
-// ✔ Hands membrane to recycling
-//
-// ⚠️ NO motion authority here
-// ⚠️ Uses window.synapseVesicles ONLY
+// ✔ Clean handoff to recycling
 // =====================================================
 
 
@@ -34,80 +30,56 @@ function triggerVesicleReleaseFromAP() {
 
   const vesicles = window.synapseVesicles || [];
 
-  // Choose ONE loaded vesicle (closest to dock if possible)
   const candidates = vesicles.filter(v => v.state === "loaded");
-
   if (candidates.length === 0) return;
 
-  // Bias toward vesicles already near membrane
+  // Choose vesicle closest to membrane
   candidates.sort((a, b) => a.x - b.x);
   const v = candidates[0];
 
   v.state = "DOCKING";
   v.timer = 0;
 
-  // Unique fusion site per vesicle
+  // Lock fusion site immediately
   v.dockOffsetY = random(-24, 24);
+  v.fusionX = window.SYNAPSE_MEMBRANE_X + 2;
+  v.fusionY = window.SYNAPSE_TERMINAL_CENTER_Y + v.dockOffsetY;
 
-  // Fusion visuals
+  // Visual parameters
   v.fusionProgress = 0;
   v.poreRadius     = 0;
   v.flatten        = 0;
-
-  // Lock fusion coordinates (prevents drift)
-  v.fusionX = null;
-  v.fusionY = null;
 }
 
 
 // -----------------------------------------------------
-// UPDATE RELEASE SEQUENCE
+// UPDATE RELEASE SEQUENCE (NO MOTION)
 // -----------------------------------------------------
 function updateVesicleRelease() {
 
   const vesicles = window.synapseVesicles || [];
 
-  const MEMBRANE_X = window.SYNAPSE_MEMBRANE_X;
-  const CENTER_Y   = window.SYNAPSE_TERMINAL_CENTER_Y;
-
-  for (let i = vesicles.length - 1; i >= 0; i--) {
-    const v = vesicles[i];
+  for (const v of vesicles) {
 
     // =================================================
-    // DOCKING — directed transport to membrane
+    // DOCKING — wait only
     // =================================================
     if (v.state === "DOCKING") {
 
       v.timer++;
-
-      // Visual-only approach (vesiclePool enforces limits)
-      v.x -= 0.35;
-      const targetY = CENTER_Y + v.dockOffsetY;
-      v.y += (targetY - v.y) * 0.08;
-
       if (v.timer >= DOCK_TIME) {
-
-        v.x = MEMBRANE_X + 2;
-        v.y = targetY;
-
-        v.fusionX = v.x;
-        v.fusionY = v.y;
-
         v.state = "FUSION_ZIPPER";
         v.timer = 0;
       }
     }
 
     // =================================================
-    // FUSION ZIPPER — SNARE tightening
+    // FUSION ZIPPER
     // =================================================
     else if (v.state === "FUSION_ZIPPER") {
 
       v.timer++;
       v.fusionProgress = constrain(v.timer / ZIPPER_TIME, 0, 1);
-
-      // Vesicle neck drawn into membrane
-      v.x = lerp(v.x, MEMBRANE_X + 1, v.fusionProgress);
 
       if (v.fusionProgress >= 1) {
         v.state = "FUSION_PORE";
@@ -116,14 +88,13 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // FUSION PORE — initial opening
+    // FUSION PORE — early quantal leak
     // =================================================
     else if (v.state === "FUSION_PORE") {
 
       v.timer++;
       v.poreRadius = lerp(0, 6, v.timer / PORE_TIME);
 
-      // 🔔 Early quantal leak
       if (v.timer === Math.floor(PORE_TIME * 0.35)) {
         window.dispatchEvent(new CustomEvent("synapticRelease", {
           detail: {
@@ -147,9 +118,7 @@ function updateVesicleRelease() {
     else if (v.state === "FUSION_OPEN") {
 
       v.timer++;
-      v.poreRadius = lerp(v.poreRadius, 14, 0.03);
 
-      // 🔔 Diffusive transmitter release (NO JET)
       if (v.timer % 10 === 0) {
         window.dispatchEvent(new CustomEvent("synapticRelease", {
           detail: {
@@ -168,27 +137,29 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // MEMBRANE MERGE — vesicle absorbed
+    // MEMBRANE MERGE — request recycling
     // =================================================
     else if (v.state === "MEMBRANE_MERGE") {
 
       v.timer++;
       v.flatten = constrain(v.timer / MERGE_TIME, 0, 1);
 
-      // Vesicle collapses into membrane
-      v.x = MEMBRANE_X + 1;
-      v.y += (CENTER_Y - v.y) * 0.05;
-
       if (v.flatten >= 1) {
 
-        // Hand membrane to recycling system
         if (typeof spawnEndocytosisSeed === "function") {
           spawnEndocytosisSeed(v.fusionX, v.fusionY);
         }
 
-        // Remove vesicle from pool
-        vesicles.splice(i, 1);
+        // Mark for removal (pool handles cleanup safely)
+        v.state = "RECYCLED";
       }
+    }
+  }
+
+  // Safe cleanup AFTER iteration
+  for (let i = vesicles.length - 1; i >= 0; i--) {
+    if (vesicles[i].state === "RECYCLED") {
+      vesicles.splice(i, 1);
     }
   }
 }
