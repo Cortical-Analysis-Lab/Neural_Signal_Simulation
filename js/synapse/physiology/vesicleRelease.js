@@ -2,13 +2,13 @@ console.log("⚡ vesicleRelease loaded");
 
 // =====================================================
 // VESICLE RELEASE — BIOLOGICAL FUSION (STATE-ONLY)
-// Dock → Zipper → Pore → Open → Merge
+// Dock → Zipper → Pore → Open → Merge → Hold → Recycle
 // =====================================================
 //
-// ✔ Continuous membrane-directed movement
+// ✔ Continuous membrane-directed movement (pre-fusion)
 // ✔ Radial (Y) position preserved
 // ✔ Pool-safe (velocity bias only)
-// ✔ Visible collapse: full → arc → gone
+// ✔ Visible collapse: sealed → omega → gone
 // ✔ HARD membrane lock during merge (NO GAP)
 // ✔ Delayed recycling (no redraw pop)
 //
@@ -29,7 +29,7 @@ const PORE_TIME   = 160;
 const OPEN_TIME   = 220;
 const MERGE_TIME  = 260;
 
-const RECYCLE_HOLD_FRAMES = 40;   // 🔑 visual hold after merge
+const RECYCLE_HOLD_FRAMES = 40;   // visual persistence after merge
 
 
 // -----------------------------------------------------
@@ -40,12 +40,12 @@ function applyFusionApproachForce(v) {
   const targetX = window.SYNAPSE_VESICLE_STOP_X;
   const dx = targetX - v.x;
 
-  // distance-scaled pull toward membrane
+  // Distance-scaled pull toward membrane
   const pull = constrain(dx * 0.025, -0.35, 0.35);
 
   v.vx += pull;
 
-  // suppress radial drift
+  // Suppress radial drift
   v.vy *= 0.85;
 }
 
@@ -72,15 +72,20 @@ function triggerVesicleReleaseFromAP() {
   // -------------------------------
   // RELEASE FLAGS (CRITICAL)
   // -------------------------------
-  v.releaseBias = true;   // pool will NOT constrain
+  v.releaseBias = true;   // pool must fully ignore
 
   // -------------------------------
   // GEOMETRY DRIVERS
   // -------------------------------
   v.fusionProgress = 0;
   v.poreRadius     = 0;
-  v.flatten        = 0;   // 0 → 1 (consumed by geometry)
+  v.flatten        = 0;   // 0 → 1
   v.mergePhase     = 1.0;
+
+  // -------------------------------
+  // INTERNAL LOCK GUARD
+  // -------------------------------
+  v.__mergeLocked  = false;
 }
 
 
@@ -131,7 +136,7 @@ function updateVesicleRelease() {
       v.timer++;
       v.poreRadius = lerp(0, 6, v.timer / PORE_TIME);
 
-      // initial quantal leak
+      // Initial quantal leak
       if (v.timer === Math.floor(PORE_TIME * 0.35)) {
         window.dispatchEvent(new CustomEvent("synapticRelease", {
           detail: {
@@ -156,7 +161,7 @@ function updateVesicleRelease() {
 
       v.timer++;
 
-      // sustained release
+      // Sustained release
       if (v.timer % 10 === 0) {
         window.dispatchEvent(new CustomEvent("synapticRelease", {
           detail: {
@@ -179,17 +184,22 @@ function updateVesicleRelease() {
     // =================================================
     else if (v.state === "MEMBRANE_MERGE") {
 
+      // 🔒 ONE-TIME HARD FREEZE (prevents rebound)
+      if (!v.__mergeLocked) {
+        v.__mergeLocked = true;
+        v.vx = 0;
+        v.vy = 0;
+      }
+
       v.timer++;
       const t = constrain(v.timer / MERGE_TIME, 0, 1);
 
-      // 🔑 geometry driver (used by vesicleGeometry.js)
+      // Geometry drivers (consumed by vesicleGeometry.js)
       v.flatten    = t;        // 0 → 1
       v.mergePhase = 1 - t;
 
-      // 🔒 HARD MEMBRANE LOCK — NO GAP EVER
-      v.x  = window.SYNAPSE_VESICLE_STOP_X;
-      v.vx = 0;
-      v.vy *= 0.85;
+      // Absolute membrane lock — NO GAP POSSIBLE
+      v.x = window.SYNAPSE_VESICLE_STOP_X;
 
       if (t >= 1) {
 
@@ -197,7 +207,7 @@ function updateVesicleRelease() {
           spawnEndocytosisSeed(v.x, v.y);
         }
 
-        v.state = "RECYCLED";
+        v.state       = "RECYCLED";
         v.recycleHold = RECYCLE_HOLD_FRAMES;
       }
     }
