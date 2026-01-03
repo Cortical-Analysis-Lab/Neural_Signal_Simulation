@@ -2,17 +2,17 @@ console.log("♻️ vesicleRecycling loaded");
 
 // =====================================================
 // VESICLE RECYCLING — BIOLOGICAL ENDOCYTOSIS
-// Membrane Patch → Bud → Pinch → Return
+// Membrane Patch → Bud → Pinch → Return-to-Pool
 // =====================================================
 //
-// ✔ Slow budding (visual)
-// ✔ Gradual vesicle formation
-// ✔ Safe return to cytosolic reserve
-// ✔ No coupling to release or NT logic
+// ✔ Vesicles are born at membrane
+// ✔ Gentle cytosolic return bias (NOT teleport)
+// ✔ VesiclePool owns motion & constraints
+// ✔ Safe with all existing logic
 //
-// ⚠️ NO motion authority
-// ⚠️ NO membrane enforcement
-// ⚠️ VesiclePool owns placement & spacing
+// ⚠️ NO Brownian motion
+// ⚠️ NO constraint enforcement
+// ⚠️ NO loading logic
 // =====================================================
 
 
@@ -22,7 +22,7 @@ console.log("♻️ vesicleRecycling loaded");
 window.endocytosisSeeds = window.endocytosisSeeds || [];
 
 // Called by vesicleRelease.js
-function spawnEndocytosisSeed(x, y) {
+window.spawnEndocytosisSeed = function (x, y) {
   window.endocytosisSeeds.push({
     x,
     y,
@@ -33,7 +33,7 @@ function spawnEndocytosisSeed(x, y) {
     radius: 2,
     alpha: 180
   });
-}
+};
 
 
 // -----------------------------------------------------
@@ -65,7 +65,7 @@ function updateVesicleRecycling() {
     }
 
     // =================================================
-    // BUD — vesicle grows (NO TRANSLATION)
+    // BUD — vesicle forms at membrane
     // =================================================
     else if (e.stage === "BUD") {
 
@@ -79,7 +79,7 @@ function updateVesicleRecycling() {
     }
 
     // =================================================
-    // PINCH — scission & vesicle request
+    // PINCH — scission & vesicle birth
     // =================================================
     else if (e.stage === "PINCH") {
 
@@ -90,22 +90,33 @@ function updateVesicleRecycling() {
         // Respect pool size
         if (vesicles.length < MAX_VES) {
 
-          // Defer placement to vesiclePool
-          if (typeof requestNewEmptyVesicle === "function") {
-            requestNewEmptyVesicle();
-          } else {
-            // Fallback (safe)
-            vesicles.push({
-              x: window.SYNAPSE_TERMINAL_CENTER_X +
-                 window.SYNAPSE_BACK_OFFSET_X,
-              y: window.SYNAPSE_TERMINAL_CENTER_Y,
+          // ------------------------------------------------
+          // CREATE NEW EMPTY VESICLE AT MEMBRANE
+          // ------------------------------------------------
+          const cy    = window.SYNAPSE_TERMINAL_CENTER_Y;
+          const stopX = window.SYNAPSE_VESICLE_STOP_X;
 
-              state: "empty",
-              primedH: false,
-              primedATP: false,
-              nts: []
-            });
-          }
+          vesicles.push({
+            // Born at membrane
+            x: stopX + random(2, 6),
+            y: e.y + random(-4, 4),
+
+            // Gentle drift BACK into cytosol
+            vx: random(0.04, 0.07),
+            vy: random(-0.02, 0.02),
+
+            // Core state
+            state: "empty",
+            primedH: false,
+            primedATP: false,
+            nts: [],
+
+            // ------------------------------------------------
+            // 🔑 RETURN BIAS FLAG
+            // Allows pool to guide vesicle home
+            // ------------------------------------------------
+            recycleBias: true
+          });
         }
 
         seeds.splice(i, 1);
@@ -129,3 +140,10 @@ function drawVesicleRecycling() {
 
   pop();
 }
+
+
+// -----------------------------------------------------
+// PUBLIC EXPORT
+// -----------------------------------------------------
+window.updateVesicleRecycling = updateVesicleRecycling;
+window.drawVesicleRecycling   = drawVesicleRecycling;
