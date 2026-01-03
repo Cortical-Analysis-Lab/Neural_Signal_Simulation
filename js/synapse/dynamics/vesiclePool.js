@@ -43,7 +43,6 @@ function getVesicleReserveRect() {
   const R     = window.SYNAPSE_TERMINAL_RADIUS;
   const stopX = window.SYNAPSE_VESICLE_STOP_X;
 
-  // FINALIZED GEOMETRY
   const WIDTH       = 75;
   const HEIGHT      = R * 0.8;
   const BACK_OFFSET = 60;
@@ -63,11 +62,11 @@ function getVesicleReserveRect() {
 
 
 // -----------------------------------------------------
-// RELEASE / FUSION EXEMPTION GUARD (KEY FIX)
+// RELEASE / FUSION EXEMPTION GUARD
 // -----------------------------------------------------
 function isPoolExempt(v) {
   return (
-    v.releaseBias === true ||      // 🔑 AP-triggered motion
+    v.releaseBias === true ||
     v.state === "DOCKING" ||
     v.state === "FUSION_ZIPPER" ||
     v.state === "FUSION_PORE" ||
@@ -144,7 +143,6 @@ function resolveVesicleCollisions(vesicles) {
         b.x += nx * overlap;
         b.y += ny * overlap;
 
-        // Reduced impulse for release-safe behavior
         a.vx -= nx * 0.08;
         a.vy -= ny * 0.05;
         b.vx += nx * 0.08;
@@ -188,7 +186,7 @@ function enforceReserveRectangle(vesicles) {
 
 
 // -----------------------------------------------------
-// SAFE SPAWN API
+// SAFE SPAWN API (🔑 FIRST 3 PRE-LOADED)
 // -----------------------------------------------------
 window.requestNewEmptyVesicle = function () {
 
@@ -197,6 +195,8 @@ window.requestNewEmptyVesicle = function () {
   if (vesicles.length >= window.SYNAPSE_MAX_VESICLES) return;
 
   const r = getVesicleReserveRect();
+  const index = vesicles.length;
+  const preload = index < 3;
 
   vesicles.push({
     x: random(r.xMin, r.xMax),
@@ -205,10 +205,20 @@ window.requestNewEmptyVesicle = function () {
     vx: random(-0.01, 0.01),
     vy: random(-0.004, 0.004),
 
-    state: "empty",
-    primedH: false,
-    primedATP: false,
-    nts: [],
+    state: preload ? "loaded" : "empty",
+
+    primedH: preload,
+    primedATP: preload,
+
+    nts: preload
+      ? Array.from({ length: window.SYNAPSE_NT_TARGET }, () => ({
+          x: random(-3, 3),
+          y: random(-3, 3),
+          vx: random(-0.18, 0.18),
+          vy: random(-0.18, 0.18)
+        }))
+      : [],
+
     releaseBias: false
   });
 };
