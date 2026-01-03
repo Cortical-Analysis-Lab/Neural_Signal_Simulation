@@ -129,14 +129,20 @@ function updateVesicleMotion() {
 
   for (const v of vesicles) {
   
-    // ⛔ ABSOLUTE AUTHORITY HANDOFF
-    // Once merge starts, pool NEVER moves this vesicle again
-    if (v.state === "MEMBRANE_MERGE") continue;
+    // 🔒 HARD STOP — pool never touches fused vesicles
+    if (
+      v.state === "MEMBRANE_MERGE" ||
+      v.state === "RECYCLED"
+    ) {
+      continue;
+    }
   
+    // 🔑 Release motion ONLY before merge
     if (v.releaseBias === true) {
       integrateReleaseMotion(v);
     }
   }
+
 
   // ---------------------------------------------------
   // Standard pool physics
@@ -230,7 +236,16 @@ function resolveVesicleCollisions(vesicles) {
       const d  = Math.hypot(dx, dy);
 
       if (d > 0 && d < minD) {
-        if (a.releaseBias === true || b.releaseBias === true) continue;
+        if (
+          a.state === "MEMBRANE_MERGE" ||
+          b.state === "MEMBRANE_MERGE" ||
+          a.state === "RECYCLED" ||
+          b.state === "RECYCLED" ||
+          a.releaseBias === true ||
+          b.releaseBias === true
+        ) {
+          continue;
+        }
 
 
         const nx = dx / d;
