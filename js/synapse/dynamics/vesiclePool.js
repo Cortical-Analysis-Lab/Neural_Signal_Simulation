@@ -44,12 +44,13 @@ function getVesicleReserveRect() {
   const R     = window.SYNAPSE_TERMINAL_RADIUS;
   const stopX = window.SYNAPSE_VESICLE_STOP_X;
 
+  // FINAL GEOMETRY (FLIP-AWARE)
   const WIDTH       = 75;
   const HEIGHT      = R * 0.8;
   const BACK_OFFSET = 60;
 
-  const xMin = stopX + BACK_OFFSET;
-  const xMax = xMin + WIDTH;
+  const xMax = stopX - BACK_OFFSET;
+  const xMin = xMax - WIDTH;
 
   _vesicleReserveRect = {
     xMin,
@@ -73,6 +74,7 @@ function getLoadedVesicleRect() {
 
   const reserve = getVesicleReserveRect();
 
+  // FINAL RELATIONSHIP (ADJACENT + SMALLER)
   const WIDTH_SCALE  = 0.75;
   const HEIGHT_SCALE = 0.85;
 
@@ -101,7 +103,7 @@ function getLoadedVesicleRect() {
 function isPoolExempt(v) {
   return (
     v.releaseBias === true ||
-    v.recycleBias === true ||     // 🔑 recycling return phase
+    v.recycleBias === true ||
     v.state === "DOCKING" ||
     v.state === "FUSION_ZIPPER" ||
     v.state === "FUSION_PORE" ||
@@ -269,10 +271,8 @@ function resolveRecycleCompletion(vesicles) {
 
     if (v.recycleBias !== true) continue;
 
-    // Once vesicle fully re-enters reserve pool,
-    // it becomes a normal empty vesicle again
     if (
-      v.x > r.xMin + 6 &&
+      v.x > r.xMin &&
       v.x < r.xMax &&
       v.y > r.yMin &&
       v.y < r.yMax
