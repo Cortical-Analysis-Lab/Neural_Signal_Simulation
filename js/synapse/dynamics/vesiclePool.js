@@ -1,18 +1,18 @@
 console.log("🫧 vesiclePool loaded");
 
 // =====================================================
-// VESICLE POOL — MOTION & GEOMETRY AUTHORITY (DEBUG)
+// VESICLE POOL — MOTION & GEOMETRY AUTHORITY (FINAL)
 // =====================================================
 //
-// ✔ Two spatial domains:
-//     1) Reserve pool (empty / loading)
-//     2) Loaded vesicle zone (pre-fusion)
-// ✔ Both domains visible in blue (temporary)
-// ✔ ONLY loaded zone is tunable
+// ✔ Two spatial domains (INVISIBLE):
+//     1) Reserve pool (empty / loading vesicles)
+//     2) Loaded vesicle zone (pre-fusion staging)
+// ✔ Smooth Brownian drift
+// ✔ Gentle vesicle–vesicle collisions
 // ✔ Release states fully exempt
 //
-// 🔒 Reserve pool is HARD-LOCKED
-// 🔧 Loaded zone is TUNABLE
+// 🔒 BOTH ZONES ARE HARD-CODED
+// 👻 NO DEBUG RENDERING
 // =====================================================
 
 
@@ -32,7 +32,7 @@ const V_MIN_SEP   = 2.1;
 
 
 // =====================================================
-// 🔒 RESERVE POOL (DEEP CYTOSOL — HARD LOCKED)
+// 🔒 RESERVE POOL — DEEP CYTOSOL (LOCKED)
 // =====================================================
 let _vesicleReserveRect = null;
 
@@ -44,7 +44,7 @@ function getVesicleReserveRect() {
   const R     = window.SYNAPSE_TERMINAL_RADIUS;
   const stopX = window.SYNAPSE_VESICLE_STOP_X;
 
-  // 🔒 DO NOT TUNE
+  // 🔒 FINAL GEOMETRY — DO NOT MODIFY
   const WIDTH       = 75;
   const HEIGHT      = R * 0.8;
   const BACK_OFFSET = 60;
@@ -64,7 +64,7 @@ function getVesicleReserveRect() {
 
 
 // =====================================================
-// 🔵 LOADED VESICLE ZONE (TUNABLE, ADJACENT)
+// 🔒 LOADED VESICLE ZONE — ADJACENT STAGING AREA
 // =====================================================
 let _loadedVesicleRect = null;
 
@@ -74,15 +74,11 @@ function getLoadedVesicleRect() {
 
   const reserve = getVesicleReserveRect();
 
-  // ================================
-  // 🔧 TUNABLE PARAMETERS (ONLY HERE)
-  // ================================
-  const WIDTH_SCALE  = 0.75;   // fraction of reserve width
-  const HEIGHT_SCALE = 0.85;   // fraction of reserve height
-  const X_GAP        = 0;     // gap between reserve & loaded zone
-  const Y_OFFSET     = 0;     // vertical shift
-
-  // ================================
+  // 🔒 FINALIZED RELATIONSHIP (ADJACENT + SMALLER)
+  const WIDTH_SCALE  = 0.75;
+  const HEIGHT_SCALE = 0.85;
+  const X_GAP        = 0;
+  const Y_OFFSET     = 0;
 
   const width  = (reserve.xMax - reserve.xMin) * WIDTH_SCALE;
   const height = (reserve.yMax - reserve.yMin) * HEIGHT_SCALE;
@@ -159,7 +155,7 @@ function applyBrownianMotion(vesicles) {
 
 
 // -----------------------------------------------------
-// VESICLE–VESICLE COLLISIONS
+// VESICLE–VESICLE COLLISIONS (GENTLE)
 // -----------------------------------------------------
 function resolveVesicleCollisions(vesicles) {
 
@@ -261,32 +257,6 @@ function enforceLoadedVesicleRect(vesicles) {
     }
   }
 }
-
-
-// =====================================================
-// 🔵 DEBUG DRAW — BOTH CONSTRAINT ZONES
-// =====================================================
-window.drawVesicleConstraintDebug = function () {
-
-  const r1 = getVesicleReserveRect();
-  const r2 = getLoadedVesicleRect();
-
-  push();
-  noFill();
-  rectMode(CORNERS);
-
-  // Reserve pool (dimmer blue)
-  stroke(80, 160, 255, 140);
-  strokeWeight(2);
-  rect(r1.xMin, r1.yMin, r1.xMax, r1.yMax);
-
-  // Loaded zone (brighter blue)
-  stroke(80, 160, 255, 220);
-  strokeWeight(2.5);
-  rect(r2.xMin, r2.yMin, r2.xMax, r2.yMax);
-
-  pop();
-};
 
 
 // -----------------------------------------------------
