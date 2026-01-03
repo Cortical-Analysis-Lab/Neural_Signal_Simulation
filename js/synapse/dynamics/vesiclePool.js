@@ -106,7 +106,6 @@ function isPoolExempt(v) {
     v.state === "priming" ||
     v.state === "primed" ||
     v.state === "loading" ||
-    v.releaseBias === true ||
     v.recycleBias === true ||
     v.state === "DOCKING" ||
     v.state === "FUSION_ZIPPER" ||
@@ -249,10 +248,14 @@ function enforceVesicleDomains(vesicles) {
   const loaded  = getLoadedVesicleRect();
   const Rv      = window.SYNAPSE_VESICLE_RADIUS;
 
-  for (const v of vesicles) {
+for (const v of vesicles) {
 
-    if (isPoolExempt(v)) continue;
-
+    // 🔓 FULLY FREE DURING RELEASE
+    if (v.releaseBias === true) {
+      // Let vesicleRelease control velocity entirely
+      continue;
+    }
+  
     if (v.state === "loaded_travel") {
       applyLoadedZoneAttraction(v);
     }
