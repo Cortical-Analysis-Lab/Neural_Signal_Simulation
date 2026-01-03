@@ -46,11 +46,11 @@ function getVesicleReserveRect() {
   const R  = window.SYNAPSE_TERMINAL_RADIUS;
 
   // Dimensions
-  const width  = 32;          // reduced width
-  const height = R * 0.45;    // reduced vertical span
+  const width  = 40;          // reduced width
+  const height = R * 0.65;    // reduced vertical span
 
   // Position (deep cytosol, NOT near stop plane)
-  const xMin = cx + 26;
+  const xMin = cx + 10;
   const xMax = xMin + width;
 
   return {
