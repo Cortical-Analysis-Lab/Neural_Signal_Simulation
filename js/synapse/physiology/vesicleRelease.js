@@ -29,7 +29,7 @@ const PORE_TIME   = 160;
 const OPEN_TIME   = 220;
 const MERGE_TIME  = 260;
 
-const RECYCLE_HOLD_FRAMES = 40;   // visual persistence after merge
+const RECYCLE_HOLD_FRAMES = 40;
 
 
 // -----------------------------------------------------
@@ -72,20 +72,20 @@ function triggerVesicleReleaseFromAP() {
   // -------------------------------
   // RELEASE FLAGS (CRITICAL)
   // -------------------------------
-  v.releaseBias = true;   // pool must fully ignore
+  v.releaseBias = true;
 
   // -------------------------------
   // GEOMETRY DRIVERS
   // -------------------------------
   v.fusionProgress = 0;
   v.poreRadius     = 0;
-  v.flatten        = 0;   // 0 → 1
+  v.flatten        = 0;
   v.mergePhase     = 1.0;
 
   // -------------------------------
-  // INTERNAL LOCK GUARD
+  // INTERNAL LOCK
   // -------------------------------
-  v.__mergeLocked  = false;
+  v.__mergeLocked = false;
 }
 
 
@@ -93,14 +93,27 @@ function triggerVesicleReleaseFromAP() {
 // UPDATE RELEASE SEQUENCE (STATE-ONLY)
 // -----------------------------------------------------
 function updateVesicleRelease() {
+
   const vesicles = window.synapseVesicles || [];
 
-    if (v.state !== "DOCKING" && Math.abs(v.x - SYNAPSE_VESICLE_STOP_X) > 0.01) {
+  // ===================================================
+  // PER-VESICLE STATE MACHINE
+  // ===================================================
+  for (const v of vesicles) {
+
+    // -----------------------------------------------
+    // SAFETY ASSERT — SHOULD NEVER DRIFT
+    // -----------------------------------------------
+    if (
+      v.releaseBias === true &&
+      v.state !== "DOCKING" &&
+      Math.abs(v.x - window.SYNAPSE_VESICLE_STOP_X) > 0.01
+    ) {
       console.error("❌ RELEASE VESICLE MOVED:", v.state, v.x);
     }
 
     // =================================================
-    // DOCKING — ACTIVE APPROACH
+    // DOCKING
     // =================================================
     if (v.state === "DOCKING") {
 
@@ -162,7 +175,6 @@ function updateVesicleRelease() {
 
       v.timer++;
 
-      // Sustained release
       if (v.timer % 10 === 0) {
         window.dispatchEvent(new CustomEvent("synapticRelease", {
           detail: {
@@ -181,11 +193,10 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // MEMBRANE MERGE — HARD LOCK + COLLAPSE
+    // MEMBRANE MERGE — HARD LOCK
     // =================================================
     else if (v.state === "MEMBRANE_MERGE") {
 
-      // 🔒 ONE-TIME HARD FREEZE (prevents rebound)
       if (!v.__mergeLocked) {
         v.__mergeLocked = true;
         v.vx = 0;
@@ -195,11 +206,10 @@ function updateVesicleRelease() {
       v.timer++;
       const t = constrain(v.timer / MERGE_TIME, 0, 1);
 
-      // Geometry drivers (consumed by vesicleGeometry.js)
-      v.flatten    = t;        // 0 → 1
+      v.flatten    = t;
       v.mergePhase = 1 - t;
 
-      // Absolute membrane lock — NO GAP POSSIBLE
+      // ABSOLUTE membrane lock
       v.x = window.SYNAPSE_VESICLE_STOP_X;
 
       if (t >= 1) {
@@ -214,16 +224,16 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // RECYCLED — VISUAL HOLD (NO POP)
+    // RECYCLED — VISUAL HOLD
     // =================================================
     else if (v.state === "RECYCLED") {
       v.recycleHold--;
     }
   }
 
-  // ---------------------------------------------------
-  // SAFE CLEANUP (DELAYED)
-  // ---------------------------------------------------
+  // ===================================================
+  // SAFE CLEANUP
+  // ===================================================
   for (let i = vesicles.length - 1; i >= 0; i--) {
     const v = vesicles[i];
     if (v.state === "RECYCLED" && v.recycleHold <= 0) {
