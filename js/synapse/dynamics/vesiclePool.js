@@ -127,11 +127,12 @@ function updateVesicleMotion() {
   const vesicles = window.synapseVesicles;
   if (!vesicles || vesicles.length === 0) return;
 
-  // ---------------------------------------------------
-  // 🔑 CRITICAL FIX:
-  // Always integrate release vesicle motion
-  // ---------------------------------------------------
   for (const v of vesicles) {
+  
+    // ⛔ ABSOLUTE AUTHORITY HANDOFF
+    // Once merge starts, pool NEVER moves this vesicle again
+    if (v.state === "MEMBRANE_MERGE") continue;
+  
     if (v.releaseBias === true) {
       integrateReleaseMotion(v);
     }
