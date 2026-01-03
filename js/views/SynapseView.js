@@ -107,11 +107,12 @@ function drawSynapseView() {
   ensureVesiclePoolInitialized();
 
   // ---------------- AUTHORITATIVE UPDATE ORDER --------
-  updateVesicleLoading();
-  updateVesicleRelease();  
-  updateVesicleMotion();    
-  updateVesicleRecycling?.();
+  updateVesicleLoading?.();
+  updateVesicleMotion?.();     // pool moves vesicles FIRST
+  updateVesicleRelease?.();    // release locks + overrides position
+  updateVesicleRecycling?.();  // recycling happens AFTER fusion
   updateSynapticBurst?.();
+
 
   // ---------------- SCREEN ANCHOR ---------------------
   translate(
