@@ -53,7 +53,16 @@ function ensureVesiclePoolInitialized() {
 
 
 // =====================================================
-// MAIN VIEW
+// MAIN VIEW — ORCHESTRATOR ONLY
+// =====================================================
+//
+// ⚠️ This file:
+// • NEVER draws constraint geometry
+// • NEVER visualizes physics helpers
+// • ONLY orders subsystems + transforms
+//
+// Vesicle confinement is handled invisibly
+// in vesiclePool.js
 // =====================================================
 
 function drawSynapseView() {
@@ -99,15 +108,10 @@ function drawSynapseView() {
   // ---------------------------------------------------
   scale(-1, 1);
 
-  // ===================================================
-  // 🔵 VESICLE RESERVE RECTANGLE (ALWAYS VISIBLE)
-  // ===================================================
-  drawVesicleReserveRectangle_FORCE();
-
   // Presynaptic geometry
   drawPreSynapse?.();
 
-  // Vesicles + NT contents
+  // Vesicles + neurotransmitter contents
   drawSynapseVesicleGeometry?.();
   drawSynapticBurst?.();
 
@@ -121,29 +125,5 @@ function drawSynapseView() {
   drawPostSynapse?.();
   pop();
 
-  pop();
-}
-
-
-// =====================================================
-// 🔵 AUTHORITATIVE DEBUG RECTANGLE
-// =====================================================
-// ✔ Drawn in vesicle render space
-// ✔ Uses vesiclePool geometry directly
-// ✔ Cannot desync from physics
-// =====================================================
-
-function drawVesicleReserveRectangle_FORCE() {
-
-  if (typeof getVesicleReserveRect !== "function") return;
-
-  const r = getVesicleReserveRect();
-
-  push();
-  noFill();
-  stroke(80, 160, 255, 220);   // stable blue
-  strokeWeight(3);
-  rectMode(CORNERS);
-  rect(r.xMin, r.yMin, r.xMax, r.yMax);
   pop();
 }
