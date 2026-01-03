@@ -106,7 +106,6 @@ function isPoolExempt(v) {
     v.state === "priming" ||
     v.state === "primed" ||
     v.state === "loading" ||
-    v.state === "loaded" ||   // ← NEW
     v.releaseBias === true ||
     v.recycleBias === true ||
     v.state === "DOCKING" ||
@@ -173,11 +172,11 @@ function applyLoadedZoneAttraction(v) {
   const dx = tx - v.x;
   const dy = ty - v.y;
 
-  v.vx += dx * 0.015;
-  v.vy += dy * 0.015;
+  v.vx += dx * 0.008;
+  v.vy += dy * 0.008;
 
-  v.vx *= 0.92;
-  v.vy *= 0.92;
+  v.vx *= 0.88;
+  v.vy *= 0.88;
 
   v.x += v.vx;
   v.y += v.vy;
@@ -225,10 +224,16 @@ function resolveVesicleCollisions(vesicles) {
         b.x += nx * overlap;
         b.y += ny * overlap;
 
-        a.vx -= nx * 0.08;
-        a.vy -= ny * 0.05;
-        b.vx += nx * 0.08;
-        b.vy += ny * 0.05;
+        const impulseScale =
+          (a.state === "loaded_travel" || b.state === "loaded_travel")
+            ? 0.04
+            : 0.08;
+        
+        a.vx -= nx * impulseScale;
+        a.vy -= ny * impulseScale * 0.6;
+        b.vx += nx * impulseScale;
+        b.vy += ny * impulseScale * 0.6;
+
       }
     }
   }
