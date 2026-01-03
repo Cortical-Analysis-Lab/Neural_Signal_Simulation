@@ -49,12 +49,12 @@ function getVesicleReserveRect() {
   // SIZE CONTROLS
   // ============================
   const width  = 75;   // ← you already tune this
-  const height = R;    // ← and this
+  const height = R*0.8;    // ← and this
 
   // ============================
   // POSITION CONTROL (THE FIX)
   // ============================
-  const BACK_OFFSET = 28;   // ← THIS NOW WORKS
+  const BACK_OFFSET = 35;   // ← THIS NOW WORKS
 
   const xMin = stopX + BACK_OFFSET;
   const xMax = xMin + width;
