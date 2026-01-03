@@ -1,52 +1,54 @@
 console.log("🫧 vesiclePool loaded");
 
 // =====================================================
-// VESICLE POOL — MOTION & GEOMETRY AUTHORITY
+// VESICLE POOL — MOTION & GEOMETRY AUTHORITY (STABLE)
 // =====================================================
 //
-// ✔ Smooth cytosolic vesicle drift (low chaos)
-// ✔ Vesicle–vesicle separation (soft)
-// ✔ Vesicle reserve rectangle enforcement
-// ✔ Vesicle–membrane & stop-plane enforcement
-//
-// ⚠️ RELEASE STATES ARE EXEMPT FROM MOTION & COLLISIONS
+// ✔ Smooth Brownian drift (non-chaotic)
+// ✔ Cytosolic reserve rectangle (deep)
+// ✔ Soft vertical confinement (NO ping-pong)
+// ✔ Vesicle–vesicle collisions
+// ✔ Release states exempt
 // =====================================================
 
 
 // -----------------------------------------------------
-// MOTION TUNING (BIOLOGICAL FEEL)
+// MOTION PARAMETERS (CALM)
 // -----------------------------------------------------
-const V_DRIFT     = 0.004;   // slow directional drift
-const V_NOISE     = 0.002;   // gentle stochastic component
-const V_DRAG      = 0.985;   // heavy cytosolic damping
-const V_MAX       = 0.12;    // hard velocity clamp
-const V_WALL_SOFT = 0.15;    // wall slide instead of bounce
-const V_MIN_SEP   = 2.0;
+const V_THERMAL_X = 0.014;   // horizontal drift
+const V_THERMAL_Y = 0.006;   // MUCH weaker vertical noise
+
+const V_DRAG_X    = 0.990;
+const V_DRAG_Y    = 0.960;   // strong vertical damping
+
+const V_REBOUND   = 0.25;
+const V_MIN_SEP   = 2.1;
 
 
 // -----------------------------------------------------
-// CYTOSOLIC RESERVE RECTANGLE
+// CYTOSOLIC RESERVE RECTANGLE (AUTHORITATIVE)
 // -----------------------------------------------------
-// Reduced by 1/3 from previous size
+// • 1/3 smaller
+// • Deep cytosolic
+// • NOT membrane-adjacent
 // -----------------------------------------------------
 function getVesicleReserveRect() {
 
   const r = window.SYNAPSE_VESICLE_RADIUS;
 
-  // ---------------- BACK OF CYTOSOL ------------------
-  const baseWidth  = 36 * 4 * 0.67;     // width ↓ 1/3
-  const baseHeight = window.SYNAPSE_TERMINAL_RADIUS * 0.55 * 1.5 * 0.67;
+  const cx = window.SYNAPSE_TERMINAL_CENTER_X;
+  const cy = window.SYNAPSE_TERMINAL_CENTER_Y;
+  const R  = window.SYNAPSE_TERMINAL_RADIUS;
 
-  const xMax = window.SYNAPSE_VESICLE_STOP_X + 18;
-  const xMin = xMax + baseWidth;
-
-  const yCenter = window.SYNAPSE_TERMINAL_CENTER_Y;
+  const width  = 48 * (2 / 3);   // reduced by 1/3
+  const height = R * 0.50;       // reduced vertical span
 
   return {
-    xMin: xMin + r,
-    xMax: xMax - r,
-    yMin: yCenter - baseHeight + r,
-    yMax: yCenter + baseHeight - r
+    xMin: cx + 18,
+    xMax: cx + 18 + width,
+
+    yMin: cy - height,
+    yMax: cy + height
   };
 }
 
@@ -73,54 +75,47 @@ function updateVesicleMotion() {
   const vesicles = window.synapseVesicles;
   if (!vesicles || vesicles.length === 0) return;
 
-  applySmoothDrift(vesicles);
-  resolveVesicleSeparation(vesicles);
+  applyBrownianMotion(vesicles);
+  resolveVesicleCollisions(vesicles);
   enforceReserveRectangle(vesicles);
 }
 
 
 // -----------------------------------------------------
-// SMOOTH DRIFT MOTION (NON-CHAOTIC)
+// SMOOTH BROWNIAN MOTION (NO RACING)
 // -----------------------------------------------------
-function applySmoothDrift(vesicles) {
+function applyBrownianMotion(vesicles) {
+
+  const rect = getVesicleReserveRect();
+  const yCenter = (rect.yMin + rect.yMax) * 0.5;
 
   for (const v of vesicles) {
 
     if (isReleaseLocked(v)) continue;
 
-    // Persistent drift direction
-    if (v.vx === undefined) {
-      const a = random(TWO_PI);
-      v.vx = cos(a) * V_DRIFT;
-      v.vy = sin(a) * V_DRIFT;
-    }
+    if (v.vx === undefined) v.vx = random(-0.01, 0.01);
+    if (v.vy === undefined) v.vy = random(-0.01, 0.01);
 
-    // Gentle stochastic wandering
-    v.vx += random(-V_NOISE, V_NOISE);
-    v.vy += random(-V_NOISE, V_NOISE);
+    // Horizontal drift (free)
+    v.vx += random(-V_THERMAL_X, V_THERMAL_X);
 
-    // Integrate
+    // Vertical drift (weak + restoring)
+    v.vy += random(-V_THERMAL_Y, V_THERMAL_Y);
+    v.vy += (yCenter - v.y) * 0.0008; // soft spring
+
     v.x += v.vx;
     v.y += v.vy;
 
-    // Heavy damping
-    v.vx *= V_DRAG;
-    v.vy *= V_DRAG;
-
-    // Velocity clamp
-    const spd = sqrt(v.vx * v.vx + v.vy * v.vy);
-    if (spd > V_MAX) {
-      v.vx *= V_MAX / spd;
-      v.vy *= V_MAX / spd;
-    }
+    v.vx *= V_DRAG_X;
+    v.vy *= V_DRAG_Y;
   }
 }
 
 
 // -----------------------------------------------------
-// SOFT VESICLE SEPARATION (NO BOUNCE)
+// VESICLE–VESICLE COLLISIONS (CALM)
 // -----------------------------------------------------
-function resolveVesicleSeparation(vesicles) {
+function resolveVesicleCollisions(vesicles) {
 
   const r = window.SYNAPSE_VESICLE_RADIUS;
   const minD = r * 2 * V_MIN_SEP;
@@ -135,18 +130,24 @@ function resolveVesicleSeparation(vesicles) {
 
       const dx = b.x - a.x;
       const dy = b.y - a.y;
-      const d  = sqrt(dx * dx + dy * dy);
+      const d  = Math.hypot(dx, dy);
 
       if (d > 0 && d < minD) {
 
         const nx = dx / d;
         const ny = dy / d;
-        const push = (minD - d) * 0.04;
+        const overlap = (minD - d) * 0.5;
 
-        a.x -= nx * push;
-        a.y -= ny * push;
-        b.x += nx * push;
-        b.y += ny * push;
+        a.x -= nx * overlap;
+        a.y -= ny * overlap;
+        b.x += nx * overlap;
+        b.y += ny * overlap;
+
+        const impulse = 0.25;
+        a.vx -= nx * impulse;
+        a.vy -= ny * impulse;
+        b.vx += nx * impulse;
+        b.vy += ny * impulse;
       }
     }
   }
@@ -154,37 +155,39 @@ function resolveVesicleSeparation(vesicles) {
 
 
 // -----------------------------------------------------
-// RESERVE RECTANGLE — SOFT WALL SLIDE
+// RESERVE RECTANGLE ENFORCEMENT (SOFT)
 // -----------------------------------------------------
 function enforceReserveRectangle(vesicles) {
 
-  const rect = getVesicleReserveRect();
+  const r = getVesicleReserveRect();
 
   for (const v of vesicles) {
 
     if (isReleaseLocked(v)) continue;
 
-    if (v.x < rect.xMin) {
-      v.x = rect.xMin;
-      v.vx *= -V_WALL_SOFT;
-    } else if (v.x > rect.xMax) {
-      v.x = rect.xMax;
-      v.vx *= -V_WALL_SOFT;
+    if (v.x < r.xMin) {
+      v.x = r.xMin;
+      v.vx = Math.abs(v.vx) * V_REBOUND;
+    }
+    if (v.x > r.xMax) {
+      v.x = r.xMax;
+      v.vx = -Math.abs(v.vx) * V_REBOUND;
     }
 
-    if (v.y < rect.yMin) {
-      v.y = rect.yMin;
-      v.vy *= -V_WALL_SOFT;
-    } else if (v.y > rect.yMax) {
-      v.y = rect.yMax;
-      v.vy *= -V_WALL_SOFT;
+    if (v.y < r.yMin) {
+      v.y = r.yMin;
+      v.vy *= -0.15;
+    }
+    if (v.y > r.yMax) {
+      v.y = r.yMax;
+      v.vy *= -0.15;
     }
   }
 }
 
 
 // -----------------------------------------------------
-// SPAWN API (USED BY RECYCLING)
+// SAFE SPAWN API
 // -----------------------------------------------------
 window.requestNewEmptyVesicle = function () {
 
@@ -192,19 +195,33 @@ window.requestNewEmptyVesicle = function () {
   if (!vesicles) return;
   if (vesicles.length >= window.SYNAPSE_MAX_VESICLES) return;
 
-  const rect = getVesicleReserveRect();
-  const a = random(TWO_PI);
+  const r = getVesicleReserveRect();
 
   vesicles.push({
-    x: random(rect.xMin, rect.xMax),
-    y: random(rect.yMin, rect.yMax),
-    vx: cos(a) * V_DRIFT,
-    vy: sin(a) * V_DRIFT,
+    x: random(r.xMin, r.xMax),
+    y: random(r.yMin, r.yMax),
     state: "empty",
     primedH: false,
     primedATP: false,
     nts: []
   });
+};
+
+
+// -----------------------------------------------------
+// DEBUG DRAW (VISIBLE, STABLE)
+// -----------------------------------------------------
+window.drawVesicleReserveDebug = function () {
+
+  const r = getVesicleReserveRect();
+
+  push();
+  noFill();
+  stroke(80, 160, 255, 200);
+  strokeWeight(2.5);
+  rectMode(CORNERS);
+  rect(r.xMin, r.yMin, r.xMax, r.yMax);
+  pop();
 };
 
 
