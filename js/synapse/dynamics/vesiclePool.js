@@ -103,6 +103,10 @@ function getLoadedVesicleRect() {
 // -----------------------------------------------------
 function isPoolExempt(v) {
   return (
+    v.state === "priming" ||
+    v.state === "primed" ||
+    v.state === "loading" ||
+    v.state === "loaded" ||   // ← NEW
     v.releaseBias === true ||
     v.recycleBias === true ||
     v.state === "DOCKING" ||
@@ -112,6 +116,7 @@ function isPoolExempt(v) {
     v.state === "MEMBRANE_MERGE"
   );
 }
+
 
 
 // =====================================================
