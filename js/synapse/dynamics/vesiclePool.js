@@ -309,6 +309,7 @@ for (const v of vesicles) {
 
 
 function integrateReleaseMotion(v) {
+  console.log("POOL MOVE", v.state, v.x);
   v.x += v.vx;
   v.y += v.vy;
 
