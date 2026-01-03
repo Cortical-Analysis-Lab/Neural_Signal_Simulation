@@ -107,9 +107,9 @@ function drawSynapseView() {
   ensureVesiclePoolInitialized();
 
   // ---------------- AUTHORITATIVE UPDATE ORDER --------
-  updateVesicleRelease?.();
-  updateVesicleMotion?.();
-  updateVesicleLoading?.();
+  updateVesicleLoading();
+  updateVesicleRelease();  
+  updateVesicleMotion();    
   updateVesicleRecycling?.();
   updateSynapticBurst?.();
 
