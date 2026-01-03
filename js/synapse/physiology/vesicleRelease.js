@@ -6,7 +6,7 @@ console.log("⚡ vesicleRelease loaded");
 // =====================================================
 //
 // ✔ Radial vesicle positioning preserved
-// ✔ AP adds directional bias (NOT teleportation)
+// ✔ AP adds continuous directional bias (NOT teleportation)
 // ✔ Visible membrane merger (circle collapse)
 // ✔ 1 → 3/4 → 1/2 → 1/4 → gone
 // ✔ Clean recycling handoff
@@ -26,6 +26,27 @@ const ZIPPER_TIME = 140;
 const PORE_TIME   = 160;
 const OPEN_TIME   = 220;
 const MERGE_TIME  = 260;
+
+
+// -----------------------------------------------------
+// APPROACH FORCE (KEY FIX)
+// -----------------------------------------------------
+// Gentle, continuous pull toward membrane.
+// Safe: modifies velocity only.
+//
+function applyFusionApproachForce(v) {
+
+  const targetX = window.SYNAPSE_VESICLE_STOP_X;
+  const dx = targetX - v.x;
+
+  // Distance-scaled pull (stronger when farther)
+  const pull = constrain(dx * 0.018, -0.28, 0.28);
+
+  v.vx += pull;
+
+  // Kill vertical wandering during approach
+  v.vy *= 0.92;
+}
 
 
 // -----------------------------------------------------
@@ -50,24 +71,15 @@ function triggerVesicleReleaseFromAP() {
   // -------------------------------
   // PRESERVE RADIAL POSITION
   // -------------------------------
-  // Vesicle does NOT snap to a point.
-  // Membrane approaches vesicle visually.
   v.fusionX = window.SYNAPSE_VESICLE_STOP_X;
   v.fusionY = v.y;
-
-  // -------------------------------
-  // AP-DRIVEN DIRECTIONAL BIAS
-  // (one-time impulse, pool-safe)
-  // -------------------------------
-  v.vx = (v.vx ?? 0) - 0.25;
-  v.vy = (v.vy ?? 0) + random(-0.04, 0.04);
 
   // -------------------------------
   // VISUAL FUSION STATE
   // -------------------------------
   v.fusionProgress = 0;
   v.poreRadius     = 0;
-  v.mergePhase     = 1.0; // full circle
+  v.mergePhase     = 1.0;
 }
 
 
@@ -81,9 +93,11 @@ function updateVesicleRelease() {
   for (const v of vesicles) {
 
     // =================================================
-    // DOCKING — pause at membrane
+    // DOCKING — approach membrane
     // =================================================
     if (v.state === "DOCKING") {
+
+      applyFusionApproachForce(v);
 
       v.timer++;
       if (v.timer >= DOCK_TIME) {
@@ -93,9 +107,11 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // FUSION ZIPPER — membrane engagement
+    // FUSION ZIPPER — continued engagement
     // =================================================
     else if (v.state === "FUSION_ZIPPER") {
+
+      applyFusionApproachForce(v);
 
       v.timer++;
       v.fusionProgress = constrain(v.timer / ZIPPER_TIME, 0, 1);
@@ -107,7 +123,7 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // FUSION PORE — early quantal leak
+    // FUSION PORE — initial quantal leak
     // =================================================
     else if (v.state === "FUSION_PORE") {
 
@@ -163,7 +179,7 @@ function updateVesicleRelease() {
       v.timer++;
       const t = constrain(v.timer / MERGE_TIME, 0, 1);
 
-      // Stepwise collapse (clear teaching visual)
+      // Stepwise collapse (teaching visual)
       if      (t < 0.25) v.mergePhase = 1.0;
       else if (t < 0.5)  v.mergePhase = 0.75;
       else if (t < 0.75) v.mergePhase = 0.5;
