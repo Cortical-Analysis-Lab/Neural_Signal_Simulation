@@ -93,7 +93,7 @@ function triggerVesicleReleaseFromAP() {
 // UPDATE RELEASE SEQUENCE (STATE-ONLY)
 // -----------------------------------------------------
 function updateVesicleRelease() {
-
+  console.log("⚡ updateVesicleRelease tick");
   const vesicles = window.synapseVesicles || [];
 
   for (const v of vesicles) {
