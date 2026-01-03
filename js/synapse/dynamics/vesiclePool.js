@@ -10,6 +10,7 @@ console.log("🫧 vesiclePool loaded");
 // ✔ Smooth Brownian drift
 // ✔ Gentle vesicle–vesicle collisions
 // ✔ Smooth transport into loaded zone (NO POPPING)
+// ✔ True interior confinement (radius-aware)
 // ✔ Release + recycling states fully exempt
 //
 // 🔒 BOTH ZONES ARE HARD-CODED (PHYSICS SPACE)
@@ -26,9 +27,10 @@ const V_THERMAL_Y = 0.004;
 const V_DRAG_X    = 0.985;
 const V_DRAG_Y    = 0.950;
 
-const V_REBOUND_X = 0.20;
-const V_REBOUND_Y = 0.12;
+const V_REBOUND_X = 0.25;
+const V_REBOUND_Y = 0.18;
 
+const WALL_TANGENTIAL_DAMP = 0.6;
 const V_MIN_SEP   = 2.1;
 
 
@@ -153,11 +155,12 @@ function applyBrownianMotion(vesicles) {
 
 
 // -----------------------------------------------------
-// LOADED ZONE ATTRACTION (KEY ADDITION)
+// LOADED ZONE ATTRACTION (SMOOTH TRANSPORT)
 // -----------------------------------------------------
 function applyLoadedZoneAttraction(v) {
 
   const r = getLoadedVesicleRect();
+  const Rv = window.SYNAPSE_VESICLE_RADIUS;
 
   const tx = (r.xMin + r.xMax) * 0.5;
   const ty = (r.yMin + r.yMax) * 0.5;
@@ -174,12 +177,12 @@ function applyLoadedZoneAttraction(v) {
   v.x += v.vx;
   v.y += v.vy;
 
-  // Lock once fully inside
+  // Only finalize once ENTIRE vesicle is inside
   if (
-    v.x >= r.xMin &&
-    v.x <= r.xMax &&
-    v.y >= r.yMin &&
-    v.y <= r.yMax
+    v.x - Rv >= r.xMin &&
+    v.x + Rv <= r.xMax &&
+    v.y - Rv >= r.yMin &&
+    v.y + Rv <= r.yMax
   ) {
     v.state = "loaded";
     v.vx *= 0.3;
@@ -228,12 +231,13 @@ function resolveVesicleCollisions(vesicles) {
 
 
 // =====================================================
-// DOMAIN ENFORCEMENT
+// DOMAIN ENFORCEMENT — TRUE INTERIOR CONFINEMENT
 // =====================================================
 function enforceVesicleDomains(vesicles) {
 
   const reserve = getVesicleReserveRect();
   const loaded  = getLoadedVesicleRect();
+  const Rv      = window.SYNAPSE_VESICLE_RADIUS;
 
   for (const v of vesicles) {
 
@@ -243,38 +247,40 @@ function enforceVesicleDomains(vesicles) {
       applyLoadedZoneAttraction(v);
     }
     else if (v.state === "loaded") {
-      clampToRect(v, loaded);
+      confineInsideRect(v, loaded, Rv);
     }
     else {
-      clampToRect(v, reserve);
+      confineInsideRect(v, reserve, Rv);
     }
   }
 }
 
 
 // -----------------------------------------------------
-// RECT CLAMP HELPER
+// RECT CONFINEMENT (RADIUS-AWARE, NO WALL SLIDING)
 // -----------------------------------------------------
-function clampToRect(v, r) {
+function confineInsideRect(v, r, radius) {
 
-  if (!Number.isFinite(v.x) || !Number.isFinite(v.y)) return;
-
-  if (v.x < r.xMin) {
-    v.x = r.xMin;
+  if (v.x - radius < r.xMin) {
+    v.x = r.xMin + radius;
     v.vx = Math.abs(v.vx) * V_REBOUND_X;
+    v.vy *= WALL_TANGENTIAL_DAMP;
   }
-  else if (v.x > r.xMax) {
-    v.x = r.xMax;
+  else if (v.x + radius > r.xMax) {
+    v.x = r.xMax - radius;
     v.vx = -Math.abs(v.vx) * V_REBOUND_X;
+    v.vy *= WALL_TANGENTIAL_DAMP;
   }
 
-  if (v.y < r.yMin) {
-    v.y = r.yMin;
-    v.vy *= -V_REBOUND_Y;
+  if (v.y - radius < r.yMin) {
+    v.y = r.yMin + radius;
+    v.vy = Math.abs(v.vy) * V_REBOUND_Y;
+    v.vx *= WALL_TANGENTIAL_DAMP;
   }
-  else if (v.y > r.yMax) {
-    v.y = r.yMax;
-    v.vy *= -V_REBOUND_Y;
+  else if (v.y + radius > r.yMax) {
+    v.y = r.yMax - radius;
+    v.vy = -Math.abs(v.vy) * V_REBOUND_Y;
+    v.vx *= WALL_TANGENTIAL_DAMP;
   }
 }
 
