@@ -5,15 +5,21 @@ console.log("⚡ vesicleRelease loaded");
 // Dock → Zipper → Pore → Open → Merge
 // =====================================================
 //
-// ✔ Vesicles remain radially positioned
-// ✔ Membrane merges INTO vesicle (not snap)
-// ✔ Visible 3/4 → 1/2 → 1/4 collapse
-// ✔ Clean handoff to recycling
+// ✔ Radial vesicle positioning preserved
+// ✔ AP adds directional bias (NOT teleportation)
+// ✔ Visible membrane merger (circle collapse)
+// ✔ 1 → 3/4 → 1/2 → 1/4 → gone
+// ✔ Clean recycling handoff
+//
+// NON-RESPONSIBILITIES:
+// ✘ No background motion
+// ✘ No pool constraints
+// ✘ No rendering logic
 // =====================================================
 
 
 // -----------------------------------------------------
-// BIOLOGICAL TIMING (SLOW & VISIBLE)
+// BIOLOGICAL TIMING (INTENTIONALLY SLOW)
 // -----------------------------------------------------
 const DOCK_TIME   = 90;
 const ZIPPER_TIME = 140;
@@ -28,7 +34,6 @@ const MERGE_TIME  = 260;
 function triggerVesicleReleaseFromAP() {
 
   const vesicles = window.synapseVesicles || [];
-
   const candidates = vesicles.filter(v => v.state === "loaded");
   if (candidates.length === 0) return;
 
@@ -36,14 +41,30 @@ function triggerVesicleReleaseFromAP() {
   candidates.sort((a, b) => a.x - b.x);
   const v = candidates[0];
 
+  // -------------------------------
+  // STATE INIT
+  // -------------------------------
   v.state = "DOCKING";
   v.timer = 0;
 
-  // Preserve vesicle position (radial!)
-  v.fusionY = v.y;
+  // -------------------------------
+  // PRESERVE RADIAL POSITION
+  // -------------------------------
+  // Vesicle does NOT snap to a point.
+  // Membrane approaches vesicle visually.
   v.fusionX = window.SYNAPSE_VESICLE_STOP_X;
+  v.fusionY = v.y;
 
-  // Visual fusion state
+  // -------------------------------
+  // AP-DRIVEN DIRECTIONAL BIAS
+  // (one-time impulse, pool-safe)
+  // -------------------------------
+  v.vx = (v.vx ?? 0) - 0.25;
+  v.vy = (v.vy ?? 0) + random(-0.04, 0.04);
+
+  // -------------------------------
+  // VISUAL FUSION STATE
+  // -------------------------------
   v.fusionProgress = 0;
   v.poreRadius     = 0;
   v.mergePhase     = 1.0; // full circle
@@ -51,7 +72,7 @@ function triggerVesicleReleaseFromAP() {
 
 
 // -----------------------------------------------------
-// UPDATE RELEASE SEQUENCE (NO MOTION AUTHORITY)
+// UPDATE RELEASE SEQUENCE (STATE ONLY)
 // -----------------------------------------------------
 function updateVesicleRelease() {
 
@@ -60,7 +81,7 @@ function updateVesicleRelease() {
   for (const v of vesicles) {
 
     // =================================================
-    // DOCKING — pause
+    // DOCKING — pause at membrane
     // =================================================
     if (v.state === "DOCKING") {
 
@@ -86,7 +107,7 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // FUSION PORE — initial quantal leak
+    // FUSION PORE — early quantal leak
     // =================================================
     else if (v.state === "FUSION_PORE") {
 
@@ -142,11 +163,11 @@ function updateVesicleRelease() {
       v.timer++;
       const t = constrain(v.timer / MERGE_TIME, 0, 1);
 
-      // 1.0 → 0.75 → 0.5 → 0.25 → 0
-      if (t < 0.25) v.mergePhase = 1.0;
-      else if (t < 0.5) v.mergePhase = 0.75;
+      // Stepwise collapse (clear teaching visual)
+      if      (t < 0.25) v.mergePhase = 1.0;
+      else if (t < 0.5)  v.mergePhase = 0.75;
       else if (t < 0.75) v.mergePhase = 0.5;
-      else v.mergePhase = 0.25;
+      else               v.mergePhase = 0.25;
 
       if (t >= 1) {
 
@@ -160,7 +181,7 @@ function updateVesicleRelease() {
   }
 
   // ---------------------------------------------------
-  // CLEANUP (SAFE)
+  // SAFE CLEANUP
   // ---------------------------------------------------
   for (let i = vesicles.length - 1; i >= 0; i--) {
     if (vesicles[i].state === "RECYCLED") {
@@ -170,6 +191,8 @@ function updateVesicleRelease() {
 }
 
 
+// -----------------------------------------------------
+// PUBLIC EXPORTS
 // -----------------------------------------------------
 window.updateVesicleRelease = updateVesicleRelease;
 window.triggerVesicleReleaseFromAP = triggerVesicleReleaseFromAP;
