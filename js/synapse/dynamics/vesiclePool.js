@@ -287,3 +287,31 @@ function resolveRecycleCompletion(vesicles) {
 
 // -----------------------------------------------------
 window.updateVesicleMotion = updateVesicleMotion;
+
+// =====================================================
+// SAFE SPAWN API (REQUIRED)
+// =====================================================
+window.requestNewEmptyVesicle = function () {
+
+  if (!Array.isArray(window.synapseVesicles)) return;
+  if (window.synapseVesicles.length >= window.SYNAPSE_MAX_VESICLES) return;
+
+  const r = getVesicleReserveRect();
+
+  window.synapseVesicles.push({
+    x: random(r.xMin, r.xMax),
+    y: random(r.yMin, r.yMax),
+
+    vx: random(-0.01, 0.01),
+    vy: random(-0.004, 0.004),
+
+    state: "empty",
+
+    primedH: false,
+    primedATP: false,
+    nts: [],
+
+    releaseBias: false,
+    recycleBias: false
+  });
+};
