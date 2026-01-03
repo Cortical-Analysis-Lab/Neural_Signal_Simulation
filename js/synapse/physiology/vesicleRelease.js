@@ -38,12 +38,12 @@ function applyFusionApproachForce(v) {
   const targetX = window.SYNAPSE_VESICLE_STOP_X;
   const dx = targetX - v.x;
 
-  // distance-scaled pull
+  // Distance-scaled pull toward membrane
   const pull = constrain(dx * 0.025, -0.35, 0.35);
 
   v.vx += pull;
 
-  // suppress radial drift
+  // Suppress vertical drift (radial alignment)
   v.vy *= 0.85;
 }
 
@@ -70,14 +70,14 @@ function triggerVesicleReleaseFromAP() {
   // -------------------------------
   // RELEASE FLAGS (CRITICAL)
   // -------------------------------
-  v.releaseBias = true;
+  v.releaseBias = true;   // pool will not constrain
 
   // -------------------------------
   // VISUAL / GEOMETRY STATE
   // -------------------------------
   v.fusionProgress = 0;
   v.poreRadius     = 0;
-  v.flatten        = 0;   // 🔑 geometry driver
+  v.flatten        = 0;   // 🔑 geometry driver (0 → 1)
   v.mergePhase     = 1.0;
 }
 
@@ -178,11 +178,11 @@ function updateVesicleRelease() {
       v.timer++;
       const t = constrain(v.timer / MERGE_TIME, 0, 1);
 
-      // 🔑 DRIVE GEOMETRY
+      // 🔑 Drive geometry (consumed by vesicleGeometry.js)
       v.flatten    = t;        // 0 → 1
       v.mergePhase = 1 - t;
 
-      // 🔒 HARD MEMBRANE LOCK (NO BOUNCE GAP)
+      // 🔒 HARD MEMBRANE LOCK — NO GAP POSSIBLE
       v.x  = window.SYNAPSE_VESICLE_STOP_X;
       v.vx = 0;
       v.vy *= 0.85;
