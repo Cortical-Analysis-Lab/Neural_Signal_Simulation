@@ -5,7 +5,7 @@ console.log("🫧 vesiclePool loaded");
 // =====================================================
 //
 // ✔ Smooth Brownian drift (non-repetitive)
-// ✔ Deep cytosolic reserve rectangle
+// ✔ Deep cytosolic reserve rectangle (membrane-relative)
 // ✔ Soft confinement (NO ping-pong)
 // ✔ Vesicle–vesicle collisions (gentle)
 // ✔ Release states fully exempt
@@ -35,22 +35,28 @@ const V_MIN_SEP   = 2.1;
 // -----------------------------------------------------
 // CYTOSOLIC RESERVE RECTANGLE (AUTHORITATIVE)
 // -----------------------------------------------------
-// • 1/3 smaller than previous
-// • Well behind synaptic membrane
-// • Symmetric, stable, readable
+// ✔ Anchored to membrane stop-plane
+// ✔ Fully tunable depth into cytosol
+// ✔ Size + position decoupled
 // -----------------------------------------------------
 function getVesicleReserveRect() {
 
-  const cx = window.SYNAPSE_TERMINAL_CENTER_X;
-  const cy = window.SYNAPSE_TERMINAL_CENTER_Y;
-  const R  = window.SYNAPSE_TERMINAL_RADIUS;
+  const cy    = window.SYNAPSE_TERMINAL_CENTER_Y;
+  const R     = window.SYNAPSE_TERMINAL_RADIUS;
+  const stopX = window.SYNAPSE_VESICLE_STOP_X;
 
-  // Dimensions
-  const width  = 60;          // reduced width
-  const height = R;    // reduced vertical span
+  // ============================
+  // SIZE CONTROLS
+  // ============================
+  const width  = 75;   // ← you already tune this
+  const height = R;    // ← and this
 
-  // Position (deep cytosol, NOT near stop plane)
-  const xMin = cx;
+  // ============================
+  // POSITION CONTROL (THE FIX)
+  // ============================
+  const BACK_OFFSET = 28;   // ← THIS NOW WORKS
+
+  const xMin = stopX + BACK_OFFSET;
   const xMax = xMin + width;
 
   return {
@@ -99,18 +105,15 @@ function applyBrownianMotion(vesicles) {
 
     if (isReleaseLocked(v)) continue;
 
-    // Lazy init velocities
     if (v.vx === undefined) v.vx = random(-0.008, 0.008);
     if (v.vy === undefined) v.vy = random(-0.004, 0.004);
 
-    // Independent noise each frame (prevents synchrony)
     v.vx += random(-V_THERMAL_X, V_THERMAL_X);
     v.vy += random(-V_THERMAL_Y, V_THERMAL_Y);
 
     v.x += v.vx;
     v.y += v.vy;
 
-    // Strong damping → no racing
     v.vx *= V_DRAG_X;
     v.vy *= V_DRAG_Y;
   }
@@ -148,7 +151,6 @@ function resolveVesicleCollisions(vesicles) {
         b.x += nx * overlap;
         b.y += ny * overlap;
 
-        // Very small impulse to prevent jitter
         a.vx -= nx * 0.10;
         a.vy -= ny * 0.06;
         b.vx += nx * 0.10;
@@ -160,7 +162,7 @@ function resolveVesicleCollisions(vesicles) {
 
 
 // -----------------------------------------------------
-// RESERVE RECTANGLE ENFORCEMENT (SOFT, NON-REFLECTIVE)
+// RESERVE RECTANGLE ENFORCEMENT (SOFT)
 // -----------------------------------------------------
 function enforceReserveRectangle(vesicles) {
 
@@ -170,7 +172,6 @@ function enforceReserveRectangle(vesicles) {
 
     if (isReleaseLocked(v)) continue;
 
-    // Horizontal confinement
     if (v.x < r.xMin) {
       v.x = r.xMin;
       v.vx = Math.abs(v.vx) * V_REBOUND_X;
@@ -180,7 +181,6 @@ function enforceReserveRectangle(vesicles) {
       v.vx = -Math.abs(v.vx) * V_REBOUND_X;
     }
 
-    // Vertical confinement (heavily damped, no bounce)
     if (v.y < r.yMin) {
       v.y = r.yMin;
       v.vy *= -V_REBOUND_Y;
@@ -220,7 +220,7 @@ window.requestNewEmptyVesicle = function () {
 
 
 // -----------------------------------------------------
-// DEBUG DRAW (OPTIONAL, RELIABLE)
+// DEBUG DRAW (OPTIONAL)
 // -----------------------------------------------------
 window.drawVesicleReserveDebug = function () {
 
