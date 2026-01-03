@@ -56,13 +56,12 @@ function ensureVesiclePoolInitialized() {
 // MAIN VIEW — ORCHESTRATOR ONLY
 // =====================================================
 //
-// ⚠️ This file:
-// • NEVER draws constraint geometry
-// • NEVER visualizes physics helpers
-// • ONLY orders subsystems + transforms
+// ✔ Orders subsystems
+// ✔ Applies transforms
+// ✔ DEBUG constraint visualization ENABLED
 //
-// Vesicle confinement is handled invisibly
-// in vesiclePool.js
+// Constraint geometry is STILL OWNED
+// by vesiclePool.js
 // =====================================================
 
 function drawSynapseView() {
@@ -97,16 +96,20 @@ function drawSynapseView() {
   drawAstrocyteSynapse?.();
 
   // ===================================================
-  // PRESYNAPTIC SIDE
+  // PRESYNAPTIC SIDE (PHYSICS SPACE)
   // ===================================================
   push();
   translate(PRE_X, NEURON_Y);
 
   // ---------------------------------------------------
   // VISUAL-ONLY FLIP (CRITICAL)
-  // Everything drawn AFTER this matches vesicle physics
+  // Everything AFTER this matches vesicle physics
   // ---------------------------------------------------
   scale(-1, 1);
+
+  // 🔵 DEBUG: VESICLE CONSTRAINT ZONES
+  // (Reserve pool + Loaded zone)
+  drawVesicleConstraintDebug?.();
 
   // Presynaptic geometry
   drawPreSynapse?.();
