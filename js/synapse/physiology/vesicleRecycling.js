@@ -46,6 +46,7 @@ function updateVesicleRecycling() {
 
   const MAX_VES  = window.SYNAPSE_MAX_VESICLES;
   const V_RADIUS = window.SYNAPSE_VESICLE_RADIUS;
+  const stopX    = window.SYNAPSE_VESICLE_STOP_X;
 
   for (let i = seeds.length - 1; i >= 0; i--) {
     const e = seeds[i];
@@ -91,17 +92,14 @@ function updateVesicleRecycling() {
         if (vesicles.length < MAX_VES) {
 
           // ------------------------------------------------
-          // CREATE NEW EMPTY VESICLE AT MEMBRANE
+          // CREATE NEW EMPTY VESICLE (CYTOSOL-SAFE)
           // ------------------------------------------------
-          const cy    = window.SYNAPSE_TERMINAL_CENTER_Y;
-          const stopX = window.SYNAPSE_VESICLE_STOP_X;
-
           vesicles.push({
-            // Born at membrane
-            x: stopX + random(2, 6),
+            // Born JUST INSIDE the presynaptic cytosol
+            x: stopX + V_RADIUS + random(6, 10),
             y: e.y + random(-4, 4),
 
-            // Gentle drift BACK into cytosol
+            // Gentle drift away from membrane
             vx: random(0.04, 0.07),
             vy: random(-0.02, 0.02),
 
@@ -112,10 +110,10 @@ function updateVesicleRecycling() {
             nts: [],
 
             // ------------------------------------------------
-            // 🔑 RETURN BIAS FLAG
-            // Allows pool to guide vesicle home
+            // 🔑 POOL FLAGS — CLEAN RESET
             // ------------------------------------------------
-            recycleBias: true
+            releaseBias: false,
+            recycleBias: true   // pool will guide inward
           });
         }
 
@@ -146,4 +144,4 @@ function drawVesicleRecycling() {
 // PUBLIC EXPORT
 // -----------------------------------------------------
 window.updateVesicleRecycling = updateVesicleRecycling;
-window.drawVesicleRecycling   = drawVesicleRecycling;
+window.drawVesicleRecycling  = drawVesicleRecycling;
