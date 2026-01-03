@@ -46,7 +46,8 @@ function ensureVesiclePoolInitialized() {
 
   if (window.synapseVesicles.length === 0) {
     for (let i = 0; i < maxVes; i++) {
-      requestNewEmptyVesicle?.();
+      // 🔧 FIX: must be accessed via window
+      window.requestNewEmptyVesicle?.();
     }
   }
 }
@@ -109,7 +110,8 @@ function drawSynapseView() {
 
   // 🔵 DEBUG: VESICLE CONSTRAINT ZONES
   // (Reserve pool + Loaded zone)
-  drawVesicleConstraintDebug?.();
+  // Owned and drawn by vesiclePool.js
+  window.drawVesicleConstraintDebug?.();
 
   // Presynaptic geometry
   drawPreSynapse?.();
