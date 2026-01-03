@@ -172,11 +172,11 @@ function applyLoadedZoneAttraction(v) {
   const dx = tx - v.x;
   const dy = ty - v.y;
 
-  v.vx += dx * 0.008;
-  v.vy += dy * 0.008;
+  v.vx += dx * 0.004;
+  v.vy += dy * 0.004;
 
-  v.vx *= 0.88;
-  v.vy *= 0.88;
+  v.vx *= 0.77;
+  v.vy *= 0.77;
 
   v.x += v.vx;
   v.y += v.vy;
