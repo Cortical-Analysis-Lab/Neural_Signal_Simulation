@@ -29,23 +29,24 @@ const MERGE_TIME  = 260;
 
 
 // -----------------------------------------------------
-// APPROACH FORCE (KEY FIX)
+// APPROACH FORCE (SAFE + CONTINUOUS)
 // -----------------------------------------------------
-// Gentle, continuous pull toward membrane.
-// Safe: modifies velocity only.
+// • Applies ONLY during release states
+// • Does not interfere with loading
+// • Pool constraints remain authoritative
 //
 function applyFusionApproachForce(v) {
 
   const targetX = window.SYNAPSE_VESICLE_STOP_X;
   const dx = targetX - v.x;
 
-  // Distance-scaled pull (stronger when farther)
-  const pull = constrain(dx * 0.018, -0.28, 0.28);
+  // Distance-scaled pull toward membrane
+  const pull = constrain(dx * 0.02, -0.25, 0.25);
 
   v.vx += pull;
 
   // Kill vertical wandering during approach
-  v.vy *= 0.92;
+  v.vy *= 0.90;
 }
 
 
@@ -79,12 +80,12 @@ function triggerVesicleReleaseFromAP() {
   // -------------------------------
   v.fusionProgress = 0;
   v.poreRadius     = 0;
-  v.mergePhase     = 1.0;
+  v.mergePhase     = 1.0; // full circle
 }
 
 
 // -----------------------------------------------------
-// UPDATE RELEASE SEQUENCE (STATE ONLY)
+// UPDATE RELEASE SEQUENCE (STATE-ONLY)
 // -----------------------------------------------------
 function updateVesicleRelease() {
 
@@ -107,7 +108,7 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // FUSION ZIPPER — continued engagement
+    // FUSION ZIPPER — membrane engagement
     // =================================================
     else if (v.state === "FUSION_ZIPPER") {
 
@@ -179,7 +180,7 @@ function updateVesicleRelease() {
       v.timer++;
       const t = constrain(v.timer / MERGE_TIME, 0, 1);
 
-      // Stepwise collapse (teaching visual)
+      // 1 → 3/4 → 1/2 → 1/4 → gone
       if      (t < 0.25) v.mergePhase = 1.0;
       else if (t < 0.5)  v.mergePhase = 0.75;
       else if (t < 0.75) v.mergePhase = 0.5;
@@ -197,7 +198,7 @@ function updateVesicleRelease() {
   }
 
   // ---------------------------------------------------
-  // SAFE CLEANUP
+  // SAFE CLEANUP (POST-ITERATION)
   // ---------------------------------------------------
   for (let i = vesicles.length - 1; i >= 0; i--) {
     if (vesicles[i].state === "RECYCLED") {
