@@ -88,24 +88,22 @@ function drawSynapseView() {
   drawAstrocyteSynapse?.();
 
   // ===================================================
-  // PRESYNAPTIC SIDE
+  // PRESYNAPTIC SIDE (PHYSICS SPACE)
   // ===================================================
   push();
   translate(PRE_X, NEURON_Y);
 
-  // ⚠️ Visual-only flip (physics already resolved)
-  scale(-1, 1);
-
-  drawPreSynapse?.();
-
-  // ===================================================
-  // 🔵 VESICLE RESERVE RECTANGLE (AUTHORITATIVE)
-  // ===================================================
+  // 🔵 DRAW RESERVE RECTANGLE **BEFORE FLIP**
   if (window.SHOW_VESICLE_RESERVE_DEBUG === true) {
     drawVesicleReserveRectangle_FORCE();
   }
 
-  // Vesicles + contents
+  // ===================================================
+  // VISUAL-ONLY FLIP (DO NOT MOVE ABOVE)
+  // ===================================================
+  scale(-1, 1);
+
+  drawPreSynapse?.();
   drawSynapseVesicleGeometry?.();
   drawSynapticBurst?.();
 
@@ -127,8 +125,8 @@ function drawSynapseView() {
 // 🔵 AUTHORITATIVE DEBUG RECTANGLE
 // =====================================================
 // ✔ Uses vesiclePool geometry directly
+// ✔ Same coordinate frame as physics
 // ✔ Zero duplication
-// ✔ Cannot drift from physics
 // =====================================================
 
 function drawVesicleReserveRectangle_FORCE() {
@@ -139,7 +137,7 @@ function drawVesicleReserveRectangle_FORCE() {
 
   push();
   noFill();
-  stroke(80, 160, 255, 240); // bright blue
+  stroke(80, 160, 255, 240);
   strokeWeight(3);
   rectMode(CORNERS);
   rect(r.xMin, r.yMin, r.xMax, r.yMax);
