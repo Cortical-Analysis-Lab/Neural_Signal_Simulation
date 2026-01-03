@@ -103,6 +103,7 @@ function getLoadedVesicleRect() {
 // -----------------------------------------------------
 function isPoolExempt(v) {
   return (
+    v.releaseBias === true ||     
     v.state === "priming" ||
     v.state === "primed" ||
     v.state === "loading" ||
@@ -117,6 +118,7 @@ function isPoolExempt(v) {
 
 
 
+
 // =====================================================
 // MAIN UPDATE
 // =====================================================
@@ -125,11 +127,25 @@ function updateVesicleMotion() {
   const vesicles = window.synapseVesicles;
   if (!vesicles || vesicles.length === 0) return;
 
+  // ---------------------------------------------------
+  // 🔑 CRITICAL FIX:
+  // Always integrate release vesicle motion
+  // ---------------------------------------------------
+  for (const v of vesicles) {
+    if (v.releaseBias === true) {
+      integrateReleaseMotion(v);
+    }
+  }
+
+  // ---------------------------------------------------
+  // Standard pool physics
+  // ---------------------------------------------------
   applyBrownianMotion(vesicles);
   resolveVesicleCollisions(vesicles);
   enforceVesicleDomains(vesicles);
   resolveRecycleCompletion(vesicles);
 }
+
 
 
 // -----------------------------------------------------
@@ -213,6 +229,8 @@ function resolveVesicleCollisions(vesicles) {
       const d  = Math.hypot(dx, dy);
 
       if (d > 0 && d < minD) {
+        if (a.releaseBias === true || b.releaseBias === true) continue;
+
 
         const nx = dx / d;
         const ny = dy / d;
@@ -266,6 +284,16 @@ for (const v of vesicles) {
       confineInsideRect(v, reserve, Rv);
     }
   }
+}
+
+
+function integrateReleaseMotion(v) {
+  v.x += v.vx;
+  v.y += v.vy;
+
+  // Gentle damping so approach is smooth
+  v.vx *= 0.92;
+  v.vy *= 0.92;
 }
 
 
