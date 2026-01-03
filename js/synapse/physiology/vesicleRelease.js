@@ -9,8 +9,8 @@ console.log("⚡ vesicleRelease loaded");
 // ✔ Radial (Y) position preserved
 // ✔ Pool-safe (velocity bias only)
 // ✔ Visible collapse: full → arc → gone
-// ✔ Hard membrane lock during merge
-// ✔ Clean recycling handoff
+// ✔ HARD membrane lock during merge (NO GAP)
+// ✔ Delayed recycling (no redraw pop)
 //
 // NON-RESPONSIBILITIES:
 // ✘ No Brownian motion
@@ -29,21 +29,23 @@ const PORE_TIME   = 160;
 const OPEN_TIME   = 220;
 const MERGE_TIME  = 260;
 
+const RECYCLE_HOLD_FRAMES = 40;   // 🔑 visual hold after merge
+
 
 // -----------------------------------------------------
-// CONTINUOUS APPROACH FORCE
+// CONTINUOUS APPROACH FORCE (PRE-FUSION ONLY)
 // -----------------------------------------------------
 function applyFusionApproachForce(v) {
 
   const targetX = window.SYNAPSE_VESICLE_STOP_X;
   const dx = targetX - v.x;
 
-  // Distance-scaled pull toward membrane
+  // distance-scaled pull toward membrane
   const pull = constrain(dx * 0.025, -0.35, 0.35);
 
   v.vx += pull;
 
-  // Suppress vertical drift (radial alignment)
+  // suppress radial drift
   v.vy *= 0.85;
 }
 
@@ -70,14 +72,14 @@ function triggerVesicleReleaseFromAP() {
   // -------------------------------
   // RELEASE FLAGS (CRITICAL)
   // -------------------------------
-  v.releaseBias = true;   // pool will not constrain
+  v.releaseBias = true;   // pool will NOT constrain
 
   // -------------------------------
-  // VISUAL / GEOMETRY STATE
+  // GEOMETRY DRIVERS
   // -------------------------------
   v.fusionProgress = 0;
   v.poreRadius     = 0;
-  v.flatten        = 0;   // 🔑 geometry driver (0 → 1)
+  v.flatten        = 0;   // 0 → 1 (consumed by geometry)
   v.mergePhase     = 1.0;
 }
 
@@ -129,6 +131,7 @@ function updateVesicleRelease() {
       v.timer++;
       v.poreRadius = lerp(0, 6, v.timer / PORE_TIME);
 
+      // initial quantal leak
       if (v.timer === Math.floor(PORE_TIME * 0.35)) {
         window.dispatchEvent(new CustomEvent("synapticRelease", {
           detail: {
@@ -153,6 +156,7 @@ function updateVesicleRelease() {
 
       v.timer++;
 
+      // sustained release
       if (v.timer % 10 === 0) {
         window.dispatchEvent(new CustomEvent("synapticRelease", {
           detail: {
@@ -178,11 +182,11 @@ function updateVesicleRelease() {
       v.timer++;
       const t = constrain(v.timer / MERGE_TIME, 0, 1);
 
-      // 🔑 Drive geometry (consumed by vesicleGeometry.js)
+      // 🔑 geometry driver (used by vesicleGeometry.js)
       v.flatten    = t;        // 0 → 1
       v.mergePhase = 1 - t;
 
-      // 🔒 HARD MEMBRANE LOCK — NO GAP POSSIBLE
+      // 🔒 HARD MEMBRANE LOCK — NO GAP EVER
       v.x  = window.SYNAPSE_VESICLE_STOP_X;
       v.vx = 0;
       v.vy *= 0.85;
@@ -194,15 +198,24 @@ function updateVesicleRelease() {
         }
 
         v.state = "RECYCLED";
+        v.recycleHold = RECYCLE_HOLD_FRAMES;
       }
+    }
+
+    // =================================================
+    // RECYCLED — VISUAL HOLD (NO POP)
+    // =================================================
+    else if (v.state === "RECYCLED") {
+      v.recycleHold--;
     }
   }
 
   // ---------------------------------------------------
-  // SAFE CLEANUP
+  // SAFE CLEANUP (DELAYED)
   // ---------------------------------------------------
   for (let i = vesicles.length - 1; i >= 0; i--) {
-    if (vesicles[i].state === "RECYCLED") {
+    const v = vesicles[i];
+    if (v.state === "RECYCLED" && v.recycleHold <= 0) {
       vesicles.splice(i, 1);
     }
   }
