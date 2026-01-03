@@ -1,14 +1,17 @@
 console.log("🫧 vesiclePool loaded");
 
 // =====================================================
-// VESICLE POOL — MOTION & GEOMETRY AUTHORITY (STABLE)
+// VESICLE POOL — MOTION & GEOMETRY AUTHORITY (FINAL)
 // =====================================================
 //
 // ✔ Smooth Brownian drift (non-repetitive)
-// ✔ Deep cytosolic reserve rectangle (membrane-relative)
+// ✔ Deep cytosolic reserve rectangle (implicit, invisible)
 // ✔ Soft confinement (NO ping-pong)
 // ✔ Vesicle–vesicle collisions (gentle)
 // ✔ Release states fully exempt
+//
+// 🔒 Reserve geometry is HARD-CODED
+// 👻 No debug rendering
 // =====================================================
 
 
@@ -16,55 +19,53 @@ console.log("🫧 vesiclePool loaded");
 // MOTION PARAMETERS (CALM + BIOLOGICAL)
 // -----------------------------------------------------
 
-// Brownian noise (anisotropic)
-const V_THERMAL_X = 0.012;   // free lateral diffusion
-const V_THERMAL_Y = 0.004;   // very weak vertical noise
+const V_THERMAL_X = 0.012;
+const V_THERMAL_Y = 0.004;
 
-// Drag (kills oscillation)
 const V_DRAG_X    = 0.985;
 const V_DRAG_Y    = 0.950;
 
-// Boundary response
 const V_REBOUND_X = 0.20;
 const V_REBOUND_Y = 0.12;
 
-// Collision spacing
 const V_MIN_SEP   = 2.1;
 
 
 // -----------------------------------------------------
-// CYTOSOLIC RESERVE RECTANGLE (AUTHORITATIVE)
+// 🔒 CYTOSOLIC RESERVE RECTANGLE (LOCKED)
 // -----------------------------------------------------
-// ✔ Anchored to membrane stop-plane
-// ✔ Fully tunable depth into cytosol
-// ✔ Size + position decoupled
+// • Anchored to membrane stop-plane
+// • Invisible
+// • Stable for entire runtime
 // -----------------------------------------------------
+
+let _vesicleReserveRect = null;
+
 function getVesicleReserveRect() {
+
+  // Cache once — geometry should NEVER change at runtime
+  if (_vesicleReserveRect) return _vesicleReserveRect;
 
   const cy    = window.SYNAPSE_TERMINAL_CENTER_Y;
   const R     = window.SYNAPSE_TERMINAL_RADIUS;
   const stopX = window.SYNAPSE_VESICLE_STOP_X;
 
-  // ============================
-  // SIZE CONTROLS
-  // ============================
-  const width  = 75;   // ← you already tune this
-  const height = R*0.8;    // ← and this
-
-  // ============================
-  // POSITION CONTROL (THE FIX)
-  // ============================
-  const BACK_OFFSET = 60;   // ← THIS NOW WORKS
+  // 🔒 FINALIZED GEOMETRY
+  const WIDTH       = 75;
+  const HEIGHT      = R * 0.8;
+  const BACK_OFFSET = 60;
 
   const xMin = stopX + BACK_OFFSET;
-  const xMax = xMin + width;
+  const xMax = xMin + WIDTH;
 
-  return {
+  _vesicleReserveRect = {
     xMin,
     xMax,
-    yMin: cy - height,
-    yMax: cy + height
+    yMin: cy - HEIGHT,
+    yMax: cy + HEIGHT
   };
+
+  return _vesicleReserveRect;
 }
 
 
@@ -97,7 +98,7 @@ function updateVesicleMotion() {
 
 
 // -----------------------------------------------------
-// SMOOTH BROWNIAN MOTION (NO OSCILLATION)
+// SMOOTH BROWNIAN MOTION
 // -----------------------------------------------------
 function applyBrownianMotion(vesicles) {
 
@@ -162,7 +163,7 @@ function resolveVesicleCollisions(vesicles) {
 
 
 // -----------------------------------------------------
-// RESERVE RECTANGLE ENFORCEMENT (SOFT)
+// RESERVE RECTANGLE ENFORCEMENT (INVISIBLE)
 // -----------------------------------------------------
 function enforceReserveRectangle(vesicles) {
 
@@ -216,23 +217,6 @@ window.requestNewEmptyVesicle = function () {
     primedATP: false,
     nts: []
   });
-};
-
-
-// -----------------------------------------------------
-// DEBUG DRAW (OPTIONAL)
-// -----------------------------------------------------
-window.drawVesicleReserveDebug = function () {
-
-  const r = getVesicleReserveRect();
-
-  push();
-  noFill();
-  stroke(80, 160, 255, 200);
-  strokeWeight(2.5);
-  rectMode(CORNERS);
-  rect(r.xMin, r.yMin, r.xMax, r.yMax);
-  pop();
 };
 
 
