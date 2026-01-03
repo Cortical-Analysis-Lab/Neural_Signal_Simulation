@@ -133,21 +133,33 @@ function updateVesicleMotion() {
   if (!vesicles || vesicles.length === 0) return;
 
   for (const v of vesicles) {
-  
-    // 🔒 HARD STOP — pool never touches fused vesicles
-    if (
-      v.state === "MEMBRANE_MERGE" ||
-      v.state === "RECYCLED"
-    ) {
-      continue;
-    }
-  
-    // 🔑 Release motion ONLY before merge
-    if (v.releaseBias === true) {
-      integrateReleaseMotion(v);
-    }
-  }
 
+  // 🔒 ABSOLUTE LOCK: pool NEVER integrates release vesicles
+  if (
+    v.releaseBias === true ||
+    v.state === "DOCKING" ||
+    v.state === "FUSION_ZIPPER" ||
+    v.state === "FUSION_PORE" ||
+    v.state === "FUSION_OPEN" ||
+    v.state === "MEMBRANE_MERGE" ||
+    v.state === "RECYCLED"
+  ) {
+
+    // 🔎 SAFETY ASSERT (temporary)
+    if (
+      v.releaseBias === true &&
+      Math.abs(v.x - window.SYNAPSE_VESICLE_STOP_X) > 0.01
+    ) {
+      console.error(
+        "❌ POOL MOVED RELEASE VESICLE",
+        v.state,
+        v.x
+      );
+    }
+
+    continue;
+  }
+}
 
   // ---------------------------------------------------
   // Standard pool physics
@@ -167,7 +179,17 @@ function applyBrownianMotion(vesicles) {
 
   for (const v of vesicles) {
 
-    if (isPoolExempt(v)) continue;
+  if (
+    v.releaseBias === true ||
+    v.state === "DOCKING" ||
+    v.state === "FUSION_ZIPPER" ||
+    v.state === "FUSION_PORE" ||
+    v.state === "FUSION_OPEN" ||
+    v.state === "MEMBRANE_MERGE" ||
+    v.state === "RECYCLED"
+  ) {
+    continue;
+  }
     if (v.state === "loaded_travel") continue;
 
     if (!Number.isFinite(v.vx)) v.vx = random(-0.008, 0.008);
@@ -308,15 +330,15 @@ for (const v of vesicles) {
 }
 
 
-function integrateReleaseMotion(v) {
-  console.log("POOL MOVE", v.state, v.x);
-  v.x += v.vx;
-  v.y += v.vy;
+//function integrateReleaseMotion(v) {
+ // console.log("POOL MOVE", v.state, v.x);
+ // v.x += v.vx;
+ // v.y += v.vy;
 
   // Gentle damping so approach is smooth
-  v.vx *= 0.92;
-  v.vy *= 0.92;
-}
+ // v.vx *= 0.92;
+ // v.vy *= 0.92;
+//}
 
 
 // -----------------------------------------------------
