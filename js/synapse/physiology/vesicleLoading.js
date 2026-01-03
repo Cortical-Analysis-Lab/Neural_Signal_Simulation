@@ -165,7 +165,8 @@ function updateVesicleLoading() {
       }
 
       if (v.nts.length >= NT_TARGET) {
-        v.state = VESICLE_STATE.LOADED;
+      v.state = VESICLE_STATE.LOADED_TRAVEL;
+
       }
     }
 
