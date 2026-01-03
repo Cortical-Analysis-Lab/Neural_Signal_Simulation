@@ -11,7 +11,7 @@ console.log("🫧 vesiclePool loaded");
 // ✔ Gentle vesicle–vesicle collisions
 // ✔ Release + recycling states fully exempt
 //
-// 🔒 BOTH ZONES ARE HARD-CODED
+// 🔒 BOTH ZONES ARE HARD-CODED (PHYSICS SPACE)
 // 👻 NO DEBUG RENDERING
 // =====================================================
 
@@ -32,7 +32,7 @@ const V_MIN_SEP   = 2.1;
 
 
 // =====================================================
-// 🔒 RESERVE POOL — DEEP CYTOSOL (FLIP-AWARE, LOCKED)
+// 🔒 RESERVE POOL — DEEP CYTOSOL (AUTHORITATIVE)
 // =====================================================
 let _vesicleReserveRect = null;
 
@@ -44,15 +44,13 @@ function getVesicleReserveRect() {
   const R     = window.SYNAPSE_TERMINAL_RADIUS;
   const stopX = window.SYNAPSE_VESICLE_STOP_X;
 
-  // NOTE:
-  // Presynaptic space is visually flipped (scale(-1,1))
-  // so cytosol is NEGATIVE X from stopX
+  // 🔑 PHYSICS SPACE — DO NOT FLIP
   const WIDTH       = 75;
   const HEIGHT      = R * 0.8;
   const BACK_OFFSET = 60;
 
-  const xMax = stopX - BACK_OFFSET;
-  const xMin = xMax - WIDTH;
+  const xMin = stopX + BACK_OFFSET;
+  const xMax = xMin + WIDTH;
 
   _vesicleReserveRect = {
     xMin,
@@ -66,7 +64,7 @@ function getVesicleReserveRect() {
 
 
 // =====================================================
-// 🔒 LOADED VESICLE ZONE — ADJACENT STAGING AREA
+// 🔒 LOADED VESICLE ZONE — PRE-FUSION STAGING
 // =====================================================
 let _loadedVesicleRect = null;
 
@@ -82,7 +80,6 @@ function getLoadedVesicleRect() {
   const width  = (reserve.xMax - reserve.xMin) * WIDTH_SCALE;
   const height = (reserve.yMax - reserve.yMin) * HEIGHT_SCALE;
 
-  // Loaded vesicles sit BETWEEN reserve and membrane
   const xMax = reserve.xMin;
   const xMin = xMax - width;
 
@@ -139,8 +136,8 @@ function applyBrownianMotion(vesicles) {
 
     if (isPoolExempt(v)) continue;
 
-    if (v.vx === undefined) v.vx = random(-0.008, 0.008);
-    if (v.vy === undefined) v.vy = random(-0.004, 0.004);
+    if (!Number.isFinite(v.vx)) v.vx = random(-0.008, 0.008);
+    if (!Number.isFinite(v.vy)) v.vy = random(-0.004, 0.004);
 
     v.vx += random(-V_THERMAL_X, V_THERMAL_X);
     v.vy += random(-V_THERMAL_Y, V_THERMAL_Y);
@@ -155,7 +152,7 @@ function applyBrownianMotion(vesicles) {
 
 
 // -----------------------------------------------------
-// VESICLE–VESICLE COLLISIONS (GENTLE)
+// VESICLE–VESICLE COLLISIONS
 // -----------------------------------------------------
 function resolveVesicleCollisions(vesicles) {
 
@@ -194,8 +191,7 @@ function resolveVesicleCollisions(vesicles) {
 
 
 // =====================================================
-// DOMAIN ENFORCEMENT (🔥 KEY FIX 🔥)
-// Exactly ONE constraint per vesicle per frame
+// DOMAIN ENFORCEMENT — SINGLE AUTHORITATIVE CLAMP
 // =====================================================
 function enforceVesicleDomains(vesicles) {
 
@@ -243,7 +239,7 @@ function clampToRect(v, r) {
 
 
 // =====================================================
-// RECYCLE COMPLETION — RETURN TO POOL
+// RECYCLE COMPLETION — RETURN TO RESERVE POOL
 // =====================================================
 function resolveRecycleCompletion(vesicles) {
 
@@ -272,7 +268,7 @@ window.updateVesicleMotion = updateVesicleMotion;
 
 
 // =====================================================
-// SAFE SPAWN API (REQUIRED)
+// SAFE SPAWN API — RESERVE POOL ONLY
 // =====================================================
 window.requestNewEmptyVesicle = function () {
 
@@ -289,7 +285,6 @@ window.requestNewEmptyVesicle = function () {
     vy: random(-0.004, 0.004),
 
     state: "empty",
-
     primedH: false,
     primedATP: false,
     nts: [],
