@@ -32,7 +32,7 @@ const V_MIN_SEP   = 2.1;
 
 
 // =====================================================
-// 🔒 RESERVE POOL — DEEP CYTOSOL (LOCKED)
+// 🔒 RESERVE POOL — DEEP CYTOSOL (FLIP-AWARE, LOCKED)
 // =====================================================
 let _vesicleReserveRect = null;
 
@@ -44,7 +44,9 @@ function getVesicleReserveRect() {
   const R     = window.SYNAPSE_TERMINAL_RADIUS;
   const stopX = window.SYNAPSE_VESICLE_STOP_X;
 
-  // FINAL GEOMETRY (FLIP-AWARE)
+  // NOTE:
+  // Presynaptic space is visually flipped (scale(-1,1))
+  // so cytosol is NEGATIVE X from stopX
   const WIDTH       = 75;
   const HEIGHT      = R * 0.8;
   const BACK_OFFSET = 60;
@@ -74,13 +76,13 @@ function getLoadedVesicleRect() {
 
   const reserve = getVesicleReserveRect();
 
-  // FINAL RELATIONSHIP (ADJACENT + SMALLER)
   const WIDTH_SCALE  = 0.75;
   const HEIGHT_SCALE = 0.85;
 
   const width  = (reserve.xMax - reserve.xMin) * WIDTH_SCALE;
   const height = (reserve.yMax - reserve.yMin) * HEIGHT_SCALE;
 
+  // Loaded vesicles sit BETWEEN reserve and membrane
   const xMax = reserve.xMin;
   const xMin = xMax - width;
 
@@ -123,10 +125,7 @@ function updateVesicleMotion() {
 
   applyBrownianMotion(vesicles);
   resolveVesicleCollisions(vesicles);
-
-  enforceLoadedVesicleRect(vesicles);
-  enforceReserveRectangle(vesicles);
-
+  enforceVesicleDomains(vesicles);
   resolveRecycleCompletion(vesicles);
 }
 
@@ -195,67 +194,50 @@ function resolveVesicleCollisions(vesicles) {
 
 
 // =====================================================
-// ENFORCE RESERVE POOL (EMPTY / LOADING)
+// DOMAIN ENFORCEMENT (🔥 KEY FIX 🔥)
+// Exactly ONE constraint per vesicle per frame
 // =====================================================
-function enforceReserveRectangle(vesicles) {
+function enforceVesicleDomains(vesicles) {
 
-  const r = getVesicleReserveRect();
+  const reserve = getVesicleReserveRect();
+  const loaded  = getLoadedVesicleRect();
 
   for (const v of vesicles) {
 
     if (isPoolExempt(v)) continue;
-    if (v.state === "loaded") continue;
 
-    if (v.x < r.xMin) {
-      v.x = r.xMin;
-      v.vx = Math.abs(v.vx) * V_REBOUND_X;
-    }
-    else if (v.x > r.xMax) {
-      v.x = r.xMax;
-      v.vx = -Math.abs(v.vx) * V_REBOUND_X;
-    }
-
-    if (v.y < r.yMin) {
-      v.y = r.yMin;
-      v.vy *= -V_REBOUND_Y;
-    }
-    else if (v.y > r.yMax) {
-      v.y = r.yMax;
-      v.vy *= -V_REBOUND_Y;
+    if (v.state === "loaded") {
+      clampToRect(v, loaded);
+    } else {
+      clampToRect(v, reserve);
     }
   }
 }
 
 
-// =====================================================
-// ENFORCE LOADED VESICLE ZONE
-// =====================================================
-function enforceLoadedVesicleRect(vesicles) {
+// -----------------------------------------------------
+// RECT CLAMP HELPER
+// -----------------------------------------------------
+function clampToRect(v, r) {
 
-  const r = getLoadedVesicleRect();
+  if (!Number.isFinite(v.x) || !Number.isFinite(v.y)) return;
 
-  for (const v of vesicles) {
+  if (v.x < r.xMin) {
+    v.x = r.xMin;
+    v.vx = Math.abs(v.vx) * V_REBOUND_X;
+  }
+  else if (v.x > r.xMax) {
+    v.x = r.xMax;
+    v.vx = -Math.abs(v.vx) * V_REBOUND_X;
+  }
 
-    if (v.state !== "loaded") continue;
-    if (v.releaseBias === true) continue;
-
-    if (v.x < r.xMin) {
-      v.x = r.xMin;
-      v.vx = Math.abs(v.vx) * V_REBOUND_X;
-    }
-    else if (v.x > r.xMax) {
-      v.x = r.xMax;
-      v.vx = -Math.abs(v.vx) * V_REBOUND_X;
-    }
-
-    if (v.y < r.yMin) {
-      v.y = r.yMin;
-      v.vy *= -V_REBOUND_Y;
-    }
-    else if (v.y > r.yMax) {
-      v.y = r.yMax;
-      v.vy *= -V_REBOUND_Y;
-    }
+  if (v.y < r.yMin) {
+    v.y = r.yMin;
+    v.vy *= -V_REBOUND_Y;
+  }
+  else if (v.y > r.yMax) {
+    v.y = r.yMax;
+    v.vy *= -V_REBOUND_Y;
   }
 }
 
@@ -272,10 +254,10 @@ function resolveRecycleCompletion(vesicles) {
     if (v.recycleBias !== true) continue;
 
     if (
-      v.x > r.xMin &&
-      v.x < r.xMax &&
-      v.y > r.yMin &&
-      v.y < r.yMax
+      v.x >= r.xMin &&
+      v.x <= r.xMax &&
+      v.y >= r.yMin &&
+      v.y <= r.yMax
     ) {
       v.recycleBias = false;
       v.vx *= 0.4;
@@ -287,6 +269,7 @@ function resolveRecycleCompletion(vesicles) {
 
 // -----------------------------------------------------
 window.updateVesicleMotion = updateVesicleMotion;
+
 
 // =====================================================
 // SAFE SPAWN API (REQUIRED)
