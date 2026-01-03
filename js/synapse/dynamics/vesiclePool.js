@@ -9,6 +9,7 @@ console.log("🫧 vesiclePool loaded");
 //     2) Loaded vesicle zone (pre-fusion staging)
 // ✔ Smooth Brownian drift
 // ✔ Gentle vesicle–vesicle collisions
+// ✔ Smooth transport into loaded zone (NO POPPING)
 // ✔ Release + recycling states fully exempt
 //
 // 🔒 BOTH ZONES ARE HARD-CODED (PHYSICS SPACE)
@@ -44,7 +45,6 @@ function getVesicleReserveRect() {
   const R     = window.SYNAPSE_TERMINAL_RADIUS;
   const stopX = window.SYNAPSE_VESICLE_STOP_X;
 
-  // 🔑 PHYSICS SPACE — DO NOT FLIP
   const WIDTH       = 75;
   const HEIGHT      = R * 0.8;
   const BACK_OFFSET = 60;
@@ -97,7 +97,7 @@ function getLoadedVesicleRect() {
 
 
 // -----------------------------------------------------
-// POOL EXEMPTION GUARD (RELEASE + RECYCLING)
+// POOL EXEMPTION GUARD
 // -----------------------------------------------------
 function isPoolExempt(v) {
   return (
@@ -135,6 +135,7 @@ function applyBrownianMotion(vesicles) {
   for (const v of vesicles) {
 
     if (isPoolExempt(v)) continue;
+    if (v.state === "loaded_travel") continue;
 
     if (!Number.isFinite(v.vx)) v.vx = random(-0.008, 0.008);
     if (!Number.isFinite(v.vy)) v.vy = random(-0.004, 0.004);
@@ -147,6 +148,42 @@ function applyBrownianMotion(vesicles) {
 
     v.vx *= V_DRAG_X;
     v.vy *= V_DRAG_Y;
+  }
+}
+
+
+// -----------------------------------------------------
+// LOADED ZONE ATTRACTION (KEY ADDITION)
+// -----------------------------------------------------
+function applyLoadedZoneAttraction(v) {
+
+  const r = getLoadedVesicleRect();
+
+  const tx = (r.xMin + r.xMax) * 0.5;
+  const ty = (r.yMin + r.yMax) * 0.5;
+
+  const dx = tx - v.x;
+  const dy = ty - v.y;
+
+  v.vx += dx * 0.015;
+  v.vy += dy * 0.015;
+
+  v.vx *= 0.92;
+  v.vy *= 0.92;
+
+  v.x += v.vx;
+  v.y += v.vy;
+
+  // Lock once fully inside
+  if (
+    v.x >= r.xMin &&
+    v.x <= r.xMax &&
+    v.y >= r.yMin &&
+    v.y <= r.yMax
+  ) {
+    v.state = "loaded";
+    v.vx *= 0.3;
+    v.vy *= 0.3;
   }
 }
 
@@ -191,7 +228,7 @@ function resolveVesicleCollisions(vesicles) {
 
 
 // =====================================================
-// DOMAIN ENFORCEMENT — SINGLE AUTHORITATIVE CLAMP
+// DOMAIN ENFORCEMENT
 // =====================================================
 function enforceVesicleDomains(vesicles) {
 
@@ -202,9 +239,13 @@ function enforceVesicleDomains(vesicles) {
 
     if (isPoolExempt(v)) continue;
 
-    if (v.state === "loaded") {
+    if (v.state === "loaded_travel") {
+      applyLoadedZoneAttraction(v);
+    }
+    else if (v.state === "loaded") {
       clampToRect(v, loaded);
-    } else {
+    }
+    else {
       clampToRect(v, reserve);
     }
   }
@@ -256,6 +297,7 @@ function resolveRecycleCompletion(vesicles) {
       v.y <= r.yMax
     ) {
       v.recycleBias = false;
+      v.state = "empty";
       v.vx *= 0.4;
       v.vy *= 0.4;
     }
