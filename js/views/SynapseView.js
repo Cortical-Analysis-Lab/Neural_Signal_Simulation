@@ -44,13 +44,44 @@ function ensureVesiclePoolInitialized() {
 
   const maxVes = window.SYNAPSE_MAX_VESICLES ?? 7;
 
+  // ---------------------------------------------------
+  // SPAWN VESICLES (ONCE)
+  // ---------------------------------------------------
   if (window.synapseVesicles.length === 0) {
     for (let i = 0; i < maxVes; i++) {
       window.requestNewEmptyVesicle?.();
     }
   }
-}
 
+  // ---------------------------------------------------
+  // SEED RRP (ONCE, GUARDED)
+  // ---------------------------------------------------
+  if (!window.__RRPSeeded) {
+
+    const preloadCount = 3;
+
+    for (let i = 0; i < window.synapseVesicles.length && i < preloadCount; i++) {
+      const v = window.synapseVesicles[i];
+
+      v.state = "loaded";
+      v.primedH = true;
+      v.primedATP = true;
+
+      // Pre-fill neurotransmitters
+      v.nts = [];
+      for (let n = 0; n < window.SYNAPSE_NT_TARGET; n++) {
+        v.nts.push({
+          x: random(-3, 3),
+          y: random(-3, 3),
+          vx: random(-0.12, 0.12),
+          vy: random(-0.12, 0.12)
+        });
+      }
+    }
+
+    window.__RRPSeeded = true;
+  }
+}
 
 // =====================================================
 // MAIN VIEW — ORCHESTRATOR ONLY
