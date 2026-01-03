@@ -5,10 +5,9 @@ console.log("⚡ vesicleRelease loaded");
 // Dock → Zipper → Pore → Open → Merge
 // =====================================================
 //
-// ✔ One vesicle per AP
-// ✔ State-driven (NO motion authority)
-// ✔ Stable fusion site
-// ✔ Diffusive neurotransmitter release
+// ✔ Vesicles remain radially positioned
+// ✔ Membrane merges INTO vesicle (not snap)
+// ✔ Visible 3/4 → 1/2 → 1/4 collapse
 // ✔ Clean handoff to recycling
 // =====================================================
 
@@ -33,27 +32,26 @@ function triggerVesicleReleaseFromAP() {
   const candidates = vesicles.filter(v => v.state === "loaded");
   if (candidates.length === 0) return;
 
-  // Choose vesicle closest to membrane
+  // Closest vesicle to membrane wins
   candidates.sort((a, b) => a.x - b.x);
   const v = candidates[0];
 
   v.state = "DOCKING";
   v.timer = 0;
 
-  // Lock fusion site immediately
-  v.dockOffsetY = random(-24, 24);
-  v.fusionX = window.SYNAPSE_MEMBRANE_X + 2;
-  v.fusionY = window.SYNAPSE_TERMINAL_CENTER_Y + v.dockOffsetY;
+  // Preserve vesicle position (radial!)
+  v.fusionY = v.y;
+  v.fusionX = window.SYNAPSE_VESICLE_STOP_X;
 
-  // Visual parameters
+  // Visual fusion state
   v.fusionProgress = 0;
   v.poreRadius     = 0;
-  v.flatten        = 0;
+  v.mergePhase     = 1.0; // full circle
 }
 
 
 // -----------------------------------------------------
-// UPDATE RELEASE SEQUENCE (NO MOTION)
+// UPDATE RELEASE SEQUENCE (NO MOTION AUTHORITY)
 // -----------------------------------------------------
 function updateVesicleRelease() {
 
@@ -62,7 +60,7 @@ function updateVesicleRelease() {
   for (const v of vesicles) {
 
     // =================================================
-    // DOCKING — wait only
+    // DOCKING — pause
     // =================================================
     if (v.state === "DOCKING") {
 
@@ -74,7 +72,7 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // FUSION ZIPPER
+    // FUSION ZIPPER — membrane engagement
     // =================================================
     else if (v.state === "FUSION_ZIPPER") {
 
@@ -88,7 +86,7 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // FUSION PORE — early quantal leak
+    // FUSION PORE — initial quantal leak
     // =================================================
     else if (v.state === "FUSION_PORE") {
 
@@ -98,8 +96,8 @@ function updateVesicleRelease() {
       if (v.timer === Math.floor(PORE_TIME * 0.35)) {
         window.dispatchEvent(new CustomEvent("synapticRelease", {
           detail: {
-            x: v.fusionX,
-            y: v.fusionY,
+            x: v.x,
+            y: v.y,
             normalX: -1,
             strength: 0.35
           }
@@ -122,8 +120,8 @@ function updateVesicleRelease() {
       if (v.timer % 10 === 0) {
         window.dispatchEvent(new CustomEvent("synapticRelease", {
           detail: {
-            x: v.fusionX + random(-2, 2),
-            y: v.fusionY + random(-2, 2),
+            x: v.x + random(-2, 2),
+            y: v.y + random(-2, 2),
             normalX: -1,
             strength: 1.0
           }
@@ -137,29 +135,41 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // MEMBRANE MERGE — request recycling
+    // MEMBRANE MERGE — VISIBLE COLLAPSE
     // =================================================
     else if (v.state === "MEMBRANE_MERGE") {
 
       v.timer++;
-      v.flatten = constrain(v.timer / MERGE_TIME, 0, 1);
+      const t = constrain(v.timer / MERGE_TIME, 0, 1);
 
-      if (v.flatten >= 1) {
+      // 1.0 → 0.75 → 0.5 → 0.25 → 0
+      if (t < 0.25) v.mergePhase = 1.0;
+      else if (t < 0.5) v.mergePhase = 0.75;
+      else if (t < 0.75) v.mergePhase = 0.5;
+      else v.mergePhase = 0.25;
+
+      if (t >= 1) {
 
         if (typeof spawnEndocytosisSeed === "function") {
-          spawnEndocytosisSeed(v.fusionX, v.fusionY);
+          spawnEndocytosisSeed(v.x, v.y);
         }
 
-        // Mark for removal (pool handles cleanup safely)
         v.state = "RECYCLED";
       }
     }
   }
 
-  // Safe cleanup AFTER iteration
+  // ---------------------------------------------------
+  // CLEANUP (SAFE)
+  // ---------------------------------------------------
   for (let i = vesicles.length - 1; i >= 0; i--) {
     if (vesicles[i].state === "RECYCLED") {
       vesicles.splice(i, 1);
     }
   }
 }
+
+
+// -----------------------------------------------------
+window.updateVesicleRelease = updateVesicleRelease;
+window.triggerVesicleReleaseFromAP = triggerVesicleReleaseFromAP;
