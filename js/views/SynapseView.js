@@ -46,7 +46,6 @@ function ensureVesiclePoolInitialized() {
 
   if (window.synapseVesicles.length === 0) {
     for (let i = 0; i < maxVes; i++) {
-      // 🔧 FIX: must be accessed via window
       window.requestNewEmptyVesicle?.();
     }
   }
@@ -59,10 +58,11 @@ function ensureVesiclePoolInitialized() {
 //
 // ✔ Orders subsystems
 // ✔ Applies transforms
-// ✔ DEBUG constraint visualization ENABLED
+// ✔ Owns NO geometry
+// ✔ Owns NO physics
 //
-// Constraint geometry is STILL OWNED
-// by vesiclePool.js
+// Vesicle confinement + domains are
+// fully owned by vesiclePool.js
 // =====================================================
 
 function drawSynapseView() {
@@ -107,11 +107,6 @@ function drawSynapseView() {
   // Everything AFTER this matches vesicle physics
   // ---------------------------------------------------
   scale(-1, 1);
-
-  // 🔵 DEBUG: VESICLE CONSTRAINT ZONES
-  // (Reserve pool + Loaded zone)
-  // Owned and drawn by vesiclePool.js
-  window.drawVesicleConstraintDebug?.();
 
   // Presynaptic geometry
   drawPreSynapse?.();
