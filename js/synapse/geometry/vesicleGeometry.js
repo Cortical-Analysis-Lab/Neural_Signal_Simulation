@@ -8,13 +8,13 @@ console.log("🧬 vesicleGeometry loaded");
 // • Draw vesicle membranes
 // • Draw neurotransmitter contents
 // • Draw priming particles (H⁺, ATP, ADP+Pi)
-// • Maintain correct draw order
+// • Visualize membrane fusion + merge
 //
 // NON-RESPONSIBILITIES:
-// ✘ No motion
-// ✘ No state transitions
-// ✘ No membrane constraints
-// ✘ No chemistry logic
+// ✘ Motion
+// ✘ State transitions
+// ✘ Constraints
+// ✘ Chemistry logic
 // =====================================================
 
 
@@ -57,7 +57,7 @@ function drawSynapseVesicleGeometry() {
 
 
 // -----------------------------------------------------
-// VESICLE MEMBRANES
+// VESICLE MEMBRANES (WITH MERGE ANIMATION)
 // -----------------------------------------------------
 function drawVesicleMembranes() {
 
@@ -71,20 +71,50 @@ function drawVesicleMembranes() {
 
   for (const v of vesicles) {
 
-    // Defensive guard
     if (v.x == null || v.y == null) continue;
 
-    // Subtle visual cue for loading states
+    // -------------------------------
+    // Fill opacity by state
+    // -------------------------------
     let fillAlpha = 40;
-    if (v.state === "priming" || v.state === "loading") {
-      fillAlpha = 70;
-    } else if (v.state === "loaded") {
-      fillAlpha = 95;
-    }
+    if (v.state === "priming" || v.state === "loading") fillAlpha = 70;
+    if (v.state === "loaded") fillAlpha = 95;
 
     stroke(vesicleBorderColor());
     fill(vesicleFillColor(fillAlpha));
-    ellipse(v.x, v.y, r * 2);
+
+    // =================================================
+    // MEMBRANE MERGE — ARC COLLAPSE
+    // =================================================
+    if (v.state === "MEMBRANE_MERGE" && v.flatten != null) {
+
+      // flatten: 0 → 1
+      // visible fraction: 1 → 0
+      const visibleFrac = constrain(1 - v.flatten, 0, 1);
+
+      if (visibleFrac <= 0.02) continue;
+
+      const startAngle = PI * 0.5;
+      const endAngle   = startAngle + TWO_PI * visibleFrac;
+
+      noFill();
+      stroke(vesicleBorderColor());
+      arc(
+        v.x,
+        v.y,
+        r * 2,
+        r * 2,
+        startAngle,
+        endAngle
+      );
+    }
+
+    // =================================================
+    // NORMAL VESICLE
+    // =================================================
+    else {
+      ellipse(v.x, v.y, r * 2);
+    }
   }
 }
 
@@ -104,6 +134,9 @@ function drawVesicleContents() {
 
     if (!v.nts || v.nts.length === 0) continue;
     if (v.x == null || v.y == null) continue;
+
+    // During merge, fade contents out early
+    if (v.state === "MEMBRANE_MERGE" && v.flatten > 0.4) continue;
 
     for (const p of v.nts) {
       circle(v.x + p.x, v.y + p.y, 3);
@@ -125,10 +158,7 @@ function drawPrimingParticles() {
   textAlign(CENTER, CENTER);
 
   for (const h of window.synapseH || []) {
-
-    // Skip orphaned particles
     if (!vesicles.includes(h.target)) continue;
-
     text("H⁺", h.x, h.y);
   }
 
@@ -137,7 +167,6 @@ function drawPrimingParticles() {
   textAlign(CENTER, CENTER);
 
   for (const a of window.synapseATP || []) {
-
     if (!vesicles.includes(a.target)) continue;
 
     fill(atpColor(a.alpha ?? 255));
