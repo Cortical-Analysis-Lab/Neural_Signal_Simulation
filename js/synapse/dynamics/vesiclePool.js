@@ -1,17 +1,18 @@
 console.log("🫧 vesiclePool loaded");
 
 // =====================================================
-// VESICLE POOL — MOTION & GEOMETRY AUTHORITY (FINAL)
+// VESICLE POOL — MOTION & GEOMETRY AUTHORITY (DEBUG)
 // =====================================================
 //
-// ✔ Smooth Brownian drift (non-repetitive)
-// ✔ Deep cytosolic reserve rectangle (implicit, invisible)
-// ✔ Soft confinement (NO ping-pong)
-// ✔ Vesicle–vesicle collisions (gentle)
+// ✔ Two spatial domains:
+//     1) Reserve pool (empty / loading)
+//     2) Loaded vesicle zone (pre-fusion)
+// ✔ Both domains visible in blue (temporary)
+// ✔ ONLY loaded zone is tunable
 // ✔ Release states fully exempt
 //
-// 🔒 Reserve geometry is HARD-CODED
-// 👻 No debug rendering
+// 🔒 Reserve pool is HARD-LOCKED
+// 🔧 Loaded zone is TUNABLE
 // =====================================================
 
 
@@ -30,9 +31,9 @@ const V_REBOUND_Y = 0.12;
 const V_MIN_SEP   = 2.1;
 
 
-// -----------------------------------------------------
-// 🔒 CYTOSOLIC RESERVE RECTANGLE (LOCKED)
-// -----------------------------------------------------
+// =====================================================
+// 🔒 RESERVE POOL (DEEP CYTOSOL — HARD LOCKED)
+// =====================================================
 let _vesicleReserveRect = null;
 
 function getVesicleReserveRect() {
@@ -43,6 +44,7 @@ function getVesicleReserveRect() {
   const R     = window.SYNAPSE_TERMINAL_RADIUS;
   const stopX = window.SYNAPSE_VESICLE_STOP_X;
 
+  // 🔒 DO NOT TUNE
   const WIDTH       = 75;
   const HEIGHT      = R * 0.8;
   const BACK_OFFSET = 60;
@@ -61,6 +63,46 @@ function getVesicleReserveRect() {
 }
 
 
+// =====================================================
+// 🔵 LOADED VESICLE ZONE (TUNABLE, ADJACENT)
+// =====================================================
+let _loadedVesicleRect = null;
+
+function getLoadedVesicleRect() {
+
+  if (_loadedVesicleRect) return _loadedVesicleRect;
+
+  const reserve = getVesicleReserveRect();
+
+  // ================================
+  // 🔧 TUNABLE PARAMETERS (ONLY HERE)
+  // ================================
+  const WIDTH_SCALE  = 0.5;   // fraction of reserve width
+  const HEIGHT_SCALE = 0.5;   // fraction of reserve height
+  const X_GAP        = 0;     // gap between reserve & loaded zone
+  const Y_OFFSET     = 0;     // vertical shift
+
+  // ================================
+
+  const width  = (reserve.xMax - reserve.xMin) * WIDTH_SCALE;
+  const height = (reserve.yMax - reserve.yMin) * HEIGHT_SCALE;
+
+  const xMax = reserve.xMin - X_GAP;
+  const xMin = xMax - width;
+
+  const yMid = (reserve.yMin + reserve.yMax) * 0.5 + Y_OFFSET;
+
+  _loadedVesicleRect = {
+    xMin,
+    xMax,
+    yMin: yMid - height * 0.5,
+    yMax: yMid + height * 0.5
+  };
+
+  return _loadedVesicleRect;
+}
+
+
 // -----------------------------------------------------
 // RELEASE / FUSION EXEMPTION GUARD
 // -----------------------------------------------------
@@ -76,9 +118,9 @@ function isPoolExempt(v) {
 }
 
 
-// -----------------------------------------------------
+// =====================================================
 // MAIN UPDATE
-// -----------------------------------------------------
+// =====================================================
 function updateVesicleMotion() {
 
   const vesicles = window.synapseVesicles;
@@ -86,6 +128,8 @@ function updateVesicleMotion() {
 
   applyBrownianMotion(vesicles);
   resolveVesicleCollisions(vesicles);
+
+  enforceLoadedVesicleRect(vesicles);
   enforceReserveRectangle(vesicles);
 }
 
@@ -115,7 +159,7 @@ function applyBrownianMotion(vesicles) {
 
 
 // -----------------------------------------------------
-// VESICLE–VESICLE COLLISIONS (GENTLE)
+// VESICLE–VESICLE COLLISIONS
 // -----------------------------------------------------
 function resolveVesicleCollisions(vesicles) {
 
@@ -153,9 +197,9 @@ function resolveVesicleCollisions(vesicles) {
 }
 
 
-// -----------------------------------------------------
-// RESERVE RECTANGLE ENFORCEMENT (INVISIBLE)
-// -----------------------------------------------------
+// =====================================================
+// ENFORCE RESERVE POOL (EMPTY / LOADING)
+// =====================================================
 function enforceReserveRectangle(vesicles) {
 
   const r = getVesicleReserveRect();
@@ -163,6 +207,7 @@ function enforceReserveRectangle(vesicles) {
   for (const v of vesicles) {
 
     if (isPoolExempt(v)) continue;
+    if (v.state === "loaded") continue;
 
     if (v.x < r.xMin) {
       v.x = r.xMin;
@@ -185,42 +230,62 @@ function enforceReserveRectangle(vesicles) {
 }
 
 
-// -----------------------------------------------------
-// SAFE SPAWN API (🔑 FIRST 3 PRE-LOADED)
-// -----------------------------------------------------
-window.requestNewEmptyVesicle = function () {
+// =====================================================
+// ENFORCE LOADED VESICLE ZONE
+// =====================================================
+function enforceLoadedVesicleRect(vesicles) {
 
-  const vesicles = window.synapseVesicles;
-  if (!vesicles) return;
-  if (vesicles.length >= window.SYNAPSE_MAX_VESICLES) return;
+  const r = getLoadedVesicleRect();
 
-  const r = getVesicleReserveRect();
-  const index = vesicles.length;
-  const preload = index < 3;
+  for (const v of vesicles) {
 
-  vesicles.push({
-    x: random(r.xMin, r.xMax),
-    y: random(r.yMin, r.yMax),
+    if (v.state !== "loaded") continue;
+    if (v.releaseBias === true) continue;
 
-    vx: random(-0.01, 0.01),
-    vy: random(-0.004, 0.004),
+    if (v.x < r.xMin) {
+      v.x = r.xMin;
+      v.vx = Math.abs(v.vx) * V_REBOUND_X;
+    }
+    else if (v.x > r.xMax) {
+      v.x = r.xMax;
+      v.vx = -Math.abs(v.vx) * V_REBOUND_X;
+    }
 
-    state: preload ? "loaded" : "empty",
+    if (v.y < r.yMin) {
+      v.y = r.yMin;
+      v.vy *= -V_REBOUND_Y;
+    }
+    else if (v.y > r.yMax) {
+      v.y = r.yMax;
+      v.vy *= -V_REBOUND_Y;
+    }
+  }
+}
 
-    primedH: preload,
-    primedATP: preload,
 
-    nts: preload
-      ? Array.from({ length: window.SYNAPSE_NT_TARGET }, () => ({
-          x: random(-3, 3),
-          y: random(-3, 3),
-          vx: random(-0.18, 0.18),
-          vy: random(-0.18, 0.18)
-        }))
-      : [],
+// =====================================================
+// 🔵 DEBUG DRAW — BOTH CONSTRAINT ZONES
+// =====================================================
+window.drawVesicleConstraintDebug = function () {
 
-    releaseBias: false
-  });
+  const r1 = getVesicleReserveRect();
+  const r2 = getLoadedVesicleRect();
+
+  push();
+  noFill();
+  rectMode(CORNERS);
+
+  // Reserve pool (dimmer blue)
+  stroke(80, 160, 255, 140);
+  strokeWeight(2);
+  rect(r1.xMin, r1.yMin, r1.xMax, r1.yMax);
+
+  // Loaded zone (brighter blue)
+  stroke(80, 160, 255, 220);
+  strokeWeight(2.5);
+  rect(r2.xMin, r2.yMin, r2.xMax, r2.yMax);
+
+  pop();
 };
 
 
