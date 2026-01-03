@@ -55,19 +55,20 @@ function drawSynapseVesicleGeometry() {
 
 
 // -----------------------------------------------------
-// VESICLE MEMBRANES (SEALED → OPEN → COLLAPSED)
+// VESICLE MEMBRANES
+// Sealed → docked → omega opening → collapse
 // -----------------------------------------------------
 function drawVesicleMembranes() {
 
   const vesicles = window.synapseVesicles;
   if (!Array.isArray(vesicles)) return;
 
-  const r       = window.SYNAPSE_VESICLE_RADIUS;
-  const strokeW = window.SYNAPSE_VESICLE_STROKE;
+  const r         = window.SYNAPSE_VESICLE_RADIUS;
+  const strokeW   = window.SYNAPSE_VESICLE_STROKE;
   const membraneX = window.SYNAPSE_VESICLE_STOP_X;
 
-  strokeWeight(strokeW);
   stroke(vesicleBorderColor());
+  strokeWeight(strokeW);
 
   for (const v of vesicles) {
 
@@ -83,23 +84,30 @@ function drawVesicleMembranes() {
     fill(vesicleFillColor(fillAlpha));
 
     // =================================================
-    // MEMBRANE MERGE — BIOLOGICALLY CORRECT
+    // MEMBRANE MERGE — BIOLOGICALLY ANCHORED
     // =================================================
     if (v.state === "MEMBRANE_MERGE" && v.flatten != null) {
 
       const t = constrain(v.flatten, 0, 1);
 
-      // ---- vesicle collapses INTO membrane (no gap)
+      // -------------------------------------------------
+      // 🔒 Anchor vesicle to presynaptic membrane
+      // Vesicle collapses INTO membrane, never away
+      // -------------------------------------------------
       const centerX = membraneX - r * (1 - t);
 
-      // ---- lumen opens only AFTER halfway
-      const openFrac =
-        t < 0.5 ? 0 : map(t, 0.5, 1.0, 0, 1);
+      // -------------------------------------------------
+      // Lumen opening appears halfway through merge
+      // Opening faces synaptic cleft ONLY
+      // -------------------------------------------------
+      let openAngle = 0;
+      if (t > 0.5) {
+        openAngle = map(t, 0.5, 1.0, 0, PI);
+      }
 
-      // ---- opening faces synaptic cleft only
-      const openAngle = lerp(0.01, PI, openFrac);
-
-      // ---- thinning membrane as it merges
+      // -------------------------------------------------
+      // Membrane thins as it merges
+      // -------------------------------------------------
       strokeWeight(lerp(strokeW, strokeW * 0.35, t));
 
       noFill();
@@ -116,7 +124,7 @@ function drawVesicleMembranes() {
     }
 
     // =================================================
-    // NORMAL VESICLE
+    // NORMAL VESICLE (SEALED)
     // =================================================
     ellipse(v.x, v.y, r * 2);
   }
@@ -140,19 +148,23 @@ function drawVesicleContents() {
     if (v.x == null || v.y == null) continue;
 
     // =================================================
-    // MERGE — SEALED → OPEN LUMEN
+    // MEMBRANE MERGE — SEALED → OPEN LUMEN
     // =================================================
     if (v.state === "MEMBRANE_MERGE" && v.flatten != null) {
 
-      // First half: sealed vesicle
+      // -------------------------------
+      // First half: contents remain sealed
+      // -------------------------------
       if (v.flatten < 0.5) {
         for (const p of v.nts) {
           circle(v.x + p.x, v.y + p.y, 3);
         }
       }
-      // Second half: lumen open to cleft
+      // -------------------------------
+      // Second half: lumen opens to cleft
+      // -------------------------------
       else {
-        const spill = map(v.flatten, 0.5, 1.0, 0, 12);
+        const spill = map(v.flatten, 0.5, 1.0, 0, 14);
         for (const p of v.nts) {
           circle(
             v.x + p.x + spill,
@@ -161,6 +173,7 @@ function drawVesicleContents() {
           );
         }
       }
+
       continue;
     }
 
