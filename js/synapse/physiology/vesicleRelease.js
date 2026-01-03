@@ -95,10 +95,9 @@ function triggerVesicleReleaseFromAP() {
 function updateVesicleRelease() {
   const vesicles = window.synapseVesicles || [];
 
-  for (const v of vesicles) {
-          if (v.state === "MEMBRANE_MERGE") {
-        console.log("🧬 MERGE STATE", v.x);
-      }
+    if (v.state !== "DOCKING" && Math.abs(v.x - SYNAPSE_VESICLE_STOP_X) > 0.01) {
+      console.error("❌ RELEASE VESICLE MOVED:", v.state, v.x);
+    }
 
     // =================================================
     // DOCKING — ACTIVE APPROACH
