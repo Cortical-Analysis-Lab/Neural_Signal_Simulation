@@ -103,18 +103,23 @@ function getLoadedVesicleRect() {
 // -----------------------------------------------------
 function isPoolExempt(v) {
   return (
-    v.releaseBias === true ||     
+    v.releaseBias === true ||
+    v.recycleBias === true ||
+
     v.state === "priming" ||
     v.state === "primed" ||
     v.state === "loading" ||
-    v.recycleBias === true ||
+
     v.state === "DOCKING" ||
     v.state === "FUSION_ZIPPER" ||
     v.state === "FUSION_PORE" ||
     v.state === "FUSION_OPEN" ||
-    v.state === "MEMBRANE_MERGE"
+
+    v.state === "MEMBRANE_MERGE" ||
+    v.state === "RECYCLED"
   );
 }
+
 
 
 
