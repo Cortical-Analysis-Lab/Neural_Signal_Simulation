@@ -5,16 +5,17 @@ console.log("⚡ vesicleRelease loaded");
 // Dock → Zipper → Pore → Open → Merge
 // =====================================================
 //
-// ✔ Radial vesicle positioning preserved
-// ✔ AP adds continuous directional bias (NOT teleportation)
-// ✔ Visible membrane merger (circle collapse)
-// ✔ 1 → 3/4 → 1/2 → 1/4 → gone
+// ✔ Continuous membrane-directed movement
+// ✔ Radial (Y) position preserved
+// ✔ Pool-safe (velocity bias only)
+// ✔ Visible collapse: 1 → 3/4 → 1/2 → 1/4 → gone
 // ✔ Clean recycling handoff
 //
 // NON-RESPONSIBILITIES:
-// ✘ No background motion
-// ✘ No pool constraints
-// ✘ No rendering logic
+// ✘ No Brownian motion
+// ✘ No collision handling
+// ✘ No constraints or clamping
+// ✘ No rendering
 // =====================================================
 
 
@@ -29,11 +30,11 @@ const MERGE_TIME  = 260;
 
 
 // -----------------------------------------------------
-// APPROACH FORCE (SAFE + CONTINUOUS)
+// CONTINUOUS APPROACH FORCE (KEY FIX)
 // -----------------------------------------------------
-// • Applies ONLY during release states
-// • Does not interfere with loading
-// • Pool constraints remain authoritative
+// • Applies only during release states
+// • Velocity-only (pool remains authority)
+// • Strong enough to overcome reserve confinement
 //
 function applyFusionApproachForce(v) {
 
@@ -41,12 +42,12 @@ function applyFusionApproachForce(v) {
   const dx = targetX - v.x;
 
   // Distance-scaled pull toward membrane
-  const pull = constrain(dx * 0.02, -0.25, 0.25);
+  const pull = constrain(dx * 0.025, -0.35, 0.35);
 
   v.vx += pull;
 
-  // Kill vertical wandering during approach
-  v.vy *= 0.90;
+  // Suppress vertical drift (keep radial alignment)
+  v.vy *= 0.85;
 }
 
 
@@ -64,10 +65,15 @@ function triggerVesicleReleaseFromAP() {
   const v = candidates[0];
 
   // -------------------------------
-  // STATE INIT
+  // STATE INITIALIZATION
   // -------------------------------
   v.state = "DOCKING";
   v.timer = 0;
+
+  // -------------------------------
+  // RELEASE FLAGS (CRITICAL)
+  // -------------------------------
+  v.releaseBias = true;   // 🔑 tells pool to allow forward motion
 
   // -------------------------------
   // PRESERVE RADIAL POSITION
@@ -94,7 +100,7 @@ function updateVesicleRelease() {
   for (const v of vesicles) {
 
     // =================================================
-    // DOCKING — approach membrane
+    // DOCKING — ACTIVE APPROACH
     // =================================================
     if (v.state === "DOCKING") {
 
@@ -108,7 +114,7 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // FUSION ZIPPER — membrane engagement
+    // FUSION ZIPPER — MEMBRANE ENGAGEMENT
     // =================================================
     else if (v.state === "FUSION_ZIPPER") {
 
@@ -124,7 +130,7 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // FUSION PORE — initial quantal leak
+    // FUSION PORE — INITIAL QUANTAL LEAK
     // =================================================
     else if (v.state === "FUSION_PORE") {
 
@@ -149,7 +155,7 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // FUSION OPEN — sustained release
+    // FUSION OPEN — SUSTAINED RELEASE
     // =================================================
     else if (v.state === "FUSION_OPEN") {
 
