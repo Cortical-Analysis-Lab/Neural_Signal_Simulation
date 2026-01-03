@@ -54,7 +54,7 @@ function getVesicleReserveRect() {
   // ============================
   // POSITION CONTROL (THE FIX)
   // ============================
-  const BACK_OFFSET = 35;   // ← THIS NOW WORKS
+  const BACK_OFFSET = 60;   // ← THIS NOW WORKS
 
   const xMin = stopX + BACK_OFFSET;
   const xMax = xMin + width;
