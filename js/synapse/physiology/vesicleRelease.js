@@ -8,7 +8,8 @@ console.log("⚡ vesicleRelease loaded");
 // ✔ Continuous membrane-directed movement
 // ✔ Radial (Y) position preserved
 // ✔ Pool-safe (velocity bias only)
-// ✔ Visible collapse: 1 → 3/4 → 1/2 → 1/4 → gone
+// ✔ Visible collapse: full → arc → gone
+// ✔ Hard membrane lock during merge
 // ✔ Clean recycling handoff
 //
 // NON-RESPONSIBILITIES:
@@ -30,23 +31,19 @@ const MERGE_TIME  = 260;
 
 
 // -----------------------------------------------------
-// CONTINUOUS APPROACH FORCE (KEY FIX)
+// CONTINUOUS APPROACH FORCE
 // -----------------------------------------------------
-// • Applies only during release states
-// • Velocity-only (pool remains authority)
-// • Strong enough to overcome reserve confinement
-//
 function applyFusionApproachForce(v) {
 
   const targetX = window.SYNAPSE_VESICLE_STOP_X;
   const dx = targetX - v.x;
 
-  // Distance-scaled pull toward membrane
+  // distance-scaled pull
   const pull = constrain(dx * 0.025, -0.35, 0.35);
 
   v.vx += pull;
 
-  // Suppress vertical drift (keep radial alignment)
+  // suppress radial drift
   v.vy *= 0.85;
 }
 
@@ -67,26 +64,21 @@ function triggerVesicleReleaseFromAP() {
   // -------------------------------
   // STATE INITIALIZATION
   // -------------------------------
-  v.state = "DOCKING";
-  v.timer = 0;
+  v.state  = "DOCKING";
+  v.timer  = 0;
 
   // -------------------------------
   // RELEASE FLAGS (CRITICAL)
   // -------------------------------
-  v.releaseBias = true;   // 🔑 tells pool to allow forward motion
+  v.releaseBias = true;
 
   // -------------------------------
-  // PRESERVE RADIAL POSITION
-  // -------------------------------
-  v.fusionX = window.SYNAPSE_VESICLE_STOP_X;
-  v.fusionY = v.y;
-
-  // -------------------------------
-  // VISUAL FUSION STATE
+  // VISUAL / GEOMETRY STATE
   // -------------------------------
   v.fusionProgress = 0;
   v.poreRadius     = 0;
-  v.mergePhase     = 1.0; // full circle
+  v.flatten        = 0;   // 🔑 geometry driver
+  v.mergePhase     = 1.0;
 }
 
 
@@ -114,7 +106,7 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // FUSION ZIPPER — MEMBRANE ENGAGEMENT
+    // FUSION ZIPPER
     // =================================================
     else if (v.state === "FUSION_ZIPPER") {
 
@@ -130,7 +122,7 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // FUSION PORE — INITIAL QUANTAL LEAK
+    // FUSION PORE
     // =================================================
     else if (v.state === "FUSION_PORE") {
 
@@ -155,7 +147,7 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // FUSION OPEN — SUSTAINED RELEASE
+    // FUSION OPEN
     // =================================================
     else if (v.state === "FUSION_OPEN") {
 
@@ -179,18 +171,21 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // MEMBRANE MERGE — VISIBLE COLLAPSE
+    // MEMBRANE MERGE — HARD LOCK + COLLAPSE
     // =================================================
     else if (v.state === "MEMBRANE_MERGE") {
 
       v.timer++;
       const t = constrain(v.timer / MERGE_TIME, 0, 1);
 
-      // 1 → 3/4 → 1/2 → 1/4 → gone
-      if      (t < 0.25) v.mergePhase = 1.0;
-      else if (t < 0.5)  v.mergePhase = 0.75;
-      else if (t < 0.75) v.mergePhase = 0.5;
-      else               v.mergePhase = 0.25;
+      // 🔑 DRIVE GEOMETRY
+      v.flatten    = t;        // 0 → 1
+      v.mergePhase = 1 - t;
+
+      // 🔒 HARD MEMBRANE LOCK (NO BOUNCE GAP)
+      v.x  = window.SYNAPSE_VESICLE_STOP_X;
+      v.vx = 0;
+      v.vy *= 0.85;
 
       if (t >= 1) {
 
@@ -204,7 +199,7 @@ function updateVesicleRelease() {
   }
 
   // ---------------------------------------------------
-  // SAFE CLEANUP (POST-ITERATION)
+  // SAFE CLEANUP
   // ---------------------------------------------------
   for (let i = vesicles.length - 1; i >= 0; i--) {
     if (vesicles[i].state === "RECYCLED") {
