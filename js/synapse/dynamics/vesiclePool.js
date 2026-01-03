@@ -9,7 +9,7 @@ console.log("🫧 vesiclePool loaded");
 //     2) Loaded vesicle zone (pre-fusion staging)
 // ✔ Smooth Brownian drift
 // ✔ Gentle vesicle–vesicle collisions
-// ✔ Release states fully exempt
+// ✔ Release + recycling states fully exempt
 //
 // 🔒 BOTH ZONES ARE HARD-CODED
 // 👻 NO DEBUG RENDERING
@@ -44,7 +44,6 @@ function getVesicleReserveRect() {
   const R     = window.SYNAPSE_TERMINAL_RADIUS;
   const stopX = window.SYNAPSE_VESICLE_STOP_X;
 
-  // 🔒 FINAL GEOMETRY — DO NOT MODIFY
   const WIDTH       = 75;
   const HEIGHT      = R * 0.8;
   const BACK_OFFSET = 60;
@@ -74,19 +73,16 @@ function getLoadedVesicleRect() {
 
   const reserve = getVesicleReserveRect();
 
-  // 🔒 FINALIZED RELATIONSHIP (ADJACENT + SMALLER)
   const WIDTH_SCALE  = 0.75;
   const HEIGHT_SCALE = 0.85;
-  const X_GAP        = 0;
-  const Y_OFFSET     = 0;
 
   const width  = (reserve.xMax - reserve.xMin) * WIDTH_SCALE;
   const height = (reserve.yMax - reserve.yMin) * HEIGHT_SCALE;
 
-  const xMax = reserve.xMin - X_GAP;
+  const xMax = reserve.xMin;
   const xMin = xMax - width;
 
-  const yMid = (reserve.yMin + reserve.yMax) * 0.5 + Y_OFFSET;
+  const yMid = (reserve.yMin + reserve.yMax) * 0.5;
 
   _loadedVesicleRect = {
     xMin,
@@ -100,11 +96,12 @@ function getLoadedVesicleRect() {
 
 
 // -----------------------------------------------------
-// RELEASE / FUSION EXEMPTION GUARD
+// POOL EXEMPTION GUARD (RELEASE + RECYCLING)
 // -----------------------------------------------------
 function isPoolExempt(v) {
   return (
     v.releaseBias === true ||
+    v.recycleBias === true ||     // 🔑 recycling return phase
     v.state === "DOCKING" ||
     v.state === "FUSION_ZIPPER" ||
     v.state === "FUSION_PORE" ||
@@ -127,6 +124,8 @@ function updateVesicleMotion() {
 
   enforceLoadedVesicleRect(vesicles);
   enforceReserveRectangle(vesicles);
+
+  resolveRecycleCompletion(vesicles);
 }
 
 
@@ -254,6 +253,33 @@ function enforceLoadedVesicleRect(vesicles) {
     else if (v.y > r.yMax) {
       v.y = r.yMax;
       v.vy *= -V_REBOUND_Y;
+    }
+  }
+}
+
+
+// =====================================================
+// RECYCLE COMPLETION — RETURN TO POOL
+// =====================================================
+function resolveRecycleCompletion(vesicles) {
+
+  const r = getVesicleReserveRect();
+
+  for (const v of vesicles) {
+
+    if (v.recycleBias !== true) continue;
+
+    // Once vesicle fully re-enters reserve pool,
+    // it becomes a normal empty vesicle again
+    if (
+      v.x > r.xMin + 6 &&
+      v.x < r.xMax &&
+      v.y > r.yMin &&
+      v.y < r.yMax
+    ) {
+      v.recycleBias = false;
+      v.vx *= 0.4;
+      v.vy *= 0.4;
     }
   }
 }
