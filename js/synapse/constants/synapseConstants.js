@@ -110,7 +110,7 @@ window.SYNAPSE_VESICLE_Y_SPREAD = 0.9;
 // Faster than diffusion but still smooth.
 // Lifetime must exceed travel distance.
 //
-window.SYNAPSE_H_SPEED = 0.22;
+window.SYNAPSE_H_SPEED = 0.42;
 window.SYNAPSE_H_LIFE  = 260;
 
 
@@ -124,7 +124,7 @@ window.SYNAPSE_H_LIFE  = 260;
 // • bounce
 // • then fade as ADP + Pi
 //
-window.SYNAPSE_ATP_SPEED  = 0.26;
+window.SYNAPSE_ATP_SPEED  = 0.38;
 window.SYNAPSE_ATP_LIFE   = 320;
 window.SYNAPSE_ATP_BOUNCE = 0.45;
 
