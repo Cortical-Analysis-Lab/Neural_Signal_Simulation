@@ -77,8 +77,8 @@ function getLoadedVesicleRect() {
   // ================================
   // 🔧 TUNABLE PARAMETERS (ONLY HERE)
   // ================================
-  const WIDTH_SCALE  = 0.5;   // fraction of reserve width
-  const HEIGHT_SCALE = 0.5;   // fraction of reserve height
+  const WIDTH_SCALE  = 0.75;   // fraction of reserve width
+  const HEIGHT_SCALE = 0.85;   // fraction of reserve height
   const X_GAP        = 0;     // gap between reserve & loaded zone
   const Y_OFFSET     = 0;     // vertical shift
 
