@@ -97,6 +97,9 @@ function updateVesicleRelease() {
   const vesicles = window.synapseVesicles || [];
 
   for (const v of vesicles) {
+          if (v.state === "MEMBRANE_MERGE") {
+        console.log("🧬 MERGE STATE", v.x);
+      }
 
     // =================================================
     // DOCKING — ACTIVE APPROACH
