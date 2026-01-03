@@ -84,8 +84,8 @@ function spawnPrimingParticles(v) {
 
   const a1 = random(TWO_PI);
   window.synapseH.push({
-    x: v.x + cos(a1) * 48,
-    y: v.y + sin(a1) * 48,
+    x: v.x + cos(a1) * 32,
+    y: v.y + sin(a1) * 32,
     vx: -cos(a1) * H_SPEED,
     vy: -sin(a1) * H_SPEED,
     target: v,
@@ -94,8 +94,8 @@ function spawnPrimingParticles(v) {
 
   const a2 = random(TWO_PI);
   window.synapseATP.push({
-    x: v.x + cos(a2) * 54,
-    y: v.y + sin(a2) * 54,
+    x: v.x + cos(a2) * 38,
+    y: v.y + sin(a2) * 38,
     vx: -cos(a2) * ATP_SPEED,
     vy: -sin(a2) * ATP_SPEED,
     state: "ATP",
