@@ -29,7 +29,7 @@ function handleSynapseInput() {
   const spaceDown = keyIsDown(32); // spacebar
 
   if (spaceDown && !spaceWasDown) {
-    triggerTerminalAP?.(); // AP owns release coupling
+    triggerTerminalAP?.(); // AP owns release
   }
 
   spaceWasDown = spaceDown;
@@ -41,6 +41,7 @@ function handleSynapseInput() {
 // =====================================================
 //
 // ✔ Pool creation only
+// ✔ Explicit RRP positioning
 // ✔ No motion
 // ✔ No confinement
 // ✔ No release
@@ -54,7 +55,7 @@ function ensureVesiclePoolInitialized() {
   const maxVes = window.SYNAPSE_MAX_VESICLES ?? 7;
 
   // ---------------------------------------------------
-  // SPAWN EMPTY VESICLES (ONCE)
+  // SPAWN EMPTY VESICLES (RESERVE POOL)
   // ---------------------------------------------------
   if (window.synapseVesicles.length === 0) {
     for (let i = 0; i < maxVes; i++) {
@@ -63,21 +64,40 @@ function ensureVesiclePoolInitialized() {
   }
 
   // ---------------------------------------------------
-  // SEED READILY RELEASABLE POOL (ONCE)
+  // SEED READILY RELEASABLE POOL (LOADED ZONE)
   // ---------------------------------------------------
   if (!window.__RRPSeeded) {
 
     const preloadCount = 3;
+    const r = window.SYNAPSE_VESICLE_RADIUS;
+
+    // Pull loaded pool geometry directly (authoritative)
+    const loadedPool =
+      typeof getLoadedPoolRect === "function"
+        ? getLoadedPoolRect()
+        : null;
 
     for (let i = 0; i < window.synapseVesicles.length && i < preloadCount; i++) {
       const v = window.synapseVesicles[i];
 
-      // STATE ONLY — NO POSITION / VELOCITY
+      // ------------------------------
+      // FORCE POSITION INTO LOADED ZONE
+      // ------------------------------
+      if (loadedPool) {
+        v.x = random(loadedPool.xMin + r, loadedPool.xMax - r);
+        v.y = random(loadedPool.yMin + r, loadedPool.yMax - r);
+        v.vx = 0;
+        v.vy = 0;
+      }
+
+      // ------------------------------
+      // STATE + CHEMISTRY ONLY
+      // ------------------------------
       v.state     = "LOADED";
       v.primedH   = true;
       v.primedATP = true;
 
-      // Pre-fill neurotransmitters (vesicle-local)
+      // Pre-fill neurotransmitters
       v.nts = [];
       for (let n = 0; n < window.SYNAPSE_NT_TARGET; n++) {
         v.nts.push({
@@ -97,22 +117,6 @@ function ensureVesiclePoolInitialized() {
 // =====================================================
 // MAIN VIEW — ORCHESTRATOR ONLY
 // =====================================================
-//
-// ✔ Orders subsystems
-// ✔ Applies transforms
-// ✔ Owns NO geometry
-// ✔ Owns NO physics
-// ✔ Owns NO pool logic
-//
-// Authority flow:
-//
-// vesicleLoading.js  → biochemical priming
-// vesicleMotion.js   → how vesicles move
-// vesiclePools.js    → where vesicles are allowed
-// vesicleRelease.js  → when vesicles leave pool
-// vesicleRecycling.js→ recovery only
-//
-// =====================================================
 
 function drawSynapseView() {
 
@@ -128,27 +132,15 @@ function drawSynapseView() {
   ensureVesiclePoolInitialized();
 
   // ---------------------------------------------------
-  // AUTHORITATIVE UPDATE ORDER (DO NOT CHANGE)
+  // AUTHORITATIVE UPDATE ORDER
   // ---------------------------------------------------
 
-  // 1) Biochemical priming / loading bias
   updateVesicleLoading?.();
-
-  // 2) Motion + collisions (pure kinematics)
   updateVesicleMotion?.();
-
-  // 3) Pool confinement + reserve → loaded
   updateVesiclePools?.();
-
-  // 4) Fusion / release ownership transfer
   updateVesicleRelease?.();
-
-  // 5) Endocytosis + recovery
   updateVesicleRecycling?.();
-
-  // 6) Neurotransmitter diffusion / postsynaptic effects
   updateSynapticBurst?.();
-
 
   // ===================================================
   // SCREEN ANCHOR (VIEW SPACE)
@@ -174,14 +166,20 @@ function drawSynapseView() {
   translate(PRE_X, NEURON_Y);
 
   // ---------------------------------------------------
-  // 🔁 VISUAL-ONLY FLIP
+  // VISUAL-ONLY FLIP
   // ---------------------------------------------------
-  //
-  // ✔ Geometry MAY read this
-  // ✖ Physics MUST ignore this
-  //
   window.__synapseFlipped = true;
   scale(-1, 1);
+
+  // ------------------------------
+  // TERMINAL AP (CRITICAL FIX)
+  // ------------------------------
+  if (typeof calibratePath === "function" &&
+      typeof updateTerminalAP === "function") {
+
+    const path = calibratePath(PRESYNAPTIC_AP_PATH);
+    updateTerminalAP(path);
+  }
 
   drawPreSynapse?.();
   drawSynapseVesicleGeometry?.();
