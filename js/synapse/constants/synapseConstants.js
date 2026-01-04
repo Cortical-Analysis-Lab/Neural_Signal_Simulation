@@ -46,20 +46,18 @@ window.SYNAPSE_MEMBRANE_X = 0;
 window.SYNAPSE_DOCK_X = 16;
 
 // Authoritative vesicle stopping plane
-//
-// ✔ Vesicles may approach but never cross this
-// ✔ Used by loading + recycling constraints
-// ✔ Release code is allowed to override this
-//
-window.SYNAPSE_VESICLE_STOP_X = window.SYNAPSE_DOCK_X + 2;
-
-
+/
 // =====================================================
 // BACK-POOL (CYTOSOLIC RESERVE)
 // =====================================================
 
 // Offset from center where unloaded vesicles live
 window.SYNAPSE_BACK_OFFSET_X = 10;
+// ✔ Vesicles may approach but never cross this
+// ✔ Used by loading + recycling constraints
+// ✔ Release code is allowed to override this
+//
+window.SYNAPSE_VESICLE_STOP_X = window.SYNAPSE_BACK_OFFSET_X;
 
 
 // =====================================================
