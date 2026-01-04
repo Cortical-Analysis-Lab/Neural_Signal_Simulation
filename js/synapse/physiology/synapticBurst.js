@@ -2,9 +2,9 @@ console.log("🫧 synapticBurst loaded");
 
 // =====================================================
 // SYNAPTIC NEUROTRANSMITTER BURST SYSTEM
-// BIOLOGICAL, RADIAL, DIFFUSIVE
 // =====================================================
 //
+// BIOLOGICAL MODEL:
 // ✔ Fan-shaped release
 // ✔ Biased away from presynaptic membrane
 // ✔ Distributed fusion pore origin
@@ -12,14 +12,17 @@ console.log("🫧 synapticBurst loaded");
 // ✔ No clumping / no overlap artifacts
 // ✔ Confined to synaptic cleft
 //
-// ⚠️ NO vesicle coupling
-// ⚠️ NO geometry authority
-// ⚠️ Event-driven ONLY
+// ARCHITECTURAL GUARANTEES:
+// ✔ Event-driven ONLY
+// ✔ NO vesicle coupling
+// ✔ NO geometry authority
+// ✔ NO pool / release / recycle logic
+//
 // =====================================================
 
 
 // -----------------------------------------------------
-// STORAGE (GLOBAL, SAFE)
+// STORAGE (GLOBAL, RELOAD SAFE)
 // -----------------------------------------------------
 window.synapticNTs = window.synapticNTs || [];
 
@@ -45,13 +48,15 @@ const NT_RADIUS    = 3;
 // -----------------------------------------------------
 // EVENT LISTENER — BIOLOGICAL RELEASE
 // -----------------------------------------------------
-// Expected payload:
+//
+// Expected event detail:
 // {
 //   x, y,
 //   normalX: -1 | +1   (cleft direction)
 //   spread: 0–1        (fan tightness)
 //   strength: 0–1     (quantal size)
 // }
+//
 // -----------------------------------------------------
 window.addEventListener("synapticRelease", (e) => {
 
@@ -61,9 +66,9 @@ window.addEventListener("synapticRelease", (e) => {
     normalX  = -1,
     spread   = 1,
     strength = 1
-  } = e.detail;
+  } = e.detail || {};
 
-  const count = floor(NT_BASE_COUNT * strength);
+  const count = Math.floor(NT_BASE_COUNT * strength);
   if (count <= 0) return;
 
   // Fan direction centered on membrane normal
@@ -77,7 +82,7 @@ window.addEventListener("synapticRelease", (e) => {
 
     const speed = random(NT_SPEED_MIN, NT_SPEED_MAX);
 
-    // Distributed fusion pore origin
+    // Distributed fusion pore origin (visual realism)
     const ox = x + random(-2.5, 2.5);
     const oy = y + random(-3.5, 3.5);
 
@@ -101,14 +106,20 @@ window.addEventListener("synapticRelease", (e) => {
 function updateSynapticBurst() {
 
   const nts = window.synapticNTs;
+  if (!nts || nts.length === 0) return;
 
+  // Geometry is READ-ONLY here
   const MEMBRANE_X = window.SYNAPSE_MEMBRANE_X;
-  const CLEF_LIMIT = 120; // soft spatial extent into cleft
+
+  // Soft spatial extent into cleft (visual only)
+  const CLEFT_LIMIT = 120;
 
   for (let i = nts.length - 1; i >= 0; i--) {
     const p = nts[i];
 
-    // Brownian diffusion (dominant)
+    // -------------------------------------------------
+    // Brownian diffusion (dominant term)
+    // -------------------------------------------------
     p.vx += random(-NT_DIFFUSION, NT_DIFFUSION);
     p.vy += random(-NT_DIFFUSION, NT_DIFFUSION);
 
@@ -120,21 +131,21 @@ function updateSynapticBurst() {
     p.vx *= NT_DRAG;
     p.vy *= NT_DRAG;
 
-    // ---------------------------------------------
+    // -------------------------------------------------
     // Soft confinement — prevent NTs re-entering
     // presynaptic terminal
-    // ---------------------------------------------
+    // -------------------------------------------------
     if (p.x < MEMBRANE_X + 2) {
-      p.x = MEMBRANE_X + 2;
-      p.vx = abs(p.vx) * 0.3;
+      p.x  = MEMBRANE_X + 2;
+      p.vx = Math.abs(p.vx) * 0.3;
     }
 
-    // Optional cleft fade (prevents infinite spread)
-    if (abs(p.x - MEMBRANE_X) > CLEF_LIMIT) {
+    // Optional fade if drifting too far into cleft
+    if (Math.abs(p.x - MEMBRANE_X) > CLEFT_LIMIT) {
       p.alpha -= 3.0;
     }
 
-    // Lifetime
+    // Lifetime decay
     p.alpha -= 1.6;
     p.life--;
 
@@ -146,7 +157,7 @@ function updateSynapticBurst() {
 
 
 // -----------------------------------------------------
-// DRAW — CLEAN, LIGHTWEIGHT
+// DRAW — CLEAN, LIGHTWEIGHT, READ-ONLY
 // -----------------------------------------------------
 function drawSynapticBurst() {
   push();
@@ -161,3 +172,10 @@ function drawSynapticBurst() {
   blendMode(BLEND);
   pop();
 }
+
+
+// -----------------------------------------------------
+// PUBLIC EXPORTS
+// -----------------------------------------------------
+window.updateSynapticBurst = updateSynapticBurst;
+window.drawSynapticBurst   = drawSynapticBurst;
