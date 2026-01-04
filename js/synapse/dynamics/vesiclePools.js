@@ -7,7 +7,7 @@ console.log("🧭 vesiclePools loaded");
 // ✔ Reserve pool (deep cytosol)
 // ✔ Loaded pool (membrane-adjacent, NOT docked)
 // ✔ Smooth reserve → loaded travel
-// ✔ Radius-aware confinement
+// ✔ Hard confinement for LOADED vesicles
 //
 // ✘ No motion noise
 // ✘ No collisions
@@ -72,7 +72,7 @@ function getReservePoolRect() {
 
 
 // -----------------------------------------------------
-// LOADED POOL — PRE-FUSION STAGING (CRITICAL FIX)
+// LOADED POOL — PRE-FUSION STAGING (CRITICAL)
 // -----------------------------------------------------
 function getLoadedPoolRect() {
 
@@ -82,13 +82,13 @@ function getLoadedPoolRect() {
   const cy    = window.SYNAPSE_TERMINAL_CENTER_Y;
   const stopX = window.SYNAPSE_VESICLE_STOP_X;
 
-  // 🔑 BIOLOGICAL GAP BETWEEN STAGING & DOCKING
+  // 🔑 Gap between staging zone and docking plane
   const MEMBRANE_GAP = 10;
 
   const WIDTH  = 48;
   const HEIGHT = window.SYNAPSE_TERMINAL_RADIUS * 0.42;
 
-  const xMax = stopX - MEMBRANE_GAP;     // ✅ NOT the docking plane
+  const xMax = stopX - MEMBRANE_GAP;
   const xMin = xMax - WIDTH;
 
   _loadedCacheKey = key;
@@ -136,6 +136,22 @@ window.requestNewEmptyVesicle = function () {
 
 
 // -----------------------------------------------------
+// PLACE VESICLE DIRECTLY INTO LOADED POOL (SEEDING)
+// -----------------------------------------------------
+function placeVesicleInLoadedPool(v) {
+
+  const r = getLoadedPoolRect();
+  const Rv = v.radius;
+
+  v.x = random(r.xMin + Rv, r.xMax - Rv);
+  v.y = random(r.yMin + Rv, r.yMax - Rv);
+
+  v.vx = random(-0.002, 0.002);
+  v.vy = random(-0.002, 0.002);
+}
+
+
+// -----------------------------------------------------
 // LOADED ZONE ATTRACTION (SMOOTH STAGING)
 // -----------------------------------------------------
 function applyLoadedAttraction(v) {
@@ -162,36 +178,28 @@ function applyLoadedAttraction(v) {
     v.y + Rv <= r.yMax
   ) {
     v.state = "LOADED";
-    v.vx *= 0.25;
-    v.vy *= 0.25;
+    v.vx *= 0.2;
+    v.vy *= 0.2;
   }
 }
 
 
 // -----------------------------------------------------
-// RECT CONFINEMENT (RADIUS-AWARE)
+// RECT CONFINEMENT (HARD FOR LOADED)
 // -----------------------------------------------------
 function confineToRect(v, r) {
 
   const Rv = v.radius;
 
-  if (v.x - Rv < r.xMin) {
-    v.x = r.xMin + Rv;
-    v.vx = Math.abs(v.vx) * 0.25;
-  }
-  else if (v.x + Rv > r.xMax) {
-    v.x = r.xMax - Rv;
-    v.vx = -Math.abs(v.vx) * 0.25;
-  }
+  if (v.x - Rv < r.xMin) v.x = r.xMin + Rv;
+  if (v.x + Rv > r.xMax) v.x = r.xMax - Rv;
 
-  if (v.y - Rv < r.yMin) {
-    v.y = r.yMin + Rv;
-    v.vy = Math.abs(v.vy) * 0.18;
-  }
-  else if (v.y + Rv > r.yMax) {
-    v.y = r.yMax - Rv;
-    v.vy = -Math.abs(v.vy) * 0.18;
-  }
+  if (v.y - Rv < r.yMin) v.y = r.yMin + Rv;
+  if (v.y + Rv > r.yMax) v.y = r.yMax - Rv;
+
+  // Kill residual motion when confined
+  v.vx *= 0.2;
+  v.vy *= 0.2;
 }
 
 
