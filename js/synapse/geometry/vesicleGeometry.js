@@ -43,6 +43,17 @@ function atpColor(alpha = 255) {
 
 
 // -----------------------------------------------------
+// MEMBRANE X — RENDER-SPACE AUTHORITATIVE
+// Accounts for scale(-1,1) in SynapseView
+// -----------------------------------------------------
+function getRenderMembraneX() {
+  return window.__synapseFlipped
+    ? -window.SYNAPSE_VESICLE_STOP_X
+    : window.SYNAPSE_VESICLE_STOP_X;
+}
+
+
+// -----------------------------------------------------
 // MAIN DRAW ENTRY POINT
 // -----------------------------------------------------
 function drawSynapseVesicleGeometry() {
@@ -56,16 +67,25 @@ function drawSynapseVesicleGeometry() {
 
 // -----------------------------------------------------
 // VESICLE MEMBRANES
-// Sealed → docked → omega opening → collapse
+// Sealed → omega fusion → collapse
 // -----------------------------------------------------
 function drawVesicleMembranes() {
 
   const vesicles = window.synapseVesicles;
   if (!Array.isArray(vesicles)) return;
 
-  const r         = window.SYNAPSE_VESICLE_RADIUS;
-  const strokeW   = window.SYNAPSE_VESICLE_STROKE;
-  const membraneX = window.SYNAPSE_VESICLE_STOP_X;
+  const r       = window.SYNAPSE_VESICLE_RADIUS;
+  const strokeW = window.SYNAPSE_VESICLE_STROKE;
+  const memX    = getRenderMembraneX();
+
+  // ---------------------------------------------------
+  // 🔵 DEBUG: DRAW TRUE MEMBRANE PLANE
+  // ---------------------------------------------------
+  push();
+  stroke(0, 180, 255);
+  strokeWeight(2);
+  line(memX, -300, memX, 300);
+  pop();
 
   stroke(vesicleBorderColor());
 
@@ -83,40 +103,39 @@ function drawVesicleMembranes() {
     fill(vesicleFillColor(fillAlpha));
 
     // =================================================
-// MEMBRANE MERGE — OMEGA FUSION (ANCHOR FIXED)
-// =================================================
-if (v.state === "MEMBRANE_MERGE" && v.flatten != null) {
+    // MEMBRANE MERGE — TRUE OMEGA FUSION (NO GAP)
+    // =================================================
+    if (v.state === "MEMBRANE_MERGE" && v.flatten != null) {
 
-  const t = constrain(v.flatten, 0, 1);
+      const t = constrain(v.flatten, 0, 1);
 
-  // -------------------------------------------------
-  // 🔒 FIXED ANCHOR:
-  // Rightmost membrane edge NEVER moves
-  // -------------------------------------------------
-  const currentR = r * (1 - t);
-  const cx = membraneX - currentR;
+      // -------------------------------------------------
+      // 🔒 CRITICAL RULE:
+      // RIGHTMOST EDGE IS ALWAYS memX
+      // -------------------------------------------------
+      const currentR = r * (1 - t);
+      const cx       = memX - currentR;
 
+      // -------------------------------------------------
+      // Omega opening appears halfway
+      // -------------------------------------------------
+      const openFrac  = t < 0.5 ? 0 : map(t, 0.5, 1, 0, 1);
+      const openAngle = openFrac * PI;
 
-  // -------------------------------------------------
-  // OMEGA OPENING — lumen exposed halfway
-  // -------------------------------------------------
-  const openFrac  = t < 0.5 ? 0 : map(t, 0.5, 1, 0, 1);
-  const openAngle = openFrac * PI;
+      strokeWeight(lerp(strokeW, strokeW * 0.35, t));
+      noFill();
 
-  strokeWeight(lerp(strokeW, strokeW * 0.35, t));
-  noFill();
+      arc(
+        cx,
+        v.y,
+        currentR * 2,
+        currentR * 2,
+        -openAngle,
+        openAngle
+      );
 
-  arc(
-    cx,
-    v.y,
-    currentR * 2,
-    currentR * 2,
-    -openAngle,
-    openAngle
-  );
-
-  continue;
-}
+      continue;
+    }
 
     // =================================================
     // NORMAL SEALED VESICLE
@@ -135,8 +154,8 @@ function drawVesicleContents() {
   const vesicles = window.synapseVesicles;
   if (!Array.isArray(vesicles)) return;
 
-  const r         = window.SYNAPSE_VESICLE_RADIUS;
-  const membraneX = window.SYNAPSE_VESICLE_STOP_X;
+  const r    = window.SYNAPSE_VESICLE_RADIUS;
+  const memX = getRenderMembraneX();
 
   fill(ntFillColor());
   noStroke();
@@ -147,26 +166,21 @@ function drawVesicleContents() {
     if (v.y == null) continue;
 
     // =================================================
-    // MEMBRANE MERGE — SEALED → OPEN LUMEN
+    // MEMBRANE MERGE — LUMEN OPENS TO CLEFT
     // =================================================
     if (v.state === "MEMBRANE_MERGE" && v.flatten != null) {
 
       const t = constrain(v.flatten, 0, 1);
-      const cx = membraneX - r * (1 - t);
+      const currentR = r * (1 - t);
+      const cx       = memX - currentR;
 
-      // -------------------------------
-      // First half: sealed lumen
-      // -------------------------------
       if (t < 0.5) {
+        // sealed lumen
         for (const p of v.nts) {
           circle(cx + p.x, v.y + p.y, 3);
         }
-      }
-      // -------------------------------
-      // Second half: lumen open to cleft
-      // NT spills OUTWARD
-      // -------------------------------
-      else {
+      } else {
+        // open lumen → spill outward
         const spill = map(t, 0.5, 1.0, 0, 18);
         for (const p of v.nts) {
           circle(
@@ -225,7 +239,7 @@ function drawPrimingParticles() {
 
 
 // -----------------------------------------------------
-// OPTIONAL DEBUG HELPERS (SAFE)
+// OPTIONAL DEBUG HELPERS
 // -----------------------------------------------------
 window.drawVesicleCenters = function () {
   push();
