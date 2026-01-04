@@ -6,7 +6,7 @@ console.log("♻️ vesicleRecycling loaded");
 //
 // Membrane Patch → Bud → Pinch → Return-to-Pool
 //
-// ✔ Vesicles are born at DOCK plane (geometry + release owned)
+// ✔ Vesicles are born at FUSION PLANE (single authority)
 // ✔ Gentle cytosolic return bias (NOT teleport)
 // ✔ Pool owns all motion & constraints after birth
 // ✔ Safe with vesiclePools / vesicleMotion / vesicleLoading
@@ -24,7 +24,7 @@ console.log("♻️ vesicleRecycling loaded");
 // -----------------------------------------------------
 window.endocytosisSeeds = window.endocytosisSeeds || [];
 
-// Called by vesicleRelease.js (DOCK-space coordinates)
+// Called by vesicleRelease.js (FUSION-PLANE coordinates)
 window.spawnEndocytosisSeed = function (x, y) {
   window.endocytosisSeeds.push({
     x,
@@ -50,8 +50,14 @@ function updateVesicleRecycling() {
   const MAX_VES  = window.SYNAPSE_MAX_VESICLES;
   const V_RADIUS = window.SYNAPSE_VESICLE_RADIUS;
 
-  // ⚠️ Dock plane is authoritative for birth ONLY
-  const dockX = window.SYNAPSE_DOCK_X;
+  // 🔴 SINGLE AUTHORITATIVE PHYSICS PLANE
+  const fusionX = window.SYNAPSE_FUSION_PLANE_X;
+
+  // Safety guard (prevents silent NaNs)
+  if (!Number.isFinite(fusionX)) {
+    console.error("❌ SYNAPSE_FUSION_PLANE_X is invalid");
+    return;
+  }
 
   for (let i = seeds.length - 1; i >= 0; i--) {
     const e = seeds[i];
@@ -96,31 +102,28 @@ function updateVesicleRecycling() {
         // Respect pool capacity
         if (vesicles.length < MAX_VES) {
 
-          // ------------------------------------------------
-          // CREATE NEW EMPTY VESICLE (POOL OWNERSHIP)
-          // ------------------------------------------------
           vesicles.push({
 
-            // Born just inside cytosol (right of dock plane)
-            x: dockX + V_RADIUS + random(6, 10),
+            // Born just inside cytosol (right of fusion plane)
+            x: fusionX + V_RADIUS + random(6, 10),
             y: e.y + random(-4, 4),
 
-            // Gentle inward bias (pool motion will take over)
+            // Gentle inward bias (pool motion takes over)
             vx: random(0.03, 0.06),
             vy: random(-0.02, 0.02),
 
-            // ------------------------------------------------
-            // CANONICAL STATE (MATCHES OTHER SYSTEMS)
-            // ------------------------------------------------
+            // --------------------------------------------
+            // CANONICAL STATE (MATCHES LOADING SYSTEM)
+            // --------------------------------------------
             state: "EMPTY",
 
             primedH:   false,
             primedATP: false,
             nts:       [],
 
-            // ------------------------------------------------
-            // OWNERSHIP FLAGS (CRITICAL)
-            // ------------------------------------------------
+            // --------------------------------------------
+            // OWNERSHIP FLAGS
+            // --------------------------------------------
             owner:       "POOL",
             ownerFrame:  frameCount,
 
