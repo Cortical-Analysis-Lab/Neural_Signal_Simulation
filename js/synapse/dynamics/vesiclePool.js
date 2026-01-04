@@ -97,24 +97,19 @@ function getLoadedVesicleRect() {
   return _loadedVesicleRect;
 }
 
-
 // -----------------------------------------------------
-// POOL EXEMPTION GUARD
+// POOL EXEMPTION GUARD — SINGLE AUTHORITY
 // -----------------------------------------------------
 function isPoolExempt(v) {
   return (
-    v.releaseBias === true ||
-    v.recycleBias === true ||
+    v.releaseBias === true ||   // once release starts, pool is blind
+    v.recycleBias === true ||   // recycling handled elsewhere
 
-    v.state === "priming" ||
-    v.state === "primed" ||
-    v.state === "loading" ||
-
+    // Any membrane-coupled or post-fusion state
     v.state === "DOCKING" ||
     v.state === "FUSION_ZIPPER" ||
     v.state === "FUSION_PORE" ||
     v.state === "FUSION_OPEN" ||
-
     v.state === "MEMBRANE_MERGE" ||
     v.state === "RECYCLED"
   );
@@ -124,53 +119,18 @@ function isPoolExempt(v) {
 
 
 
-// =====================================================
-// MAIN UPDATE
-// =====================================================
 function updateVesicleMotion() {
 
   const vesicles = window.synapseVesicles;
   if (!vesicles || vesicles.length === 0) return;
 
-  for (const v of vesicles) {
-
-  // 🔒 ABSOLUTE LOCK: pool NEVER integrates release vesicles
-  if (
-    v.releaseBias === true ||
-    v.state === "DOCKING" ||
-    v.state === "FUSION_ZIPPER" ||
-    v.state === "FUSION_PORE" ||
-    v.state === "FUSION_OPEN" ||
-    v.state === "MEMBRANE_MERGE" ||
-    v.state === "RECYCLED"
-  ) {
-
-    // 🔎 SAFETY ASSERT (temporary)
-    if (
-      v.releaseBias === true &&
-      Math.abs(v.x - window.SYNAPSE_VESICLE_STOP_X) > 0.01
-    ) {
-      console.error(
-        "❌ POOL MOVED RELEASE VESICLE",
-        v.state,
-        v.x
-      );
-    }
-
-    continue;
-  }
-}
-
-  // ---------------------------------------------------
-  // Standard pool physics
-  // ---------------------------------------------------
+  // Pool physics NEVER explicitly iterate release vesicles here.
+  // Exemption is enforced INSIDE each subsystem.
   applyBrownianMotion(vesicles);
   resolveVesicleCollisions(vesicles);
   enforceVesicleDomains(vesicles);
   resolveRecycleCompletion(vesicles);
 }
-
-
 
 // -----------------------------------------------------
 // SMOOTH BROWNIAN MOTION
@@ -179,17 +139,9 @@ function applyBrownianMotion(vesicles) {
 
   for (const v of vesicles) {
 
-  if (
-    v.releaseBias === true ||
-    v.state === "DOCKING" ||
-    v.state === "FUSION_ZIPPER" ||
-    v.state === "FUSION_PORE" ||
-    v.state === "FUSION_OPEN" ||
-    v.state === "MEMBRANE_MERGE" ||
-    v.state === "RECYCLED"
-  ) {
-    continue;
-  }
+    // 🔒 Absolute authority gate
+    if (isPoolExempt(v)) continue;
+
     if (v.state === "loaded_travel") continue;
 
     if (!Number.isFinite(v.vx)) v.vx = random(-0.008, 0.008);
@@ -205,6 +157,7 @@ function applyBrownianMotion(vesicles) {
     v.vy *= V_DRAG_Y;
   }
 }
+
 
 
 // -----------------------------------------------------
@@ -258,22 +211,14 @@ function resolveVesicleCollisions(vesicles) {
       const a = vesicles[i];
       const b = vesicles[j];
 
+      // 🔒 Absolute authority gate
+      if (isPoolExempt(a) || isPoolExempt(b)) continue;
+
       const dx = b.x - a.x;
       const dy = b.y - a.y;
       const d  = Math.hypot(dx, dy);
 
       if (d > 0 && d < minD) {
-        if (
-          a.state === "MEMBRANE_MERGE" ||
-          b.state === "MEMBRANE_MERGE" ||
-          a.state === "RECYCLED" ||
-          b.state === "RECYCLED" ||
-          a.releaseBias === true ||
-          b.releaseBias === true
-        ) {
-          continue;
-        }
-
 
         const nx = dx / d;
         const ny = dy / d;
@@ -288,16 +233,16 @@ function resolveVesicleCollisions(vesicles) {
           (a.state === "loaded_travel" || b.state === "loaded_travel")
             ? 0.04
             : 0.08;
-        
+
         a.vx -= nx * impulseScale;
         a.vy -= ny * impulseScale * 0.6;
         b.vx += nx * impulseScale;
         b.vy += ny * impulseScale * 0.6;
-
       }
     }
   }
 }
+
 
 
 // =====================================================
