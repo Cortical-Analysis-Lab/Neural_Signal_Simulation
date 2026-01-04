@@ -7,7 +7,7 @@ console.log("🧠 synapseConstants loaded");
 // ⚠️ All vesicle physics must reference THIS FILE
 // ⚠️ Coordinates are PRESYNAPTIC LOCAL SPACE
 // ⚠️ drawTNeuronShape() is the geometric truth
-// ⚠️ ONE physics membrane plane — no duplicates
+// ⚠️ ONE physics plane — no duplicates
 // =====================================================
 
 
@@ -28,33 +28,29 @@ window.SYNAPSE_TERMINAL_RADIUS = window.SYNAPSE_BAR_HALF - 10;
 
 
 // =====================================================
-// MEMBRANE & FUSION GEOMETRY (SINGLE AUTHORITY)
+// MEMBRANE & DOCKING GEOMETRY (SINGLE AUTHORITY)
 // =====================================================
 
-// Curved membrane reference
-//
-// ✔ Geometry, shading, normals ONLY
-// ❌ Never used for physics or clamping
-//
+// Curved membrane reference (VISUAL ONLY)
 window.SYNAPSE_MEMBRANE_X = 0;
 
 // 🔴 AUTHORITATIVE PHYSICS PLANE
 //
-// ✔ Vesicles dock here
+// ✔ Vesicles stop here
+// ✔ Docking occurs here
 // ✔ Fusion initiates here
 // ✔ Pool confinement stops here
-// ✔ Neurotransmitter release originates here
+// ✔ NT release originates here
 // ✔ Endocytosis buds originate here
 //
-window.SYNAPSE_FUSION_PLANE_X = 16;
+window.SYNAPSE_VESICLE_STOP_X = 16;
 
 
 // =====================================================
 // BACK-POOL (CYTOSOLIC RESERVE)
 // =====================================================
 
-// Offset INTO cytosol from fusion plane
-// (used to build reserve + loaded zones)
+// Offset INTO cytosol from vesicle stop plane
 window.SYNAPSE_BACK_OFFSET_X = 60;
 
 
@@ -74,23 +70,17 @@ window.SYNAPSE_MAX_VESICLES = 7;
 
 
 // =====================================================
-// VESICLE LOADING PHYSIOLOGY (AUTHORITATIVE)
+// VESICLE LOADING PHYSIOLOGY
 // =====================================================
-//
-// All loading behavior, timing, and spatial tuning
-// MUST be adjusted here — nowhere else.
-//
 
-// Forward cytosolic loading band (relative to fusion plane)
 window.SYNAPSE_LOAD_MIN_OFFSET = 10;
 window.SYNAPSE_LOAD_MAX_OFFSET = 46;
 
-// Vertical dispersion during spawning
 window.SYNAPSE_VESICLE_Y_SPREAD = 0.9;
 
 
 // =====================================================
-// PROTON (H⁺) PRIMING DYNAMICS
+// PROTON (H⁺) PRIMING
 // =====================================================
 
 window.SYNAPSE_H_SPEED = 0.42;
@@ -98,7 +88,7 @@ window.SYNAPSE_H_LIFE  = 260;
 
 
 // =====================================================
-// ATP PRIMING + HYDROLYSIS DYNAMICS
+// ATP PRIMING + HYDROLYSIS
 // =====================================================
 
 window.SYNAPSE_ATP_SPEED  = 0.38;
@@ -115,18 +105,7 @@ window.SYNAPSE_NT_PACK_RATE = 0.35;
 
 
 // =====================================================
-// DEBUG VISUALIZATION (OPTIONAL, SAFE)
-// =====================================================
-//
-// 🔵 Draws geometry anchors:
-// • Terminal center
-// • Fusion plane (ONLY real one)
-// • Membrane reference (visual)
-// • Back-pool reference
-//
-// ❗ OFF BY DEFAULT
-// Toggle at runtime:
-//   SHOW_SYNAPSE_DEBUG = true;
+// DEBUG VISUALIZATION (READ-ONLY)
 // =====================================================
 
 window.SHOW_SYNAPSE_DEBUG = false;
@@ -141,9 +120,7 @@ window.drawSynapseConstantDebug = function () {
   textSize(10);
   textAlign(LEFT, CENTER);
 
-  // ---------------------------------------------
   // TERMINAL CENTER
-  // ---------------------------------------------
   fill(80, 160, 255, 220);
   circle(
     window.SYNAPSE_TERMINAL_CENTER_X,
@@ -157,26 +134,22 @@ window.drawSynapseConstantDebug = function () {
     window.SYNAPSE_TERMINAL_CENTER_Y
   );
 
-  // ---------------------------------------------
-  // FUSION PLANE (AUTHORITATIVE)
-  // ---------------------------------------------
+  // VESICLE STOP / FUSION PLANE (THE ONLY ONE)
   fill(40, 160, 255, 220);
   rect(
-    window.SYNAPSE_FUSION_PLANE_X - 1,
+    window.SYNAPSE_VESICLE_STOP_X - 1,
     -240,
     2,
     480
   );
   fill(120, 200, 255);
   text(
-    "FUSION_PLANE_X",
-    window.SYNAPSE_FUSION_PLANE_X + 6,
+    "VESICLE_STOP_X",
+    window.SYNAPSE_VESICLE_STOP_X + 6,
     -12
   );
 
-  // ---------------------------------------------
-  // MEMBRANE REFERENCE (VISUAL ONLY)
-  // ---------------------------------------------
+  // MEMBRANE REFERENCE (VISUAL)
   fill(0, 90, 200, 160);
   circle(
     window.SYNAPSE_MEMBRANE_X,
@@ -190,19 +163,17 @@ window.drawSynapseConstantDebug = function () {
     window.SYNAPSE_TERMINAL_CENTER_Y + 26
   );
 
-  // ---------------------------------------------
   // BACK-POOL REFERENCE
-  // ---------------------------------------------
   fill(100, 200, 255, 180);
   circle(
-    window.SYNAPSE_FUSION_PLANE_X + window.SYNAPSE_BACK_OFFSET_X,
+    window.SYNAPSE_VESICLE_STOP_X + window.SYNAPSE_BACK_OFFSET_X,
     window.SYNAPSE_TERMINAL_CENTER_Y,
     20
   );
   fill(140, 220, 255);
   text(
     "BACK_OFFSET",
-    window.SYNAPSE_FUSION_PLANE_X + window.SYNAPSE_BACK_OFFSET_X + 12,
+    window.SYNAPSE_VESICLE_STOP_X + window.SYNAPSE_BACK_OFFSET_X + 12,
     window.SYNAPSE_TERMINAL_CENTER_Y
   );
 
