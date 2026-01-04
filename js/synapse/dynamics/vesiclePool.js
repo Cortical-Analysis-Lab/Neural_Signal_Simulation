@@ -266,8 +266,16 @@ for (const v of vesicles) {
       applyLoadedZoneAttraction(v);
     }
     else if (v.state === "loaded") {
-      confineInsideRect(v, loaded, Rv);
+  
+      // Allow vesicle membrane to touch fusion plane
+      confineInsideRect(v, {
+        xMin: loaded.xMin,
+        xMax: Infinity,   // 🔥 NO membrane-side clamp
+        yMin: loaded.yMin,
+        yMax: loaded.yMax
+      }, Rv);
     }
+
     else {
       confineInsideRect(v, reserve, Rv);
     }
