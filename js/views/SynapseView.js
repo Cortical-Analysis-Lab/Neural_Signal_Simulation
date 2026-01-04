@@ -1,7 +1,7 @@
 console.log("🔬 SynapseView — orchestrator loaded");
 
 // =====================================================
-// SCREEN-SPACE LAYOUT
+// SCREEN-SPACE LAYOUT (VIEW-ONLY)
 // =====================================================
 
 const SYNAPSE_SCALE    = 1.45;
@@ -16,7 +16,11 @@ const NEURON_Y = 40;
 // =====================================================
 // USER INPUT — SYNAPSE LOCAL ONLY
 // =====================================================
-
+//
+// ✔ Detects AP trigger intent
+// ✔ Emits NO physics
+// ✔ Emits NO geometry
+//
 let spaceWasDown = false;
 
 function handleSynapseInput() {
@@ -33,9 +37,14 @@ function handleSynapseInput() {
 
 
 // =====================================================
-// ENSURE VESICLE POOL EXISTS (ONCE)
+// ENSURE VESICLE POOL EXISTS (ONE-TIME)
 // =====================================================
-
+//
+// ✔ Pool creation only
+// ✔ No motion
+// ✔ No confinement
+// ✔ No release
+//
 function ensureVesiclePoolInitialized() {
 
   if (!Array.isArray(window.synapseVesicles)) {
@@ -45,8 +54,8 @@ function ensureVesiclePoolInitialized() {
   const maxVes = window.SYNAPSE_MAX_VESICLES ?? 7;
 
   // ---------------------------------------------------
-  // SPAWN VESICLES (ONCE)
-  // ---------------------------------------------------
+  // SPAWN EMPTY VESICLES (ONCE)
+// ---------------------------------------------------
   if (window.synapseVesicles.length === 0) {
     for (let i = 0; i < maxVes; i++) {
       window.requestNewEmptyVesicle?.();
@@ -54,8 +63,8 @@ function ensureVesiclePoolInitialized() {
   }
 
   // ---------------------------------------------------
-  // SEED RRP (ONCE, GUARDED)
-  // ---------------------------------------------------
+  // SEED READILY RELEASABLE POOL (ONCE)
+// ---------------------------------------------------
   if (!window.__RRPSeeded) {
 
     const preloadCount = 3;
@@ -63,11 +72,14 @@ function ensureVesiclePoolInitialized() {
     for (let i = 0; i < window.synapseVesicles.length && i < preloadCount; i++) {
       const v = window.synapseVesicles[i];
 
-      v.state = "loaded";
-      v.primedH = true;
-      v.primedATP = true;
+      // ⚠️ STATE ONLY — NO POSITION, NO VELOCITY
+      v.state       = "LOADED";
+      v.primedH     = true;
+      v.primedATP   = true;
+      v.owner       = "POOL";
+      v.ownerFrame  = frameCount;
 
-      // Pre-fill neurotransmitters
+      // Pre-fill neurotransmitters (geometry-local)
       v.nts = [];
       for (let n = 0; n < window.SYNAPSE_NT_TARGET; n++) {
         v.nts.push({
@@ -92,30 +104,56 @@ function ensureVesiclePoolInitialized() {
 // ✔ Applies transforms
 // ✔ Owns NO geometry
 // ✔ Owns NO physics
+// ✔ Owns NO pool logic
 //
-// Vesicle confinement + domains are
-// fully owned by vesiclePool.js
+// Authority flow:
+//
+// vesicleMotion.js   → how vesicles move
+// vesiclePools.js    → where vesicles are allowed
+// vesicleRelease.js  → when vesicles leave pool
+// vesicleRecycling.js→ recovery only
+//
 // =====================================================
 
 function drawSynapseView() {
+
   push();
   resetMatrix();
 
-  // ---------------- INPUT + PHYSIOLOGY ----------------
+  // ---------------------------------------------------
+  // INPUT + ELECTRICAL PHYSIOLOGY (NO GEOMETRY)
+  // ---------------------------------------------------
   handleSynapseInput();
   updateVoltageWave?.();
 
   ensureVesiclePoolInitialized();
 
-  // ---------------- AUTHORITATIVE UPDATE ORDER --------
+  // ---------------------------------------------------
+  // AUTHORITATIVE UPDATE ORDER (DO NOT CHANGE)
+  // ---------------------------------------------------
+
+  // 1) Biochemical priming / bias
   updateVesicleLoading?.();
-  updateVesicleMotion?.();     // pool moves vesicles FIRST
-  updateVesicleRelease?.();    // release locks + overrides position
-  updateVesicleRecycling?.();  // recycling happens AFTER fusion
+
+  // 2) Motion + collisions (pure kinematics)
+  updateVesicleMotion?.();
+
+  // 3) Pool confinement + reserve→loaded transitions
+  updateVesiclePools?.();
+
+  // 4) Fusion / release ownership transfer
+  updateVesicleRelease?.();
+
+  // 5) Endocytosis + recovery
+  updateVesicleRecycling?.();
+
+  // 6) Postsynaptic response aggregation
   updateSynapticBurst?.();
 
 
-  // ---------------- SCREEN ANCHOR ---------------------
+  // ===================================================
+  // SCREEN ANCHOR (VIEW SPACE)
+  // ===================================================
   translate(
     width  * SYNAPSE_SCREEN_X,
     height * SYNAPSE_SCREEN_Y
@@ -129,27 +167,31 @@ function drawSynapseView() {
 
   drawAstrocyteSynapse?.();
 
+
   // ===================================================
-  // PRESYNAPTIC SIDE (PHYSICS SPACE)
+  // PRESYNAPTIC SIDE (LOCAL PHYSICS SPACE)
   // ===================================================
   push();
   translate(PRE_X, NEURON_Y);
 
   // ---------------------------------------------------
-  // 🔁 VISUAL-ONLY FLIP (AUTHORITATIVE SIGNAL)
+  // 🔁 VISUAL-ONLY FLIP (SIGNAL ONLY)
   // ---------------------------------------------------
+  //
+  // ✔ Geometry MAY read this
+  // ✖ Physics MUST IGNORE THIS
+  //
   window.__synapseFlipped = true;
   scale(-1, 1);
 
-  // Presynaptic geometry
   drawPreSynapse?.();
 
-  // Vesicles + neurotransmitter contents
   drawSynapseVesicleGeometry?.();
   drawSynapticBurst?.();
 
   window.__synapseFlipped = false;
   pop();
+
 
   // ===================================================
   // POSTSYNAPTIC SIDE
