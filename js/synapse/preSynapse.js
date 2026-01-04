@@ -23,17 +23,26 @@ const PRESYNAPTIC_AP_PATH = [
 // =====================================================
 // 🔧 CALIBRATION CONSTANTS (AUTHORITATIVE)
 // =====================================================
+
+// 🔹 Global presynaptic scale (THIS affects everything)
 const AP_PATH_SCALE = 6.0;
 
+// 🔹 Final translation into synapse-local physics space
 const AP_PATH_OFFSET = {
   x: -170,
   y: 0
 };
 
+// 🔹 🔵 FUSION TARGET TUNING
+// This MUST match vesicle physics space
+// -------------------------------------
+const FUSION_PLANE_OFFSET_X = 0;   // ← move this to align
+const FUSION_PLANE_HEIGHT   = 140; // visual only
+
 // =====================================================
 // PATH TRANSFORM
 // ✔ SCALE → FLIP → OFFSET
-// ✔ CALLED PER DRAW (CHEAP, SAFE)
+// ✔ SINGLE SOURCE OF TRUTH
 // =====================================================
 function calibratePath(path) {
   return path.map(p => ({
@@ -45,9 +54,6 @@ function calibratePath(path) {
 // =====================================================
 // PRESYNAPTIC NEURON
 // GEOMETRY + VISUALS ONLY
-// ❌ NO PHYSICS
-// ❌ NO STATE UPDATES
-// ❌ NO COORDINATE FLIPS
 // =====================================================
 function drawPreSynapse() {
   push();
@@ -58,11 +64,16 @@ function drawPreSynapse() {
   drawTNeuronShape(1);
 
   // -----------------------------------------------
-  // Vesicles (DRAW ONLY)
-  // Physics handled upstream in synapse lifecycle
+  // 🔵 DEBUG: FUSION TARGET PLANE
+  // This is what vesicles SHOULD hit
   // -----------------------------------------------
-  if (typeof drawSynapseVesicles === "function") {
-    drawSynapseVesicles();
+  drawFusionTargetPlane();
+
+  // -----------------------------------------------
+  // Vesicles (DRAW ONLY)
+  // -----------------------------------------------
+  if (typeof drawSynapseVesicleGeometry === "function") {
+    drawSynapseVesicleGeometry();
   }
 
   // -----------------------------------------------
@@ -85,8 +96,34 @@ function drawPreSynapse() {
 }
 
 // =====================================================
+// 🔵 FUSION TARGET PLANE (CRITICAL DEBUG)
+// =====================================================
+function drawFusionTargetPlane() {
+
+  // This MUST match SYNAPSE_VESICLE_STOP_X in physics
+  const x =
+    (window.SYNAPSE_VESICLE_STOP_X ?? 0) +
+    FUSION_PLANE_OFFSET_X;
+
+  push();
+  stroke(80, 180, 255, 220);
+  strokeWeight(2);
+  noFill();
+
+  line(x, -FUSION_PLANE_HEIGHT, x, FUSION_PLANE_HEIGHT);
+
+  // Anchor dots
+  for (let y = -FUSION_PLANE_HEIGHT; y <= FUSION_PLANE_HEIGHT; y += 24) {
+    fill(80, 180, 255, 140);
+    noStroke();
+    circle(x, y, 4);
+  }
+
+  pop();
+}
+
+// =====================================================
 // DEBUG: FLASHING GREEN AP DOTS
-// (Visual sanity check only)
 // =====================================================
 function drawAPDebugDots(path) {
   const pulse = 0.5 + 0.5 * sin(frameCount * 0.2);
@@ -109,9 +146,7 @@ function drawAPDebugDots(path) {
 
 // =====================================================
 // AP → VESICLE RELEASE COUPLING
-// EVENT-ONLY, SINGLE CALL
 // =====================================================
-// Called ONCE by terminalAP.js when AP reaches terminal
 function triggerPresynapticRelease() {
   if (typeof triggerVesicleReleaseFromAP === "function") {
     triggerVesicleReleaseFromAP();
