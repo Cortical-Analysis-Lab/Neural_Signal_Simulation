@@ -36,7 +36,7 @@ const AP_PATH_OFFSET = {
 // 🔹 🔵 FUSION TARGET TUNING
 // This MUST match vesicle physics space
 // -------------------------------------
-const FUSION_PLANE_OFFSET_X = -15;   // ← move this to align
+const FUSION_PLANE_OFFSET_X = -20;   // ← move this to align
 const FUSION_PLANE_HEIGHT   = 140; // visual only
 
 // =====================================================
