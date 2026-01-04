@@ -5,7 +5,7 @@ console.log("🫧 vesicleMotion loaded");
 // =====================================================
 //
 // RESPONSIBILITIES:
-// ✔ Brownian drift
+// ✔ Brownian drift (reserve + loaded only)
 // ✔ Velocity damping
 // ✔ Position integration
 // ✔ Vesicle–vesicle soft collisions
@@ -32,13 +32,18 @@ const THERMAL_Y = 0.004;
 const DRAG_X = 0.985;
 const DRAG_Y = 0.950;
 
-const COLLISION_PUSH = 0.04;
+const COLLISION_PUSH_RESERVE = 0.08;
+const COLLISION_PUSH_TRAVEL  = 0.04;
 
 
 // -----------------------------------------------------
-// APPLY BROWNIAN DRIFT
+// APPLY BROWNIAN DRIFT (RESERVE / LOADED ONLY)
 // -----------------------------------------------------
 function applyBrownianMotion(v) {
+
+  // 🚫 Do NOT diffuse vesicles in directed transport
+  if (v.state === "LOADED_TRAVEL") return;
+
   v.vx += random(-THERMAL_X, THERMAL_X);
   v.vy += random(-THERMAL_Y, THERMAL_Y);
 }
@@ -70,16 +75,14 @@ function resolveCollisions(vesicles) {
   for (let i = 0; i < vesicles.length; i++) {
     const a = vesicles[i];
 
-    // Skip non-pool vesicles
     if (a.releaseBias === true) continue;
+    if (a.x == null) continue;
 
     for (let j = i + 1; j < vesicles.length; j++) {
       const b = vesicles[j];
 
-      // Skip non-pool vesicles
       if (b.releaseBias === true) continue;
-
-      if (a.x == null || b.x == null) continue;
+      if (b.x == null) continue;
 
       const dx = b.x - a.x;
       const dy = b.y - a.y;
@@ -87,14 +90,27 @@ function resolveCollisions(vesicles) {
       const minDist = a.radius + b.radius;
 
       if (dist > 0 && dist < minDist) {
+
         const nx = dx / dist;
         const ny = dy / dist;
-        const push = (minDist - dist) * COLLISION_PUSH;
+        const overlap = (minDist - dist) * 0.5;
 
-        a.vx -= nx * push;
-        a.vy -= ny * push;
-        b.vx += nx * push;
-        b.vy += ny * push;
+        // Separate positions slightly
+        a.x -= nx * overlap;
+        a.y -= ny * overlap;
+        b.x += nx * overlap;
+        b.y += ny * overlap;
+
+        // Softer collisions for traveling vesicles
+        const impulse =
+          (a.state === "LOADED_TRAVEL" || b.state === "LOADED_TRAVEL")
+            ? COLLISION_PUSH_TRAVEL
+            : COLLISION_PUSH_RESERVE;
+
+        a.vx -= nx * impulse;
+        a.vy -= ny * impulse * 0.6;
+        b.vx += nx * impulse;
+        b.vy += ny * impulse * 0.6;
       }
     }
   }
@@ -110,11 +126,10 @@ function updateVesicleMotion() {
   if (!Array.isArray(vesicles)) return;
 
   // ---------------------------------------------------
-  // APPLY STOCHASTIC MOTION + DAMPING
+  // STOCHASTIC MOTION + DAMPING
   // ---------------------------------------------------
   for (const v of vesicles) {
 
-    // Motion NEVER touches release-owned vesicles
     if (v.releaseBias === true) continue;
 
     applyBrownianMotion(v);
@@ -122,7 +137,7 @@ function updateVesicleMotion() {
   }
 
   // ---------------------------------------------------
-  // COLLISION RESOLUTION (POOL ONLY)
+  // COLLISIONS (POOL-OWNED ONLY)
   // ---------------------------------------------------
   resolveCollisions(vesicles);
 
@@ -139,6 +154,6 @@ function updateVesicleMotion() {
 
 
 // -----------------------------------------------------
-// PUBLIC EXPORT (GLOBAL HOOK)
+// PUBLIC EXPORT
 // -----------------------------------------------------
 window.updateVesicleMotion = updateVesicleMotion;
