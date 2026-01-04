@@ -3,11 +3,20 @@ console.log("⚡ terminalAP loaded");
 // =====================================================
 // TERMINAL ACTION POTENTIAL (PRESYNAPTIC)
 // =====================================================
+//
 // ✔ Local-space only
 // ✔ Event-driven (no phase math)
 // ✔ Visual + functional coupling
 // ✔ Triggers vesicle fusion ONCE per AP
+//
+// NON-RESPONSIBILITIES:
+// ✘ No vesicle motion
+// ✘ No pool logic
+// ✘ No geometry authority
+// ✘ No lifecycle state changes
+//
 // =====================================================
+
 
 // -----------------------------------------------------
 // GLOBAL STATE (RELOAD SAFE)
@@ -18,6 +27,7 @@ window.terminalAP = window.terminalAP || {
   fired: false
 };
 
+
 // -----------------------------------------------------
 // TUNING PARAMETERS
 // -----------------------------------------------------
@@ -25,59 +35,75 @@ const AP_SPEED = 0.06;        // Path traversal speed
 const AP_RADIUS_CORE = 10;
 const AP_RADIUS_GLOW = 22;
 
+
 // -----------------------------------------------------
-// COLORS
+// COLORS (PURE VISUAL)
 // -----------------------------------------------------
 const AP_CORE_COLOR = () => color(120, 255, 160);
 const AP_GLOW_COLOR = () => color(120, 255, 160, 120);
+
 
 // -----------------------------------------------------
 // START TERMINAL AP
 // -----------------------------------------------------
 function triggerTerminalAP() {
-  terminalAP.active = true;
+
+  terminalAP.active   = true;
   terminalAP.progress = 0;
-  terminalAP.fired = false;
-  window.apActive = true; // debug compatibility
+  terminalAP.fired    = false;
+
+  // Debug / UI compatibility ONLY
+  window.apActive = true;
 }
+
 
 // -----------------------------------------------------
 // UPDATE AP STATE
 // -----------------------------------------------------
 function updateTerminalAP(path) {
+
   if (!terminalAP.active) return;
 
   terminalAP.progress += AP_SPEED;
 
-  // Clamp
   if (terminalAP.progress >= 1) {
     terminalAP.progress = 1;
   }
 
-  // Fire vesicle release ONCE at terminal arrival
-  if (terminalAP.progress >= 0.95 && !terminalAP.fired) {
+  // ---------------------------------------------------
+  // FIRE VESICLE RELEASE (ONCE, AT TERMINAL)
+  // ---------------------------------------------------
+  if (
+    terminalAP.progress >= 0.95 &&
+    !terminalAP.fired
+  ) {
     terminalAP.fired = true;
 
-    if (typeof triggerPresynapticRelease === "function") {
+    if (typeof triggerVesicleReleaseFromAP === "function") {
       triggerVesicleReleaseFromAP();
     }
   }
 
-  // End AP after completion
+  // ---------------------------------------------------
+  // END AP
+  // ---------------------------------------------------
   if (terminalAP.progress >= 1) {
     terminalAP.active = false;
-    window.apActive = false;
+    window.apActive = false; // debug only
   }
 }
 
+
 // -----------------------------------------------------
-// DRAW AP PARTICLE ALONG PATH
+// DRAW AP PARTICLE ALONG PATH (READ-ONLY)
 // -----------------------------------------------------
 function drawTerminalAP(path) {
+
   if (!terminalAP.active) return;
+  if (!Array.isArray(path) || path.length === 0) return;
 
   const idx = floor(terminalAP.progress * (path.length - 1));
-  const p = path[idx];
+  const p   = path[idx];
 
   push();
   noStroke();
@@ -94,3 +120,11 @@ function drawTerminalAP(path) {
   blendMode(BLEND);
   pop();
 }
+
+
+// -----------------------------------------------------
+// PUBLIC EXPORTS
+// -----------------------------------------------------
+window.triggerTerminalAP = triggerTerminalAP;
+window.updateTerminalAP  = updateTerminalAP;
+window.drawTerminalAP    = drawTerminalAP;
