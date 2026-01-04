@@ -45,13 +45,13 @@ function getVesicleReserveRect() {
 
   const cy    = window.SYNAPSE_TERMINAL_CENTER_Y;
   const R     = window.SYNAPSE_TERMINAL_RADIUS;
-  const stopX = window.SYNAPSE_VESICLE_STOP_X;
-
-  const WIDTH       = 75;
-  const HEIGHT      = R * 0.8;
-  const BACK_OFFSET = 60;
-
-  const xMin = stopX + BACK_OFFSET;
+  const fusionX    = window.SYNAPSE_FUSION_PLANE_X;
+  const BACK_OFFSET = window.SYNAPSE_BACK_OFFSET_X;
+  
+  const WIDTH  = 75;
+  const HEIGHT = R * 0.8;
+  
+  const xMin = fusionX + BACK_OFFSET;
   const xMax = xMin + WIDTH;
 
   _vesicleReserveRect = {
