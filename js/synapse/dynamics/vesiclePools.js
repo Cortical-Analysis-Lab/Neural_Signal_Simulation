@@ -5,7 +5,7 @@ console.log("🧭 vesiclePools loaded");
 // =====================================================
 //
 // ✔ Reserve pool (deep cytosol)
-// ✔ Loaded pool (membrane-adjacent)
+// ✔ Loaded pool (membrane-adjacent, NOT docked)
 // ✔ Smooth reserve → loaded travel
 // ✔ Radius-aware confinement
 //
@@ -17,16 +17,24 @@ console.log("🧭 vesiclePools loaded");
 
 
 // -----------------------------------------------------
-// INTERNAL CACHE (AUTO-INVALIDATING)
+// INTERNAL CACHE (SAFE, SEPARATE)
 // -----------------------------------------------------
-let _cacheKey = null;
+let _reserveCacheKey = null;
+let _loadedCacheKey  = null;
 let _reservePool = null;
 let _loadedPool  = null;
 
-function getCacheKey() {
+function getReserveCacheKey() {
   return [
     window.SYNAPSE_VESICLE_STOP_X,
     window.SYNAPSE_BACK_OFFSET_X,
+    window.SYNAPSE_TERMINAL_RADIUS
+  ].join("|");
+}
+
+function getLoadedCacheKey() {
+  return [
+    window.SYNAPSE_VESICLE_STOP_X,
     window.SYNAPSE_TERMINAL_RADIUS
   ].join("|");
 }
@@ -37,8 +45,8 @@ function getCacheKey() {
 // -----------------------------------------------------
 function getReservePoolRect() {
 
-  const key = getCacheKey();
-  if (_reservePool && _cacheKey === key) return _reservePool;
+  const key = getReserveCacheKey();
+  if (_reservePool && _reserveCacheKey === key) return _reservePool;
 
   const cy    = window.SYNAPSE_TERMINAL_CENTER_Y;
   const R     = window.SYNAPSE_TERMINAL_RADIUS;
@@ -51,7 +59,7 @@ function getReservePoolRect() {
   const xMin = stopX + back;
   const xMax = xMin + WIDTH;
 
-  _cacheKey = key;
+  _reserveCacheKey = key;
   _reservePool = {
     xMin,
     xMax,
@@ -64,29 +72,31 @@ function getReservePoolRect() {
 
 
 // -----------------------------------------------------
-// LOADED POOL — PRE-FUSION STAGING (MEMBRANE-LOCKED)
+// LOADED POOL — PRE-FUSION STAGING (CRITICAL FIX)
 // -----------------------------------------------------
 function getLoadedPoolRect() {
 
-  const key = getCacheKey();
-  if (_loadedPool && _cacheKey === key) return _loadedPool;
+  const key = getLoadedCacheKey();
+  if (_loadedPool && _loadedCacheKey === key) return _loadedPool;
 
-  const reserve = getReservePoolRect();
-  const stopX   = window.SYNAPSE_VESICLE_STOP_X;
+  const cy    = window.SYNAPSE_TERMINAL_CENTER_Y;
+  const stopX = window.SYNAPSE_VESICLE_STOP_X;
 
-  const WIDTH  = 48;                    // biological staging depth
-  const HEIGHT = (reserve.yMax - reserve.yMin) * 0.55;
+  // 🔑 BIOLOGICAL GAP BETWEEN STAGING & DOCKING
+  const MEMBRANE_GAP = 10;
 
-  const xMax = stopX;                   // 🔴 HARD ANCHOR
+  const WIDTH  = 48;
+  const HEIGHT = window.SYNAPSE_TERMINAL_RADIUS * 0.42;
+
+  const xMax = stopX - MEMBRANE_GAP;     // ✅ NOT the docking plane
   const xMin = xMax - WIDTH;
 
-  const yMid = (reserve.yMin + reserve.yMax) * 0.5;
-
+  _loadedCacheKey = key;
   _loadedPool = {
     xMin,
     xMax,
-    yMin: yMid - HEIGHT * 0.5,
-    yMax: yMid + HEIGHT * 0.5
+    yMin: cy - HEIGHT,
+    yMax: cy + HEIGHT
   };
 
   return _loadedPool;
@@ -126,7 +136,7 @@ window.requestNewEmptyVesicle = function () {
 
 
 // -----------------------------------------------------
-// LOADED ZONE ATTRACTION (SMOOTH, BIOLOGICAL)
+// LOADED ZONE ATTRACTION (SMOOTH STAGING)
 // -----------------------------------------------------
 function applyLoadedAttraction(v) {
 
@@ -136,11 +146,8 @@ function applyLoadedAttraction(v) {
   const tx = (r.xMin + r.xMax) * 0.5;
   const ty = (r.yMin + r.yMax) * 0.5;
 
-  const dx = tx - v.x;
-  const dy = ty - v.y;
-
-  v.vx += dx * 0.0038;
-  v.vy += dy * 0.0038;
+  v.vx += (tx - v.x) * 0.0038;
+  v.vy += (ty - v.y) * 0.0038;
 
   v.vx *= 0.78;
   v.vy *= 0.78;
@@ -201,19 +208,14 @@ function updateVesiclePools() {
 
   for (const v of vesicles) {
 
-    // Pool is blind during release
+    // Pool blind during release
     if (v.releaseBias === true) continue;
 
     if (v.state === "LOADED_TRAVEL") {
       applyLoadedAttraction(v);
     }
     else if (v.state === "LOADED") {
-      confineToRect(v, {
-        xMin: loaded.xMin,
-        xMax: Infinity,          // 🔥 membrane allowed
-        yMin: loaded.yMin,
-        yMax: loaded.yMax
-      });
+      confineToRect(v, loaded);
     }
     else {
       confineToRect(v, reserve);
@@ -221,6 +223,4 @@ function updateVesiclePools() {
   }
 }
 
-
-// -----------------------------------------------------
 window.updateVesiclePools = updateVesiclePools;
