@@ -1,9 +1,5 @@
 console.log("🧭 vesiclePools loaded");
 
-import {
-  SYNAPSE_VESICLE_STOP_X
-} from "./synapseConstants.js";
-
 // =====================================================
 // VESICLE POOLS — SPATIAL OWNERSHIP (NOT MOTION)
 // =====================================================
@@ -12,13 +8,13 @@ import {
 // ✔ Reserve pool bounds
 // ✔ Loaded pool bounds
 // ✔ Pool confinement
-// ✔ Reserve → Loaded transition
+// ✔ EMPTY / LOADED_TRAVEL → LOADED handoff
 //
 // Must NOT:
-// ✖ Apply Brownian motion
-// ✖ Integrate velocity
-// ✖ Reference membrane or fusion planes
-// ✖ Touch release states directly
+// ✘ Apply Brownian motion
+// ✘ Integrate velocity
+// ✘ Reference membrane or fusion planes
+// ✘ Touch release logic directly
 //
 // =====================================================
 
@@ -36,7 +32,7 @@ const RESERVE_POOL = {
 
 const LOADED_POOL = {
   xMin: -40,
-  xMax: SYNAPSE_VESICLE_STOP_X, // ← ONLY PLANE ALLOWED
+  xMax: window.SYNAPSE_VESICLE_STOP_X, // ← ONLY PLANE ALLOWED
   yMin: -26,
   yMax:  26
 };
@@ -45,17 +41,18 @@ const LOADED_POOL = {
 // -----------------------------------------------------
 // Utility
 // -----------------------------------------------------
-
 function clamp(v, min, max) {
   return Math.max(min, Math.min(max, v));
 }
 
 
 // -----------------------------------------------------
-// Apply pool confinement
+// APPLY POOL CONFINEMENT (POSITION ONLY)
 // -----------------------------------------------------
+function applyPoolConstraints(v) {
 
-export function applyPoolConstraints(v) {
+  // Pool ignores vesicles owned by release
+  if (v.releaseBias === true) return;
 
   const pool =
     v.state === "LOADED"
@@ -75,14 +72,50 @@ export function applyPoolConstraints(v) {
 
 
 // -----------------------------------------------------
-// Reserve → Loaded transition
+// POOL STATE TRANSITIONS (NO MOTION)
 // -----------------------------------------------------
+function updatePoolState(v) {
 
-export function updatePoolState(v) {
+  // -----------------------------------------------
+  // EMPTY → RESERVE (implicit, visual only)
+  // -----------------------------------------------
+  if (v.state === "EMPTY") {
+    v.state = "RESERVE";
+  }
+
+  // -----------------------------------------------
+  // LOADED_TRAVEL → LOADED
+  // (chemistry finished, pool owns docking)
+  // -----------------------------------------------
   if (
-    v.state === "RESERVE" &&
-    v.releaseBias === true
+    v.state === "LOADED_TRAVEL" &&
+    v.releaseBias !== true
   ) {
     v.state = "LOADED";
   }
 }
+
+
+// -----------------------------------------------------
+// MAIN UPDATE — POOL AUTHORITY ONLY
+// -----------------------------------------------------
+function updateVesiclePools() {
+
+  const vesicles = window.synapseVesicles;
+  if (!Array.isArray(vesicles)) return;
+
+  for (const v of vesicles) {
+
+    // Pool owns only pool-owned vesicles
+    if (v.owner && v.owner !== "POOL") continue;
+
+    applyPoolConstraints(v);
+    updatePoolState(v);
+  }
+}
+
+
+// -----------------------------------------------------
+// PUBLIC EXPORT (GLOBAL HOOK)
+// -----------------------------------------------------
+window.updateVesiclePools = updateVesiclePools;
