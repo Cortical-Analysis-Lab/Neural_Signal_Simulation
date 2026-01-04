@@ -1,20 +1,22 @@
 console.log("🧬 vesicleGeometry loaded");
 
 // =====================================================
-// VESICLE GEOMETRY & RENDERING
+// VESICLE GEOMETRY & RENDERING (READ-ONLY)
 // =====================================================
 //
 // RESPONSIBILITIES:
-// • Draw vesicle membranes
-// • Draw neurotransmitter contents
-// • Draw priming particles (H⁺, ATP, ADP+Pi)
-// • Visualize membrane fusion + merge
+// ✔ Draw vesicle membranes
+// ✔ Draw neurotransmitter contents
+// ✔ Draw priming particles (H⁺, ATP, ADP + Pi)
+// ✔ Visualize membrane fusion + merge
 //
 // NON-RESPONSIBILITIES:
 // ✘ Motion
 // ✘ State transitions
 // ✘ Constraints
 // ✘ Chemistry logic
+// ✘ Pool / release ownership
+//
 // =====================================================
 
 
@@ -43,8 +45,8 @@ function atpColor(alpha = 255) {
 
 
 // -----------------------------------------------------
-// DOCK PLANE — RENDER-SPACE AUTHORITATIVE
-// (NOT STOP PLANE)
+// DOCK PLANE — RENDER-SPACE ONLY
+// (DOES NOT CONTROL PHYSICS)
 // -----------------------------------------------------
 function getRenderDockX() {
   return window.__synapseFlipped
@@ -67,7 +69,7 @@ function drawSynapseVesicleGeometry() {
 
 // -----------------------------------------------------
 // VESICLE MEMBRANES
-// Sealed → omega fusion → collapse
+// SEALED → OMEGA FUSION → COLLAPSE
 // -----------------------------------------------------
 function drawVesicleMembranes() {
 
@@ -79,7 +81,7 @@ function drawVesicleMembranes() {
   const dockX   = getRenderDockX();
 
   // ---------------------------------------------------
-  // 🔵 OPTIONAL DEBUG: TRUE DOCK PLANE
+  // OPTIONAL DEBUG — TRUE DOCK PLANE (VISUAL ONLY)
   // ---------------------------------------------------
   if (window.SHOW_SYNAPSE_DEBUG) {
     push();
@@ -95,12 +97,12 @@ function drawVesicleMembranes() {
 
     if (v.x == null || v.y == null) continue;
 
-    // -------------------------------
-    // FILL OPACITY BY STATE
-    // -------------------------------
+    // -------------------------------------------------
+    // FILL OPACITY BY STATE (VISUAL CUE ONLY)
+    // -------------------------------------------------
     let fillAlpha = 40;
-    if (v.state === "priming" || v.state === "loading") fillAlpha = 70;
-    if (v.state === "loaded") fillAlpha = 95;
+    if (v.state === "PRIMING" || v.state === "LOADING") fillAlpha = 70;
+    if (v.state === "LOADED") fillAlpha = 95;
 
     fill(vesicleFillColor(fillAlpha));
 
@@ -114,9 +116,7 @@ function drawVesicleMembranes() {
 
       const t = constrain(v.flatten, 0, 1);
 
-      // -------------------------------------------------
-      // RIGHTMOST EDGE IS ALWAYS DOCK PLANE
-      // -------------------------------------------------
+      // Rightmost edge is always dock plane (render-only)
       const currentR = r * (1 - t);
       const cx       = dockX - currentR;
 
@@ -149,7 +149,7 @@ function drawVesicleMembranes() {
 
 
 // -----------------------------------------------------
-// NEUROTRANSMITTER CONTENTS
+// NEUROTRANSMITTER CONTENTS (VESICLE-LOCAL)
 // -----------------------------------------------------
 function drawVesicleContents() {
 
@@ -242,7 +242,7 @@ function drawPrimingParticles() {
 
 
 // -----------------------------------------------------
-// OPTIONAL DEBUG HELPERS
+// OPTIONAL DEBUG HELPERS (READ-ONLY)
 // -----------------------------------------------------
 window.drawVesicleCenters = function () {
   push();
