@@ -83,42 +83,40 @@ function drawVesicleMembranes() {
     fill(vesicleFillColor(fillAlpha));
 
     // =================================================
-    // MEMBRANE MERGE — OMEGA FUSION
-    // =================================================
-    if (v.state === "MEMBRANE_MERGE" && v.flatten != null) {
+// MEMBRANE MERGE — OMEGA FUSION (ANCHOR FIXED)
+// =================================================
+if (v.state === "MEMBRANE_MERGE" && v.flatten != null) {
 
-      const t = constrain(v.flatten, 0, 1);
+  const t = constrain(v.flatten, 0, 1);
 
-      // -------------------------------------------------
-      // 🔒 HARD ANCHOR TO MEMBRANE (NO GAP EVER)
-      // Vesicle center collapses INTO membrane
-      // -------------------------------------------------
-      const cx = membraneX - r * (1 - t);
+  // -------------------------------------------------
+  // 🔒 FIXED ANCHOR:
+  // Rightmost membrane edge NEVER moves
+  // -------------------------------------------------
+  const currentR = r * (1 - t);
+  const cx = membraneX - currentR;
 
-      // -------------------------------------------------
-      // OMEGA OPENING — APPEARS HALFWAY
-      // Faces synaptic cleft only
-      // -------------------------------------------------
-      const openFrac = t < 0.5 ? 0 : map(t, 0.5, 1, 0, 1);
-      const openAngle = openFrac * PI;
 
-      // -------------------------------------------------
-      // Membrane thins as lipid merges
-      // -------------------------------------------------
-      strokeWeight(lerp(strokeW, strokeW * 0.35, t));
-      noFill();
+  // -------------------------------------------------
+  // OMEGA OPENING — lumen exposed halfway
+  // -------------------------------------------------
+  const openFrac  = t < 0.5 ? 0 : map(t, 0.5, 1, 0, 1);
+  const openAngle = openFrac * PI;
 
-      arc(
-        cx,
-        v.y,
-        r * 2,
-        r * 2,
-        -openAngle,
-        openAngle
-      );
+  strokeWeight(lerp(strokeW, strokeW * 0.35, t));
+  noFill();
 
-      continue;
-    }
+  arc(
+    cx,
+    v.y,
+    currentR * 2,
+    currentR * 2,
+    -openAngle,
+    openAngle
+  );
+
+  continue;
+}
 
     // =================================================
     // NORMAL SEALED VESICLE
