@@ -90,6 +90,12 @@ function triggerVesicleReleaseFromAP() {
   v.mergePhase     = 1.0;
 
   // -------------------------------
+  // LIFETIME GUARD (CRITICAL FIX)
+  // Prevents premature cleanup
+  // -------------------------------
+  v.recycleHold = Infinity;
+
+  // -------------------------------
   // INTERNAL LOCK
   // -------------------------------
   v.__mergeLocked = false;
@@ -228,11 +234,15 @@ function updateVesicleRelease() {
   }
 
   // ---------------------------------------------------
-  // SAFE CLEANUP (DELAYED)
+  // SAFE CLEANUP (DELAYED, GUARDED)
   // ---------------------------------------------------
   for (let i = vesicles.length - 1; i >= 0; i--) {
     const v = vesicles[i];
-    if (v.state === "RECYCLED" && v.recycleHold <= 0) {
+    if (
+      v.state === "RECYCLED" &&
+      Number.isFinite(v.recycleHold) &&
+      v.recycleHold <= 0
+    ) {
       vesicles.splice(i, 1);
     }
   }
