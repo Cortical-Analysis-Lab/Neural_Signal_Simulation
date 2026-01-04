@@ -2,17 +2,20 @@ console.log("♻️ vesicleRecycling loaded");
 
 // =====================================================
 // VESICLE RECYCLING — BIOLOGICAL ENDOCYTOSIS
-// Membrane Patch → Bud → Pinch → Return-to-Pool
 // =====================================================
 //
-// ✔ Vesicles are born at DOCK plane
-// ✔ Gentle cytosolic return bias (NOT teleport)
-// ✔ VesiclePool owns motion & constraints
-// ✔ Safe with all existing logic
+// Membrane Patch → Bud → Pinch → Return-to-Pool
 //
-// ⚠️ NO Brownian motion
-// ⚠️ NO constraint enforcement
-// ⚠️ NO loading logic
+// ✔ Vesicles are born at DOCK plane (geometry + release owned)
+// ✔ Gentle cytosolic return bias (NOT teleport)
+// ✔ Pool owns all motion & constraints after birth
+// ✔ Safe with vesiclePools / vesicleMotion / vesicleLoading
+//
+// NON-RESPONSIBILITIES:
+// ✘ No Brownian motion
+// ✘ No spatial clamping
+// ✘ No loading or priming
+// ✘ No fusion logic
 // =====================================================
 
 
@@ -37,7 +40,7 @@ window.spawnEndocytosisSeed = function (x, y) {
 
 
 // -----------------------------------------------------
-// UPDATE RECYCLING
+// UPDATE RECYCLING (STATE + BIRTH ONLY)
 // -----------------------------------------------------
 function updateVesicleRecycling() {
 
@@ -47,6 +50,7 @@ function updateVesicleRecycling() {
   const MAX_VES  = window.SYNAPSE_MAX_VESICLES;
   const V_RADIUS = window.SYNAPSE_VESICLE_RADIUS;
 
+  // ⚠️ Dock plane is authoritative for birth ONLY
   const dockX = window.SYNAPSE_DOCK_X;
 
   for (let i = seeds.length - 1; i >= 0; i--) {
@@ -89,30 +93,37 @@ function updateVesicleRecycling() {
 
       if (e.timer >= 30) {
 
-        // Respect pool size
+        // Respect pool capacity
         if (vesicles.length < MAX_VES) {
 
           // ------------------------------------------------
-          // CREATE NEW EMPTY VESICLE (POOL-SAFE)
+          // CREATE NEW EMPTY VESICLE (POOL OWNERSHIP)
           // ------------------------------------------------
           vesicles.push({
-            // Born JUST INSIDE cytosol (right of dock plane)
+
+            // Born just inside cytosol (right of dock plane)
             x: dockX + V_RADIUS + random(6, 10),
             y: e.y + random(-4, 4),
 
-            // Gentle inward drift
+            // Gentle inward bias (pool motion will take over)
             vx: random(0.03, 0.06),
             vy: random(-0.02, 0.02),
 
-            // Core state
-            state: "empty",
-            primedH: false,
+            // ------------------------------------------------
+            // CANONICAL STATE (MATCHES OTHER SYSTEMS)
+            // ------------------------------------------------
+            state: "EMPTY",
+
+            primedH:   false,
             primedATP: false,
-            nts: [],
+            nts:       [],
 
             // ------------------------------------------------
-            // 🔑 POOL FLAGS — FREE & NORMAL
+            // OWNERSHIP FLAGS (CRITICAL)
             // ------------------------------------------------
+            owner:       "POOL",
+            ownerFrame:  frameCount,
+
             releaseBias: false,
             recycleBias: false
           });
@@ -142,7 +153,7 @@ function drawVesicleRecycling() {
 
 
 // -----------------------------------------------------
-// PUBLIC EXPORT
+// PUBLIC EXPORTS
 // -----------------------------------------------------
 window.updateVesicleRecycling = updateVesicleRecycling;
 window.drawVesicleRecycling  = drawVesicleRecycling;
