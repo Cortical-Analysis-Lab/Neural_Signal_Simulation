@@ -5,7 +5,7 @@ console.log("♻️ vesicleRecycling loaded");
 // Membrane Patch → Bud → Pinch → Return-to-Pool
 // =====================================================
 //
-// ✔ Vesicles are born at membrane
+// ✔ Vesicles are born at DOCK plane
 // ✔ Gentle cytosolic return bias (NOT teleport)
 // ✔ VesiclePool owns motion & constraints
 // ✔ Safe with all existing logic
@@ -21,7 +21,7 @@ console.log("♻️ vesicleRecycling loaded");
 // -----------------------------------------------------
 window.endocytosisSeeds = window.endocytosisSeeds || [];
 
-// Called by vesicleRelease.js
+// Called by vesicleRelease.js (DOCK-space coordinates)
 window.spawnEndocytosisSeed = function (x, y) {
   window.endocytosisSeeds.push({
     x,
@@ -46,7 +46,8 @@ function updateVesicleRecycling() {
 
   const MAX_VES  = window.SYNAPSE_MAX_VESICLES;
   const V_RADIUS = window.SYNAPSE_VESICLE_RADIUS;
-  const stopX    = window.SYNAPSE_VESICLE_STOP_X;
+
+  const dockX = window.SYNAPSE_DOCK_X;
 
   for (let i = seeds.length - 1; i >= 0; i--) {
     const e = seeds[i];
@@ -92,15 +93,15 @@ function updateVesicleRecycling() {
         if (vesicles.length < MAX_VES) {
 
           // ------------------------------------------------
-          // CREATE NEW EMPTY VESICLE (CYTOSOL-SAFE)
+          // CREATE NEW EMPTY VESICLE (POOL-SAFE)
           // ------------------------------------------------
           vesicles.push({
-            // Born JUST INSIDE the presynaptic cytosol
-            x: stopX + V_RADIUS + random(6, 10),
+            // Born JUST INSIDE cytosol (right of dock plane)
+            x: dockX + V_RADIUS + random(6, 10),
             y: e.y + random(-4, 4),
 
-            // Gentle drift away from membrane
-            vx: random(0.04, 0.07),
+            // Gentle inward drift
+            vx: random(0.03, 0.06),
             vy: random(-0.02, 0.02),
 
             // Core state
@@ -110,10 +111,10 @@ function updateVesicleRecycling() {
             nts: [],
 
             // ------------------------------------------------
-            // 🔑 POOL FLAGS — CLEAN RESET
+            // 🔑 POOL FLAGS — FREE & NORMAL
             // ------------------------------------------------
             releaseBias: false,
-            recycleBias: true   // pool will guide inward
+            recycleBias: false
           });
         }
 
