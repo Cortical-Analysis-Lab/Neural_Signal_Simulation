@@ -83,6 +83,7 @@ function ensureVesiclePoolInitialized() {
   }
 }
 
+
 // =====================================================
 // MAIN VIEW — ORCHESTRATOR ONLY
 // =====================================================
@@ -135,9 +136,9 @@ function drawSynapseView() {
   translate(PRE_X, NEURON_Y);
 
   // ---------------------------------------------------
-  // VISUAL-ONLY FLIP (CRITICAL)
-  // Everything AFTER this matches vesicle physics
+  // 🔁 VISUAL-ONLY FLIP (AUTHORITATIVE SIGNAL)
   // ---------------------------------------------------
+  window.__synapseFlipped = true;
   scale(-1, 1);
 
   // Presynaptic geometry
@@ -147,6 +148,7 @@ function drawSynapseView() {
   drawSynapseVesicleGeometry?.();
   drawSynapticBurst?.();
 
+  window.__synapseFlipped = false;
   pop();
 
   // ===================================================
