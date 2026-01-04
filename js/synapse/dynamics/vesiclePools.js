@@ -4,94 +4,121 @@ console.log("🧭 vesiclePools loaded");
 // VESICLE POOLS — SPATIAL OWNERSHIP (NOT MOTION)
 // =====================================================
 //
-// ✔ Reserve pool bounds
-// ✔ Loaded pool bounds
+// ✔ Reserve pool bounds (deep cytosol)
+// ✔ Loaded pool bounds (pre-fusion staging)
 // ✔ Vesicle spawning
 // ✔ Pool confinement
-// ✔ Loaded travel → loaded
+// ✔ Loaded_travel → loaded transition
 //
 // ✘ No Brownian motion
-// ✘ No collision handling
+// ✘ No collisions
 // ✘ No fusion logic
 //
 // =====================================================
 
 
 // -----------------------------------------------------
-// POOL RECTANGLES (PRESYNAPTIC LOCAL SPACE)
+// DERIVED POOL GEOMETRY (AUTHORITATIVE)
 // -----------------------------------------------------
 
-const RESERVE_POOL = {
-  xMin: -120,
-  xMax: -40,
-  yMin: -36,
-  yMax:  36
-};
+let _reservePool = null;
+let _loadedPool  = null;
 
-const LOADED_POOL = {
-  xMin: -40,
-  xMax: window.SYNAPSE_VESICLE_STOP_X, // ONLY allowed plane
-  yMin: -26,
-  yMax:  26
-};
+
+// -----------------------------------------------------
+// RESERVE POOL — DEEP CYTOSOL
+// -----------------------------------------------------
+function getReservePoolRect() {
+
+  if (_reservePool) return _reservePool;
+
+  const cy     = window.SYNAPSE_TERMINAL_CENTER_Y;
+  const R      = window.SYNAPSE_TERMINAL_RADIUS;
+  const stopX  = window.SYNAPSE_VESICLE_STOP_X;
+  const back   = window.SYNAPSE_BACK_OFFSET_X;
+
+  const WIDTH  = 75;
+  const HEIGHT = R * 0.8;
+
+  const xMin = stopX + back;
+  const xMax = xMin + WIDTH;
+
+  _reservePool = {
+    xMin,
+    xMax,
+    yMin: cy - HEIGHT,
+    yMax: cy + HEIGHT
+  };
+
+  return _reservePool;
+}
+
+
+// -----------------------------------------------------
+// LOADED POOL — PRE-FUSION STAGING ZONE
+// -----------------------------------------------------
+function getLoadedPoolRect() {
+
+  if (_loadedPool) return _loadedPool;
+
+  const reserve = getReservePoolRect();
+
+  const WIDTH_SCALE  = 0.75;
+  const HEIGHT_SCALE = 0.85;
+
+  const width  = (reserve.xMax - reserve.xMin) * WIDTH_SCALE;
+  const height = (reserve.yMax - reserve.yMin) * HEIGHT_SCALE;
+
+  const xMax = reserve.xMin;
+  const xMin = xMax - width;
+
+  const yMid = (reserve.yMin + reserve.yMax) * 0.5;
+
+  _loadedPool = {
+    xMin,
+    xMax,
+    yMin: yMid - height * 0.5,
+    yMax: yMid + height * 0.5
+  };
+
+  return _loadedPool;
+}
 
 
 // -----------------------------------------------------
 // UTIL
 // -----------------------------------------------------
-
 function clamp(v, min, max) {
   return Math.max(min, Math.min(max, v));
 }
 
 
 // -----------------------------------------------------
-// 🔑 AUTHORITATIVE VESICLE CREATION
+// 🔑 AUTHORITATIVE VESICLE CREATION (RESERVE ONLY)
 // -----------------------------------------------------
 window.requestNewEmptyVesicle = function () {
 
+  const vesicles = window.synapseVesicles;
+  if (!Array.isArray(vesicles)) return;
+  if (vesicles.length >= window.SYNAPSE_MAX_VESICLES) return;
+
   const r = window.SYNAPSE_VESICLE_RADIUS;
+  const pool = getReservePoolRect();
 
-  const x = random(
-    RESERVE_POOL.xMin + r,
-    RESERVE_POOL.xMax - r
-  );
+  vesicles.push({
+    x: random(pool.xMin + r, pool.xMax - r),
+    y: random(pool.yMin + r, pool.yMax - r),
 
-  const y = random(
-    RESERVE_POOL.yMin + r,
-    RESERVE_POOL.yMax - r
-  );
+    vx: random(-0.01, 0.01),
+    vy: random(-0.004, 0.004),
 
-  window.synapseVesicles.push({
-    // ------------------------------
-    // POSITION (CRITICAL)
-    // ------------------------------
-    x,
-    y,
-
-    // ------------------------------
-    // VELOCITY
-    // ------------------------------
-    vx: random(-0.05, 0.05),
-    vy: random(-0.04, 0.04),
-
-    // ------------------------------
-    // GEOMETRY
-    // ------------------------------
     radius: r,
 
-    // ------------------------------
-    // STATE
-    // ------------------------------
     state: "EMPTY",
-
     primedH: false,
     primedATP: false,
     nts: [],
 
-    // ------------------------------
-    // OWNERSHIP FLAGS
-    // ------------------------------
     releaseBias: false,
     recycleBias: false
   });
@@ -99,33 +126,65 @@ window.requestNewEmptyVesicle = function () {
 
 
 // -----------------------------------------------------
-// POOL CONFINEMENT
+// LOADED ZONE ATTRACTION (DOMAIN OWNERSHIP)
 // -----------------------------------------------------
-function applyPoolConstraints(v) {
+function applyLoadedAttraction(v) {
 
-  const pool =
-    v.state === "LOADED" ||
-    v.state === "LOADED_TRAVEL"
-      ? LOADED_POOL
-      : RESERVE_POOL;
+  const r = getLoadedPoolRect();
+  const Rv = v.radius;
 
-  const oldX = v.x;
-  const oldY = v.y;
+  const tx = (r.xMin + r.xMax) * 0.5;
+  const ty = (r.yMin + r.yMax) * 0.5;
 
-  v.x = clamp(v.x, pool.xMin + v.radius, pool.xMax - v.radius);
-  v.y = clamp(v.y, pool.yMin + v.radius, pool.yMax - v.radius);
+  const dx = tx - v.x;
+  const dy = ty - v.y;
 
-  if (v.x !== oldX) v.vx *= 0.3;
-  if (v.y !== oldY) v.vy *= 0.3;
+  v.vx += dx * 0.004;
+  v.vy += dy * 0.004;
+
+  v.vx *= 0.77;
+  v.vy *= 0.77;
+
+  v.x += v.vx;
+  v.y += v.vy;
+
+  // Promote ONLY when fully inside
+  if (
+    v.x - Rv >= r.xMin &&
+    v.x + Rv <= r.xMax &&
+    v.y - Rv >= r.yMin &&
+    v.y + Rv <= r.yMax
+  ) {
+    v.state = "LOADED";
+    v.vx *= 0.3;
+    v.vy *= 0.3;
+  }
 }
 
 
 // -----------------------------------------------------
-// STATE TRANSITIONS
+// RECT CONFINEMENT (RADIUS-AWARE)
 // -----------------------------------------------------
-function updatePoolState(v) {
-  if (v.state === "LOADED_TRAVEL") {
-    v.state = "LOADED";
+function confineToRect(v, r) {
+
+  const Rv = v.radius;
+
+  if (v.x - Rv < r.xMin) {
+    v.x = r.xMin + Rv;
+    v.vx = Math.abs(v.vx) * 0.25;
+  }
+  else if (v.x + Rv > r.xMax) {
+    v.x = r.xMax - Rv;
+    v.vx = -Math.abs(v.vx) * 0.25;
+  }
+
+  if (v.y - Rv < r.yMin) {
+    v.y = r.yMin + Rv;
+    v.vy = Math.abs(v.vy) * 0.18;
+  }
+  else if (v.y + Rv > r.yMax) {
+    v.y = r.yMax - Rv;
+    v.vy = -Math.abs(v.vy) * 0.18;
   }
 }
 
@@ -136,13 +195,29 @@ function updatePoolState(v) {
 function updateVesiclePools() {
 
   const vesicles = window.synapseVesicles || [];
+  const reserve  = getReservePoolRect();
+  const loaded   = getLoadedPoolRect();
 
   for (const v of vesicles) {
 
+    // Pool is blind during release
     if (v.releaseBias) continue;
 
-    applyPoolConstraints(v);
-    updatePoolState(v);
+    if (v.state === "LOADED_TRAVEL") {
+      applyLoadedAttraction(v);
+    }
+    else if (v.state === "LOADED") {
+      // Allow membrane-side contact (no clamp on stop plane)
+      confineToRect(v, {
+        xMin: loaded.xMin,
+        xMax: Infinity,
+        yMin: loaded.yMin,
+        yMax: loaded.yMax
+      });
+    }
+    else {
+      confineToRect(v, reserve);
+    }
   }
 }
 
