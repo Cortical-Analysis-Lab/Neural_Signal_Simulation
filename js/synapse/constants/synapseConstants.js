@@ -8,6 +8,7 @@ console.log("🧠 synapseConstants loaded");
 // ⚠️ Coordinates are PRESYNAPTIC LOCAL SPACE
 // ⚠️ drawTNeuronShape() is the geometric truth
 // ⚠️ ONE physics plane — no duplicates
+//
 // =====================================================
 
 
@@ -44,6 +45,15 @@ window.SYNAPSE_MEMBRANE_X = 0;
 // ✔ Endocytosis buds originate here
 //
 window.SYNAPSE_VESICLE_STOP_X = 16;
+
+
+// -----------------------------------------------------
+// 🔁 BACKWARD-COMPATIBILITY ALIASES (CRITICAL)
+// -----------------------------------------------------
+// These prevent silent failures in older subsystems
+//
+window.SYNAPSE_DOCK_X         = window.SYNAPSE_VESICLE_STOP_X;
+window.SYNAPSE_FUSION_PLANE_X = window.SYNAPSE_VESICLE_STOP_X;
 
 
 // =====================================================
@@ -107,7 +117,10 @@ window.SYNAPSE_NT_PACK_RATE = 0.35;
 // =====================================================
 // DEBUG VISUALIZATION (READ-ONLY)
 // =====================================================
-
+//
+// Toggle at runtime:
+//   SHOW_SYNAPSE_DEBUG = true;
+//
 window.SHOW_SYNAPSE_DEBUG = false;
 
 window.drawSynapseConstantDebug = function () {
@@ -134,7 +147,7 @@ window.drawSynapseConstantDebug = function () {
     window.SYNAPSE_TERMINAL_CENTER_Y
   );
 
-  // VESICLE STOP / FUSION PLANE (THE ONLY ONE)
+  // VESICLE STOP / FUSION PLANE (ONLY REAL ONE)
   fill(40, 160, 255, 220);
   rect(
     window.SYNAPSE_VESICLE_STOP_X - 1,
@@ -149,7 +162,7 @@ window.drawSynapseConstantDebug = function () {
     -12
   );
 
-  // MEMBRANE REFERENCE (VISUAL)
+  // MEMBRANE REFERENCE (VISUAL ONLY)
   fill(0, 90, 200, 160);
   circle(
     window.SYNAPSE_MEMBRANE_X,
