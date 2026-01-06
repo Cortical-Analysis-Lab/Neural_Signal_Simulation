@@ -22,11 +22,11 @@ console.log("🧭 vesiclePools loaded");
 // -----------------------------------------------------
 
 // Distance between LOADED pool and docking / fusion plane
-const MEMBRANE_GAP_FACTOR = 0.6; // × vesicle radius
+const MEMBRANE_GAP_FACTOR = 5; // × vesicle radius
 
 // Loaded pool geometry
 const LOADED_POOL_WIDTH_FACTOR  = 3.0;  // × vesicle radius
-const LOADED_POOL_HEIGHT_FACTOR = 1.4;  // × terminal radius
+const LOADED_POOL_HEIGHT_FACTOR = 2;  // × terminal radius
 
 // Reserve pool geometry
 const RESERVE_POOL_WIDTH  = 75;
