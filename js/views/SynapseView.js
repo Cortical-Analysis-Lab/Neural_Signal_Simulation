@@ -127,13 +127,6 @@ function drawSynapseView() {
   // ---------------------------------------------------
   // AUTHORITATIVE UPDATE ORDER (CRITICAL)
   // ---------------------------------------------------
-  //
-  // 1) Chemistry & priming
-  // 2) Pool motion (Brownian + collisions)
-  // 3) Pool confinement / staging
-  // 4) Release ownership & fusion
-  // 5) Recycling
-  //
   updateVesicleLoading?.();
   updateVesicleMotion?.();
   updateVesiclePools?.();
@@ -182,6 +175,15 @@ function drawSynapseView() {
     const path = calibratePath(PRESYNAPTIC_AP_PATH);
     updateTerminalAP(path);
   }
+
+  // ---------------------------------------------------
+  // 🔍 DEBUG: AUTHORITATIVE GEOMETRY OVERLAY
+  // ---------------------------------------------------
+  //
+  // Drawn in the SAME coordinate space as vesicles,
+  // pools, docking, fusion, and endocytosis.
+  //
+  drawSynapseConstantDebug?.();
 
   // ---------------------------------------------------
   // DRAW ORDER
