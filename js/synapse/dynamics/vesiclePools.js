@@ -26,11 +26,15 @@ const MEMBRANE_GAP_FACTOR = -5; // × vesicle radius
 
 // Loaded pool geometry
 const LOADED_POOL_WIDTH_FACTOR  = 3.0;  // × vesicle radius
-const LOADED_POOL_HEIGHT_FACTOR = 2;  // × terminal radius
+const LOADED_POOL_HEIGHT_FACTOR = 2.0;  // × terminal radius
 
 // Reserve pool geometry
-const RESERVE_POOL_WIDTH  = 75;
+const RESERVE_POOL_WIDTH = 75;
 const RESERVE_POOL_HEIGHT_FACTOR = 0.9;
+
+// Velocity damping when confined (prevents stacking)
+const LOADED_DAMPING  = 0.35;
+const RESERVE_DAMPING = 0.65;
 
 
 // -----------------------------------------------------
@@ -53,7 +57,10 @@ function getLoadedCacheKey() {
   return [
     window.SYNAPSE_VESICLE_STOP_X,
     window.SYNAPSE_VESICLE_RADIUS,
-    window.SYNAPSE_TERMINAL_RADIUS
+    window.SYNAPSE_TERMINAL_RADIUS,
+    MEMBRANE_GAP_FACTOR,
+    LOADED_POOL_WIDTH_FACTOR,
+    LOADED_POOL_HEIGHT_FACTOR
   ].join("|");
 }
 
@@ -89,25 +96,24 @@ function getReservePoolRect() {
 
 
 // -----------------------------------------------------
-// LOADED POOL — PRE-FUSION STAGING (BIOLOGICALLY CORRECT)
+// LOADED POOL — PRE-FUSION STAGING (BIOLOGICAL)
 // -----------------------------------------------------
 function getLoadedPoolRect() {
 
   const key = getLoadedCacheKey();
   if (_loadedPool && _loadedCacheKey === key) return _loadedPool;
 
-  const cy     = window.SYNAPSE_TERMINAL_CENTER_Y;
-  const stopX  = window.SYNAPSE_VESICLE_STOP_X;
-  const rVes   = window.SYNAPSE_VESICLE_RADIUS;
-  const rTerm  = window.SYNAPSE_TERMINAL_RADIUS;
+  const cy    = window.SYNAPSE_TERMINAL_CENTER_Y;
+  const stopX = window.SYNAPSE_VESICLE_STOP_X;
+  const rVes  = window.SYNAPSE_VESICLE_RADIUS;
+  const rTerm = window.SYNAPSE_TERMINAL_RADIUS;
 
-  // 🔑 Biological separation from docking plane
   const MEMBRANE_GAP = rVes * MEMBRANE_GAP_FACTOR;
 
   const WIDTH  = rVes * LOADED_POOL_WIDTH_FACTOR;
   const HEIGHT = rTerm * LOADED_POOL_HEIGHT_FACTOR;
 
-  const xMax = stopX - MEMBRANE_GAP;  // ❗ NOT the docking plane
+  const xMax = stopX - MEMBRANE_GAP;
   const xMin = xMax - WIDTH;
 
   _loadedCacheKey = key;
@@ -174,7 +180,6 @@ function applyLoadedAttraction(v) {
   v.x += v.vx;
   v.y += v.vy;
 
-  // Promote only when fully inside
   if (
     v.x - Rv >= r.xMin &&
     v.x + Rv <= r.xMax &&
@@ -182,28 +187,37 @@ function applyLoadedAttraction(v) {
     v.y + Rv <= r.yMax
   ) {
     v.state = "LOADED";
-    v.vx = 0;
-    v.vy = 0;
   }
 }
 
 
 // -----------------------------------------------------
-// RECT CONFINEMENT (HARD FOR LOADED)
+// RECT CONFINEMENT (HARD FOR LOADED, NON-DEGENERATE)
 // -----------------------------------------------------
-function confineToRect(v, r) {
+function confineToRect(v, r, damping) {
 
   const Rv = v.radius;
 
-  if (v.x - Rv < r.xMin) v.x = r.xMin + Rv;
-  if (v.x + Rv > r.xMax) v.x = r.xMax - Rv;
+  if (v.x - Rv < r.xMin) {
+    v.x = r.xMin + Rv;
+    v.vx *= -0.3;
+  }
+  else if (v.x + Rv > r.xMax) {
+    v.x = r.xMax - Rv;
+    v.vx *= -0.3;
+  }
 
-  if (v.y - Rv < r.yMin) v.y = r.yMin + Rv;
-  if (v.y + Rv > r.yMax) v.y = r.yMax - Rv;
+  if (v.y - Rv < r.yMin) {
+    v.y = r.yMin + Rv;
+    v.vy *= -0.3;
+  }
+  else if (v.y + Rv > r.yMax) {
+    v.y = r.yMax - Rv;
+    v.vy *= -0.3;
+  }
 
-  // Kill residual motion
-  v.vx = 0;
-  v.vy = 0;
+  v.vx *= damping;
+  v.vy *= damping;
 }
 
 
@@ -220,17 +234,16 @@ function updateVesiclePools() {
 
   for (const v of vesicles) {
 
-    // Pool blind during release
     if (v.releaseBias === true) continue;
 
     if (v.state === "LOADED_TRAVEL") {
       applyLoadedAttraction(v);
     }
     else if (v.state === "LOADED") {
-      confineToRect(v, loaded);
+      confineToRect(v, loaded, LOADED_DAMPING);
     }
     else {
-      confineToRect(v, reserve);
+      confineToRect(v, reserve, RESERVE_DAMPING);
     }
   }
 }
@@ -254,7 +267,6 @@ window.drawVesiclePoolDebug = function () {
   noFill();
   strokeWeight(2);
 
-  // 🔵 LOADED POOL
   stroke(80, 160, 255, 200);
   rect(
     loaded.xMin,
@@ -263,7 +275,6 @@ window.drawVesiclePoolDebug = function () {
     loaded.yMax - loaded.yMin
   );
 
-  // 🟧 RESERVE POOL
   stroke(255, 160, 80, 200);
   rect(
     reserve.xMin,
@@ -272,7 +283,6 @@ window.drawVesiclePoolDebug = function () {
     reserve.yMax - reserve.yMin
   );
 
-  // 🔴 DOCK / FUSION PLANE (REFERENCE)
   stroke(255, 80, 80, 180);
   line(
     window.SYNAPSE_VESICLE_STOP_X,
