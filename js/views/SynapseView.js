@@ -77,11 +77,9 @@ function ensureVesiclePoolInitialized() {
         : null;
 
     for (let i = 0; i < window.synapseVesicles.length && i < preloadCount; i++) {
+
       const v = window.synapseVesicles[i];
 
-      // ------------------------------
-      // FORCE POSITION INTO LOADED ZONE
-      // ------------------------------
       if (loadedPool) {
         v.x  = random(loadedPool.xMin + r, loadedPool.xMax - r);
         v.y  = random(loadedPool.yMin + r, loadedPool.yMax - r);
@@ -89,14 +87,10 @@ function ensureVesiclePoolInitialized() {
         v.vy = 0;
       }
 
-      // ------------------------------
-      // STATE + CHEMISTRY ONLY
-      // ------------------------------
       v.state     = "LOADED";
       v.primedH   = true;
       v.primedATP = true;
 
-      // Pre-fill neurotransmitters
       v.nts = [];
       for (let n = 0; n < window.SYNAPSE_NT_TARGET; n++) {
         v.nts.push({
