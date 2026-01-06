@@ -191,6 +191,19 @@ function drawSynapseView() {
   drawPreSynapse?.();
   drawSynapseVesicleGeometry?.();
   drawSynapticBurst?.();
+  
+  // ===================================================
+  // 🔍 FINAL DEBUG OVERLAY (ON TOP OF EVERYTHING)
+  // ===================================================
+  if (window.SHOW_SYNAPSE_DEBUG) {
+    push();
+    blendMode(BLEND);          // force visibility
+    stroke(0, 0, 0, 160);
+    strokeWeight(2);
+    drawSynapseConstantDebug?.();
+    pop();
+  }
+
 
   window.__synapseFlipped = false;
   pop();
