@@ -36,22 +36,9 @@ window.SYNAPSE_TERMINAL_RADIUS = window.SYNAPSE_BAR_HALF - 10;
 window.SYNAPSE_MEMBRANE_X = 0;
 
 // 🔴 AUTHORITATIVE PHYSICS PLANE
-//
-// ✔ Vesicles stop here
-// ✔ Docking occurs here
-// ✔ Fusion initiates here
-// ✔ Pool confinement stops here
-// ✔ NT release originates here
-// ✔ Endocytosis buds originate here
-//
 window.SYNAPSE_VESICLE_STOP_X = 16;
 
-
-// -----------------------------------------------------
-// 🔁 BACKWARD-COMPATIBILITY ALIASES (CRITICAL)
-// -----------------------------------------------------
-// These prevent silent failures in older subsystems
-//
+// Backward-compatibility aliases
 window.SYNAPSE_DOCK_X         = window.SYNAPSE_VESICLE_STOP_X;
 window.SYNAPSE_FUSION_PLANE_X = window.SYNAPSE_VESICLE_STOP_X;
 
@@ -60,7 +47,6 @@ window.SYNAPSE_FUSION_PLANE_X = window.SYNAPSE_VESICLE_STOP_X;
 // BACK-POOL (CYTOSOLIC RESERVE)
 // =====================================================
 
-// Offset INTO cytosol from vesicle stop plane
 window.SYNAPSE_BACK_OFFSET_X = 60;
 
 
@@ -85,7 +71,6 @@ window.SYNAPSE_MAX_VESICLES = 7;
 
 window.SYNAPSE_LOAD_MIN_OFFSET = 10;
 window.SYNAPSE_LOAD_MAX_OFFSET = 46;
-
 window.SYNAPSE_VESICLE_Y_SPREAD = 0.9;
 
 
@@ -117,10 +102,7 @@ window.SYNAPSE_NT_PACK_RATE = 0.35;
 // =====================================================
 // DEBUG VISUALIZATION (READ-ONLY)
 // =====================================================
-//
-// Toggle at runtime:
-//   SHOW_SYNAPSE_DEBUG = true;
-//
+
 window.SHOW_SYNAPSE_DEBUG = false;
 
 window.drawSynapseConstantDebug = function () {
@@ -128,68 +110,94 @@ window.drawSynapseConstantDebug = function () {
   if (!window.SHOW_SYNAPSE_DEBUG) return;
 
   push();
-  noStroke();
-  blendMode(ADD);
   textSize(10);
   textAlign(LEFT, CENTER);
+  strokeWeight(1.5);
+  noFill();
 
+  const cx = window.SYNAPSE_TERMINAL_CENTER_X;
+  const cy = window.SYNAPSE_TERMINAL_CENTER_Y;
+
+  // ---------------------------------------------------
+  // TERMINAL CYTOSOL RADIUS
+  // ---------------------------------------------------
+  stroke(80, 120, 255, 120);
+  circle(cx, cy, window.SYNAPSE_TERMINAL_RADIUS * 2);
+  noStroke();
+  fill(120, 160, 255);
+  text(
+    `TERMINAL_RADIUS = ${window.SYNAPSE_TERMINAL_RADIUS}`,
+    cx + 8,
+    cy - window.SYNAPSE_TERMINAL_RADIUS + 12
+  );
+
+  // ---------------------------------------------------
   // TERMINAL CENTER
+  // ---------------------------------------------------
   fill(80, 160, 255, 220);
-  circle(
-    window.SYNAPSE_TERMINAL_CENTER_X,
-    window.SYNAPSE_TERMINAL_CENTER_Y,
-    26
-  );
-  fill(120, 190, 255);
-  text(
-    "CENTER",
-    window.SYNAPSE_TERMINAL_CENTER_X + 16,
-    window.SYNAPSE_TERMINAL_CENTER_Y
-  );
+  circle(cx, cy, 12);
+  text("CENTER (0,0 local Y)", cx + 10, cy);
 
-  // VESICLE STOP / FUSION PLANE (ONLY REAL ONE)
-  fill(40, 160, 255, 220);
-  rect(
-    window.SYNAPSE_VESICLE_STOP_X - 1,
-    -240,
-    2,
-    480
+  // ---------------------------------------------------
+  // AUTHORITATIVE VESICLE STOP / FUSION PLANE
+  // ---------------------------------------------------
+  stroke(255, 80, 80, 200);
+  line(
+    window.SYNAPSE_VESICLE_STOP_X,
+    -260,
+    window.SYNAPSE_VESICLE_STOP_X,
+    260
   );
-  fill(120, 200, 255);
+  noStroke();
+  fill(255, 120, 120);
   text(
-    "VESICLE_STOP_X",
+    `VESICLE_STOP_X = ${window.SYNAPSE_VESICLE_STOP_X}`,
     window.SYNAPSE_VESICLE_STOP_X + 6,
-    -12
+    -220
   );
 
-  // MEMBRANE REFERENCE (VISUAL ONLY)
-  fill(0, 90, 200, 160);
-  circle(
+  // ---------------------------------------------------
+  // VISUAL MEMBRANE REFERENCE (NOT PHYSICS)
+  // ---------------------------------------------------
+  stroke(0, 140, 220, 160);
+  line(
     window.SYNAPSE_MEMBRANE_X,
-    window.SYNAPSE_TERMINAL_CENTER_Y,
-    16
+    -200,
+    window.SYNAPSE_MEMBRANE_X,
+    200
   );
-  fill(80, 140, 220);
+  noStroke();
+  fill(80, 160, 220);
   text(
-    "MEMBRANE_X (visual)",
-    window.SYNAPSE_MEMBRANE_X + 10,
-    window.SYNAPSE_TERMINAL_CENTER_Y + 26
+    "MEMBRANE_X (visual only)",
+    window.SYNAPSE_MEMBRANE_X + 6,
+    180
   );
 
-  // BACK-POOL REFERENCE
-  fill(100, 200, 255, 180);
-  circle(
-    window.SYNAPSE_VESICLE_STOP_X + window.SYNAPSE_BACK_OFFSET_X,
-    window.SYNAPSE_TERMINAL_CENTER_Y,
-    20
-  );
-  fill(140, 220, 255);
+  // ---------------------------------------------------
+  // BACK-POOL / RESERVE OFFSET ANCHOR
+  // ---------------------------------------------------
+  const backX = window.SYNAPSE_VESICLE_STOP_X + window.SYNAPSE_BACK_OFFSET_X;
+  stroke(120, 220, 255, 180);
+  line(backX, -120, backX, 120);
+  noStroke();
+  fill(160, 230, 255);
   text(
-    "BACK_OFFSET",
-    window.SYNAPSE_VESICLE_STOP_X + window.SYNAPSE_BACK_OFFSET_X + 12,
-    window.SYNAPSE_TERMINAL_CENTER_Y
+    `BACK_OFFSET_X = ${window.SYNAPSE_BACK_OFFSET_X}`,
+    backX + 6,
+    100
   );
 
-  blendMode(BLEND);
+  // ---------------------------------------------------
+  // AXES ORIENTATION
+  // ---------------------------------------------------
+  stroke(200, 200, 200, 160);
+  line(cx, cy, cx + 40, cy);      // +X
+  line(cx, cy, cx, cy - 40);      // -Y
+  noStroke();
+  fill(220);
+  text("+X (toward membrane)", cx + 42, cy);
+  text("-Y", cx, cy - 44);
+
   pop();
 };
