@@ -168,27 +168,37 @@ function applyLoadedAttraction(v) {
   const r  = getLoadedPoolRect();
   const Rv = v.radius;
 
-  const tx = (r.xMin + r.xMax) * 0.5;
-  const ty = (r.yMin + r.yMax) * 0.5;
+  // ------------------------------------
+  // TARGET: membrane-adjacent PLANE
+  // ------------------------------------
+  const targetX = r.xMax - Rv; // plane, not center
 
-  v.vx += (tx - v.x) * 0.004;
-  v.vy += (ty - v.y) * 0.004;
+  // Drive ONLY along X (normal to membrane)
+  v.vx += (targetX - v.x) * 0.006;
 
-  v.vx *= 0.78;
-  v.vy *= 0.78;
+  // Mild damping
+  v.vx *= 0.75;
+  v.vy *= 0.95; // preserve lateral freedom
 
+  // Integrate
   v.x += v.vx;
   v.y += v.vy;
 
+  // ------------------------------------
+  // Promote when vesicle reaches plane band
+  // ------------------------------------
   if (
+    v.x + Rv >= r.xMax &&
     v.x - Rv >= r.xMin &&
-    v.x + Rv <= r.xMax &&
     v.y - Rv >= r.yMin &&
     v.y + Rv <= r.yMax
   ) {
     v.state = "LOADED";
+    v.vx = 0;           // no penetration
+    v.vy *= 0.6;        // retain spread
   }
 }
+
 
 
 // -----------------------------------------------------
