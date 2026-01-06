@@ -125,7 +125,7 @@ function drawSynapseView() {
   ensureVesiclePoolInitialized();
 
   // ---------------------------------------------------
-  // AUTHORITATIVE UPDATE ORDER (CRITICAL)
+  // AUTHORITATIVE UPDATE ORDER
   // ---------------------------------------------------
   updateVesicleLoading?.();
   updateVesicleMotion?.();
@@ -153,20 +153,14 @@ function drawSynapseView() {
 
 
   // ===================================================
-  // PRESYNAPTIC SIDE (LOCAL PHYSICS SPACE)
+  // PRESYNAPTIC SIDE — GEOMETRY (FLIPPED)
   // ===================================================
   push();
   translate(PRE_X, NEURON_Y);
 
-  // ---------------------------------------------------
-  // VISUAL-ONLY FLIP (GEOMETRY ONLY)
-  // ---------------------------------------------------
   window.__synapseFlipped = true;
   scale(-1, 1);
 
-  // ---------------------------------------------------
-  // TERMINAL AP UPDATE (MUST RUN BEFORE DRAW)
-  // ---------------------------------------------------
   if (
     typeof calibratePath === "function" &&
     typeof updateTerminalAP === "function" &&
@@ -176,37 +170,25 @@ function drawSynapseView() {
     updateTerminalAP(path);
   }
 
-  // ---------------------------------------------------
-  // 🔍 DEBUG: AUTHORITATIVE GEOMETRY OVERLAY
-  // ---------------------------------------------------
-  //
-  // Drawn in the SAME coordinate space as vesicles,
-  // pools, docking, fusion, and endocytosis.
-  //
-  drawSynapseConstantDebug?.();
-
-  // ---------------------------------------------------
-  // DRAW ORDER
-  // ---------------------------------------------------
   drawPreSynapse?.();
   drawSynapseVesicleGeometry?.();
   drawSynapticBurst?.();
-  
-  // ===================================================
-  // 🔍 FINAL DEBUG OVERLAY (ON TOP OF EVERYTHING)
-  // ===================================================
-  if (window.SHOW_SYNAPSE_DEBUG) {
-    push();
-    blendMode(BLEND);          // force visibility
-    stroke(0, 0, 0, 160);
-    strokeWeight(2);
-    drawSynapseConstantDebug?.();
-    pop();
-  }
-
 
   window.__synapseFlipped = false;
   pop();
+
+
+  // ===================================================
+  // 🔍 SYNAPSE CONSTANTS DEBUG (UNFLIPPED, TRUE SPACE)
+  // ===================================================
+  if (window.SHOW_SYNAPSE_DEBUG) {
+
+    push();
+    translate(PRE_X, NEURON_Y);   // same anchor as presynapse
+    blendMode(BLEND);             // ensure visibility
+    drawSynapseConstantDebug?.(); // authoritative debug
+    pop();
+  }
 
 
   // ===================================================
