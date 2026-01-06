@@ -54,7 +54,7 @@ function getReservePoolRect() {
   const back  = window.SYNAPSE_BACK_OFFSET_X;
 
   const WIDTH  = 75;
-  const HEIGHT = R * 0.75;
+  const HEIGHT = R * 0.9;
 
   const xMin = stopX + back;
   const xMax = xMin + WIDTH;
@@ -83,10 +83,10 @@ function getLoadedPoolRect() {
   const stopX = window.SYNAPSE_VESICLE_STOP_X;
 
   // 🔑 Gap between staging zone and docking plane
-  const MEMBRANE_GAP = 10;
+  const MEMBRANE_GAP = 0;
 
   const WIDTH  = 48;
-  const HEIGHT = window.SYNAPSE_TERMINAL_RADIUS * 0.42;
+  const HEIGHT = window.SYNAPSE_TERMINAL_RADIUS * 0.7;
 
   const xMax = stopX - MEMBRANE_GAP;
   const xMin = xMax - WIDTH;
@@ -232,3 +232,51 @@ function updateVesiclePools() {
 }
 
 window.updateVesiclePools = updateVesiclePools;
+
+
+// =====================================================
+// DEBUG VISUALIZATION — POOL ZONES (READ-ONLY)
+// =====================================================
+
+window.SHOW_VESICLE_POOL_DEBUG = false;
+
+window.drawVesiclePoolDebug = function () {
+
+  if (!window.SHOW_VESICLE_POOL_DEBUG) return;
+
+  const reserve = getReservePoolRect();
+  const loaded  = getLoadedPoolRect();
+
+  push();
+  noFill();
+  strokeWeight(2);
+
+  // 🔵 LOADED POOL (pre-fusion staging)
+  stroke(80, 160, 255, 200);
+  rect(
+    loaded.xMin,
+    loaded.yMin,
+    loaded.xMax - loaded.xMin,
+    loaded.yMax - loaded.yMin
+  );
+
+  // 🟧 RESERVE POOL (deep cytosol)
+  stroke(255, 160, 80, 200);
+  rect(
+    reserve.xMin,
+    reserve.yMin,
+    reserve.xMax - reserve.xMin,
+    reserve.yMax - reserve.yMin
+  );
+
+  // 🔴 DOCK / FUSION PLANE (REFERENCE ONLY)
+  stroke(255, 80, 80, 180);
+  line(
+    window.SYNAPSE_VESICLE_STOP_X,
+    -300,
+    window.SYNAPSE_VESICLE_STOP_X,
+    300
+  );
+
+  pop();
+};
