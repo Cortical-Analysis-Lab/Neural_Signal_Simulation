@@ -8,8 +8,9 @@ console.log("⚡ vesicleRelease loaded");
 //   • 1 vesicle → fusion sequence
 //   • nearby LOADED vesicles → LOADED_TRAVEL
 //
-// ✔ Release-owned motion only
+// ✔ Release-owned motion only (X-normal to membrane)
 // ✔ Pool-safe via releaseBias
+// ✔ Plane-based docking (NO point attraction)
 // ✔ Hard membrane lock during merge
 // ✔ Delayed cleanup (no pop)
 //
@@ -29,21 +30,26 @@ const RECYCLE_HOLD_FRAMES = 40;
 
 
 // -----------------------------------------------------
-// CONTINUOUS APPROACH FORCE (RELEASE-OWNED)
+// CONTINUOUS APPROACH FORCE (RELEASE-OWNED, X ONLY)
 // -----------------------------------------------------
 function applyFusionApproachForce(v) {
 
+  // Docking plane is authoritative
   const targetX = window.SYNAPSE_VESICLE_STOP_X;
+
+  // Drive ONLY along membrane normal
   const dx = targetX - v.x;
 
   const pull = constrain(dx * 0.025, -0.35, 0.35);
 
   v.vx += pull;
 
+  // Integrate X only
   v.x += v.vx;
 
+  // Damping
   v.vx *= 0.90;
-  v.vy *= 0.85;
+  v.vy *= 0.95; // preserve lateral distribution
 }
 
 
@@ -55,7 +61,7 @@ function triggerVesicleReleaseFromAP() {
   const vesicles = window.synapseVesicles || [];
 
   // ---------------------------------------------------
-  // CANDIDATES — fully loaded & pool-owned
+  // CANDIDATES — fully LOADED, pool-owned
   // ---------------------------------------------------
   const loaded = vesicles.filter(v =>
     v.state === "LOADED" &&
@@ -65,12 +71,12 @@ function triggerVesicleReleaseFromAP() {
   if (loaded.length === 0) return;
 
   // ---------------------------------------------------
-  // SORT BY DISTANCE TO MEMBRANE
+  // SORT BY DISTANCE TO MEMBRANE PLANE
   // ---------------------------------------------------
   loaded.sort((a, b) => a.x - b.x);
 
   // ===================================================
-  // 1️⃣ PRIMARY VESICLE — ENTER RELEASE
+  // 1️⃣ PRIMARY VESICLE — ENTER RELEASE OWNERSHIP
   // ===================================================
   const primary = loaded[0];
 
@@ -89,6 +95,11 @@ function triggerVesicleReleaseFromAP() {
   primary.recycleHold   = Infinity;
   primary.__mergeLocked = false;
 
+  // ---------------------------------------------------
+  // Lock lateral position at entry (biological realism)
+  // ---------------------------------------------------
+  primary.vy *= 0.3;
+
   // ===================================================
   // 2️⃣ SECONDARY VESICLES — MOBILIZATION
   // ===================================================
@@ -101,9 +112,11 @@ function triggerVesicleReleaseFromAP() {
 
     v.state = "LOADED_TRAVEL";
 
-    // Gentle forward Ca²⁺-like bias
+    // Gentle Ca²⁺-like bias toward membrane plane
     v.vx *= 0.4;
     v.vx -= random(0.08, 0.14);
+
+    // Preserve band spread
     v.vy += random(-0.02, 0.02);
   }
 }
@@ -121,7 +134,7 @@ function updateVesicleRelease() {
     if (v.releaseBias !== true) continue;
 
     // =================================================
-    // DOCKING
+    // DOCKING — PLANE APPROACH
     // =================================================
     if (v.state === "DOCKING") {
 
@@ -158,6 +171,7 @@ function updateVesicleRelease() {
       v.timer++;
       v.poreRadius = lerp(0, 6, v.timer / PORE_TIME);
 
+      // Initial release burst
       if (v.timer === Math.floor(PORE_TIME * 0.35)) {
         window.dispatchEvent(new CustomEvent("synapticRelease", {
           detail: {
@@ -200,7 +214,7 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // MEMBRANE MERGE (HARD LOCK)
+    // MEMBRANE MERGE — HARD LOCK TO PLANE
     // =================================================
     else if (v.state === "MEMBRANE_MERGE") {
 
@@ -216,6 +230,7 @@ function updateVesicleRelease() {
       v.flatten    = t;
       v.mergePhase = 1 - t;
 
+      // Absolute membrane lock
       v.x = window.SYNAPSE_VESICLE_STOP_X;
 
       if (t >= 1) {
@@ -230,7 +245,7 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // RECYCLED
+    // RECYCLED — WAIT FOR POOL RECOVERY
     // =================================================
     else if (v.state === "RECYCLED") {
       v.recycleHold--;
@@ -238,7 +253,7 @@ function updateVesicleRelease() {
   }
 
   // ---------------------------------------------------
-  // SAFE CLEANUP
+  // SAFE CLEANUP (NO POP)
   // ---------------------------------------------------
   for (let i = vesicles.length - 1; i >= 0; i--) {
     const v = vesicles[i];
