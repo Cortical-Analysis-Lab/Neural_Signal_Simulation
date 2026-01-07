@@ -18,9 +18,10 @@ console.log("♻️ vesicleRecycling loaded");
 // ✘ No loading or priming
 // ✘ No fusion logic
 //
-// HARD RULE:
+// HARD RULES:
 // • Newly born vesicles MUST start as EMPTY
 // • Pool system owns them immediately
+// • Recycling NEVER creates releaseBias vesicles
 //
 // =====================================================
 
@@ -30,9 +31,10 @@ console.log("♻️ vesicleRecycling loaded");
 // -----------------------------------------------------
 window.endocytosisSeeds = window.endocytosisSeeds || [];
 
+
 // -----------------------------------------------------
 // SPAWN ENDOCYTOSIS SEED
-// (CALLED BY vesicleRelease.js)
+// (CALLED BY vesicleRelease.js — WORLD SPACE)
 // -----------------------------------------------------
 window.spawnEndocytosisSeed = function (x, y) {
 
@@ -61,10 +63,10 @@ function updateVesicleRecycling() {
   const V_RADIUS = window.SYNAPSE_VESICLE_RADIUS;
 
   // 🔴 SINGLE AUTHORITATIVE PHYSICS PLANE
-  const fusionX = window.SYNAPSE_FUSION_PLANE_X;
+  const fusionX = window.SYNAPSE_VESICLE_STOP_X;
 
   if (!Number.isFinite(fusionX)) {
-    console.error("❌ SYNAPSE_FUSION_PLANE_X is invalid");
+    console.error("❌ SYNAPSE_VESICLE_STOP_X is invalid");
     return;
   }
 
@@ -116,7 +118,7 @@ function updateVesicleRecycling() {
 
           vesicles.push({
 
-            // Born just inside cytosol (pool corridor)
+            // Born just inside cytosol (right of fusion plane)
             x: fusionX + V_RADIUS + random(6, 12),
             y: e.y + random(-4, 4),
 
@@ -127,7 +129,7 @@ function updateVesicleRecycling() {
             radius: V_RADIUS,
 
             // ------------------------------------------
-            // CANONICAL STATE (MATCHES LOADING SYSTEM)
+            // CANONICAL STATE
             // ------------------------------------------
             state: "EMPTY",
 
@@ -136,7 +138,7 @@ function updateVesicleRecycling() {
             nts:       [],
 
             // ------------------------------------------
-            // OWNERSHIP FLAGS
+            // OWNERSHIP FLAGS (POOL ONLY)
             // ------------------------------------------
             owner:       "POOL",
             ownerFrame:  frameCount,
@@ -146,7 +148,7 @@ function updateVesicleRecycling() {
           });
         }
 
-        // Remove seed
+        // Remove seed — NO RESPAWN
         seeds.splice(i, 1);
       }
     }
