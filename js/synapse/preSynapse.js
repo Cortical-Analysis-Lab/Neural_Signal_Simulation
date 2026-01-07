@@ -1,10 +1,59 @@
-console.log("🟡 preSynapse loaded");
+console.log("🟡 preSynapse loaded — GEOMETRY AUTHORITY");
 
 // =====================================================
-// PRESYNAPTIC AP CONDUCTION PATH
-// (LOCAL GEOMETRY SPACE — VIEW ONLY)
+// PRESYNAPTIC GEOMETRY — SINGLE SOURCE OF TRUTH
+// =====================================================
+//
+// ✔ Owns ALL presynaptic spatial constants
+// ✔ Owns vesicle stop / fusion plane
+// ✔ Owns terminal radius + center
+// ✔ Owns AP path calibration (visual only)
+//
+// ❌ No pools
+// ❌ No motion
+// ❌ No chemistry
+//
 // =====================================================
 
+
+// =====================================================
+// 🔴 AUTHORITATIVE PRESYNAPTIC CONSTANTS
+// =====================================================
+// (This fully replaces synapseConstants.js)
+// =====================================================
+
+// Terminal geometry
+window.SYNAPSE_TERMINAL_CENTER_Y = 0;
+window.SYNAPSE_TERMINAL_RADIUS   = 130;
+
+// Vesicle fusion / stop plane (membrane-adjacent)
+window.SYNAPSE_VESICLE_STOP_X    = 16;
+
+// Reserve pool offset (deep cytosol direction)
+window.SYNAPSE_BACK_OFFSET_X     = 60;
+
+// Vesicle visuals
+window.SYNAPSE_VESICLE_RADIUS   = 10;
+window.SYNAPSE_VESICLE_STROKE   = 4;
+
+// Pool capacity
+window.SYNAPSE_MAX_VESICLES     = 7;
+
+// Debug master toggle (KEEP TRUE while troubleshooting)
+window.SHOW_SYNAPSE_DEBUG = true;
+
+
+// =====================================================
+// CONSOLE VERIFICATION (DO NOT REMOVE YET)
+// =====================================================
+console.log("▶ SYNAPSE_VESICLE_STOP_X =", window.SYNAPSE_VESICLE_STOP_X);
+console.log("▶ SYNAPSE_VESICLE_RADIUS =", window.SYNAPSE_VESICLE_RADIUS);
+console.log("▶ SYNAPSE_TERMINAL_RADIUS =", window.SYNAPSE_TERMINAL_RADIUS);
+
+
+// =====================================================
+// PRESYNAPTIC AP CONDUCTION PATH (LOCAL GEOMETRY)
+// =====================================================
 window.PRESYNAPTIC_AP_PATH = [
   { x: 153.1, y:  4.7 },
   { x: 170.5, y: -5.1 },
@@ -21,31 +70,17 @@ window.PRESYNAPTIC_AP_PATH = [
   { x: 153.5, y:  28.7 }
 ];
 
-// =====================================================
-// 🔧 PRESYNAPTIC VIEW CALIBRATION (GLOBAL & SHARED)
-// =====================================================
-//
-// These are authoritative for *presynaptic geometry*.
-// They are NOT biological physics.
-// They are NOT synapseConstants.
-// =====================================================
 
-// Visual scale of AP path
+// =====================================================
+// 🔧 AP PATH CALIBRATION (VIEW ONLY)
+// =====================================================
 window.AP_PATH_SCALE = 6.0;
 
-// Final world-space offset (aligns presynapse to astrocyte edge)
 window.AP_PATH_OFFSET = {
-  x: -120,   // ← shift LEFT toward astrocyte
+  x: -120,
   y: 0
 };
 
-// Debug plane height (visual only)
-window.DEBUG_PLANE_HEIGHT = 140;
-
-
-// =====================================================
-// PATH CALIBRATION (NO FLIPS, WORLD-SPACE CONSISTENT)
-// =====================================================
 window.calibratePath = function (path) {
   return path.map(p => ({
     x: (p.x * window.AP_PATH_SCALE) + window.AP_PATH_OFFSET.x,
@@ -55,44 +90,28 @@ window.calibratePath = function (path) {
 
 
 // =====================================================
-// PRESYNAPTIC NEURON
-// GEOMETRY + VISUALS ONLY
+// PRESYNAPTIC DRAW (GEOMETRY ONLY)
 // =====================================================
 window.drawPreSynapse = function () {
 
   push();
 
-  // ---------------------------------------------------
-  // 🔁 CANONICAL ORIENTATION FIX
-  // ---------------------------------------------------
-  //
-  // Presynaptic neuron faces RIGHT by default.
-  // Rotate 180° so it faces the synaptic cleft.
-  //
+  // Presynaptic neuron faces cleft
   rotate(PI);
 
-  // ---------------------------------------------------
-  // DRAW GEOMETRY (GROUND TRUTH)
-  // ---------------------------------------------------
+  // Ground-truth geometry
   drawTNeuronShape(1);
 
-  // ---------------------------------------------------
-  // DEBUG: TRUE PHYSICS PLANE (READ-ONLY)
-  // ---------------------------------------------------
+  // Debug: vesicle stop / fusion plane
   drawVesicleStopPlaneDebug();
 
-  // ---------------------------------------------------
-  // VESICLES (DRAW ONLY — NO OWNERSHIP)
-  // ---------------------------------------------------
+  // Vesicles (draw-only)
   if (typeof drawSynapseVesicleGeometry === "function") {
     drawSynapseVesicleGeometry();
   }
 
-  // ---------------------------------------------------
-  // TERMINAL AP (VISUAL ONLY)
-  // ---------------------------------------------------
+  // Terminal AP
   const calibratedPath = calibratePath(window.PRESYNAPTIC_AP_PATH);
-
   if (typeof drawTerminalAP === "function") {
     drawTerminalAP(calibratedPath);
   }
@@ -107,13 +126,15 @@ window.drawPreSynapse = function () {
 
 
 // =====================================================
-// 🔵 DEBUG: TRUE VESICLE STOP PLANE
+// 🔵 DEBUG: TRUE VESICLE STOP / FUSION PLANE
 // =====================================================
+window.DEBUG_PLANE_HEIGHT = 140;
+
 window.drawVesicleStopPlaneDebug = function () {
 
   if (!window.SHOW_SYNAPSE_DEBUG) return;
 
-  const x = window.SYNAPSE_VESICLE_STOP_X ?? 0;
+  const x = window.SYNAPSE_VESICLE_STOP_X;
   const H = window.DEBUG_PLANE_HEIGHT;
 
   push();
