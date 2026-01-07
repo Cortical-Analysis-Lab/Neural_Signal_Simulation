@@ -35,20 +35,13 @@ const NEURON_Y = 40;
 // =====================================================
 // USER INPUT — SYNAPSE LOCAL ONLY
 // =====================================================
-//
-// ✔ Detects AP trigger intent
-// ✔ Emits NO physics
-// ✔ Emits NO geometry
-//
 let spaceWasDown = false;
 
 function handleSynapseInput() {
   const spaceDown = keyIsDown(32); // spacebar
-
   if (spaceDown && !spaceWasDown) {
-    triggerTerminalAP?.(); // AP owns vesicle recruitment
+    triggerTerminalAP?.();
   }
-
   spaceWasDown = spaceDown;
 }
 
@@ -56,13 +49,6 @@ function handleSynapseInput() {
 // =====================================================
 // ENSURE VESICLE POOL EXISTS (ONE-TIME)
 // =====================================================
-//
-// ✔ Pool creation only
-// ✔ Explicit RRP seeding
-// ✔ No motion
-// ✔ No confinement
-// ✔ No release
-//
 function ensureVesiclePoolInitialized() {
 
   if (!Array.isArray(window.synapseVesicles)) {
@@ -71,23 +57,18 @@ function ensureVesiclePoolInitialized() {
 
   const maxVes = window.SYNAPSE_MAX_VESICLES ?? 7;
 
-  // ---------------------------------------------------
-  // SPAWN EMPTY VESICLES (RESERVE POOL)
-  // ---------------------------------------------------
+  // Spawn reserve vesicles
   if (window.synapseVesicles.length === 0) {
     for (let i = 0; i < maxVes; i++) {
       window.requestNewEmptyVesicle?.();
     }
   }
 
-  // ---------------------------------------------------
-  // SEED READILY RELEASABLE POOL (LOADED ZONE)
-  // ---------------------------------------------------
+  // Seed RRP
   if (!window.__RRPSeeded) {
 
     const preloadCount = 3;
     const r = window.SYNAPSE_VESICLE_RADIUS;
-
     const loadedPool =
       typeof getLoadedPoolRect === "function"
         ? getLoadedPoolRect()
@@ -108,7 +89,6 @@ function ensureVesiclePoolInitialized() {
       v.primedH   = true;
       v.primedATP = true;
 
-      // Pre-fill neurotransmitters (visual only)
       v.nts = [];
       for (let n = 0; n < window.SYNAPSE_NT_TARGET; n++) {
         v.nts.push({
@@ -142,8 +122,8 @@ function drawSynapseView() {
   ensureVesiclePoolInitialized();
 
   // ---------------------------------------------------
-  // AUTHORITATIVE UPDATE ORDER (CRITICAL)
-// ---------------------------------------------------
+  // AUTHORITATIVE UPDATE ORDER
+  // ---------------------------------------------------
   updateVesicleLoading?.();
   updateVesicleMotion?.();
   updateVesiclePools?.();
@@ -153,7 +133,7 @@ function drawSynapseView() {
 
 
   // ===================================================
-  // SCREEN ANCHOR (VIEW SPACE)
+  // SCREEN ANCHOR
   // ===================================================
   translate(
     width  * SYNAPSE_SCREEN_X,
@@ -166,7 +146,6 @@ function drawSynapseView() {
   strokeJoin(ROUND);
   strokeCap(ROUND);
 
-  // Astrocyte backdrop (visual only)
   drawAstrocyteSynapse?.();
 
 
@@ -176,15 +155,10 @@ function drawSynapseView() {
   push();
   translate(PRE_X, NEURON_Y);
 
-  // ---------------------------------------------------
-  // VISUAL-ONLY FLIP (GEOMETRY ONLY)
-  // ---------------------------------------------------
   window.__synapseFlipped = true;
   scale(-1, 1);
 
-  // ---------------------------------------------------
-  // TERMINAL AP UPDATE (PATH-DEPENDENT)
-  // ---------------------------------------------------
+  // Terminal AP
   if (
     typeof calibratePath === "function" &&
     typeof updateTerminalAP === "function" &&
@@ -194,19 +168,21 @@ function drawSynapseView() {
     updateTerminalAP(path);
   }
 
-  // ---------------------------------------------------
-  // 🔍 DEBUG: SYNAPSE CONSTANTS (AUTHORITATIVE)
-  // ---------------------------------------------------
-  if (window.SHOW_SYNAPSE_DEBUG) {
-    drawSynapseConstantDebug?.();
-  }
-
-  // ---------------------------------------------------
-  // DRAW ORDER
-  // ---------------------------------------------------
+  // --- draw geometry first ---
   drawPreSynapse?.();
   drawSynapseVesicleGeometry?.();
   drawSynapticBurst?.();
+
+  // ---------------------------------------------------
+  // 🔍 DEBUG — DRAW LAST (ON TOP OF EVERYTHING)
+  // ---------------------------------------------------
+  if (window.SHOW_SYNAPSE_DEBUG) {
+    push();
+    blendMode(BLEND);
+    strokeWeight(2);
+    drawSynapseConstantDebug?.();
+    pop();
+  }
 
   window.__synapseFlipped = false;
   pop();
