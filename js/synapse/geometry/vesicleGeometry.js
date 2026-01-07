@@ -63,9 +63,7 @@ function boundaryOrange(alpha = 200) {
 function drawSynapseVesicleGeometry() {
   push();
 
-  // Optional debug overlays (behind vesicles)
   drawVesiclePoolsDebug();
-
   drawVesicleMembranes();
   drawVesicleContents();
   drawPrimingParticles();
@@ -75,7 +73,7 @@ function drawSynapseVesicleGeometry() {
 
 
 // -----------------------------------------------------
-// DEBUG: VESICLE POOLS (READ-ONLY, DERIVED)
+// DEBUG: VESICLE POOLS (READ-ONLY)
 // -----------------------------------------------------
 function drawVesiclePoolsDebug() {
 
@@ -90,36 +88,19 @@ function drawVesiclePoolsDebug() {
   rectMode(CORNERS);
   noStroke();
 
-  // Reserve pool
   fill(poolBlue(45));
-  rect(
-    reserve.xMin, reserve.yMin,
-    reserve.xMax, reserve.yMax
-  );
+  rect(reserve.xMin, reserve.yMin, reserve.xMax, reserve.yMax);
 
-  // Loaded pool
   fill(poolBlueDark(65));
-  rect(
-    loaded.xMin, loaded.yMin,
-    loaded.xMax, loaded.yMax
-  );
+  rect(loaded.xMin, loaded.yMin, loaded.xMax, loaded.yMax);
 
-  // Boundaries
   noFill();
   stroke(boundaryOrange(220));
   strokeWeight(2);
 
-  rect(
-    reserve.xMin, reserve.yMin,
-    reserve.xMax, reserve.yMax
-  );
+  rect(reserve.xMin, reserve.yMin, reserve.xMax, reserve.yMax);
+  rect(loaded.xMin, loaded.yMin, loaded.xMax, loaded.yMax);
 
-  rect(
-    loaded.xMin, loaded.yMin,
-    loaded.xMax, loaded.yMax
-  );
-
-  // Fusion plane
   stroke(255, 80, 80, 200);
   line(
     window.SYNAPSE_VESICLE_STOP_X,
@@ -134,7 +115,6 @@ function drawVesiclePoolsDebug() {
 
 // -----------------------------------------------------
 // VESICLE MEMBRANES
-// SEALED → OMEGA → COLLAPSE
 // -----------------------------------------------------
 function drawVesicleMembranes() {
 
@@ -157,14 +137,11 @@ function drawVesicleMembranes() {
 
     fill(vesicleFillColor(fillAlpha));
 
-    // -------- MEMBRANE MERGE --------
-    if (
-      v.state === "MEMBRANE_MERGE" &&
-      Number.isFinite(v.flatten)
-    ) {
+    if (v.state === "MEMBRANE_MERGE" && Number.isFinite(v.flatten)) {
+
       const t = constrain(v.flatten, 0, 1);
       const currentR = r * (1 - t);
-      const cx       = dockX - currentR;
+      const cx = dockX - currentR;
 
       const openFrac  = t < 0.5 ? 0 : map(t, 0.5, 1, 0, 1);
       const openAngle = openFrac * PI;
@@ -172,19 +149,10 @@ function drawVesicleMembranes() {
       strokeWeight(lerp(strokeW, strokeW * 0.35, t));
       noFill();
 
-      arc(
-        cx,
-        v.y,
-        currentR * 2,
-        currentR * 2,
-        -openAngle,
-        openAngle
-      );
-
+      arc(cx, v.y, currentR * 2, currentR * 2, -openAngle, openAngle);
       continue;
     }
 
-    // -------- SEALED --------
     strokeWeight(strokeW);
     ellipse(v.x, v.y, r * 2);
   }
@@ -210,16 +178,12 @@ function drawVesicleContents() {
     if (!Array.isArray(v.nts) || v.nts.length === 0) continue;
     if (!Number.isFinite(v.x) || !Number.isFinite(v.y)) continue;
 
-    // During merge, spill toward cleft
-    if (
-      v.state === "MEMBRANE_MERGE" &&
-      Number.isFinite(v.flatten)
-    ) {
+    if (v.state === "MEMBRANE_MERGE" && Number.isFinite(v.flatten)) {
+
       const t = constrain(v.flatten, 0, 1);
       const currentR = r * (1 - t);
-      const cx       = dockX - currentR;
-
-      const spill = t < 0.5 ? 0 : map(t, 0.5, 1.0, 0, 18);
+      const cx = dockX - currentR;
+      const spill = t < 0.5 ? 0 : map(t, 0.5, 1, 0, 18);
 
       for (const p of v.nts) {
         circle(cx + p.x + spill, v.y + p.y, 3);
@@ -227,7 +191,6 @@ function drawVesicleContents() {
       continue;
     }
 
-    // Normal sealed vesicle
     for (const p of v.nts) {
       circle(v.x + p.x, v.y + p.y, 3);
     }
@@ -236,11 +199,16 @@ function drawVesicleContents() {
 
 
 // -----------------------------------------------------
-// PRIMING PARTICLES (H⁺, ATP, ADP + Pi)
+// PRIMING PARTICLES (STRICTLY PRESYNAPTIC)
 // -----------------------------------------------------
 function drawPrimingParticles() {
 
-  const vesicles = window.synapseVesicles || [];
+  // ONLY vesicles actively loading may show chemistry
+  const ALLOWED_STATES = new Set([
+    "PRIMING",
+    "PRIMED",
+    "LOADING"
+  ]);
 
   // --- H⁺ ---
   fill(protonColor());
@@ -248,7 +216,10 @@ function drawPrimingParticles() {
   textAlign(CENTER, CENTER);
 
   for (const h of window.synapseH || []) {
-    if (!vesicles.includes(h.target)) continue;
+
+    const v = h.target;
+    if (!v || !ALLOWED_STATES.has(v.state)) continue;
+
     text("H⁺", h.x, h.y);
   }
 
@@ -257,14 +228,12 @@ function drawPrimingParticles() {
   textAlign(CENTER, CENTER);
 
   for (const a of window.synapseATP || []) {
-    if (!vesicles.includes(a.target)) continue;
+
+    const v = a.target;
+    if (!v || !ALLOWED_STATES.has(v.state)) continue;
 
     fill(atpColor(a.alpha ?? 255));
-    text(
-      a.state === "ATP" ? "ATP" : "ADP + Pi",
-      a.x,
-      a.y
-    );
+    text(a.state === "ATP" ? "ATP" : "ADP + Pi", a.x, a.y);
   }
 }
 
@@ -286,6 +255,6 @@ window.drawVesicleCenters = function () {
 
 
 // -----------------------------------------------------
-// GLOBAL EXPORT
+// EXPORT
 // -----------------------------------------------------
 window.drawSynapseVesicleGeometry = drawSynapseVesicleGeometry;
