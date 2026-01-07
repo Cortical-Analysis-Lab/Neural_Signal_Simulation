@@ -1,205 +1,230 @@
-console.log("🧠 synapseConstants loaded");
+console.log("🔬 SynapseView loaded");
 
 // =====================================================
-// SHARED SYNAPSE CONSTANTS (AUTHORITATIVE)
-// =====================================================
-//
-// ⚠️ All vesicle physics must reference THIS FILE
-// ⚠️ Coordinates are PRESYNAPTIC LOCAL SPACE
-// ⚠️ drawPreSynapse() geometry is the ground truth
-// ⚠️ ONE physics plane — no duplicates
-//
-// =====================================================
-
-
-// =====================================================
-// TERMINAL CAPSULE GEOMETRY
-// =====================================================
-
-// From neuronShape.js (DO NOT GUESS THESE)
-window.SYNAPSE_BAR_THICK = 340;
-window.SYNAPSE_BAR_HALF  = 140;
-
-// Capsule center (presynaptic local space)
-window.SYNAPSE_TERMINAL_CENTER_X = window.SYNAPSE_BAR_THICK / 2;
-window.SYNAPSE_TERMINAL_CENTER_Y = 0;
-
-// Inner capsule radius (usable cytosol)
-window.SYNAPSE_TERMINAL_RADIUS = window.SYNAPSE_BAR_HALF - 10;
-
-
-// =====================================================
-// MEMBRANE & DOCKING GEOMETRY (SINGLE AUTHORITY)
-// =====================================================
-
-// Curved membrane reference (VISUAL ONLY)
-window.SYNAPSE_MEMBRANE_X = 0;
-
-// 🔴 AUTHORITATIVE PHYSICS PLANE
-//
-// ✔ Vesicles stop here
-// ✔ Docking occurs here
-// ✔ Fusion initiates here
-// ✔ Pool confinement stops here
-// ✔ NT release originates here
-// ✔ Endocytosis buds originate here
-//
-window.SYNAPSE_VESICLE_STOP_X = 16;
-
-
-// -----------------------------------------------------
-// 🔁 BACKWARD-COMPATIBILITY ALIASES (CRITICAL)
-// -----------------------------------------------------
-window.SYNAPSE_DOCK_X         = window.SYNAPSE_VESICLE_STOP_X;
-window.SYNAPSE_FUSION_PLANE_X = window.SYNAPSE_VESICLE_STOP_X;
-
-
-// =====================================================
-// BACK-POOL (CYTOSOLIC RESERVE)
-// =====================================================
-
-// Offset INTO cytosol from vesicle stop plane
-window.SYNAPSE_BACK_OFFSET_X = 60;
-
-
-// =====================================================
-// VESICLE VISUALS
-// =====================================================
-
-window.SYNAPSE_VESICLE_RADIUS = 10;
-window.SYNAPSE_VESICLE_STROKE = 4;
-
-
-// =====================================================
-// VESICLE POOL SIZE
-// =====================================================
-
-window.SYNAPSE_MAX_VESICLES = 7;
-
-
-// =====================================================
-// VESICLE LOADING PHYSIOLOGY
-// =====================================================
-
-window.SYNAPSE_LOAD_MIN_OFFSET = 10;
-window.SYNAPSE_LOAD_MAX_OFFSET = 46;
-
-window.SYNAPSE_VESICLE_Y_SPREAD = 0.9;
-
-
-// =====================================================
-// PROTON (H⁺) PRIMING
-// =====================================================
-
-window.SYNAPSE_H_SPEED = 0.42;
-window.SYNAPSE_H_LIFE  = 260;
-
-
-// =====================================================
-// ATP PRIMING + HYDROLYSIS
-// =====================================================
-
-window.SYNAPSE_ATP_SPEED  = 0.38;
-window.SYNAPSE_ATP_LIFE   = 320;
-window.SYNAPSE_ATP_BOUNCE = 0.45;
-
-
-// =====================================================
-// NEUROTRANSMITTER LOADING
-// =====================================================
-
-window.SYNAPSE_NT_TARGET    = 18;
-window.SYNAPSE_NT_PACK_RATE = 0.35;
-
-
-// =====================================================
-// DEBUG TOGGLE (GLOBAL)
-// =====================================================
-
-window.SHOW_SYNAPSE_DEBUG = true; // 🔴 TURN ON TO SEE OVERLAYS
-
-
-// =====================================================
-// DEBUG DRAW — PRESYNAPTIC LOCAL SPACE ONLY
+// SYNAPSE VIEW — ORCHESTRATOR (VIEW-ONLY)
 // =====================================================
 //
-// ⚠️ NO resetMatrix()
-// ⚠️ NO screen-space transforms
-// ⚠️ Assumes caller already translated to presynapse
+// RESPONSIBILITIES:
+// ✔ Screen → synapse coordinate transforms
+// ✔ Input intent (AP trigger only)
+// ✔ Authoritative update order
+// ✔ Debug overlays (from synapseConstants.js)
 //
-window.drawSynapseConstantDebug = function () {
+// NON-RESPONSIBILITIES:
+// ✘ No physics definitions
+// ✘ No geometry truth
+// ✘ No vesicle logic
+// ✘ No chemistry logic
+//
+// =====================================================
+
+
+// =====================================================
+// SCREEN-SPACE LAYOUT (VIEW-ONLY)
+// =====================================================
+const SYNAPSE_SCALE    = 1.45;
+const SYNAPSE_SCREEN_X = 0.5;
+const SYNAPSE_SCREEN_Y = 0.55;
+
+// Presynaptic / postsynaptic anchor offsets
+const PRE_X    = -180;
+const POST_X   = +180;
+const NEURON_Y = 40;
+
+
+// =====================================================
+// USER INPUT — SYNAPSE LOCAL ONLY
+// =====================================================
+//
+// ✔ Detects AP trigger intent
+// ✔ Emits NO physics
+// ✔ Emits NO geometry
+//
+let spaceWasDown = false;
+
+function handleSynapseInput() {
+  const spaceDown = keyIsDown(32); // spacebar
+
+  if (spaceDown && !spaceWasDown) {
+    triggerTerminalAP?.(); // AP owns vesicle recruitment
+  }
+
+  spaceWasDown = spaceDown;
+}
+
+
+// =====================================================
+// ENSURE VESICLE POOL EXISTS (ONE-TIME)
+// =====================================================
+//
+// ✔ Pool creation only
+// ✔ Explicit RRP seeding
+// ✔ No motion
+// ✔ No confinement
+// ✔ No release
+//
+function ensureVesiclePoolInitialized() {
+
+  if (!Array.isArray(window.synapseVesicles)) {
+    window.synapseVesicles = [];
+  }
+
+  const maxVes = window.SYNAPSE_MAX_VESICLES ?? 7;
+
+  // ---------------------------------------------------
+  // SPAWN EMPTY VESICLES (RESERVE POOL)
+  // ---------------------------------------------------
+  if (window.synapseVesicles.length === 0) {
+    for (let i = 0; i < maxVes; i++) {
+      window.requestNewEmptyVesicle?.();
+    }
+  }
+
+  // ---------------------------------------------------
+  // SEED READILY RELEASABLE POOL (LOADED ZONE)
+  // ---------------------------------------------------
+  if (!window.__RRPSeeded) {
+
+    const preloadCount = 3;
+    const r = window.SYNAPSE_VESICLE_RADIUS;
+
+    const loadedPool =
+      typeof getLoadedPoolRect === "function"
+        ? getLoadedPoolRect()
+        : null;
+
+    for (let i = 0; i < window.synapseVesicles.length && i < preloadCount; i++) {
+
+      const v = window.synapseVesicles[i];
+
+      if (loadedPool) {
+        v.x  = random(loadedPool.xMin + r, loadedPool.xMax - r);
+        v.y  = random(loadedPool.yMin + r, loadedPool.yMax - r);
+        v.vx = 0;
+        v.vy = 0;
+      }
+
+      v.state     = "LOADED";
+      v.primedH   = true;
+      v.primedATP = true;
+
+      // Pre-fill neurotransmitters (visual only)
+      v.nts = [];
+      for (let n = 0; n < window.SYNAPSE_NT_TARGET; n++) {
+        v.nts.push({
+          x: random(-3, 3),
+          y: random(-3, 3),
+          vx: random(-0.12, 0.12),
+          vy: random(-0.12, 0.12)
+        });
+      }
+    }
+
+    window.__RRPSeeded = true;
+  }
+}
+
+
+// =====================================================
+// MAIN VIEW ENTRY — CALLED FROM main.js
+// =====================================================
+function drawSynapseView() {
 
   push();
-  blendMode(BLEND);
-  strokeWeight(2);
-  textSize(12);
-  textAlign(LEFT, CENTER);
-  noFill();
+  resetMatrix();
 
-  // --------------------------------------------------
-  // TERMINAL CENTER
-  // --------------------------------------------------
-  stroke(0, 255, 255);
-  fill(0, 255, 255);
-  circle(
-    window.SYNAPSE_TERMINAL_CENTER_X,
-    window.SYNAPSE_TERMINAL_CENTER_Y,
-    14
-  );
-  text(
-    "CENTER",
-    window.SYNAPSE_TERMINAL_CENTER_X + 10,
-    window.SYNAPSE_TERMINAL_CENTER_Y
-  );
+  // ---------------------------------------------------
+  // INPUT + ELECTRICAL PHYSIOLOGY
+  // ---------------------------------------------------
+  handleSynapseInput();
+  updateVoltageWave?.();
 
-  // --------------------------------------------------
-  // VESICLE STOP / DOCK / FUSION PLANE
-  // --------------------------------------------------
-  stroke(255, 0, 0);
-  line(
-    window.SYNAPSE_VESICLE_STOP_X,
-    -300,
-    window.SYNAPSE_VESICLE_STOP_X,
-    300
-  );
-  fill(255, 0, 0);
-  text(
-    "VESICLE_STOP_X",
-    window.SYNAPSE_VESICLE_STOP_X + 6,
-    -20
+  ensureVesiclePoolInitialized();
+
+  // ---------------------------------------------------
+  // AUTHORITATIVE UPDATE ORDER (CRITICAL)
+// ---------------------------------------------------
+  updateVesicleLoading?.();
+  updateVesicleMotion?.();
+  updateVesiclePools?.();
+  updateVesicleRelease?.();
+  updateVesicleRecycling?.();
+  updateSynapticBurst?.();
+
+
+  // ===================================================
+  // SCREEN ANCHOR (VIEW SPACE)
+  // ===================================================
+  translate(
+    width  * SYNAPSE_SCREEN_X,
+    height * SYNAPSE_SCREEN_Y
   );
 
-  // --------------------------------------------------
-  // MEMBRANE VISUAL REFERENCE (NOT PHYSICS)
-  // --------------------------------------------------
-  stroke(0, 150, 255);
-  fill(0, 150, 255);
-  circle(
-    window.SYNAPSE_MEMBRANE_X,
-    window.SYNAPSE_TERMINAL_CENTER_Y,
-    10
-  );
-  text(
-    "MEMBRANE_X (visual)",
-    window.SYNAPSE_MEMBRANE_X + 10,
-    window.SYNAPSE_TERMINAL_CENTER_Y + 18
-  );
+  scale(SYNAPSE_SCALE);
 
-  // --------------------------------------------------
-  // BACK OFFSET (RESERVE POOL ORIGIN)
-  // --------------------------------------------------
-  stroke(255, 200, 0);
-  fill(255, 200, 0);
-  circle(
-    window.SYNAPSE_VESICLE_STOP_X + window.SYNAPSE_BACK_OFFSET_X,
-    window.SYNAPSE_TERMINAL_CENTER_Y,
-    10
-  );
-  text(
-    "BACK_OFFSET",
-    window.SYNAPSE_VESICLE_STOP_X + window.SYNAPSE_BACK_OFFSET_X + 10,
-    window.SYNAPSE_TERMINAL_CENTER_Y
-  );
+  strokeWeight(6);
+  strokeJoin(ROUND);
+  strokeCap(ROUND);
+
+  // Astrocyte backdrop (visual only)
+  drawAstrocyteSynapse?.();
+
+
+  // ===================================================
+  // PRESYNAPTIC SIDE — LOCAL PHYSICS SPACE
+  // ===================================================
+  push();
+  translate(PRE_X, NEURON_Y);
+
+  // ---------------------------------------------------
+  // VISUAL-ONLY FLIP (GEOMETRY ONLY)
+  // ---------------------------------------------------
+  window.__synapseFlipped = true;
+  scale(-1, 1);
+
+  // ---------------------------------------------------
+  // TERMINAL AP UPDATE (PATH-DEPENDENT)
+  // ---------------------------------------------------
+  if (
+    typeof calibratePath === "function" &&
+    typeof updateTerminalAP === "function" &&
+    typeof PRESYNAPTIC_AP_PATH !== "undefined"
+  ) {
+    const path = calibratePath(PRESYNAPTIC_AP_PATH);
+    updateTerminalAP(path);
+  }
+
+  // ---------------------------------------------------
+  // 🔍 DEBUG: SYNAPSE CONSTANTS (AUTHORITATIVE)
+  // ---------------------------------------------------
+  if (window.SHOW_SYNAPSE_DEBUG) {
+    drawSynapseConstantDebug?.();
+  }
+
+  // ---------------------------------------------------
+  // DRAW ORDER
+  // ---------------------------------------------------
+  drawPreSynapse?.();
+  drawSynapseVesicleGeometry?.();
+  drawSynapticBurst?.();
+
+  window.__synapseFlipped = false;
+  pop();
+
+
+  // ===================================================
+  // POSTSYNAPTIC SIDE
+  // ===================================================
+  push();
+  translate(POST_X, NEURON_Y);
+  drawPostSynapse?.();
+  pop();
 
   pop();
-};
+}
+
+
+// =====================================================
+// GLOBAL EXPORT
+// =====================================================
+window.drawSynapseView = drawSynapseView;
