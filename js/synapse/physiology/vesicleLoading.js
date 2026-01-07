@@ -4,22 +4,16 @@ console.log("🫧 vesicleLoading loaded");
 // SYNAPTIC VESICLE LOADING — CHEMISTRY ONLY
 // =====================================================
 //
-// COORDINATE CONTRACT:
-// • Presynaptic LOCAL space (read-only x/y from vesicle)
-// • No geometry assumptions
-// • No motion authority
-//
 // RESPONSIBILITIES:
 // ✔ H⁺ priming
 // ✔ ATP priming + hydrolysis
 // ✔ NT loading into vesicle lumen
 // ✔ State progression: EMPTY → LOADED_TRAVEL
 //
-// NON-RESPONSIBILITIES:
-// ✘ No spatial confinement
-// ✘ No vesicle motion
-// ✘ No docking / fusion
-// ✘ No recycling
+// HARD RULES:
+// • Chemistry exists ONLY in presynaptic space
+// • Chemistry exists ONLY during loading states
+// • One vesicle loads at a time
 //
 // =====================================================
 
@@ -32,20 +26,20 @@ window.synapseATP = window.synapseATP || [];
 
 
 // -----------------------------------------------------
-// CANONICAL VESICLE STATES (CHEMISTRY-OWNED)
+// CANONICAL VESICLE STATES
 // -----------------------------------------------------
 const VESICLE_STATE = {
   EMPTY:         "EMPTY",
   PRIMING:       "PRIMING",
   PRIMED:        "PRIMED",
   LOADING:       "LOADING",
-  LOADED_TRAVEL: "LOADED_TRAVEL", // ✋ handoff to vesiclePools.js
+  LOADED_TRAVEL: "LOADED_TRAVEL",
   LOADED:        "LOADED"
 };
 
 
 // -----------------------------------------------------
-// CHEMISTRY PARAMETERS (AUTHORITATIVE)
+// CHEMISTRY PARAMETERS
 // -----------------------------------------------------
 const H_SPEED    = window.SYNAPSE_H_SPEED;
 const H_LIFE     = window.SYNAPSE_H_LIFE;
@@ -59,7 +53,7 @@ const NT_RATE    = window.SYNAPSE_NT_PACK_RATE;
 
 
 // -----------------------------------------------------
-// CHEMOTACTIC HOMING (CHEMISTRY SPACE ONLY)
+// CHEMOTACTIC HOMING
 // -----------------------------------------------------
 const CHEMO_HOMING   = 0.06;
 const CHEMO_DAMPING = 0.92;
@@ -68,7 +62,6 @@ const CHEMO_MAX_V   = 1.2;
 
 // -----------------------------------------------------
 // SERIAL LOADING GATE
-// (ONLY ONE ACTIVE CHEMISTRY VESICLE)
 // -----------------------------------------------------
 function hasActiveLoadingVesicle() {
   return window.synapseVesicles?.some(v =>
@@ -80,11 +73,15 @@ function hasActiveLoadingVesicle() {
 
 
 // -----------------------------------------------------
-// SPAWN PRIMING PARTICLES (RADIAL, TARGET-LOCKED)
+// SPAWN PRIMING PARTICLES (ROBUST)
 // -----------------------------------------------------
 function spawnPrimingParticles(v) {
 
-  // H⁺
+  // Prevent duplication
+  if (window.synapseH.some(h => h.target === v)) return;
+  if (window.synapseATP.some(a => a.target === v)) return;
+
+  // --- H⁺ ---
   const a1 = random(TWO_PI);
   window.synapseH.push({
     x: v.x + cos(a1) * 32,
@@ -95,7 +92,7 @@ function spawnPrimingParticles(v) {
     life: H_LIFE
   });
 
-  // ATP
+  // --- ATP ---
   const a2 = random(TWO_PI);
   window.synapseATP.push({
     x: v.x + cos(a2) * 38,
@@ -111,7 +108,7 @@ function spawnPrimingParticles(v) {
 
 
 // -----------------------------------------------------
-// MAIN UPDATE — CHEMISTRY STATE MACHINE ONLY
+// MAIN UPDATE — CHEMISTRY ONLY
 // -----------------------------------------------------
 function updateVesicleLoading() {
 
@@ -122,6 +119,7 @@ function updateVesicleLoading() {
   // BEGIN PRIMING (SERIAL)
   // ---------------------------------------------------
   if (!hasActiveLoadingVesicle()) {
+
     const next = vesicles.find(v => v.state === VESICLE_STATE.EMPTY);
     if (next) {
       next.state     = VESICLE_STATE.PRIMING;
@@ -137,12 +135,22 @@ function updateVesicleLoading() {
   // ---------------------------------------------------
   for (const v of vesicles) {
 
-    // ---- PRIMING COMPLETE
+    // 🔒 Enforce chemistry-only states
     if (
-      v.state === VESICLE_STATE.PRIMING &&
-      v.primedH &&
-      v.primedATP
+      v.state !== VESICLE_STATE.PRIMING &&
+      v.state !== VESICLE_STATE.PRIMED  &&
+      v.state !== VESICLE_STATE.LOADING
     ) {
+      continue;
+    }
+
+    // ---- Ensure priming particles exist
+    if (v.state === VESICLE_STATE.PRIMING) {
+      spawnPrimingParticles(v);
+    }
+
+    // ---- PRIMING COMPLETE
+    if (v.state === VESICLE_STATE.PRIMING && v.primedH && v.primedATP) {
       v.state = VESICLE_STATE.PRIMED;
     }
 
@@ -155,10 +163,7 @@ function updateVesicleLoading() {
     // ---- NT LOADING
     if (v.state === VESICLE_STATE.LOADING) {
 
-      if (
-        v.nts.length < NT_TARGET &&
-        random() < NT_RATE
-      ) {
+      if (v.nts.length < NT_TARGET && random() < NT_RATE) {
         v.nts.push({
           x: random(-3, 3),
           y: random(-3, 3),
@@ -167,25 +172,18 @@ function updateVesicleLoading() {
         });
       }
 
-      // ✔ CHEMISTRY COMPLETE → HANDOFF
       if (v.nts.length >= NT_TARGET) {
         v.state = VESICLE_STATE.LOADED_TRAVEL;
       }
     }
 
-    // -------------------------------------------------
-    // NT MOTION (STRICTLY VESICLE-LOCAL)
-    // -------------------------------------------------
-    if (Array.isArray(v.nts)) {
-      const r = window.SYNAPSE_VESICLE_RADIUS - 3;
-      for (const p of v.nts) {
-        p.x += p.vx;
-        p.y += p.vy;
-
-        if (Math.hypot(p.x, p.y) > r) {
-          p.vx *= -1;
-          p.vy *= -1;
-        }
+    // ---- NT MOTION (VESICLE-LOCAL)
+    for (const p of v.nts || []) {
+      p.x += p.vx;
+      p.y += p.vy;
+      if (Math.hypot(p.x, p.y) > window.SYNAPSE_VESICLE_RADIUS - 3) {
+        p.vx *= -1;
+        p.vy *= -1;
       }
     }
   }
@@ -195,7 +193,7 @@ function updateVesicleLoading() {
 
 
 // -----------------------------------------------------
-// CHEMOTACTIC HOMING (H⁺ + ATP)
+// CHEMOTACTIC HOMING
 // -----------------------------------------------------
 function applyHoming(p, target) {
 
@@ -218,44 +216,55 @@ function applyHoming(p, target) {
 
 
 // -----------------------------------------------------
-// UPDATE PRIMING PARTICLES (H⁺ + ATP)
+// UPDATE PRIMING PARTICLES
 // -----------------------------------------------------
 function updatePrimingParticles() {
 
   const r = window.SYNAPSE_VESICLE_RADIUS;
 
-  // ---------------- H⁺ ----------------
+  // --- H⁺ ---
   for (let i = window.synapseH.length - 1; i >= 0; i--) {
-    const h = window.synapseH[i];
 
-    applyHoming(h, h.target);
+    const h = window.synapseH[i];
+    const v = h.target;
+
+    if (!v || v.state !== VESICLE_STATE.PRIMING) {
+      window.synapseH.splice(i, 1);
+      continue;
+    }
+
+    applyHoming(h, v);
     h.x += h.vx;
     h.y += h.vy;
     h.life--;
 
-    if (dist(h.x, h.y, h.target.x, h.target.y) < r * 0.85) {
-      h.target.primedH = true;
+    if (dist(h.x, h.y, v.x, v.y) < r * 0.85) {
+      v.primedH = true;
       window.synapseH.splice(i, 1);
     } else if (h.life <= 0) {
       window.synapseH.splice(i, 1);
     }
   }
 
-  // ---------------- ATP ----------------
+  // --- ATP → ADP + Pi ---
   for (let i = window.synapseATP.length - 1; i >= 0; i--) {
-    const a = window.synapseATP[i];
 
-    applyHoming(a, a.target);
+    const a = window.synapseATP[i];
+    const v = a.target;
+
+    if (!v || v.state === VESICLE_STATE.LOADED_TRAVEL) {
+      window.synapseATP.splice(i, 1);
+      continue;
+    }
+
+    applyHoming(a, v);
     a.x += a.vx;
     a.y += a.vy;
     a.life--;
 
-    if (
-      a.state === "ATP" &&
-      dist(a.x, a.y, a.target.x, a.target.y) < r
-    ) {
+    if (a.state === "ATP" && dist(a.x, a.y, v.x, v.y) < r) {
       a.state = "ADP";
-      a.target.primedATP = true;
+      v.primedATP = true;
       a.vx *= -ATP_BOUNCE;
       a.vy *= -ATP_BOUNCE;
     } else {
@@ -270,6 +279,6 @@ function updatePrimingParticles() {
 
 
 // -----------------------------------------------------
-// GLOBAL EXPORT
+// EXPORT
 // -----------------------------------------------------
 window.updateVesicleLoading = updateVesicleLoading;
