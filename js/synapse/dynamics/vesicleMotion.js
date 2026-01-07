@@ -1,20 +1,27 @@
 console.log("🫧 vesicleMotion loaded");
 
 // =====================================================
-// VESICLE MOTION — PURE KINEMATICS (POOL ONLY)
+// VESICLE MOTION — PURE KINEMATICS (POOL-OWNED)
 // =====================================================
+//
+// COORDINATE CONTRACT:
+// • Presynaptic LOCAL space
+// • +X → toward membrane
+// • -X → deeper cytosol
+// • NO flips
+// • NO view transforms
 //
 // RESPONSIBILITIES:
 // ✔ Brownian drift (reserve + loaded only)
 // ✔ Velocity damping
 // ✔ Position integration
-// ✔ Vesicle–vesicle soft collisions
+// ✔ Vesicle–vesicle soft collisions (non-docked only)
 //
 // NON-RESPONSIBILITIES:
-// ✘ No spatial constraints
+// ✘ No spatial constraints (handled by vesiclePools.js)
 // ✘ No state transitions
 // ✘ No chemistry
-// ✘ No release or recycling logic
+// ✘ No fusion / recycling
 //
 // HARD RULES:
 // • releaseBias vesicles are UNTOUCHABLE
@@ -24,16 +31,21 @@ console.log("🫧 vesicleMotion loaded");
 
 
 // -----------------------------------------------------
-// TUNING (BIOLOGICALLY CALM)
+// 🔧 TUNING — BIOLOGICALLY CALM
 // -----------------------------------------------------
+
+// Thermal motion (reserve pool)
 const THERMAL_X = 0.012;
 const THERMAL_Y = 0.004;
 
-const THERMAL_LOADED_SCALE = 0.15; // 🔒 docked vesicles barely jitter
+// Loaded vesicles barely jitter
+const THERMAL_LOADED_SCALE = 0.15;
 
+// Drag (anisotropic to preserve lateral spread)
 const DRAG_X = 0.985;
 const DRAG_Y = 0.950;
 
+// Collision impulse strength
 const COLLISION_PUSH_RESERVE = 0.08;
 const COLLISION_PUSH_TRAVEL  = 0.04;
 
@@ -43,10 +55,10 @@ const COLLISION_PUSH_TRAVEL  = 0.04;
 // -----------------------------------------------------
 function applyBrownianMotion(v) {
 
-  // 🚫 No stochastic motion during directed travel
+  // 🚫 No noise during directed staging travel
   if (v.state === "LOADED_TRAVEL") return;
 
-  // 🔒 Docked vesicles: extremely small thermal noise
+  // 🔒 Docked vesicles: extremely low noise
   const scale =
     v.state === "LOADED"
       ? THERMAL_LOADED_SCALE
@@ -78,20 +90,25 @@ function integratePosition(v) {
 // -----------------------------------------------------
 // RESOLVE VESICLE–VESICLE COLLISIONS
 // -----------------------------------------------------
+//
+// • Only for pool-owned vesicles
+// • LOADED vesicles are exempt (they stage, not jostle)
+// • releaseBias vesicles are sacred
+//
 function resolveCollisions(vesicles) {
 
   for (let i = 0; i < vesicles.length; i++) {
     const a = vesicles[i];
 
     if (a.releaseBias === true) continue;
-    if (a.state === "LOADED") continue; // 🔒 docked vesicles do not jostle
+    if (a.state === "LOADED") continue;
     if (a.x == null) continue;
 
     for (let j = i + 1; j < vesicles.length; j++) {
       const b = vesicles[j];
 
       if (b.releaseBias === true) continue;
-      if (b.state === "LOADED") continue; // 🔒 docked vesicles do not jostle
+      if (b.state === "LOADED") continue;
       if (b.x == null) continue;
 
       const dx = b.x - a.x;
@@ -105,12 +122,13 @@ function resolveCollisions(vesicles) {
         const ny = dy / dist;
         const overlap = (minDist - dist) * 0.5;
 
-        // Separate
+        // --- positional separation
         a.x -= nx * overlap;
         a.y -= ny * overlap;
         b.x += nx * overlap;
         b.y += ny * overlap;
 
+        // --- impulse depends on state
         const impulse =
           (a.state === "LOADED_TRAVEL" || b.state === "LOADED_TRAVEL")
             ? COLLISION_PUSH_TRAVEL
@@ -134,17 +152,23 @@ function updateVesicleMotion() {
   const vesicles = window.synapseVesicles;
   if (!Array.isArray(vesicles)) return;
 
-  // --- stochastic motion
+  // ---------------------------------------------------
+  // STOCHASTIC MOTION + DAMPING
+  // ---------------------------------------------------
   for (const v of vesicles) {
     if (v.releaseBias === true) continue;
     applyBrownianMotion(v);
     applyDamping(v);
   }
 
-  // --- collisions (pool-owned only)
+  // ---------------------------------------------------
+  // COLLISIONS (POOL-OWNED ONLY)
+  // ---------------------------------------------------
   resolveCollisions(vesicles);
 
-  // --- integrate
+  // ---------------------------------------------------
+  // INTEGRATE POSITION
+  // ---------------------------------------------------
   for (const v of vesicles) {
     if (v.releaseBias === true) continue;
     integratePosition(v);
