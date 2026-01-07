@@ -6,16 +6,22 @@ console.log("♻️ vesicleRecycling loaded");
 //
 // Membrane Patch → Bud → Pinch → Return-to-Pool
 //
-// ✔ Vesicles are born at FUSION PLANE (single authority)
-// ✔ Gentle cytosolic return bias (NOT teleport)
-// ✔ Pool owns all motion & constraints after birth
-// ✔ Safe with vesiclePools / vesicleMotion / vesicleLoading
+// RESPONSIBILITIES:
+// ✔ Visual endocytosis sequence
+// ✔ Vesicle birth at fusion plane (single authority)
+// ✔ Gentle cytosolic bias on birth (NO teleport)
+// ✔ Clean handoff to pool system
 //
 // NON-RESPONSIBILITIES:
 // ✘ No Brownian motion
-// ✘ No spatial clamping
+// ✘ No confinement
 // ✘ No loading or priming
 // ✘ No fusion logic
+//
+// HARD RULE:
+// • Newly born vesicles MUST start as EMPTY
+// • Pool system owns them immediately
+//
 // =====================================================
 
 
@@ -24,8 +30,12 @@ console.log("♻️ vesicleRecycling loaded");
 // -----------------------------------------------------
 window.endocytosisSeeds = window.endocytosisSeeds || [];
 
-// Called by vesicleRelease.js (FUSION-PLANE coordinates)
+// -----------------------------------------------------
+// SPAWN ENDOCYTOSIS SEED
+// (CALLED BY vesicleRelease.js)
+// -----------------------------------------------------
 window.spawnEndocytosisSeed = function (x, y) {
+
   window.endocytosisSeeds.push({
     x,
     y,
@@ -40,7 +50,7 @@ window.spawnEndocytosisSeed = function (x, y) {
 
 
 // -----------------------------------------------------
-// UPDATE RECYCLING (STATE + BIRTH ONLY)
+// UPDATE RECYCLING — STATE MACHINE + BIRTH
 // -----------------------------------------------------
 function updateVesicleRecycling() {
 
@@ -53,13 +63,13 @@ function updateVesicleRecycling() {
   // 🔴 SINGLE AUTHORITATIVE PHYSICS PLANE
   const fusionX = window.SYNAPSE_FUSION_PLANE_X;
 
-  // Safety guard (prevents silent NaNs)
   if (!Number.isFinite(fusionX)) {
     console.error("❌ SYNAPSE_FUSION_PLANE_X is invalid");
     return;
   }
 
   for (let i = seeds.length - 1; i >= 0; i--) {
+
     const e = seeds[i];
     e.timer++;
 
@@ -77,7 +87,7 @@ function updateVesicleRecycling() {
     }
 
     // =================================================
-    // BUD — vesicle forms at membrane
+    // BUD — vesicle curvature forms
     // =================================================
     else if (e.stage === "BUD") {
 
@@ -99,31 +109,35 @@ function updateVesicleRecycling() {
 
       if (e.timer >= 30) {
 
-        // Respect pool capacity
+        // ---------------------------------------------
+        // CREATE VESICLE (POOL-OWNED IMMEDIATELY)
+        // ---------------------------------------------
         if (vesicles.length < MAX_VES) {
 
           vesicles.push({
 
-            // Born just inside cytosol (right of fusion plane)
-            x: fusionX + V_RADIUS + random(6, 10),
+            // Born just inside cytosol (pool corridor)
+            x: fusionX + V_RADIUS + random(6, 12),
             y: e.y + random(-4, 4),
 
-            // Gentle inward bias (pool motion takes over)
+            // Gentle inward bias — pool motion takes over
             vx: random(0.03, 0.06),
             vy: random(-0.02, 0.02),
 
-            // --------------------------------------------
+            radius: V_RADIUS,
+
+            // ------------------------------------------
             // CANONICAL STATE (MATCHES LOADING SYSTEM)
-            // --------------------------------------------
+            // ------------------------------------------
             state: "EMPTY",
 
             primedH:   false,
             primedATP: false,
             nts:       [],
 
-            // --------------------------------------------
+            // ------------------------------------------
             // OWNERSHIP FLAGS
-            // --------------------------------------------
+            // ------------------------------------------
             owner:       "POOL",
             ownerFrame:  frameCount,
 
@@ -132,6 +146,7 @@ function updateVesicleRecycling() {
           });
         }
 
+        // Remove seed
         seeds.splice(i, 1);
       }
     }
@@ -143,6 +158,7 @@ function updateVesicleRecycling() {
 // DRAW ENDOCYTOSIS (VISUAL ONLY)
 // -----------------------------------------------------
 function drawVesicleRecycling() {
+
   push();
   noStroke();
 
