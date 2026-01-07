@@ -5,7 +5,7 @@ console.log("🟡 preSynapse loaded");
 // (LOCAL GEOMETRY SPACE — VIEW ONLY)
 // =====================================================
 
-const PRESYNAPTIC_AP_PATH = [
+window.PRESYNAPTIC_AP_PATH = [
   { x: 153.1, y:  4.7 },
   { x: 170.5, y: -5.1 },
   { x: 181.1, y: -20.5 },
@@ -22,61 +22,67 @@ const PRESYNAPTIC_AP_PATH = [
 ];
 
 // =====================================================
-// 🔧 CALIBRATION CONSTANTS (VIEW ONLY)
+// 🔧 PRESYNAPTIC VIEW CALIBRATION (GLOBAL & SHARED)
+// =====================================================
+//
+// These are authoritative for *presynaptic geometry*.
+// They are NOT biological physics.
+// They are NOT synapseConstants.
 // =====================================================
 
 // Visual scale of AP path
-const AP_PATH_SCALE = 6.0;
+window.AP_PATH_SCALE = 6.0;
 
-// Final world-space offset (after rotation)
-const AP_PATH_OFFSET = {
+// Final world-space offset (aligns presynapse to astrocyte edge)
+window.AP_PATH_OFFSET = {
   x: -120,   // ← shift LEFT toward astrocyte
   y: 0
 };
 
-// Debug height only
-const DEBUG_PLANE_HEIGHT = 140;
+// Debug plane height (visual only)
+window.DEBUG_PLANE_HEIGHT = 140;
 
 
 // =====================================================
-// PATH CALIBRATION (NO FLIPS)
+// PATH CALIBRATION (NO FLIPS, WORLD-SPACE CONSISTENT)
 // =====================================================
-function calibratePath(path) {
+window.calibratePath = function (path) {
   return path.map(p => ({
-    x: (p.x * AP_PATH_SCALE) + AP_PATH_OFFSET.x,
-    y: (p.y * AP_PATH_SCALE) + AP_PATH_OFFSET.y
+    x: (p.x * window.AP_PATH_SCALE) + window.AP_PATH_OFFSET.x,
+    y: (p.y * window.AP_PATH_SCALE) + window.AP_PATH_OFFSET.y
   }));
-}
+};
 
 
 // =====================================================
 // PRESYNAPTIC NEURON
 // GEOMETRY + VISUALS ONLY
 // =====================================================
-function drawPreSynapse() {
+window.drawPreSynapse = function () {
+
   push();
 
   // ---------------------------------------------------
   // 🔁 CANONICAL ORIENTATION FIX
   // ---------------------------------------------------
   //
-  // Rotate presynaptic terminal to face postsynaptic side
+  // Presynaptic neuron faces RIGHT by default.
+  // Rotate 180° so it faces the synaptic cleft.
   //
-  rotate(PI);            // 180° rotation
-  translate(0, 0);       // (explicit, readable)
+  rotate(PI);
 
   // ---------------------------------------------------
-  // DRAW GEOMETRY
+  // DRAW GEOMETRY (GROUND TRUTH)
   // ---------------------------------------------------
   drawTNeuronShape(1);
 
   // ---------------------------------------------------
-  // DEBUG: TRUE PHYSICS PLANE
+  // DEBUG: TRUE PHYSICS PLANE (READ-ONLY)
   // ---------------------------------------------------
   drawVesicleStopPlaneDebug();
 
   // ---------------------------------------------------
-  // VESICLES (DRAW ONLY)
+  // VESICLES (DRAW ONLY — NO OWNERSHIP)
   // ---------------------------------------------------
   if (typeof drawSynapseVesicleGeometry === "function") {
     drawSynapseVesicleGeometry();
@@ -85,7 +91,7 @@ function drawPreSynapse() {
   // ---------------------------------------------------
   // TERMINAL AP (VISUAL ONLY)
   // ---------------------------------------------------
-  const calibratedPath = calibratePath(PRESYNAPTIC_AP_PATH);
+  const calibratedPath = calibratePath(window.PRESYNAPTIC_AP_PATH);
 
   if (typeof drawTerminalAP === "function") {
     drawTerminalAP(calibratedPath);
@@ -97,39 +103,40 @@ function drawPreSynapse() {
   }
 
   pop();
-}
+};
 
 
 // =====================================================
 // 🔵 DEBUG: TRUE VESICLE STOP PLANE
 // =====================================================
-function drawVesicleStopPlaneDebug() {
+window.drawVesicleStopPlaneDebug = function () {
 
   if (!window.SHOW_SYNAPSE_DEBUG) return;
 
   const x = window.SYNAPSE_VESICLE_STOP_X ?? 0;
+  const H = window.DEBUG_PLANE_HEIGHT;
 
   push();
   stroke(80, 180, 255, 220);
   strokeWeight(2);
   noFill();
 
-  line(x, -DEBUG_PLANE_HEIGHT, x, DEBUG_PLANE_HEIGHT);
+  line(x, -H, x, H);
 
-  for (let y = -DEBUG_PLANE_HEIGHT; y <= DEBUG_PLANE_HEIGHT; y += 24) {
+  for (let y = -H; y <= H; y += 24) {
     fill(80, 180, 255, 140);
     noStroke();
     circle(x, y, 4);
   }
 
   pop();
-}
+};
 
 
 // =====================================================
 // DEBUG: AP PATH DOTS
 // =====================================================
-function drawAPDebugDots(path) {
+window.drawAPDebugDots = function (path) {
 
   const pulse = 0.5 + 0.5 * sin(frameCount * 0.2);
 
@@ -147,4 +154,4 @@ function drawAPDebugDots(path) {
 
   blendMode(BLEND);
   pop();
-}
+};
