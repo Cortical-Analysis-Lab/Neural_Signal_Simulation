@@ -4,15 +4,24 @@ console.log("🧭 vesiclePools loaded");
 // VESICLE POOLS — SPATIAL OWNERSHIP (AUTHORITATIVE)
 // =====================================================
 //
+// COORDINATE CONTRACT:
+// • Presynaptic LOCAL space
+// • +X → toward membrane / vesicle stop plane
+// • -X → deeper cytosol
+// • NO flips, NO view transforms
+//
+// RESPONSIBILITIES:
 // ✔ Reserve pool (deep cytosol)
 // ✔ Loaded pool (membrane-adjacent, NOT docked)
 // ✔ Explicit biological gap before docking plane
-// ✔ Smooth reserve → loaded travel
+// ✔ Smooth reserve → loaded travel (X-normal only)
 // ✔ HARD confinement for LOADED vesicles
 //
-// ✘ No motion noise
-// ✘ No collisions
+// NON-RESPONSIBILITIES:
+// ✘ No Brownian motion
+// ✘ No vesicle–vesicle collisions
 // ✘ No fusion logic
+// ✘ No recycling logic
 //
 // =====================================================
 
@@ -22,6 +31,7 @@ console.log("🧭 vesiclePools loaded");
 // -----------------------------------------------------
 
 // Distance between LOADED pool and docking / fusion plane
+// NEGATIVE = pool sits *behind* the stop plane (correct)
 const MEMBRANE_GAP_FACTOR = -5; // × vesicle radius
 
 // Loaded pool geometry
@@ -38,7 +48,7 @@ const RESERVE_DAMPING = 0.65;
 
 
 // -----------------------------------------------------
-// INTERNAL CACHE (SAFE, SEPARATE)
+// INTERNAL CACHE (SAFE, GEOMETRY-DEPENDENT)
 // -----------------------------------------------------
 let _reserveCacheKey = null;
 let _loadedCacheKey  = null;
@@ -80,6 +90,7 @@ function getReservePoolRect() {
 
   const HEIGHT = R * RESERVE_POOL_HEIGHT_FACTOR;
 
+  // Reserve pool is deeper into cytosol (+X direction)
   const xMin = stopX + back;
   const xMax = xMin + RESERVE_POOL_WIDTH;
 
@@ -96,7 +107,7 @@ function getReservePoolRect() {
 
 
 // -----------------------------------------------------
-// LOADED POOL — PRE-FUSION STAGING (BIOLOGICAL)
+// LOADED POOL — PRE-FUSION STAGING ZONE
 // -----------------------------------------------------
 function getLoadedPoolRect() {
 
@@ -108,11 +119,13 @@ function getLoadedPoolRect() {
   const rVes  = window.SYNAPSE_VESICLE_RADIUS;
   const rTerm = window.SYNAPSE_TERMINAL_RADIUS;
 
+  // Explicit biological gap before docking
   const MEMBRANE_GAP = rVes * MEMBRANE_GAP_FACTOR;
 
   const WIDTH  = rVes * LOADED_POOL_WIDTH_FACTOR;
   const HEIGHT = rTerm * LOADED_POOL_HEIGHT_FACTOR;
 
+  // Pool sits just behind docking plane
   const xMax = stopX - MEMBRANE_GAP;
   const xMin = xMax - WIDTH;
 
@@ -168,25 +181,21 @@ function applyLoadedAttraction(v) {
   const r  = getLoadedPoolRect();
   const Rv = v.radius;
 
-  // ------------------------------------
-  // TARGET: membrane-adjacent PLANE
-  // ------------------------------------
-  const targetX = r.xMax - Rv; // plane, not center
+  // Target is a PLANE, not a point
+  const targetX = r.xMax - Rv;
 
-  // Drive ONLY along X (normal to membrane)
+  // Drive ONLY along membrane normal (X)
   v.vx += (targetX - v.x) * 0.006;
 
-  // Mild damping
+  // Gentle damping
   v.vx *= 0.75;
-  v.vy *= 0.95; // preserve lateral freedom
+  v.vy *= 0.95;
 
   // Integrate
   v.x += v.vx;
   v.y += v.vy;
 
-  // ------------------------------------
-  // Promote when vesicle reaches plane band
-  // ------------------------------------
+  // Promote when vesicle enters staging band
   if (
     v.x + Rv >= r.xMax &&
     v.x - Rv >= r.xMin &&
@@ -194,15 +203,14 @@ function applyLoadedAttraction(v) {
     v.y + Rv <= r.yMax
   ) {
     v.state = "LOADED";
-    v.vx = 0;           // no penetration
-    v.vy *= 0.6;        // retain spread
+    v.vx = 0;
+    v.vy *= 0.6;
   }
 }
 
 
-
 // -----------------------------------------------------
-// RECT CONFINEMENT (HARD FOR LOADED, NON-DEGENERATE)
+// RECTANGULAR CONFINEMENT (HARD)
 // -----------------------------------------------------
 function confineToRect(v, r, damping) {
 
