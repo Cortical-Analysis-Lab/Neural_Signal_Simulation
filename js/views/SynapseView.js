@@ -8,6 +8,7 @@ console.log("🔬 SynapseView loaded");
 // ✔ No flips
 // ✔ No synapseConstants dependency
 // ✔ Deterministic update → draw order
+// ✔ Vesicles drawn ONLY in preSynapse.js
 //
 // =====================================================
 
@@ -31,7 +32,7 @@ const NEURON_Y = 40;
 let spaceWasDown = false;
 
 function handleSynapseInput() {
-  const spaceDown = keyIsDown(32);
+  const spaceDown = keyIsDown(32); // spacebar
   if (spaceDown && !spaceWasDown) {
     triggerTerminalAP?.();
   }
@@ -51,7 +52,7 @@ function ensureVesiclePoolInitialized() {
 
   const maxVes = window.SYNAPSE_MAX_VESICLES ?? 7;
 
-  // Seed reserve pool
+  // Seed reserve pool ONLY ONCE
   if (window.synapseVesicles.length === 0) {
     for (let i = 0; i < maxVes; i++) {
       window.requestNewEmptyVesicle?.();
@@ -75,7 +76,7 @@ function drawSynapseView() {
 
   ensureVesiclePoolInitialized();
 
-  // ---------------- UPDATE ORDER ----------------------
+  // ---------------- UPDATE ORDER (AUTHORITATIVE) ------
   updateVesicleLoading?.();
   updateVesicleMotion?.();
   updateVesiclePools?.();
@@ -97,30 +98,37 @@ function drawSynapseView() {
   // ---------------- ASTROCYTE -------------------------
   drawAstrocyteSynapse?.();
 
-  // ---------------- PRESYNAPTIC -----------------------
+  // ---------------- PRESYNAPTIC TERMINAL --------------
   push();
   translate(PRE_X, NEURON_Y);
 
+  // Terminal AP (visual + trigger)
   if (
     typeof calibratePath === "function" &&
     typeof updateTerminalAP === "function" &&
     window.PRESYNAPTIC_AP_PATH
   ) {
-    updateTerminalAP(calibratePath(window.PRESYNAPTIC_AP_PATH));
+    updateTerminalAP(
+      calibratePath(window.PRESYNAPTIC_AP_PATH)
+    );
   }
 
+  // ✅ PRESYNAPTIC GEOMETRY OWNERSHIP
+  // (vesicles are drawn INSIDE this function)
   drawPreSynapse?.();
-  drawSynapseVesicleGeometry?.();
   drawSynapticBurst?.();
 
-  // 🔴 TEMP DEBUG: VESICLE CENTERS
-  if (window.SHOW_SYNAPSE_DEBUG && typeof drawVesicleCenters === "function") {
+  // Optional debug: vesicle centers (same transform)
+  if (
+    window.SHOW_SYNAPSE_DEBUG &&
+    typeof drawVesicleCenters === "function"
+  ) {
     drawVesicleCenters();
   }
 
   pop();
 
-  // ---------------- POSTSYNAPTIC ----------------------
+  // ---------------- POSTSYNAPTIC TERMINAL --------------
   push();
   translate(POST_X, NEURON_Y);
   drawPostSynapse?.();
