@@ -1,20 +1,19 @@
 console.log("🔬 SynapseView loaded");
 
 // =====================================================
-// SYNAPSE VIEW — ORCHESTRATOR (VIEW-ONLY)
+// SYNAPSE VIEW — ORCHESTRATOR (WORLD SPACE)
 // =====================================================
 //
 // RESPONSIBILITIES:
-// ✔ Screen → synapse coordinate transforms
+// ✔ Screen → world coordinate transforms
 // ✔ Input intent (AP trigger only)
 // ✔ Authoritative update order
-// ✔ Debug overlays (from synapseConstants.js)
+// ✔ Debug overlays (synapseConstants.js)
 //
-// NON-RESPONSIBILITIES:
-// ✘ No physics definitions
-// ✘ No geometry truth
-// ✘ No vesicle logic
-// ✘ No chemistry logic
+// ABSOLUTE RULES:
+// ✔ ONE coordinate space
+// ✔ NO scale(-1,1)
+// ✔ NO geometry compensation
 //
 // =====================================================
 
@@ -26,14 +25,14 @@ const SYNAPSE_SCALE    = 1.45;
 const SYNAPSE_SCREEN_X = 0.5;
 const SYNAPSE_SCREEN_Y = 0.55;
 
-// Presynaptic / postsynaptic anchor offsets
+// World anchors
 const PRE_X    = -180;
 const POST_X   = +180;
 const NEURON_Y = 40;
 
 
 // =====================================================
-// USER INPUT — SYNAPSE LOCAL ONLY
+// USER INPUT — INTENT ONLY
 // =====================================================
 let spaceWasDown = false;
 
@@ -57,18 +56,23 @@ function ensureVesiclePoolInitialized() {
 
   const maxVes = window.SYNAPSE_MAX_VESICLES ?? 7;
 
-  // Spawn reserve vesicles
+  // ---------------------------------------------------
+  // RESERVE POOL
+  // ---------------------------------------------------
   if (window.synapseVesicles.length === 0) {
     for (let i = 0; i < maxVes; i++) {
       window.requestNewEmptyVesicle?.();
     }
   }
 
-  // Seed RRP
+  // ---------------------------------------------------
+  // READILY RELEASABLE POOL (RRP)
+  // ---------------------------------------------------
   if (!window.__RRPSeeded) {
 
     const preloadCount = 3;
     const r = window.SYNAPSE_VESICLE_RADIUS;
+
     const loadedPool =
       typeof getLoadedPoolRect === "function"
         ? getLoadedPoolRect()
@@ -89,6 +93,7 @@ function ensureVesiclePoolInitialized() {
       v.primedH   = true;
       v.primedATP = true;
 
+      // Visual-only NT fill
       v.nts = [];
       for (let n = 0; n < window.SYNAPSE_NT_TARGET; n++) {
         v.nts.push({
@@ -133,7 +138,7 @@ function drawSynapseView() {
 
 
   // ===================================================
-  // SCREEN ANCHOR
+  // SCREEN → WORLD TRANSFORM
   // ===================================================
   translate(
     width  * SYNAPSE_SCREEN_X,
@@ -146,19 +151,19 @@ function drawSynapseView() {
   strokeJoin(ROUND);
   strokeCap(ROUND);
 
+  // ===================================================
+  // ASTROCYTE (WORLD SPACE)
+  // ===================================================
   drawAstrocyteSynapse?.();
 
 
   // ===================================================
-  // PRESYNAPTIC SIDE — LOCAL PHYSICS SPACE
+  // PRESYNAPTIC TERMINAL (WORLD SPACE)
   // ===================================================
   push();
   translate(PRE_X, NEURON_Y);
 
-  window.__synapseFlipped = true;
-  scale(-1, 1);
-
-  // Terminal AP
+  // Terminal AP (path already in world space)
   if (
     typeof calibratePath === "function" &&
     typeof updateTerminalAP === "function" &&
@@ -168,13 +173,15 @@ function drawSynapseView() {
     updateTerminalAP(path);
   }
 
-  // --- draw geometry first ---
+  // ---------------------------------------------------
+  // GEOMETRY + CONTENT
+  // ---------------------------------------------------
   drawPreSynapse?.();
   drawSynapseVesicleGeometry?.();
   drawSynapticBurst?.();
 
   // ---------------------------------------------------
-  // 🔍 DEBUG — DRAW LAST (ON TOP OF EVERYTHING)
+  // 🔍 DEBUG OVERLAY (TRUE WORLD SPACE)
   // ---------------------------------------------------
   if (window.SHOW_SYNAPSE_DEBUG) {
     push();
@@ -184,12 +191,11 @@ function drawSynapseView() {
     pop();
   }
 
-  window.__synapseFlipped = false;
   pop();
 
 
   // ===================================================
-  // POSTSYNAPTIC SIDE
+  // POSTSYNAPTIC TERMINAL (WORLD SPACE)
   // ===================================================
   push();
   translate(POST_X, NEURON_Y);
