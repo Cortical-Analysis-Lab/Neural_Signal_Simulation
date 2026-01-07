@@ -5,8 +5,8 @@ console.log("🫧 synapticBurst loaded");
 // =====================================================
 //
 // BIOLOGICAL MODEL:
-// ✔ Fan-shaped release
-// ✔ Biased away from presynaptic membrane
+// ✔ Fan-shaped release into cleft
+// ✔ Biased AWAY from presynaptic membrane
 // ✔ Distributed fusion pore origin
 // ✔ Diffusion-dominated (no jetting)
 // ✔ No clumping / no overlap artifacts
@@ -46,15 +46,15 @@ const NT_RADIUS    = 3;
 
 
 // -----------------------------------------------------
-// EVENT LISTENER — BIOLOGICAL RELEASE
+// EVENT LISTENER — BIOLOGICAL RELEASE ONLY
 // -----------------------------------------------------
 //
 // Expected event detail:
 // {
-//   x, y,
-//   normalX: -1 | +1   (cleft direction)
-//   spread: 0–1        (fan tightness)
-//   strength: 0–1     (quantal size)
+//   x, y,                 // fusion pore (world space)
+//   normalX: -1 | +1      // membrane normal (cleft direction)
+//   spread:   0–1         // fan tightness
+//   strength: 0–1         // quantal size
 // }
 //
 // -----------------------------------------------------
@@ -72,7 +72,9 @@ window.addEventListener("synapticRelease", (e) => {
   if (count <= 0) return;
 
   // Fan direction centered on membrane normal
-  const baseAngle = normalX < 0 ? Math.PI : 0;
+  // normalX < 0 → release to the right
+  // normalX > 0 → release to the left
+  const baseAngle = normalX < 0 ? 0 : Math.PI;
 
   for (let i = 0; i < count; i++) {
 
@@ -108,17 +110,18 @@ function updateSynapticBurst() {
   const nts = window.synapticNTs;
   if (!nts || nts.length === 0) return;
 
-  // Geometry is READ-ONLY here
+  // READ-ONLY geometry references
   const MEMBRANE_X = window.SYNAPSE_MEMBRANE_X;
 
   // Soft spatial extent into cleft (visual only)
   const CLEFT_LIMIT = 120;
 
   for (let i = nts.length - 1; i >= 0; i--) {
+
     const p = nts[i];
 
     // -------------------------------------------------
-    // Brownian diffusion (dominant term)
+    // Brownian diffusion (dominant)
     // -------------------------------------------------
     p.vx += random(-NT_DIFFUSION, NT_DIFFUSION);
     p.vy += random(-NT_DIFFUSION, NT_DIFFUSION);
@@ -132,15 +135,16 @@ function updateSynapticBurst() {
     p.vy *= NT_DRAG;
 
     // -------------------------------------------------
-    // Soft confinement — prevent NTs re-entering
-    // presynaptic terminal
+    // Hard exclusion: NTs MUST NOT re-enter presynaptic
     // -------------------------------------------------
     if (p.x < MEMBRANE_X + 2) {
       p.x  = MEMBRANE_X + 2;
       p.vx = Math.abs(p.vx) * 0.3;
     }
 
-    // Optional fade if drifting too far into cleft
+    // -------------------------------------------------
+    // Soft fade if diffusing too far into cleft
+    // -------------------------------------------------
     if (Math.abs(p.x - MEMBRANE_X) > CLEFT_LIMIT) {
       p.alpha -= 3.0;
     }
@@ -157,9 +161,10 @@ function updateSynapticBurst() {
 
 
 // -----------------------------------------------------
-// DRAW — CLEAN, LIGHTWEIGHT, READ-ONLY
+// DRAW — READ-ONLY VISUALIZATION
 // -----------------------------------------------------
 function drawSynapticBurst() {
+
   push();
   noStroke();
   blendMode(ADD);
