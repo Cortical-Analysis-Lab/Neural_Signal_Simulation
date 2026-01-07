@@ -27,28 +27,23 @@ console.log("🧭 vesiclePools loaded");
 
 
 // -----------------------------------------------------
-// 🔧 TUNING KNOBS — ADJUST THESE FIRST
+// 🔧 TUNING KNOBS
 // -----------------------------------------------------
 
-// Distance between LOADED pool and docking / fusion plane
-// NEGATIVE = pool sits *behind* the stop plane (correct)
-const MEMBRANE_GAP_FACTOR = -5; // × vesicle radius
+const MEMBRANE_GAP_FACTOR = -5;
 
-// Loaded pool geometry
-const LOADED_POOL_WIDTH_FACTOR  = 3.0;  // × vesicle radius
-const LOADED_POOL_HEIGHT_FACTOR = 2.0;  // × terminal radius
+const LOADED_POOL_WIDTH_FACTOR  = 3.0;
+const LOADED_POOL_HEIGHT_FACTOR = 2.0;
 
-// Reserve pool geometry
 const RESERVE_POOL_WIDTH = 75;
 const RESERVE_POOL_HEIGHT_FACTOR = 0.9;
 
-// Velocity damping when confined (prevents stacking)
 const LOADED_DAMPING  = 0.35;
 const RESERVE_DAMPING = 0.65;
 
 
 // -----------------------------------------------------
-// INTERNAL CACHE (SAFE, GEOMETRY-DEPENDENT)
+// INTERNAL CACHE
 // -----------------------------------------------------
 let _reserveCacheKey = null;
 let _loadedCacheKey  = null;
@@ -90,7 +85,6 @@ function getReservePoolRect() {
 
   const HEIGHT = R * RESERVE_POOL_HEIGHT_FACTOR;
 
-  // Reserve pool is deeper into cytosol (+X direction)
   const xMin = stopX + back;
   const xMax = xMin + RESERVE_POOL_WIDTH;
 
@@ -107,7 +101,7 @@ function getReservePoolRect() {
 
 
 // -----------------------------------------------------
-// LOADED POOL — PRE-FUSION STAGING ZONE
+// LOADED POOL — PRE-FUSION STAGING
 // -----------------------------------------------------
 function getLoadedPoolRect() {
 
@@ -119,13 +113,11 @@ function getLoadedPoolRect() {
   const rVes  = window.SYNAPSE_VESICLE_RADIUS;
   const rTerm = window.SYNAPSE_TERMINAL_RADIUS;
 
-  // Explicit biological gap before docking
   const MEMBRANE_GAP = rVes * MEMBRANE_GAP_FACTOR;
 
   const WIDTH  = rVes * LOADED_POOL_WIDTH_FACTOR;
   const HEIGHT = rTerm * LOADED_POOL_HEIGHT_FACTOR;
 
-  // Pool sits just behind docking plane
   const xMax = stopX - MEMBRANE_GAP;
   const xMin = xMax - WIDTH;
 
@@ -142,7 +134,7 @@ function getLoadedPoolRect() {
 
 
 // -----------------------------------------------------
-// 🔑 AUTHORITATIVE VESICLE CREATION (RESERVE ONLY)
+// AUTHORITATIVE EMPTY VESICLE CREATION
 // -----------------------------------------------------
 window.requestNewEmptyVesicle = function () {
 
@@ -174,28 +166,22 @@ window.requestNewEmptyVesicle = function () {
 
 
 // -----------------------------------------------------
-// LOADED ZONE ATTRACTION (RESERVE → STAGING)
+// RESERVE → LOADED ATTRACTION
 // -----------------------------------------------------
 function applyLoadedAttraction(v) {
 
   const r  = getLoadedPoolRect();
   const Rv = v.radius;
 
-  // Target is a PLANE, not a point
   const targetX = r.xMax - Rv;
 
-  // Drive ONLY along membrane normal (X)
   v.vx += (targetX - v.x) * 0.006;
-
-  // Gentle damping
   v.vx *= 0.75;
   v.vy *= 0.95;
 
-  // Integrate
   v.x += v.vx;
   v.y += v.vy;
 
-  // Promote when vesicle enters staging band
   if (
     v.x + Rv >= r.xMax &&
     v.x - Rv >= r.xMin &&
@@ -210,7 +196,7 @@ function applyLoadedAttraction(v) {
 
 
 // -----------------------------------------------------
-// RECTANGULAR CONFINEMENT (HARD)
+// HARD RECTANGULAR CONFINEMENT
 // -----------------------------------------------------
 function confineToRect(v, r, damping) {
 
@@ -252,7 +238,11 @@ function updateVesiclePools() {
 
   for (const v of vesicles) {
 
+    // 🔒 Release owns these
     if (v.releaseBias === true) continue;
+
+    // 🔒 Recycling owns these until release clears them
+    if (v.state === "RECYCLE_TRAVEL") continue;
 
     if (v.state === "LOADED_TRAVEL") {
       applyLoadedAttraction(v);
@@ -270,7 +260,7 @@ window.updateVesiclePools = updateVesiclePools;
 
 
 // =====================================================
-// DEBUG VISUALIZATION — POOL ZONES (READ-ONLY)
+// DEBUG VISUALIZATION
 // =====================================================
 window.SHOW_VESICLE_POOL_DEBUG = false;
 
