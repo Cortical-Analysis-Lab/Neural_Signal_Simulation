@@ -2,7 +2,7 @@ console.log("🟡 preSynapse loaded");
 
 // =====================================================
 // PRESYNAPTIC AP CONDUCTION PATH
-// (VIEW-SPACE ONLY — CALIBRATED TO GEOMETRY)
+// (LOCAL GEOMETRY SPACE — VIEW ONLY)
 // =====================================================
 
 const PRESYNAPTIC_AP_PATH = [
@@ -22,31 +22,29 @@ const PRESYNAPTIC_AP_PATH = [
 ];
 
 // =====================================================
-// 🔧 CALIBRATION CONSTANTS (AUTHORITATIVE, VIEW ONLY)
+// 🔧 CALIBRATION CONSTANTS (VIEW ONLY)
 // =====================================================
 
-// Global presynaptic scale (visual only)
+// Visual scale of AP path
 const AP_PATH_SCALE = 6.0;
 
-// Final translation into synapse-local view space
+// Final world-space offset (after rotation)
 const AP_PATH_OFFSET = {
-  x: -170,
+  x: -120,   // ← shift LEFT toward astrocyte
   y: 0
 };
 
-// Debug height only (no physics meaning)
+// Debug height only
 const DEBUG_PLANE_HEIGHT = 140;
 
 
 // =====================================================
-// PATH TRANSFORM
-// ✔ SCALE → FLIP → OFFSET
-// ✔ VIEW-SPACE ONLY
+// PATH CALIBRATION (NO FLIPS)
 // =====================================================
 function calibratePath(path) {
   return path.map(p => ({
-    x: (-p.x * AP_PATH_SCALE) + AP_PATH_OFFSET.x,
-    y: ( p.y * AP_PATH_SCALE) + AP_PATH_OFFSET.y
+    x: (p.x * AP_PATH_SCALE) + AP_PATH_OFFSET.x,
+    y: (p.y * AP_PATH_SCALE) + AP_PATH_OFFSET.y
   }));
 }
 
@@ -58,25 +56,42 @@ function calibratePath(path) {
 function drawPreSynapse() {
   push();
 
-  // Canonical presynaptic geometry
+  // ---------------------------------------------------
+  // 🔁 CANONICAL ORIENTATION FIX
+  // ---------------------------------------------------
+  //
+  // Rotate presynaptic terminal to face postsynaptic side
+  //
+  rotate(PI);            // 180° rotation
+  translate(0, 0);       // (explicit, readable)
+
+  // ---------------------------------------------------
+  // DRAW GEOMETRY
+  // ---------------------------------------------------
   drawTNeuronShape(1);
 
-  // Debug: true vesicle stop plane (READ-ONLY)
+  // ---------------------------------------------------
+  // DEBUG: TRUE PHYSICS PLANE
+  // ---------------------------------------------------
   drawVesicleStopPlaneDebug();
 
-  // Vesicles (DRAW ONLY)
+  // ---------------------------------------------------
+  // VESICLES (DRAW ONLY)
+  // ---------------------------------------------------
   if (typeof drawSynapseVesicleGeometry === "function") {
     drawSynapseVesicleGeometry();
   }
 
-  // Terminal AP (VISUAL ONLY)
+  // ---------------------------------------------------
+  // TERMINAL AP (VISUAL ONLY)
+  // ---------------------------------------------------
   const calibratedPath = calibratePath(PRESYNAPTIC_AP_PATH);
 
   if (typeof drawTerminalAP === "function") {
     drawTerminalAP(calibratedPath);
   }
 
-  // Optional debug: AP path dots
+  // Optional AP debug dots
   if (window.apActive === true) {
     drawAPDebugDots(calibratedPath);
   }
@@ -86,13 +101,12 @@ function drawPreSynapse() {
 
 
 // =====================================================
-// 🔵 DEBUG: TRUE VESICLE STOP PLANE (VISUAL ONLY)
+// 🔵 DEBUG: TRUE VESICLE STOP PLANE
 // =====================================================
 function drawVesicleStopPlaneDebug() {
 
   if (!window.SHOW_SYNAPSE_DEBUG) return;
 
-  // EXACTLY matches physics — NO OFFSET
   const x = window.SYNAPSE_VESICLE_STOP_X ?? 0;
 
   push();
@@ -102,7 +116,6 @@ function drawVesicleStopPlaneDebug() {
 
   line(x, -DEBUG_PLANE_HEIGHT, x, DEBUG_PLANE_HEIGHT);
 
-  // Anchor dots
   for (let y = -DEBUG_PLANE_HEIGHT; y <= DEBUG_PLANE_HEIGHT; y += 24) {
     fill(80, 180, 255, 140);
     noStroke();
@@ -114,7 +127,7 @@ function drawVesicleStopPlaneDebug() {
 
 
 // =====================================================
-// DEBUG: FLASHING GREEN AP DOTS
+// DEBUG: AP PATH DOTS
 // =====================================================
 function drawAPDebugDots(path) {
 
