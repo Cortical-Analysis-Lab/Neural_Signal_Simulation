@@ -5,7 +5,7 @@ console.log("🫧 vesicleLoading loaded");
 // =====================================================
 //
 // COORDINATE CONTRACT:
-// • Presynaptic LOCAL space
+// • Presynaptic LOCAL space (read-only x/y from vesicle)
 // • No geometry assumptions
 // • No motion authority
 //
@@ -71,7 +71,7 @@ const CHEMO_MAX_V   = 1.2;
 // (ONLY ONE ACTIVE CHEMISTRY VESICLE)
 // -----------------------------------------------------
 function hasActiveLoadingVesicle() {
-  return window.synapseVesicles.some(v =>
+  return window.synapseVesicles?.some(v =>
     v.state === VESICLE_STATE.PRIMING ||
     v.state === VESICLE_STATE.PRIMED  ||
     v.state === VESICLE_STATE.LOADING
@@ -84,6 +84,7 @@ function hasActiveLoadingVesicle() {
 // -----------------------------------------------------
 function spawnPrimingParticles(v) {
 
+  // H⁺
   const a1 = random(TWO_PI);
   window.synapseH.push({
     x: v.x + cos(a1) * 32,
@@ -94,6 +95,7 @@ function spawnPrimingParticles(v) {
     life: H_LIFE
   });
 
+  // ATP
   const a2 = random(TWO_PI);
   window.synapseATP.push({
     x: v.x + cos(a2) * 38,
@@ -165,7 +167,7 @@ function updateVesicleLoading() {
         });
       }
 
-      // ✔ CHEMISTRY COMPLETE → HAND OFF TO POOLS
+      // ✔ CHEMISTRY COMPLETE → HANDOFF
       if (v.nts.length >= NT_TARGET) {
         v.state = VESICLE_STATE.LOADED_TRAVEL;
       }
