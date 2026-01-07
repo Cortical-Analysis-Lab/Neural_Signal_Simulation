@@ -44,6 +44,9 @@ const NT_LIFE_MAX  = 150;
 
 const NT_RADIUS    = 3;
 
+// Soft spatial extent into cleft (visual only)
+const CLEFT_LIMIT = 120;
+
 
 // -----------------------------------------------------
 // EVENT LISTENER — BIOLOGICAL RELEASE ONLY
@@ -110,11 +113,10 @@ function updateSynapticBurst() {
   const nts = window.synapticNTs;
   if (!nts || nts.length === 0) return;
 
-  // READ-ONLY geometry references
-  const MEMBRANE_X = window.SYNAPSE_MEMBRANE_X;
+  // 🔒 SINGLE AUTHORITATIVE MEMBRANE PLANE
+  const MEMBRANE_X = window.SYNAPSE_VESICLE_STOP_X;
 
-  // Soft spatial extent into cleft (visual only)
-  const CLEFT_LIMIT = 120;
+  if (!Number.isFinite(MEMBRANE_X)) return;
 
   for (let i = nts.length - 1; i >= 0; i--) {
 
@@ -135,11 +137,11 @@ function updateSynapticBurst() {
     p.vy *= NT_DRAG;
 
     // -------------------------------------------------
-    // Hard exclusion: NTs MUST NOT re-enter presynaptic
+    // HARD EXCLUSION: NTs MUST NOT re-enter presynapse
     // -------------------------------------------------
     if (p.x < MEMBRANE_X + 2) {
       p.x  = MEMBRANE_X + 2;
-      p.vx = Math.abs(p.vx) * 0.3;
+      p.vx = Math.abs(p.vx) * 0.25;
     }
 
     // -------------------------------------------------
@@ -164,6 +166,8 @@ function updateSynapticBurst() {
 // DRAW — READ-ONLY VISUALIZATION
 // -----------------------------------------------------
 function drawSynapticBurst() {
+
+  if (!window.synapticNTs.length) return;
 
   push();
   noStroke();
