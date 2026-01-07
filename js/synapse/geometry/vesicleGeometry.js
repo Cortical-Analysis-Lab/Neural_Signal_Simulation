@@ -1,7 +1,7 @@
 console.log("🧬 vesicleGeometry loaded");
 
 // =====================================================
-// VESICLE GEOMETRY & RENDERING (READ-ONLY)
+// VESICLE GEOMETRY & RENDERING (READ-ONLY, WORLD SPACE)
 // =====================================================
 //
 // RESPONSIBILITIES:
@@ -9,14 +9,13 @@ console.log("🧬 vesicleGeometry loaded");
 // ✔ Draw neurotransmitter contents
 // ✔ Draw priming particles (H⁺, ATP, ADP + Pi)
 // ✔ Visualize membrane fusion + merge
-// ✔ DEBUG: visualize vesicle pools & boundaries
+// ✔ Optional debug overlays
 //
-// NON-RESPONSIBILITIES:
-// ✘ Motion
-// ✘ State transitions
-// ✘ Constraints
-// ✘ Chemistry logic
-// ✘ Pool / release ownership
+// COORDINATE CONTRACT:
+// • Presynaptic LOCAL space
+// • +X → toward membrane / fusion plane
+// • NO flips
+// • NO transforms
 //
 // =====================================================
 
@@ -59,22 +58,12 @@ function boundaryOrange(alpha = 200) {
 
 
 // -----------------------------------------------------
-// DOCK PLANE — RENDER-SPACE ONLY
-// -----------------------------------------------------
-function getRenderDockX() {
-  return window.__synapseFlipped
-    ? -window.SYNAPSE_DOCK_X
-    : window.SYNAPSE_DOCK_X;
-}
-
-
-// -----------------------------------------------------
 // MAIN DRAW ENTRY POINT
 // -----------------------------------------------------
 function drawSynapseVesicleGeometry() {
   push();
 
-  // 🔵 DEBUG POOL OVERLAY (BEHIND EVERYTHING)
+  // Optional debug overlays (behind vesicles)
   drawVesiclePoolsDebug();
 
   drawVesicleMembranes();
@@ -86,57 +75,57 @@ function drawSynapseVesicleGeometry() {
 
 
 // -----------------------------------------------------
-// DEBUG: VESICLE POOLS & BOUNDARIES (READ-ONLY)
+// DEBUG: VESICLE POOLS (READ-ONLY, DERIVED)
 // -----------------------------------------------------
 function drawVesiclePoolsDebug() {
 
   if (!window.SHOW_SYNAPSE_DEBUG) return;
+  if (typeof getReservePoolRect !== "function") return;
+  if (typeof getLoadedPoolRect  !== "function") return;
+
+  const reserve = getReservePoolRect();
+  const loaded  = getLoadedPoolRect();
 
   push();
   rectMode(CORNERS);
-
-  const stopX = window.SYNAPSE_VESICLE_STOP_X;
-
-  // ---------------------------------------------------
-  // RESERVE POOL (LIGHT BLUE)
-  // ---------------------------------------------------
   noStroke();
+
+  // Reserve pool
   fill(poolBlue(45));
   rect(
-    -120, -36,
-     -40,  36
+    reserve.xMin, reserve.yMin,
+    reserve.xMax, reserve.yMax
   );
 
-  // ---------------------------------------------------
-  // LOADED POOL (DARKER BLUE)
-  // ---------------------------------------------------
+  // Loaded pool
   fill(poolBlueDark(65));
   rect(
-    -40,
-    -26,
-     stopX,
-     26
+    loaded.xMin, loaded.yMin,
+    loaded.xMax, loaded.yMax
   );
 
-  // ---------------------------------------------------
-  // ORANGE BOUNDARIES (AUTHORITATIVE LIMITS)
-  // ---------------------------------------------------
+  // Boundaries
   noFill();
   stroke(boundaryOrange(220));
   strokeWeight(2);
 
-  // Reserve pool boundary
   rect(
-    -120, -36,
-     -40,  36
+    reserve.xMin, reserve.yMin,
+    reserve.xMax, reserve.yMax
   );
 
-  // Loaded pool boundary
   rect(
-    -40,
-    -26,
-     stopX,
-     26
+    loaded.xMin, loaded.yMin,
+    loaded.xMax, loaded.yMax
+  );
+
+  // Fusion plane
+  stroke(255, 80, 80, 200);
+  line(
+    window.SYNAPSE_VESICLE_STOP_X,
+    -400,
+    window.SYNAPSE_VESICLE_STOP_X,
+     400
   );
 
   pop();
@@ -145,7 +134,7 @@ function drawVesiclePoolsDebug() {
 
 // -----------------------------------------------------
 // VESICLE MEMBRANES
-// SEALED → OMEGA FUSION → COLLAPSE
+// SEALED → OMEGA → COLLAPSE
 // -----------------------------------------------------
 function drawVesicleMembranes() {
 
@@ -154,22 +143,13 @@ function drawVesicleMembranes() {
 
   const r       = window.SYNAPSE_VESICLE_RADIUS;
   const strokeW = window.SYNAPSE_VESICLE_STROKE;
-  const dockX   = getRenderDockX();
-
-  // Optional debug: true dock plane
-  if (window.SHOW_SYNAPSE_DEBUG) {
-    push();
-    stroke(0, 180, 255);
-    strokeWeight(2);
-    line(dockX, -300, dockX, 300);
-    pop();
-  }
+  const dockX   = window.SYNAPSE_VESICLE_STOP_X;
 
   stroke(vesicleBorderColor());
 
   for (const v of vesicles) {
 
-    if (v.x == null || v.y == null) continue;
+    if (!Number.isFinite(v.x) || !Number.isFinite(v.y)) continue;
 
     let fillAlpha = 40;
     if (v.state === "PRIMING" || v.state === "LOADING") fillAlpha = 70;
@@ -182,7 +162,6 @@ function drawVesicleMembranes() {
       v.state === "MEMBRANE_MERGE" &&
       Number.isFinite(v.flatten)
     ) {
-
       const t = constrain(v.flatten, 0, 1);
       const currentR = r * (1 - t);
       const cx       = dockX - currentR;
@@ -221,7 +200,7 @@ function drawVesicleContents() {
   if (!Array.isArray(vesicles)) return;
 
   const r     = window.SYNAPSE_VESICLE_RADIUS;
-  const dockX = getRenderDockX();
+  const dockX = window.SYNAPSE_VESICLE_STOP_X;
 
   fill(ntFillColor());
   noStroke();
@@ -229,31 +208,26 @@ function drawVesicleContents() {
   for (const v of vesicles) {
 
     if (!Array.isArray(v.nts) || v.nts.length === 0) continue;
-    if (v.x == null || v.y == null) continue;
+    if (!Number.isFinite(v.x) || !Number.isFinite(v.y)) continue;
 
+    // During merge, spill toward cleft
     if (
       v.state === "MEMBRANE_MERGE" &&
       Number.isFinite(v.flatten)
     ) {
-
       const t = constrain(v.flatten, 0, 1);
       const currentR = r * (1 - t);
       const cx       = dockX - currentR;
 
-      if (t < 0.5) {
-        for (const p of v.nts) {
-          circle(cx + p.x, v.y + p.y, 3);
-        }
-      } else {
-        const spill = map(t, 0.5, 1.0, 0, 18);
-        for (const p of v.nts) {
-          circle(cx + p.x + spill, v.y + p.y, 3);
-        }
-      }
+      const spill = t < 0.5 ? 0 : map(t, 0.5, 1.0, 0, 18);
 
+      for (const p of v.nts) {
+        circle(cx + p.x + spill, v.y + p.y, 3);
+      }
       continue;
     }
 
+    // Normal sealed vesicle
     for (const p of v.nts) {
       circle(v.x + p.x, v.y + p.y, 3);
     }
@@ -296,16 +270,22 @@ function drawPrimingParticles() {
 
 
 // -----------------------------------------------------
-// OPTIONAL DEBUG HELPERS (READ-ONLY)
+// OPTIONAL DEBUG: VESICLE CENTERS
 // -----------------------------------------------------
 window.drawVesicleCenters = function () {
   push();
   fill(255, 0, 0);
   noStroke();
   for (const v of window.synapseVesicles || []) {
-    if (v.x != null && v.y != null) {
+    if (Number.isFinite(v.x) && Number.isFinite(v.y)) {
       circle(v.x, v.y, 4);
     }
   }
   pop();
 };
+
+
+// -----------------------------------------------------
+// GLOBAL EXPORT
+// -----------------------------------------------------
+window.drawSynapseVesicleGeometry = drawSynapseVesicleGeometry;
