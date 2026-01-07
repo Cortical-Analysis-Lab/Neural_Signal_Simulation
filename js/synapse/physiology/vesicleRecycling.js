@@ -8,7 +8,7 @@ console.log("♻️ vesicleRecycling loaded");
 //
 // RESPONSIBILITIES:
 // ✔ Visual endocytosis sequence
-// ✔ Vesicle birth at fusion plane (single authority)
+// ✔ Vesicle birth at fusion site (seed-owned)
 // ✔ Gentle cytosolic bias on birth (NO teleport)
 // ✔ Clean handoff to pool system
 //
@@ -21,13 +21,13 @@ console.log("♻️ vesicleRecycling loaded");
 // HARD RULES:
 // • Newly born vesicles MUST start as EMPTY
 // • Pool system owns them immediately
-// • Recycling NEVER creates releaseBias vesicles
+// • Recycling NEVER queries synapse geometry
 //
 // =====================================================
 
 
 // -----------------------------------------------------
-// ENDOCYTOSIS SEEDS (MEMBRANE PATCHES)
+// ENDOCYTOSIS SEEDS (WORLD SPACE, RELEASE-OWNED)
 // -----------------------------------------------------
 window.endocytosisSeeds = window.endocytosisSeeds || [];
 
@@ -61,14 +61,6 @@ function updateVesicleRecycling() {
 
   const MAX_VES  = window.SYNAPSE_MAX_VESICLES;
   const V_RADIUS = window.SYNAPSE_VESICLE_RADIUS;
-
-  // 🔴 SINGLE AUTHORITATIVE PHYSICS PLANE
-  const fusionX = window.SYNAPSE_VESICLE_STOP_X;
-
-  if (!Number.isFinite(fusionX)) {
-    console.error("❌ SYNAPSE_VESICLE_STOP_X is invalid");
-    return;
-  }
 
   for (let i = seeds.length - 1; i >= 0; i--) {
 
@@ -118,8 +110,9 @@ function updateVesicleRecycling() {
 
           vesicles.push({
 
-            // Born just inside cytosol (right of fusion plane)
-            x: fusionX + V_RADIUS + random(6, 12),
+            // 🔑 Birth is relative to endocytosis seed
+            //     (seed already sits on fusion plane)
+            x: e.x + V_RADIUS + random(6, 12),
             y: e.y + random(-4, 4),
 
             // Gentle inward bias — pool motion takes over
@@ -148,7 +141,7 @@ function updateVesicleRecycling() {
           });
         }
 
-        // Remove seed — NO RESPAWN
+        // 🔒 Seed is consumed — NO DUPLICATION
         seeds.splice(i, 1);
       }
     }
