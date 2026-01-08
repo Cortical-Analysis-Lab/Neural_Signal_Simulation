@@ -1,14 +1,13 @@
-console.log("🫧 vesicleLoading loaded");
+console.log("🫧 vesicleLoading loaded — CHEMISTRY RESTORED");
 
 // =====================================================
 // SYNAPTIC VESICLE LOADING — CHEMISTRY ONLY
 // =====================================================
 //
-// RESPONSIBILITIES:
-// ✔ H⁺ priming
+// ✔ H⁺ priming (chemotactic)
 // ✔ ATP priming + hydrolysis
 // ✔ NT loading into vesicle lumen
-// ✔ Visible chemistry dwell before transport
+// ✔ Visible dwell before transport
 //
 // HARD RULES:
 // • Chemistry exists ONLY in presynaptic space
@@ -33,7 +32,7 @@ const VESICLE_STATE = {
   PRIMING:       "PRIMING",
   PRIMED:        "PRIMED",
   LOADING:       "LOADING",
-  LOADED_HOLD:   "LOADED_HOLD",   // 🧠 NEW: visible dwell
+  LOADED_HOLD:   "LOADED_HOLD",
   LOADED_TRAVEL: "LOADED_TRAVEL",
   LOADED:        "LOADED"
 };
@@ -42,17 +41,16 @@ const VESICLE_STATE = {
 // -----------------------------------------------------
 // CHEMISTRY PARAMETERS
 // -----------------------------------------------------
-const H_SPEED    = window.SYNAPSE_H_SPEED;
-const H_LIFE     = window.SYNAPSE_H_LIFE;
+const H_SPEED    = window.SYNAPSE_H_SPEED    ?? 0.35;
+const H_LIFE     = window.SYNAPSE_H_LIFE     ?? 140;
 
-const ATP_SPEED  = window.SYNAPSE_ATP_SPEED;
-const ATP_LIFE   = window.SYNAPSE_ATP_LIFE;
-const ATP_BOUNCE = window.SYNAPSE_ATP_BOUNCE;
+const ATP_SPEED  = window.SYNAPSE_ATP_SPEED  ?? 0.45;
+const ATP_LIFE   = window.SYNAPSE_ATP_LIFE   ?? 200;
+const ATP_BOUNCE = window.SYNAPSE_ATP_BOUNCE ?? 0.45;
 
-const NT_TARGET  = window.SYNAPSE_NT_TARGET;
-const NT_RATE    = window.SYNAPSE_NT_PACK_RATE;
+const NT_TARGET  = window.SYNAPSE_NT_TARGET  ?? 24;
+const NT_RATE    = window.SYNAPSE_NT_PACK_RATE ?? 0.35;
 
-// Visible dwell time after loading (frames)
 const LOADED_HOLD_FRAMES = 90;
 
 
@@ -78,7 +76,7 @@ function hasActiveLoadingVesicle() {
 
 
 // -----------------------------------------------------
-// SPAWN PRIMING PARTICLES (ROBUST)
+// SPAWN PRIMING PARTICLES
 // -----------------------------------------------------
 function spawnPrimingParticles(v) {
 
@@ -88,8 +86,8 @@ function spawnPrimingParticles(v) {
   // --- H⁺ ---
   const a1 = random(TWO_PI);
   window.synapseH.push({
-    x: v.x + cos(a1) * 32,
-    y: v.y + sin(a1) * 32,
+    x: v.x + cos(a1) * 36,
+    y: v.y + sin(a1) * 36,
     vx: -cos(a1) * H_SPEED,
     vy: -sin(a1) * H_SPEED,
     target: v,
@@ -99,8 +97,8 @@ function spawnPrimingParticles(v) {
   // --- ATP ---
   const a2 = random(TWO_PI);
   window.synapseATP.push({
-    x: v.x + cos(a2) * 38,
-    y: v.y + sin(a2) * 38,
+    x: v.x + cos(a2) * 42,
+    y: v.y + sin(a2) * 42,
     vx: -cos(a2) * ATP_SPEED,
     vy: -sin(a2) * ATP_SPEED,
     state: "ATP",
@@ -123,13 +121,14 @@ function updateVesicleLoading() {
   // BEGIN PRIMING (SERIAL)
   // ---------------------------------------------------
   if (!hasActiveLoadingVesicle()) {
+
     const next = vesicles.find(v => v.state === VESICLE_STATE.EMPTY);
     if (next) {
-      next.state       = VESICLE_STATE.PRIMING;
-      next.primedH     = false;
-      next.primedATP   = false;
-      next.nts         = [];
-      next.holdTimer   = 0;
+      next.state     = VESICLE_STATE.PRIMING;
+      next.primedH   = false;
+      next.primedATP = false;
+      next.nts       = [];
+      next.holdTimer = 0;
       spawnPrimingParticles(next);
     }
   }
