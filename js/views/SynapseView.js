@@ -118,15 +118,7 @@ function drawSynapseView() {
   drawPreSynapse?.();
   drawSynapticBurst?.();
 
-  // Optional debug: vesicle centers (same transform)
-  if (
-    window.SHOW_SYNAPSE_DEBUG &&
-    typeof drawVesicleCenters === "function"
-  ) {
-    drawVesicleCenters();
-  }
-
-  pop();
+   pop();
 
   // ---------------- POSTSYNAPTIC TERMINAL --------------
   push();
