@@ -3,55 +3,30 @@ console.log("🟡 preSynapse loaded — GEOMETRY AUTHORITY");
 // =====================================================
 // PRESYNAPTIC GEOMETRY — SINGLE SOURCE OF TRUTH
 // =====================================================
-//
-// ✔ Owns ALL presynaptic spatial constants
-// ✔ Owns vesicle stop / fusion plane
-// ✔ Owns terminal radius + center
-// ✔ Owns AP path calibration (visual only)
-//
-// ❌ No pools
-// ❌ No motion
-// ❌ No chemistry
-//
-// =====================================================
 
+// ---------------- AUTHORITATIVE CONSTANTS ----------------
 
-// =====================================================
-// 🔴 AUTHORITATIVE PRESYNAPTIC CONSTANTS
-// =====================================================
-
-// Terminal geometry
 window.SYNAPSE_TERMINAL_CENTER_Y = 0;
 window.SYNAPSE_TERMINAL_RADIUS   = 130;
 
-// Vesicle fusion / stop plane (membrane-adjacent)
-window.SYNAPSE_VESICLE_STOP_X    = 16;
+window.SYNAPSE_VESICLE_STOP_X   = 16;
+window.SYNAPSE_BACK_OFFSET_X    = 60;
 
-// Reserve pool offset (deep cytosol direction)
-window.SYNAPSE_BACK_OFFSET_X     = 60;
+window.SYNAPSE_VESICLE_RADIUS   = 10;
+window.SYNAPSE_VESICLE_STROKE   = 4;
 
-// Vesicle visuals
-window.SYNAPSE_VESICLE_RADIUS    = 10;
-window.SYNAPSE_VESICLE_STROKE    = 4;
+window.SYNAPSE_MAX_VESICLES     = 7;
 
-// Pool capacity
-window.SYNAPSE_MAX_VESICLES      = 7;
-
-// Debug master toggle
 window.SHOW_SYNAPSE_DEBUG = true;
 
+// ---------------- CONSOLE VERIFICATION ----------------
 
-// =====================================================
-// CONSOLE VERIFICATION
-// =====================================================
 console.log("▶ SYNAPSE_VESICLE_STOP_X =", window.SYNAPSE_VESICLE_STOP_X);
 console.log("▶ SYNAPSE_VESICLE_RADIUS =", window.SYNAPSE_VESICLE_RADIUS);
 console.log("▶ SYNAPSE_TERMINAL_RADIUS =", window.SYNAPSE_TERMINAL_RADIUS);
 
+// ---------------- AP PATH ----------------
 
-// =====================================================
-// PRESYNAPTIC AP CONDUCTION PATH (LOCAL GEOMETRY)
-// =====================================================
 window.PRESYNAPTIC_AP_PATH = [
   { x: 153.1, y:  4.7 },
   { x: 170.5, y: -5.1 },
@@ -68,36 +43,40 @@ window.PRESYNAPTIC_AP_PATH = [
   { x: 153.5, y:  28.7 }
 ];
 
-
-// =====================================================
-// 🔧 AP PATH CALIBRATION (VIEW ONLY)
-// =====================================================
 window.AP_PATH_SCALE = 6.0;
-
-window.AP_PATH_OFFSET = {
-  x: -120,
-  y: 0
-};
+window.AP_PATH_OFFSET = { x: -120, y: 0 };
 
 window.calibratePath = function (path) {
   return path.map(p => ({
-    x: (p.x * window.AP_PATH_SCALE) + window.AP_PATH_OFFSET.x,
-    y: (p.y * window.AP_PATH_SCALE) + window.AP_PATH_OFFSET.y
+    x: p.x * window.AP_PATH_SCALE + window.AP_PATH_OFFSET.x,
+    y: p.y * window.AP_PATH_SCALE + window.AP_PATH_OFFSET.y
   }));
 };
-
 
 // =====================================================
 // PRESYNAPTIC DRAW (GEOMETRY ONLY)
 // =====================================================
+
 window.drawPreSynapse = function () {
 
   push();
 
   // ---------------------------------------------------
-  // 🔴 DEBUG: TRUE LOCAL-SPACE VESICLE CENTERS
-  // (DRAW BEFORE ANY ROTATION)
+  // CANONICAL ORIENTATION
   // ---------------------------------------------------
+  rotate(PI);
+
+  // ---------------------------------------------------
+  // GROUND-TRUTH GEOMETRY
+  // ---------------------------------------------------
+  drawTNeuronShape(1);
+
+  drawVesicleStopPlaneDebug();
+
+  // Vesicles (membranes + contents)
+  drawSynapseVesicleGeometry?.();
+
+  // 🔴 DEBUG: VESICLE CENTERS (CORRECT SPACE)
   if (
     window.SHOW_SYNAPSE_DEBUG &&
     typeof drawVesicleCenters === "function"
@@ -106,33 +85,11 @@ window.drawPreSynapse = function () {
   }
 
   // ---------------------------------------------------
-  // CANONICAL ORIENTATION
-  // ---------------------------------------------------
-  // Presynaptic neuron faces synaptic cleft
-  rotate(PI);
-
-  // ---------------------------------------------------
-  // GROUND-TRUTH GEOMETRY
-  // ---------------------------------------------------
-  drawTNeuronShape(1);
-
-  // Vesicle stop / fusion plane
-  drawVesicleStopPlaneDebug();
-
-  // Vesicles (render-only)
-  if (typeof drawSynapseVesicleGeometry === "function") {
-    drawSynapseVesicleGeometry();
-  }
-
-  // ---------------------------------------------------
   // TERMINAL AP (VISUAL ONLY)
   // ---------------------------------------------------
   const calibratedPath = calibratePath(window.PRESYNAPTIC_AP_PATH);
-  if (typeof drawTerminalAP === "function") {
-    drawTerminalAP(calibratedPath);
-  }
+  drawTerminalAP?.(calibratedPath);
 
-  // Optional AP debug dots
   if (window.apActive === true) {
     drawAPDebugDots(calibratedPath);
   }
@@ -140,10 +97,10 @@ window.drawPreSynapse = function () {
   pop();
 };
 
+// =====================================================
+// DEBUG: VESICLE STOP / FUSION PLANE
+// =====================================================
 
-// =====================================================
-// 🔵 DEBUG: VESICLE STOP / FUSION PLANE
-// =====================================================
 window.DEBUG_PLANE_HEIGHT = 140;
 
 window.drawVesicleStopPlaneDebug = function () {
@@ -169,10 +126,10 @@ window.drawVesicleStopPlaneDebug = function () {
   pop();
 };
 
-
 // =====================================================
 // DEBUG: AP PATH DOTS
 // =====================================================
+
 window.drawAPDebugDots = function (path) {
 
   const pulse = 0.5 + 0.5 * sin(frameCount * 0.2);
