@@ -1,4 +1,4 @@
-console.log("🫧 synapticBurst loaded — PRESYNAPTIC LOCAL");
+console.log("🫧 synapticBurst loaded — PRESYNAPTIC LOCAL (ROTATION FIXED)");
 
 // =====================================================
 // SYNAPTIC NEUROTRANSMITTER BURST SYSTEM (LOCAL SPACE)
@@ -82,11 +82,15 @@ window.addEventListener("synapticRelease", (e) => {
   if (count <= 0) return;
 
   // ---------------------------------------------------
-  // Fan direction in LOCAL space
+  // Fan direction in LOCAL presynaptic space
   //
   // Presynaptic convention:
   // • +X → toward cleft
   // • normalX < 0 → release toward +X
+  //
+  // 🔑 IMPORTANT:
+  // drawPreSynapse() applies rotate(PI),
+  // so we must rotate velocity vectors by +PI here
   // ---------------------------------------------------
   const baseAngle = normalX < 0 ? 0 : Math.PI;
 
@@ -94,6 +98,7 @@ window.addEventListener("synapticRelease", (e) => {
 
     const theta =
       baseAngle +
+      Math.PI +   // 🔥 ALIGN VELOCITY WITH ROTATED PRESYNAPSE
       random(-NT_ARC_WIDTH, NT_ARC_WIDTH) * spread;
 
     const speed = random(NT_SPEED_MIN, NT_SPEED_MAX);
