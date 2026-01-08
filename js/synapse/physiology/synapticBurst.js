@@ -8,6 +8,7 @@ console.log("🫧 synapticBurst loaded — PRESYNAPTIC LOCAL (AUTHORITATIVE)");
 // • Presynaptic LOCAL space
 // • +X → toward synaptic cleft
 // • Drawn INSIDE drawPreSynapse()
+// • Inherits rotate(PI) implicitly via parent draw
 // • NO rotation compensation here
 //
 // BIOLOGICAL MODEL:
@@ -44,7 +45,7 @@ const NT_LIFE_MAX  = 150;
 
 const NT_RADIUS    = 3;
 
-// Visual-only cleft depth (+X)
+// Visual-only cleft depth (+X direction)
 const CLEFT_LIMIT = 120;
 
 
@@ -119,6 +120,7 @@ function updateSynapticBurst() {
   const nts = window.synapticNTs;
   if (!nts || nts.length === 0) return;
 
+  // 🔴 Single authoritative membrane plane (LOCAL)
   const MEMBRANE_X = window.SYNAPSE_VESICLE_STOP_X;
   if (!Number.isFinite(MEMBRANE_X)) return;
 
@@ -126,7 +128,9 @@ function updateSynapticBurst() {
 
     const p = nts[i];
 
-    // Brownian diffusion
+    // -------------------------------------------------
+    // Brownian diffusion (dominant)
+    // -------------------------------------------------
     p.vx += random(-NT_DIFFUSION, NT_DIFFUSION);
     p.vy += random(-NT_DIFFUSION, NT_DIFFUSION);
 
@@ -134,19 +138,26 @@ function updateSynapticBurst() {
     p.x += p.vx;
     p.y += p.vy;
 
-    // Drag
+    // Drag (cleft viscosity)
     p.vx *= NT_DRAG;
     p.vy *= NT_DRAG;
 
-    // -----------------------------------------------
-    // HARD EXCLUSION — cannot re-enter presynapse
-    // -----------------------------------------------
+    // -------------------------------------------------
+    // HARD EXCLUSION — NTs must NOT re-enter presynapse
+    //
+    // Presynaptic local space:
+    // • membrane sits at MEMBRANE_X
+    // • presynapse is x < MEMBRANE_X
+    // • cleft is x > MEMBRANE_X
+    // -------------------------------------------------
     if (p.x < MEMBRANE_X + 2) {
       p.x  = MEMBRANE_X + 2;
       p.vx = Math.abs(p.vx) * 0.25;
     }
 
+    // -------------------------------------------------
     // Soft fade deep into cleft
+    // -------------------------------------------------
     if (Math.abs(p.x - MEMBRANE_X) > CLEFT_LIMIT) {
       p.alpha -= 3.0;
     }
