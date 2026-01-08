@@ -1,50 +1,32 @@
-console.log("♻️ vesicleRecycling loaded");
+console.log("♻️ vesicleRecycling loaded — AUTHORITATIVE");
 
 // =====================================================
 // VESICLE RECYCLING — BIOLOGICAL ENDOCYTOSIS
 // =====================================================
 //
-// Membrane Patch → Bud → Pinch → Return-to-Pool
-//
-// RESPONSIBILITIES:
-// ✔ Visual endocytosis sequence
-// ✔ Vesicle birth at fusion site (seed-owned)
-// ✔ Gentle cytosolic bias on birth (NO teleport)
-// ✔ Clean handoff to pool system
-//
-// NON-RESPONSIBILITIES:
-// ✘ No Brownian motion
-// ✘ No confinement
-// ✘ No loading or priming
-// ✘ No fusion logic
-//
-// HARD RULES:
-// • Newly born vesicles MUST start as EMPTY
-// • Pool system owns them immediately
-// • Recycling NEVER queries synapse geometry
+// ✔ Endocytosis seed → vesicle birth
+// ✔ Directed return to reserve pool
+// ✔ Hard exclusion from motion / release during travel
+// ✔ Clean pool handoff (NO drift)
 //
 // =====================================================
 
 
 // -----------------------------------------------------
-// ENDOCYTOSIS SEEDS (WORLD SPACE, RELEASE-OWNED)
+// ENDOCYTOSIS SEEDS (PRESYNAPTIC LOCAL SPACE)
 // -----------------------------------------------------
 window.endocytosisSeeds = window.endocytosisSeeds || [];
 
 
 // -----------------------------------------------------
-// SPAWN ENDOCYTOSIS SEED
-// (CALLED BY vesicleRelease.js — WORLD SPACE)
+// SPAWN ENDOCYTOSIS SEED (FROM vesicleRelease)
 // -----------------------------------------------------
 window.spawnEndocytosisSeed = function (x, y) {
-
   window.endocytosisSeeds.push({
     x,
     y,
-
     timer: 0,
     stage: "PATCH", // PATCH → BUD → PINCH
-
     radius: 2,
     alpha: 180
   });
@@ -52,7 +34,7 @@ window.spawnEndocytosisSeed = function (x, y) {
 
 
 // -----------------------------------------------------
-// UPDATE RECYCLING — STATE MACHINE + BIRTH
+// UPDATE RECYCLING — AUTHORITATIVE
 // -----------------------------------------------------
 function updateVesicleRecycling() {
 
@@ -62,88 +44,103 @@ function updateVesicleRecycling() {
   const MAX_VES  = window.SYNAPSE_MAX_VESICLES;
   const V_RADIUS = window.SYNAPSE_VESICLE_RADIUS;
 
+  const STOP_X = window.SYNAPSE_VESICLE_STOP_X;
+  const BACK_X = window.SYNAPSE_BACK_OFFSET_X;
+
+  // ===================================================
+  // ENDOCYTOSIS SEED STATE MACHINE
+  // ===================================================
   for (let i = seeds.length - 1; i >= 0; i--) {
 
     const e = seeds[i];
     e.timer++;
 
-    // =================================================
-    // PATCH — membrane indentation
-    // =================================================
+    // ---------------- PATCH ----------------
     if (e.stage === "PATCH") {
-
       e.radius = lerp(2, 6, e.timer / 40);
-
       if (e.timer >= 40) {
         e.stage = "BUD";
         e.timer = 0;
       }
     }
 
-    // =================================================
-    // BUD — vesicle curvature forms
-    // =================================================
+    // ---------------- BUD ----------------
     else if (e.stage === "BUD") {
-
       e.radius = lerp(6, V_RADIUS, e.timer / 60);
       e.alpha  = lerp(180, 220, e.timer / 60);
-
       if (e.timer >= 60) {
         e.stage = "PINCH";
         e.timer = 0;
       }
     }
 
-    // =================================================
-    // PINCH — scission & vesicle birth
-    // =================================================
+    // ---------------- PINCH → BIRTH ----------------
     else if (e.stage === "PINCH") {
 
       e.radius = lerp(V_RADIUS, V_RADIUS * 0.85, e.timer / 30);
 
       if (e.timer >= 30) {
 
-        // ---------------------------------------------
-        // CREATE VESICLE (POOL-OWNED IMMEDIATELY)
-        // ---------------------------------------------
         if (vesicles.length < MAX_VES) {
 
           vesicles.push({
 
-            // 🔑 Birth is relative to endocytosis seed
-            //     (seed already sits on fusion plane)
-            x: e.x + V_RADIUS + random(6, 12),
+            // Born just inside cytosol
+            x: e.x + V_RADIUS + random(8, 14),
             y: e.y + random(-4, 4),
 
-            // Gentle inward bias — pool motion takes over
-            vx: random(0.03, 0.06),
-            vy: random(-0.02, 0.02),
+            // Strong directed return
+            vx: random(0.12, 0.18),
+            vy: random(-0.04, 0.04),
 
             radius: V_RADIUS,
 
-            // ------------------------------------------
-            // CANONICAL STATE
-            // ------------------------------------------
-            state: "EMPTY",
+            // --------------------------
+            // CANONICAL RETURN STATE
+            // --------------------------
+            state: "RECYCLED_TRAVEL",
 
-            primedH:   false,
+            primedH: false,
             primedATP: false,
-            nts:       [],
+            nts: [],
 
-            // ------------------------------------------
-            // OWNERSHIP FLAGS (POOL ONLY)
-            // ------------------------------------------
-            owner:       "POOL",
-            ownerFrame:  frameCount,
-
+            // 🔒 OWNERSHIP LOCK
             releaseBias: false,
-            recycleBias: false
+            recycleBias: true
           });
         }
 
-        // 🔒 Seed is consumed — NO DUPLICATION
+        // Seed consumed
         seeds.splice(i, 1);
       }
+    }
+  }
+
+  // ===================================================
+  // RECYCLED_TRAVEL → EMPTY (POOL HANDOFF)
+  // ===================================================
+  const RESERVE_TARGET_X = STOP_X + BACK_X + 20;
+
+  for (const v of vesicles) {
+
+    if (v.state !== "RECYCLED_TRAVEL") continue;
+
+    // Directed inward pull
+    v.vx += (RESERVE_TARGET_X - v.x) * 0.03;
+    v.vx *= 0.82;
+    v.vy *= 0.94;
+
+    v.x += v.vx;
+    v.y += v.vy;
+
+    // --------------------------
+    // HANDOFF TO POOL SYSTEM
+    // --------------------------
+    if (v.x >= RESERVE_TARGET_X - 8) {
+      v.state       = "EMPTY";
+      v.recycleBias = false;
+      v.vx = 0;
+      v.vy = 0;
     }
   }
 }
@@ -153,6 +150,8 @@ function updateVesicleRecycling() {
 // DRAW ENDOCYTOSIS (VISUAL ONLY)
 // -----------------------------------------------------
 function drawVesicleRecycling() {
+
+  if (!window.endocytosisSeeds.length) return;
 
   push();
   noStroke();
@@ -167,7 +166,7 @@ function drawVesicleRecycling() {
 
 
 // -----------------------------------------------------
-// PUBLIC EXPORTS
+// EXPORTS
 // -----------------------------------------------------
 window.updateVesicleRecycling = updateVesicleRecycling;
 window.drawVesicleRecycling  = drawVesicleRecycling;
