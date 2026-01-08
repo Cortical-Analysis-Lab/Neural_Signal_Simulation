@@ -1,71 +1,41 @@
-console.log("🫧 vesicleMotion loaded");
+console.log("🫧 vesicleMotion loaded — corrected");
 
 // =====================================================
 // VESICLE MOTION — PURE KINEMATICS (POOL-OWNED)
 // =====================================================
 //
-// COORDINATE CONTRACT:
-// • Presynaptic LOCAL space
-// • +X → toward membrane
-// • -X → deeper cytosol
-// • NO flips
-// • NO view transforms
-//
-// RESPONSIBILITIES:
-// ✔ Brownian drift (reserve + loaded only)
-// ✔ Velocity damping
+// ✔ Brownian drift (energy-injecting)
+// ✔ Gentle damping (non-destructive)
 // ✔ Position integration
-// ✔ Vesicle–vesicle soft collisions (non-docked only)
-//
-// HARD RULES:
-// • releaseBias vesicles are UNTOUCHABLE
-// • LOADED vesicles do NOT collide
-// • LOADED_TRAVEL vesicles do NOT collide
+// ✔ Reserve-pool soft collisions
 //
 // =====================================================
 
 
 // -----------------------------------------------------
-// 🔧 TUNING — BIOLOGICALLY CALM
+// 🔧 TUNING — BIOLOGICALLY CALM BUT VISIBLE
 // -----------------------------------------------------
 
-// Thermal motion (reserve pool)
-const THERMAL_X = 0.012;
-const THERMAL_Y = 0.004;
+// Brownian noise (energy source)
+const THERMAL_RESERVE_X = 0.035;
+const THERMAL_RESERVE_Y = 0.018;
 
-// Loaded vesicles barely jitter
-const THERMAL_LOADED_SCALE = 0.15;
+const THERMAL_LOADED_X  = 0.010;
+const THERMAL_LOADED_Y  = 0.006;
 
-// Drag (anisotropic)
-const DRAG_X = 0.985;
-const DRAG_Y = 0.950;
+// Drag (must be weaker than noise injection)
+const DRAG_X = 0.992;
+const DRAG_Y = 0.985;
 
-// Collision impulse strength
-const COLLISION_PUSH_RESERVE = 0.08;
-const COLLISION_PUSH_TRAVEL  = 0.04;
+// Collision impulse
+const COLLISION_PUSH = 0.06;
 
-
-// -----------------------------------------------------
-// APPLY BROWNIAN DRIFT
-// -----------------------------------------------------
-function applyBrownianMotion(v) {
-
-  // 🚫 No noise during directed travel
-  if (v.state === "LOADED_TRAVEL") return;
-
-  // 🔒 Docked vesicles: extremely low noise
-  const scale =
-    v.state === "LOADED"
-      ? THERMAL_LOADED_SCALE
-      : 1.0;
-
-  v.vx += random(-THERMAL_X, THERMAL_X) * scale;
-  v.vy += random(-THERMAL_Y, THERMAL_Y) * scale;
-}
+// Minimum motion floor (prevents freeze)
+const MIN_V = 0.0008;
 
 
 // -----------------------------------------------------
-// APPLY VELOCITY DAMPING
+// APPLY DAMPING (FIRST)
 // -----------------------------------------------------
 function applyDamping(v) {
   v.vx *= DRAG_X;
@@ -74,7 +44,29 @@ function applyDamping(v) {
 
 
 // -----------------------------------------------------
-// INTEGRATE POSITION (SAFE)
+// APPLY BROWNIAN MOTION (ENERGY INJECTION)
+// -----------------------------------------------------
+function applyBrownianMotion(v) {
+
+  if (v.releaseBias === true) return;
+  if (v.state === "LOADED_TRAVEL") return;
+
+  if (v.state === "LOADED") {
+    v.vx += random(-THERMAL_LOADED_X, THERMAL_LOADED_X);
+    v.vy += random(-THERMAL_LOADED_Y, THERMAL_LOADED_Y);
+  } else {
+    v.vx += random(-THERMAL_RESERVE_X, THERMAL_RESERVE_X);
+    v.vy += random(-THERMAL_RESERVE_Y, THERMAL_RESERVE_Y);
+  }
+
+  // Prevent total numerical freeze
+  if (Math.abs(v.vx) < MIN_V) v.vx += random(-MIN_V, MIN_V);
+  if (Math.abs(v.vy) < MIN_V) v.vy += random(-MIN_V, MIN_V);
+}
+
+
+// -----------------------------------------------------
+// INTEGRATE POSITION
 // -----------------------------------------------------
 function integratePosition(v) {
 
@@ -90,32 +82,21 @@ function integratePosition(v) {
 
 
 // -----------------------------------------------------
-// RESOLVE VESICLE–VESICLE COLLISIONS
+// RESOLVE RESERVE-POOL COLLISIONS
 // -----------------------------------------------------
-//
-// • Only reserve-pool vesicles collide
-// • LOADED and LOADED_TRAVEL are immune
-// • releaseBias vesicles are sacred
-//
 function resolveCollisions(vesicles) {
 
   for (let i = 0; i < vesicles.length; i++) {
 
     const a = vesicles[i];
-
-    if (a.releaseBias === true) continue;
-    if (a.state === "LOADED") continue;
-    if (a.state === "LOADED_TRAVEL") continue;
-    if (!Number.isFinite(a.x)) continue;
+    if (a.releaseBias) continue;
+    if (a.state !== "EMPTY") continue;
 
     for (let j = i + 1; j < vesicles.length; j++) {
 
       const b = vesicles[j];
-
-      if (b.releaseBias === true) continue;
-      if (b.state === "LOADED") continue;
-      if (b.state === "LOADED_TRAVEL") continue;
-      if (!Number.isFinite(b.x)) continue;
+      if (b.releaseBias) continue;
+      if (b.state !== "EMPTY") continue;
 
       const dx = b.x - a.x;
       const dy = b.y - a.y;
@@ -128,17 +109,15 @@ function resolveCollisions(vesicles) {
         const ny = dy / dist;
         const overlap = (minDist - dist) * 0.5;
 
-        // --- positional separation
         a.x -= nx * overlap;
         a.y -= ny * overlap;
         b.x += nx * overlap;
         b.y += ny * overlap;
 
-        // --- gentle impulse
-        a.vx -= nx * COLLISION_PUSH_RESERVE;
-        a.vy -= ny * COLLISION_PUSH_RESERVE * 0.6;
-        b.vx += nx * COLLISION_PUSH_RESERVE;
-        b.vy += ny * COLLISION_PUSH_RESERVE * 0.6;
+        a.vx -= nx * COLLISION_PUSH;
+        a.vy -= ny * COLLISION_PUSH * 0.6;
+        b.vx += nx * COLLISION_PUSH;
+        b.vy += ny * COLLISION_PUSH * 0.6;
       }
     }
   }
@@ -146,38 +125,37 @@ function resolveCollisions(vesicles) {
 
 
 // -----------------------------------------------------
-// MAIN UPDATE — MOTION AUTHORITY ONLY
+// MAIN UPDATE
 // -----------------------------------------------------
 function updateVesicleMotion() {
 
   const vesicles = window.synapseVesicles;
   if (!Array.isArray(vesicles)) return;
 
-  // ---------------------------------------------------
-  // STOCHASTIC MOTION + DAMPING
-  // ---------------------------------------------------
+  // 1️⃣ Damping (retain inertia)
   for (const v of vesicles) {
-    if (v.releaseBias === true) continue;
-    applyBrownianMotion(v);
+    if (v.releaseBias) continue;
     applyDamping(v);
   }
 
-  // ---------------------------------------------------
-  // COLLISIONS (RESERVE ONLY)
-  // ---------------------------------------------------
+  // 2️⃣ Brownian injection
+  for (const v of vesicles) {
+    if (v.releaseBias) continue;
+    applyBrownianMotion(v);
+  }
+
+  // 3️⃣ Collisions (reserve only)
   resolveCollisions(vesicles);
 
-  // ---------------------------------------------------
-  // POSITION INTEGRATION
-  // ---------------------------------------------------
+  // 4️⃣ Integrate
   for (const v of vesicles) {
-    if (v.releaseBias === true) continue;
+    if (v.releaseBias) continue;
     integratePosition(v);
   }
 }
 
 
 // -----------------------------------------------------
-// PUBLIC EXPORT
+// EXPORT
 // -----------------------------------------------------
 window.updateVesicleMotion = updateVesicleMotion;
