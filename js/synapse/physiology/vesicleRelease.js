@@ -1,4 +1,4 @@
-console.log("⚡ vesicleRelease loaded");
+console.log("⚡ vesicleRelease loaded — FIXED RECYCLE HANDOFF");
 
 // =====================================================
 // VESICLE RELEASE — BIOLOGICAL FUSION + AP RECRUITMENT
@@ -54,11 +54,11 @@ function applyFusionApproachForce(v) {
 
   const pull = constrain(dx * 0.025, -0.35, 0.35);
 
-  // Only membrane-normal force
+  // Membrane-normal force only
   v.vx += pull;
   v.x  += v.vx;
 
-  // Gentle damping (retain lateral spread)
+  // Gentle damping
   v.vx *= 0.90;
   v.vy *= 0.95;
 }
@@ -71,18 +71,16 @@ function triggerVesicleReleaseFromAP() {
 
   const vesicles = window.synapseVesicles || [];
 
-  // ---------------------------------------------------
-  // CANDIDATES: membrane-staged, NOT chemistry-owned
-  // ---------------------------------------------------
+  // Candidates: membrane-staged vesicles only
   const loaded = vesicles.filter(v =>
-    v.state === "LOADED" &&        // ✅ ONLY staged vesicles
+    v.state === "LOADED" &&
     v.releaseBias !== true &&
     v.recycleBias !== true
   );
 
   if (loaded.length === 0) return;
 
-  // Closest to membrane plane first
+  // Closest to membrane first
   loaded.sort((a, b) => a.x - b.x);
 
   // ===================================================
@@ -121,7 +119,7 @@ function triggerVesicleReleaseFromAP() {
 
     v.state = "LOADED_TRAVEL";
 
-    // Ca²⁺-like bias (toward plane, not point)
+    // Ca²⁺-like bias toward plane (not point)
     v.vx *= 0.4;
     v.vx -= random(0.08, 0.14);
     v.vy += random(-0.02, 0.02);
@@ -229,7 +227,7 @@ function updateVesicleRelease() {
         v.vx = 0;
         v.vy = 0;
 
-        // 🔒 NTs MUST NOT EXIST DURING BUDDING
+        // NTs MUST NOT exist during budding
         v.nts = [];
       }
 
@@ -263,10 +261,33 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // RECYCLE TRAVEL — WAIT FOR POOLS
+    // RECYCLE TRAVEL — HANDOFF BACK TO POOLS
     // =================================================
     else if (v.state === "RECYCLE_TRAVEL") {
+
       v.recycleHold--;
+
+      if (v.recycleHold <= 0) {
+
+        // 🔁 OWNERSHIP HANDOFF
+        v.releaseBias = false;
+        v.recycleBias = false;
+        v.owner       = null;
+
+        // Clear release-only state
+        v.flatten        = undefined;
+        v.mergePhase     = undefined;
+        v.poreRadius     = undefined;
+        v.__mergeLocked  = false;
+
+        // Reset vesicle identity
+        v.state = "EMPTY";
+        v.timer = 0;
+
+        // 🔒 Kill residual momentum (CRITICAL)
+        v.vx = 0;
+        v.vy = 0;
+      }
     }
   }
 }
