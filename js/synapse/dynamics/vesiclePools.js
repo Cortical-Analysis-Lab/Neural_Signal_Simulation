@@ -1,4 +1,4 @@
-console.log("🧭 vesiclePools loaded");
+console.log("🧭 vesiclePools loaded — ELASTIC CONFINEMENT");
 
 // =====================================================
 // VESICLE POOLS — SPATIAL OWNERSHIP (AUTHORITATIVE)
@@ -8,14 +8,15 @@ console.log("🧭 vesiclePools loaded");
 // • Presynaptic LOCAL space
 // • +X → toward membrane / vesicle stop plane
 // • -X → deeper cytosol
-// • NO flips, NO view transforms
+// • NO flips
+// • NO view transforms
 //
 // RESPONSIBILITIES:
 // ✔ Reserve pool (deep cytosol)
 // ✔ Loaded pool (membrane-adjacent, NOT docked)
 // ✔ Explicit biological gap before docking plane
 // ✔ Smooth reserve → loaded travel (X-normal only)
-// ✔ HARD confinement for LOADED vesicles
+// ✔ Elastic confinement (energy preserving)
 //
 // NON-RESPONSIBILITIES:
 // ✘ No Brownian motion
@@ -27,7 +28,7 @@ console.log("🧭 vesiclePools loaded");
 
 
 // -----------------------------------------------------
-// 🔧 TUNING KNOBS
+// 🔧 TUNING KNOBS (GEOMETRY ONLY)
 // -----------------------------------------------------
 
 const MEMBRANE_GAP_FACTOR = -5;
@@ -38,12 +39,9 @@ const LOADED_POOL_HEIGHT_FACTOR = 2.0;
 const RESERVE_POOL_WIDTH = 75;
 const RESERVE_POOL_HEIGHT_FACTOR = 0.9;
 
-const LOADED_DAMPING  = 0.35;
-const RESERVE_DAMPING = 0.65;
-
 
 // -----------------------------------------------------
-// INTERNAL CACHE
+// INTERNAL CACHE (GEOMETRY-DEPENDENT)
 // -----------------------------------------------------
 let _reserveCacheKey = null;
 let _loadedCacheKey  = null;
@@ -149,8 +147,8 @@ window.requestNewEmptyVesicle = function () {
     x: random(pool.xMin + r, pool.xMax - r),
     y: random(pool.yMin + r, pool.yMax - r),
 
-    vx: random(-0.01, 0.01),
-    vy: random(-0.01, 0.01),
+    vx: random(-0.02, 0.02),
+    vy: random(-0.02, 0.02),
 
     radius: r,
 
@@ -166,7 +164,7 @@ window.requestNewEmptyVesicle = function () {
 
 
 // -----------------------------------------------------
-// RESERVE → LOADED ATTRACTION
+// RESERVE → LOADED ATTRACTION (PLANE-BASED)
 // -----------------------------------------------------
 function applyLoadedAttraction(v) {
 
@@ -175,9 +173,12 @@ function applyLoadedAttraction(v) {
 
   const targetX = r.xMax - Rv;
 
+  // Gentle membrane-normal pull
   v.vx += (targetX - v.x) * 0.006;
-  v.vx *= 0.75;
-  v.vy *= 0.95;
+
+  // Light directional damping (NOT energy killing)
+  v.vx *= 0.92;
+  v.vy *= 0.97;
 
   v.x += v.vx;
   v.y += v.vy;
@@ -190,38 +191,41 @@ function applyLoadedAttraction(v) {
   ) {
     v.state = "LOADED";
     v.vx = 0;
-    v.vy *= 0.6;
+    v.vy *= 0.5;
   }
 }
 
 
 // -----------------------------------------------------
-// HARD RECTANGULAR CONFINEMENT
+// ELASTIC RECTANGULAR CONFINEMENT (CRITICAL FIX)
 // -----------------------------------------------------
-function confineToRect(v, r, damping) {
+function confineToRect(v, r) {
 
-  const Rv = v.radius;
+  const R = v.radius;
 
-  if (v.x - Rv < r.xMin) {
-    v.x = r.xMin + Rv;
-    v.vx *= -0.3;
-  }
-  else if (v.x + Rv > r.xMax) {
-    v.x = r.xMax - Rv;
-    v.vx *= -0.3;
+  // ---- LEFT WALL
+  if (v.x - R < r.xMin) {
+    v.x = r.xMin + R;
+    v.vx = Math.abs(v.vx) * 0.9;
   }
 
-  if (v.y - Rv < r.yMin) {
-    v.y = r.yMin + Rv;
-    v.vy *= -0.3;
-  }
-  else if (v.y + Rv > r.yMax) {
-    v.y = r.yMax - Rv;
-    v.vy *= -0.3;
+  // ---- RIGHT WALL
+  else if (v.x + R > r.xMax) {
+    v.x = r.xMax - R;
+    v.vx = -Math.abs(v.vx) * 0.9;
   }
 
-  v.vx *= damping;
-  v.vy *= damping;
+  // ---- TOP WALL
+  if (v.y - R < r.yMin) {
+    v.y = r.yMin + R;
+    v.vy = Math.abs(v.vy) * 0.9;
+  }
+
+  // ---- BOTTOM WALL
+  else if (v.y + R > r.yMax) {
+    v.y = r.yMax - R;
+    v.vy = -Math.abs(v.vy) * 0.9;
+  }
 }
 
 
@@ -238,20 +242,20 @@ function updateVesiclePools() {
 
   for (const v of vesicles) {
 
-    // 🔒 Release owns these
+    // Release owns these
     if (v.releaseBias === true) continue;
 
-    // 🔒 Recycling owns these until release clears them
+    // Recycling corridor (pools paused)
     if (v.state === "RECYCLE_TRAVEL") continue;
 
     if (v.state === "LOADED_TRAVEL") {
       applyLoadedAttraction(v);
     }
     else if (v.state === "LOADED") {
-      confineToRect(v, loaded, LOADED_DAMPING);
+      confineToRect(v, loaded);
     }
     else {
-      confineToRect(v, reserve, RESERVE_DAMPING);
+      confineToRect(v, reserve);
     }
   }
 }
@@ -260,7 +264,7 @@ window.updateVesiclePools = updateVesiclePools;
 
 
 // =====================================================
-// DEBUG VISUALIZATION
+// DEBUG VISUALIZATION (OPTIONAL)
 // =====================================================
 window.SHOW_VESICLE_POOL_DEBUG = false;
 
@@ -277,18 +281,18 @@ window.drawVesiclePoolDebug = function () {
 
   stroke(80, 160, 255, 200);
   rect(
-    loaded.xMin,
-    loaded.yMin,
-    loaded.xMax - loaded.xMin,
-    loaded.yMax - loaded.yMin
-  );
-
-  stroke(255, 160, 80, 200);
-  rect(
     reserve.xMin,
     reserve.yMin,
     reserve.xMax - reserve.xMin,
     reserve.yMax - reserve.yMin
+  );
+
+  stroke(40, 120, 220, 220);
+  rect(
+    loaded.xMin,
+    loaded.yMin,
+    loaded.xMax - loaded.xMin,
+    loaded.yMax - loaded.yMin
   );
 
   stroke(255, 80, 80, 180);
@@ -296,7 +300,7 @@ window.drawVesiclePoolDebug = function () {
     window.SYNAPSE_VESICLE_STOP_X,
     -400,
     window.SYNAPSE_VESICLE_STOP_X,
-    400
+     400
   );
 
   pop();
