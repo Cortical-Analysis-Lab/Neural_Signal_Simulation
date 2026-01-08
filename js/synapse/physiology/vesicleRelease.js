@@ -72,11 +72,12 @@ function triggerVesicleReleaseFromAP() {
   const vesicles = window.synapseVesicles || [];
 
   // ---------------------------------------------------
-  // CANDIDATES: fully LOADED, pool-owned
+  // CANDIDATES: membrane-staged, NOT chemistry-owned
   // ---------------------------------------------------
   const loaded = vesicles.filter(v =>
-    v.state === "LOADED" &&
-    v.releaseBias !== true
+    v.state === "LOADED" &&        // ✅ ONLY staged vesicles
+    v.releaseBias !== true &&
+    v.recycleBias !== true
   );
 
   if (loaded.length === 0) return;
@@ -114,6 +115,7 @@ function triggerVesicleReleaseFromAP() {
   const MAX_RECRUIT = 3;
 
   for (let i = 1; i < loaded.length && i <= MAX_RECRUIT; i++) {
+
     const v = loaded[i];
     if (v.releaseBias) continue;
 
@@ -242,7 +244,6 @@ function updateVesicleRelease() {
 
       if (t >= 1) {
 
-        // Bud off endocytosis seed (visual only)
         if (typeof spawnEndocytosisSeed === "function") {
           spawnEndocytosisSeed(
             v.x + RECYCLE_OFFSET,
@@ -250,9 +251,6 @@ function updateVesicleRelease() {
           );
         }
 
-        // ---------------------------------------------
-        // HAND OFF TO POOL SYSTEM (RECYCLE CORRIDOR)
-        // ---------------------------------------------
         v.releaseBias = false;
         v.recycleBias = true;
 
