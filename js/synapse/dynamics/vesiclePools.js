@@ -1,4 +1,4 @@
-console.log("🧭 vesiclePools loaded — ELASTIC CONFINEMENT");
+console.log("🧭 vesiclePools loaded — ELASTIC CONFINEMENT (AUTHORITATIVE)");
 
 // =====================================================
 // VESICLE POOLS — SPATIAL OWNERSHIP (AUTHORITATIVE)
@@ -43,6 +43,7 @@ const RESERVE_POOL_HEIGHT_FACTOR = 0.9;
 // -----------------------------------------------------
 // INTERNAL CACHE (GEOMETRY-DEPENDENT)
 // -----------------------------------------------------
+
 let _reserveCacheKey = null;
 let _loadedCacheKey  = null;
 let _reservePool = null;
@@ -71,6 +72,7 @@ function getLoadedCacheKey() {
 // -----------------------------------------------------
 // RESERVE POOL — DEEP CYTOSOL
 // -----------------------------------------------------
+
 function getReservePoolRect() {
 
   const key = getReserveCacheKey();
@@ -101,6 +103,7 @@ function getReservePoolRect() {
 // -----------------------------------------------------
 // LOADED POOL — PRE-FUSION STAGING
 // -----------------------------------------------------
+
 function getLoadedPoolRect() {
 
   const key = getLoadedCacheKey();
@@ -134,6 +137,7 @@ function getLoadedPoolRect() {
 // -----------------------------------------------------
 // AUTHORITATIVE EMPTY VESICLE CREATION
 // -----------------------------------------------------
+
 window.requestNewEmptyVesicle = function () {
 
   const vesicles = window.synapseVesicles;
@@ -166,6 +170,7 @@ window.requestNewEmptyVesicle = function () {
 // -----------------------------------------------------
 // RESERVE → LOADED ATTRACTION (PLANE-BASED)
 // -----------------------------------------------------
+
 function applyLoadedAttraction(v) {
 
   const r  = getLoadedPoolRect();
@@ -173,10 +178,8 @@ function applyLoadedAttraction(v) {
 
   const targetX = r.xMax - Rv;
 
-  // Gentle membrane-normal pull
   v.vx += (targetX - v.x) * 0.006;
 
-  // Light directional damping (NOT energy killing)
   v.vx *= 0.92;
   v.vy *= 0.97;
 
@@ -197,31 +200,26 @@ function applyLoadedAttraction(v) {
 
 
 // -----------------------------------------------------
-// ELASTIC RECTANGULAR CONFINEMENT (CRITICAL FIX)
+// ELASTIC RECTANGULAR CONFINEMENT
 // -----------------------------------------------------
+
 function confineToRect(v, r) {
 
   const R = v.radius;
 
-  // ---- LEFT WALL
   if (v.x - R < r.xMin) {
     v.x = r.xMin + R;
     v.vx = Math.abs(v.vx) * 0.9;
   }
-
-  // ---- RIGHT WALL
   else if (v.x + R > r.xMax) {
     v.x = r.xMax - R;
     v.vx = -Math.abs(v.vx) * 0.9;
   }
 
-  // ---- TOP WALL
   if (v.y - R < r.yMin) {
     v.y = r.yMin + R;
     v.vy = Math.abs(v.vy) * 0.9;
   }
-
-  // ---- BOTTOM WALL
   else if (v.y + R > r.yMax) {
     v.y = r.yMax - R;
     v.vy = -Math.abs(v.vy) * 0.9;
@@ -232,6 +230,7 @@ function confineToRect(v, r) {
 // -----------------------------------------------------
 // MAIN POOL UPDATE (AUTHORITATIVE)
 // -----------------------------------------------------
+
 function updateVesiclePools() {
 
   const vesicles = window.synapseVesicles || [];
@@ -242,11 +241,17 @@ function updateVesiclePools() {
 
   for (const v of vesicles) {
 
-    // Release owns these
     if (v.releaseBias === true) continue;
-
-    // Recycling corridor (pools paused)
     if (v.state === "RECYCLE_TRAVEL") continue;
+
+    // 🔑 CRITICAL FIX:
+    // EMPTY vesicles near the corridor get recruited
+    if (v.state === "EMPTY") {
+      const r = loaded;
+      if (v.x < r.xMin + 12) {
+        v.state = "LOADED_TRAVEL";
+      }
+    }
 
     if (v.state === "LOADED_TRAVEL") {
       applyLoadedAttraction(v);
@@ -266,6 +271,7 @@ window.updateVesiclePools = updateVesiclePools;
 // =====================================================
 // DEBUG VISUALIZATION (OPTIONAL)
 // =====================================================
+
 window.SHOW_VESICLE_POOL_DEBUG = false;
 
 window.drawVesiclePoolDebug = function () {
