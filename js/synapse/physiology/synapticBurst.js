@@ -1,173 +1,190 @@
-console.log("♻️ vesicleRecycling loaded");
+console.log("🫧 synapticBurst loaded — PRESYNAPTIC LOCAL (AUTHORITATIVE)");
 
 // =====================================================
-// VESICLE RECYCLING — BIOLOGICAL ENDOCYTOSIS
+// SYNAPTIC NEUROTRANSMITTER BURST SYSTEM (LOCAL SPACE)
 // =====================================================
 //
-// Membrane Patch → Bud → Pinch → Return-to-Pool
+// COORDINATE CONTRACT:
+// • Presynaptic LOCAL space
+// • +X → toward synaptic cleft
+// • Drawn INSIDE drawPreSynapse()
+// • NO rotation compensation here
 //
-// RESPONSIBILITIES:
-// ✔ Visual endocytosis sequence
-// ✔ Vesicle birth at fusion site (seed-owned)
-// ✔ Gentle cytosolic bias on birth (NO teleport)
-// ✔ Clean handoff to pool system
-//
-// NON-RESPONSIBILITIES:
-// ✘ No Brownian motion
-// ✘ No confinement
-// ✘ No loading or priming
-// ✘ No fusion logic
-//
-// HARD RULES:
-// • Newly born vesicles MUST start as EMPTY
-// • Pool system owns them immediately
-// • Recycling NEVER queries synapse geometry
+// BIOLOGICAL MODEL:
+// ✔ Fan-shaped diffusion into cleft
+// ✔ Biased AWAY from presynaptic membrane
+// ✔ Distributed fusion pore origin
+// ✔ Diffusion-dominated (no jetting)
+// ✔ No clumping / no overlap artifacts
+// ✔ Confined near membrane plane
 //
 // =====================================================
 
 
 // -----------------------------------------------------
-// ENDOCYTOSIS SEEDS (WORLD SPACE, RELEASE-OWNED)
+// STORAGE (GLOBAL, RELOAD SAFE)
 // -----------------------------------------------------
-window.endocytosisSeeds = window.endocytosisSeeds || [];
+window.synapticNTs = window.synapticNTs || [];
 
 
 // -----------------------------------------------------
-// SPAWN ENDOCYTOSIS SEED
-// (CALLED BY vesicleRelease.js — WORLD SPACE)
+// TUNING PARAMETERS (BIOLOGICAL SCALE)
 // -----------------------------------------------------
-window.spawnEndocytosisSeed = function (x, y) {
+const NT_BASE_COUNT = 18;
 
-  window.endocytosisSeeds.push({
+const NT_ARC_WIDTH = Math.PI * 0.55;   // ~100° fan
+const NT_SPEED_MIN = 0.25;
+const NT_SPEED_MAX = 0.85;
+
+const NT_DIFFUSION = 0.07;
+const NT_DRAG      = 0.968;
+
+const NT_LIFE_MIN  = 90;
+const NT_LIFE_MAX  = 150;
+
+const NT_RADIUS    = 3;
+
+// Visual-only cleft depth (+X)
+const CLEFT_LIMIT = 120;
+
+
+// -----------------------------------------------------
+// EVENT LISTENER — LOCAL PRESYNAPTIC RELEASE
+// -----------------------------------------------------
+//
+// Expected event detail (LOCAL SPACE):
+// {
+//   x, y,                 // fusion pore (local)
+//   normalX: -1 | +1      // membrane normal (local)
+//   spread:   0–1
+//   strength: 0–1
+// }
+//
+// -----------------------------------------------------
+window.addEventListener("synapticRelease", (e) => {
+
+  const {
     x,
     y,
+    normalX  = -1,
+    spread   = 1,
+    strength = 1
+  } = e.detail || {};
 
-    timer: 0,
-    stage: "PATCH", // PATCH → BUD → PINCH
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return;
 
-    radius: 2,
-    alpha: 180
-  });
-};
+  const count = Math.floor(NT_BASE_COUNT * strength);
+  if (count <= 0) return;
+
+  // ---------------------------------------------------
+  // LOCAL release direction
+  //
+  // Convention:
+  // • +X → synaptic cleft
+  // • normalX < 0 → release toward +X
+  // ---------------------------------------------------
+  const baseAngle = normalX < 0 ? 0 : Math.PI;
+
+  for (let i = 0; i < count; i++) {
+
+    const theta =
+      baseAngle +
+      random(-NT_ARC_WIDTH, NT_ARC_WIDTH) * spread;
+
+    const speed = random(NT_SPEED_MIN, NT_SPEED_MAX);
+
+    // Fusion pore jitter (local)
+    const ox = x + random(-2.5, 2.5);
+    const oy = y + random(-3.5, 3.5);
+
+    window.synapticNTs.push({
+      x: ox,
+      y: oy,
+
+      vx: Math.cos(theta) * speed,
+      vy: Math.sin(theta) * speed,
+
+      life: random(NT_LIFE_MIN, NT_LIFE_MAX),
+      alpha: 255
+    });
+  }
+});
 
 
 // -----------------------------------------------------
-// UPDATE RECYCLING — STATE MACHINE + BIRTH
+// UPDATE — DIFFUSION DOMINATED (LOCAL SPACE)
 // -----------------------------------------------------
-function updateVesicleRecycling() {
+function updateSynapticBurst() {
 
-  const seeds    = window.endocytosisSeeds;
-  const vesicles = window.synapseVesicles || [];
+  const nts = window.synapticNTs;
+  if (!nts || nts.length === 0) return;
 
-  const MAX_VES  = window.SYNAPSE_MAX_VESICLES;
-  const V_RADIUS = window.SYNAPSE_VESICLE_RADIUS;
+  const MEMBRANE_X = window.SYNAPSE_VESICLE_STOP_X;
+  if (!Number.isFinite(MEMBRANE_X)) return;
 
-  for (let i = seeds.length - 1; i >= 0; i--) {
+  for (let i = nts.length - 1; i >= 0; i--) {
 
-    const e = seeds[i];
-    e.timer++;
+    const p = nts[i];
 
-    // =================================================
-    // PATCH — membrane indentation
-    // =================================================
-    if (e.stage === "PATCH") {
+    // Brownian diffusion
+    p.vx += random(-NT_DIFFUSION, NT_DIFFUSION);
+    p.vy += random(-NT_DIFFUSION, NT_DIFFUSION);
 
-      e.radius = lerp(2, 6, e.timer / 40);
+    // Integrate
+    p.x += p.vx;
+    p.y += p.vy;
 
-      if (e.timer >= 40) {
-        e.stage = "BUD";
-        e.timer = 0;
-      }
+    // Drag
+    p.vx *= NT_DRAG;
+    p.vy *= NT_DRAG;
+
+    // -----------------------------------------------
+    // HARD EXCLUSION — cannot re-enter presynapse
+    // -----------------------------------------------
+    if (p.x < MEMBRANE_X + 2) {
+      p.x  = MEMBRANE_X + 2;
+      p.vx = Math.abs(p.vx) * 0.25;
     }
 
-    // =================================================
-    // BUD — vesicle curvature forms
-    // =================================================
-    else if (e.stage === "BUD") {
-
-      e.radius = lerp(6, V_RADIUS, e.timer / 60);
-      e.alpha  = lerp(180, 220, e.timer / 60);
-
-      if (e.timer >= 60) {
-        e.stage = "PINCH";
-        e.timer = 0;
-      }
+    // Soft fade deep into cleft
+    if (Math.abs(p.x - MEMBRANE_X) > CLEFT_LIMIT) {
+      p.alpha -= 3.0;
     }
 
-    // =================================================
-    // PINCH — scission & vesicle birth
-    // =================================================
-    else if (e.stage === "PINCH") {
+    // Lifetime decay
+    p.alpha -= 1.6;
+    p.life--;
 
-      e.radius = lerp(V_RADIUS, V_RADIUS * 0.85, e.timer / 30);
-
-      if (e.timer >= 30) {
-
-        // ---------------------------------------------
-        // CREATE VESICLE (POOL-OWNED IMMEDIATELY)
-        // ---------------------------------------------
-        if (vesicles.length < MAX_VES) {
-
-          vesicles.push({
-
-            // 🔑 Birth is relative to endocytosis seed
-            //     (seed already sits on fusion plane)
-            x: e.x + V_RADIUS + random(6, 12),
-            y: e.y + random(-4, 4),
-
-            // Gentle inward bias — pool motion takes over
-            vx: random(0.03, 0.06),
-            vy: random(-0.02, 0.02),
-
-            radius: V_RADIUS,
-
-            // ------------------------------------------
-            // CANONICAL STATE
-            // ------------------------------------------
-            state: "EMPTY",
-
-            primedH:   false,
-            primedATP: false,
-            nts:       [],
-
-            // ------------------------------------------
-            // OWNERSHIP FLAGS (POOL ONLY)
-            // ------------------------------------------
-            owner:       "POOL",
-            ownerFrame:  frameCount,
-
-            releaseBias: false,
-            recycleBias: false
-          });
-        }
-
-        // 🔒 Seed is consumed — NO DUPLICATION
-        seeds.splice(i, 1);
-      }
+    if (p.life <= 0 || p.alpha <= 0) {
+      nts.splice(i, 1);
     }
   }
 }
 
 
 // -----------------------------------------------------
-// DRAW ENDOCYTOSIS (VISUAL ONLY)
+// DRAW — LOCAL SPACE (NO TRANSFORMS)
 // -----------------------------------------------------
-function drawVesicleRecycling() {
+function drawSynapticBurst() {
+
+  if (!window.synapticNTs.length) return;
 
   push();
   noStroke();
+  blendMode(ADD);
 
-  for (const e of window.endocytosisSeeds) {
-    fill(245, 225, 140, e.alpha);
-    ellipse(e.x, e.y, e.radius * 2);
+  for (const p of window.synapticNTs) {
+    fill(185, 120, 255, p.alpha);
+    circle(p.x, p.y, NT_RADIUS);
   }
 
+  blendMode(BLEND);
   pop();
 }
 
 
 // -----------------------------------------------------
-// PUBLIC EXPORTS
+// EXPORTS
 // -----------------------------------------------------
-window.updateVesicleRecycling = updateVesicleRecycling;
-window.drawVesicleRecycling  = drawVesicleRecycling;
+window.updateSynapticBurst = updateSynapticBurst;
+window.drawSynapticBurst   = drawSynapticBurst;
