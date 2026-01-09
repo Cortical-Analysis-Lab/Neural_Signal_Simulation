@@ -168,9 +168,12 @@ function updateVesicleRelease() {
           detail: {
             x: v.x,
             y: v.y,
-            membraneX: v.x,   // 🔑 AUTHORITATIVE FIX
+        
+            // 🔑 THIS IS THE FIX
+            membraneX: v.x,
+        
             normalX: -1,
-            strength: 0.35
+            strength: 1.0
           }
         }));
       }
