@@ -75,15 +75,14 @@ window.addEventListener("synapticRelease", (e) => {
     !Number.isFinite(x) ||
     !Number.isFinite(y) ||
     !Number.isFinite(membraneX)
-  ) return;
+  ) {
+    console.warn("❌ synapticRelease missing membraneX", e.detail);
+    return;
+  }
 
   const count = Math.floor(NT_BASE_COUNT * strength);
   if (count <= 0) return;
 
-  // ---------------------------------------------------
-  // LOCAL release direction
-  // +X is cleft by definition of membraneX
-  // ---------------------------------------------------
   const baseAngle = normalX < 0 ? 0 : Math.PI;
 
   for (let i = 0; i < count; i++) {
@@ -101,7 +100,7 @@ window.addEventListener("synapticRelease", (e) => {
       vx: Math.cos(theta) * speed,
       vy: Math.sin(theta) * speed,
 
-      membraneX,        // 🔑 stored per-particle
+      membraneX,   // 🔑 stored per-particle
       life: random(NT_LIFE_MIN, NT_LIFE_MAX),
       alpha: 255
     });
@@ -121,7 +120,7 @@ function updateSynapticBurst() {
 
     const p = nts[i];
 
-    // Diffusion
+    // Brownian diffusion
     p.vx += random(-NT_DIFFUSION, NT_DIFFUSION);
     p.vy += random(-NT_DIFFUSION, NT_DIFFUSION);
 
@@ -131,9 +130,7 @@ function updateSynapticBurst() {
     p.vx *= NT_DRAG;
     p.vy *= NT_DRAG;
 
-    // -------------------------------------------------
     // HARD EXCLUSION — PER-PARTICLE MEMBRANE
-    // -------------------------------------------------
     if (p.x < p.membraneX + 2) {
       p.x  = p.membraneX + 2;
       p.vx = Math.abs(p.vx) * 0.25;
