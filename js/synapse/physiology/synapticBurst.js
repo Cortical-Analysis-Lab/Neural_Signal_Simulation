@@ -146,14 +146,6 @@ function updateSynapticBurst() {
     // 🔒 HARD EXCLUSION — SINGLE MEMBRANE ONLY
     // -------------------------------------------------
     if (p.x < p.membraneX + 2) {
-      if (DEBUG_NT) {
-        console.warn(
-          "🚧 NT hit membrane",
-          "x =", p.x.toFixed(2),
-          "membraneX =", p.membraneX.toFixed(2)
-        );
-      }
-
       p.x  = p.membraneX + 2;
       p.vx = Math.abs(p.vx) * 0.25;
     }
