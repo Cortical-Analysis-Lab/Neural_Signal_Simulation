@@ -220,7 +220,11 @@ function drawPrimingParticles() {
     const v = h.target;
     if (!v || !ALLOWED_STATES.has(v.state)) continue;
 
-    text("H⁺", h.x, h.y);
+    push();
+    translate(h.x, h.y);
+    rotate(-PI);
+    text("H⁺", 0, 0);
+    pop();
   }
 
   // --- ATP / ADP + Pi ---
@@ -233,7 +237,11 @@ function drawPrimingParticles() {
     if (!v || !ALLOWED_STATES.has(v.state)) continue;
 
     fill(atpColor(a.alpha ?? 255));
-    text(a.state === "ATP" ? "ATP" : "ADP + Pi", a.x, a.y);
+    push();
+    translate(a.x, a.y);
+    rotate(-PI);
+    text(a.state === "ATP" ? "ATP" : "ADP + Pi", 0, 0);
+    pop();
   }
 }
 
