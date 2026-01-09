@@ -20,6 +20,21 @@ console.log("⚡ vesicleRelease loaded — AUTHORITATIVE MEMBRANE HANDOFF");
 
 
 // -----------------------------------------------------
+// 🔁 LOCAL SPACE UN-ROTATION (CRITICAL FIX)
+// -----------------------------------------------------
+//
+// drawPreSynapse() applies rotate(PI).
+// Vesicle positions are therefore already rotated.
+// synapticBurst.js expects UNROTATED local space.
+//
+// This helper inverts rotate(PI) exactly once.
+// -----------------------------------------------------
+function unrotateLocal(x, y) {
+  return { x: -x, y: -y };
+}
+
+
+// -----------------------------------------------------
 // BIOLOGICAL TIMING
 // -----------------------------------------------------
 const DOCK_TIME   = 90;
@@ -53,7 +68,7 @@ function applyFusionApproachForce(v) {
 
   v.vx *= 0.90;
   v.vy *= 0.95;
-}
+
 
 
 // -----------------------------------------------------
@@ -156,7 +171,7 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // FUSION PORE
+    // FUSION PORE — NT RELEASE (FIXED SPACE)
     // =================================================
     else if (v.state === "FUSION_PORE") {
 
@@ -164,14 +179,14 @@ function updateVesicleRelease() {
       v.poreRadius = lerp(0, 6, v.timer / PORE_TIME);
 
       if (v.timer === Math.floor(PORE_TIME * 0.35)) {
+
+        const p = unrotateLocal(v.x, v.y);
+
         window.dispatchEvent(new CustomEvent("synapticRelease", {
           detail: {
-            x: v.x,
-            y: v.y,
-        
-            // 🔑 THIS IS THE FIX
-            membraneX: v.x,
-        
+            x: p.x,
+            y: p.y,
+            membraneX: p.x,
             normalX: -1,
             strength: 1.0
           }
@@ -185,16 +200,22 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // FUSION OPEN
+    // FUSION OPEN — SUSTAINED RELEASE
     // =================================================
     else if (v.state === "FUSION_OPEN") {
 
       if (v.timer % 10 === 0) {
+
+        const p = unrotateLocal(
+          v.x + random(-2, 2),
+          v.y + random(-2, 2)
+        );
+
         window.dispatchEvent(new CustomEvent("synapticRelease", {
           detail: {
-            x: v.x + random(-2, 2),
-            y: v.y + random(-2, 2),
-            membraneX: v.x,   // 🔑 ALWAYS PASS MEMBRANE
+            x: p.x,
+            y: p.y,
+            membraneX: p.x,
             normalX: -1,
             strength: 1.0
           }
@@ -252,15 +273,14 @@ function updateVesicleRelease() {
 
       if (--v.recycleHold <= 0) {
 
-        // 🔁 POOL AUTHORITY RESUMES IMMEDIATELY
         v.releaseBias = false;
         v.recycleBias = false;
         v.owner       = null;
 
-        v.flatten        = undefined;
-        v.mergePhase     = undefined;
-        v.poreRadius     = undefined;
-        v.__mergeLocked  = false;
+        v.flatten       = undefined;
+        v.mergePhase    = undefined;
+        v.poreRadius    = undefined;
+        v.__mergeLocked = false;
 
         v.state = "EMPTY";
         v.timer = 0;
