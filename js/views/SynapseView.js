@@ -128,18 +128,6 @@ function drawSynapseView() {
 
   pop();
 
-  // ---------------- CONSOLE PROBE ---------------------
-  if (window.SHOW_SYNAPSE_DEBUG && frameCount % 60 === 0) {
-    console.log(
-      "🧪 vesicles:",
-      window.synapseVesicles?.length,
-      window.synapseVesicles?.map(v => ({
-        x: v.x?.toFixed(1),
-        y: v.y?.toFixed(1),
-        state: v.state
-      }))
-    );
-  }
 }
 
 
