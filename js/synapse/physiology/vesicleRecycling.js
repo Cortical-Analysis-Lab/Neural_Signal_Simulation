@@ -74,7 +74,7 @@ function updateVesicleRecycling() {
       }
     }
 
-    // ---------------- PINCH → BIRTH ----------------
+    // ---------------- PINCH → VESICLE BIRTH ----------------
     else if (e.stage === "PINCH") {
 
       e.radius = lerp(V_RADIUS, V_RADIUS * 0.85, e.timer / 30);
@@ -85,18 +85,18 @@ function updateVesicleRecycling() {
 
           vesicles.push({
 
-            // Born just inside cytosol
+            // Born just inside cytosol (LOCAL SPACE)
             x: e.x + V_RADIUS + random(8, 14),
             y: e.y + random(-4, 4),
 
-            // Strong directed return
+            // Strong directed return toward reserve pool
             vx: random(0.12, 0.18),
             vy: random(-0.04, 0.04),
 
             radius: V_RADIUS,
 
             // --------------------------
-            // CANONICAL RETURN STATE
+            // TEMPORARY RECYCLING STATE
             // --------------------------
             state: "RECYCLED_TRAVEL",
 
@@ -104,13 +104,13 @@ function updateVesicleRecycling() {
             primedATP: false,
             nts: [],
 
-            // 🔒 OWNERSHIP LOCK
+            // 🔒 EXCLUDE FROM RELEASE & POOLS DURING TRAVEL
             releaseBias: false,
             recycleBias: true
           });
         }
 
-        // Seed consumed
+        // Seed is consumed
         seeds.splice(i, 1);
       }
     }
@@ -125,7 +125,7 @@ function updateVesicleRecycling() {
 
     if (v.state !== "RECYCLED_TRAVEL") continue;
 
-    // Directed inward pull
+    // Directed inward motion (no Brownian)
     v.vx += (RESERVE_TARGET_X - v.x) * 0.03;
     v.vx *= 0.82;
     v.vy *= 0.94;
@@ -134,11 +134,14 @@ function updateVesicleRecycling() {
     v.y += v.vy;
 
     // --------------------------
-    // HANDOFF TO POOL SYSTEM
+    // CLEAN HANDOFF TO POOLS
     // --------------------------
     if (v.x >= RESERVE_TARGET_X - 8) {
-      v.state       = "EMPTY";
-      v.recycleBias = false;
+
+      v.state = "EMPTY";       // ✅ pool-compatible
+      v.recycleBias = false;  // ✅ pools regain control
+
+      // 🔒 CRITICAL: kill residual energy
       v.vx = 0;
       v.vy = 0;
     }
