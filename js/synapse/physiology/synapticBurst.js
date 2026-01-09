@@ -1,22 +1,19 @@
-console.log("🫧 synapticBurst loaded — PRESYNAPTIC LOCAL (VESICLE-AUTHORITATIVE)");
+console.log("🫧 synapticBurst loaded — OPTION A (VESICLE-AUTHORITATIVE)");
 
 // =====================================================
 // SYNAPTIC NEUROTRANSMITTER BURST SYSTEM (LOCAL SPACE)
 // =====================================================
 //
-// COORDINATE CONTRACT:
-// • Presynaptic LOCAL space
+// OPTION A CONTRACT (LOCKED):
+// • Presynaptic LOCAL space ONLY
 // • Drawn INSIDE drawPreSynapse()
-// • Inherits ALL transforms from parent
-// • NO rotation logic
+// • Inherits ALL transforms (rotate(PI) handled upstream)
+// • NO rotation math here
 // • NO global membrane geometry
 //
-// BIOLOGICAL MODEL:
-// ✔ Fan-shaped diffusion into cleft
-// ✔ Originates EXACTLY at fusion pore
-// ✔ Diffusion-dominated (no jetting)
-// ✔ No clumping / overlap artifacts
-// ✔ Hard exclusion from presynapse
+// 🔑 SINGLE SOURCE OF TRUTH:
+// • membraneX is provided PER RELEASE EVENT
+// • membraneX ALWAYS equals vesicle fusion plane
 //
 // =====================================================
 
@@ -47,13 +44,19 @@ const CLEFT_LIMIT  = 120;
 
 
 // -----------------------------------------------------
-// EVENT LISTENER — AUTHORITATIVE RELEASE
+// DEBUG TOGGLES
+// -----------------------------------------------------
+const DEBUG_NT = true;
+
+
+// -----------------------------------------------------
+// EVENT LISTENER — VESICLE-AUTHORITATIVE RELEASE
 // -----------------------------------------------------
 //
 // REQUIRED event detail (LOCAL SPACE):
 // {
 //   x, y,              // fusion pore (local)
-//   membraneX,         // 🔑 authoritative membrane plane
+//   membraneX,         // 🔑 AUTHORITATIVE membrane plane
 //   normalX,           // -1 | +1 (local)
 //   spread,
 //   strength
@@ -76,13 +79,22 @@ window.addEventListener("synapticRelease", (e) => {
     !Number.isFinite(y) ||
     !Number.isFinite(membraneX)
   ) {
-    console.warn("❌ synapticRelease missing membraneX", e.detail);
+    console.warn("❌ synapticRelease rejected — missing membraneX", e.detail);
     return;
+  }
+
+  if (DEBUG_NT) {
+    console.log(
+      "🫧 NT release @",
+      { x: x.toFixed(2), y: y.toFixed(2) },
+      "membraneX =", membraneX.toFixed(2)
+    );
   }
 
   const count = Math.floor(NT_BASE_COUNT * strength);
   if (count <= 0) return;
 
+  // +X is cleft by DEFINITION of membraneX
   const baseAngle = normalX < 0 ? 0 : Math.PI;
 
   for (let i = 0; i < count; i++) {
@@ -100,7 +112,7 @@ window.addEventListener("synapticRelease", (e) => {
       vx: Math.cos(theta) * speed,
       vy: Math.sin(theta) * speed,
 
-      membraneX,   // 🔑 stored per-particle
+      membraneX, // 🔑 PER-PARTICLE MEMBRANE
       life: random(NT_LIFE_MIN, NT_LIFE_MAX),
       alpha: 255
     });
@@ -109,7 +121,7 @@ window.addEventListener("synapticRelease", (e) => {
 
 
 // -----------------------------------------------------
-// UPDATE — DIFFUSION DOMINATED
+// UPDATE — DIFFUSION DOMINATED (NO GEOMETRY LOOKUPS)
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
@@ -130,8 +142,18 @@ function updateSynapticBurst() {
     p.vx *= NT_DRAG;
     p.vy *= NT_DRAG;
 
-    // HARD EXCLUSION — PER-PARTICLE MEMBRANE
+    // -------------------------------------------------
+    // 🔒 HARD EXCLUSION — SINGLE MEMBRANE ONLY
+    // -------------------------------------------------
     if (p.x < p.membraneX + 2) {
+      if (DEBUG_NT) {
+        console.warn(
+          "🚧 NT hit membrane",
+          "x =", p.x.toFixed(2),
+          "membraneX =", p.membraneX.toFixed(2)
+        );
+      }
+
       p.x  = p.membraneX + 2;
       p.vx = Math.abs(p.vx) * 0.25;
     }
@@ -141,6 +163,7 @@ function updateSynapticBurst() {
       p.alpha -= 3.0;
     }
 
+    // Lifetime decay
     p.alpha -= 1.6;
     p.life--;
 
@@ -152,7 +175,7 @@ function updateSynapticBurst() {
 
 
 // -----------------------------------------------------
-// DRAW — PURE LOCAL SPACE
+// DRAW — PURE LOCAL SPACE (NO TRANSFORMS)
 // -----------------------------------------------------
 function drawSynapticBurst() {
 
