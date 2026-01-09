@@ -1,4 +1,4 @@
-console.log("🫧 synapticBurst loaded — PRESYNAPTIC LOCAL (AUTHORITATIVE)");
+console.log("🫧 synapticBurst loaded — PRESYNAPTIC LOCAL (ROTATION-AWARE)");
 
 // =====================================================
 // SYNAPTIC NEUROTRANSMITTER BURST SYSTEM (LOCAL SPACE)
@@ -6,10 +6,9 @@ console.log("🫧 synapticBurst loaded — PRESYNAPTIC LOCAL (AUTHORITATIVE)");
 //
 // COORDINATE CONTRACT:
 // • Presynaptic LOCAL space
-// • +X → toward synaptic cleft
 // • Drawn INSIDE drawPreSynapse()
-// • Inherits rotate(PI) implicitly via parent draw
-// • NO rotation compensation here
+// • Parent applies rotate(PI)
+// • THIS FILE compensates LOGICALLY (not visually)
 //
 // BIOLOGICAL MODEL:
 // ✔ Fan-shaped diffusion into cleft
@@ -45,7 +44,7 @@ const NT_LIFE_MAX  = 150;
 
 const NT_RADIUS    = 3;
 
-// Visual-only cleft depth (+X direction)
+// Visual-only cleft depth
 const CLEFT_LIMIT = 120;
 
 
@@ -56,7 +55,7 @@ const CLEFT_LIMIT = 120;
 // Expected event detail (LOCAL SPACE):
 // {
 //   x, y,                 // fusion pore (local)
-//   normalX: -1 | +1      // membrane normal (local)
+//   normalX: -1 | +1      // membrane normal (local, UNROTATED)
 //   spread:   0–1
 //   strength: 0–1
 // }
@@ -78,13 +77,17 @@ window.addEventListener("synapticRelease", (e) => {
   if (count <= 0) return;
 
   // ---------------------------------------------------
-  // LOCAL release direction
+  // ROTATION-AWARE RELEASE DIRECTION
   //
-  // Convention:
-  // • +X → synaptic cleft
-  // • normalX < 0 → release toward +X
+  // Local convention (UNROTATED):
+  //   +X → cleft
+  //
+  // BUT:
+  //   drawPreSynapse() applies rotate(PI)
+  //
+  // Therefore we FLIP the fan direction here
   // ---------------------------------------------------
-  const baseAngle = normalX < 0 ? 0 : Math.PI;
+  const baseAngle = normalX < 0 ? Math.PI : 0;
 
   for (let i = 0; i < count; i++) {
 
@@ -120,7 +123,9 @@ function updateSynapticBurst() {
   const nts = window.synapticNTs;
   if (!nts || nts.length === 0) return;
 
-  // 🔴 Single authoritative membrane plane (LOCAL)
+  // ---------------------------------------------------
+  // 🔴 SINGLE AUTHORITATIVE MEMBRANE PLANE (LOCAL)
+  // ---------------------------------------------------
   const MEMBRANE_X = window.SYNAPSE_VESICLE_STOP_X;
   if (!Number.isFinite(MEMBRANE_X)) return;
 
@@ -128,9 +133,7 @@ function updateSynapticBurst() {
 
     const p = nts[i];
 
-    // -------------------------------------------------
-    // Brownian diffusion (dominant)
-    // -------------------------------------------------
+    // ---------------- Diffusion ----------------
     p.vx += random(-NT_DIFFUSION, NT_DIFFUSION);
     p.vy += random(-NT_DIFFUSION, NT_DIFFUSION);
 
@@ -138,26 +141,23 @@ function updateSynapticBurst() {
     p.x += p.vx;
     p.y += p.vy;
 
-    // Drag (cleft viscosity)
+    // Drag
     p.vx *= NT_DRAG;
     p.vy *= NT_DRAG;
 
     // -------------------------------------------------
-    // HARD EXCLUSION — NTs must NOT re-enter presynapse
+    // HARD EXCLUSION — ROTATION-AWARE
     //
-    // Presynaptic local space:
-    // • membrane sits at MEMBRANE_X
-    // • presynapse is x < MEMBRANE_X
-    // • cleft is x > MEMBRANE_X
+    // After rotate(PI):
+    //   presynapse is x > MEMBRANE_X
+    //   cleft      is x < MEMBRANE_X
     // -------------------------------------------------
-    if (p.x < MEMBRANE_X + 2) {
-      p.x  = MEMBRANE_X + 2;
-      p.vx = Math.abs(p.vx) * 0.25;
+    if (p.x > MEMBRANE_X - 2) {
+      p.x  = MEMBRANE_X - 2;
+      p.vx = -Math.abs(p.vx) * 0.25;
     }
 
-    // -------------------------------------------------
     // Soft fade deep into cleft
-    // -------------------------------------------------
     if (Math.abs(p.x - MEMBRANE_X) > CLEFT_LIMIT) {
       p.alpha -= 3.0;
     }
