@@ -60,6 +60,8 @@ const LOADED_HOLD_FRAMES = 90;
 const CHEMO_HOMING   = 0.06;
 const CHEMO_DAMPING = 0.92;
 const CHEMO_MAX_V   = 1.2;
+const H_CHEMO_GAIN   = 0.045;  // slower, diffuse
+const ATP_CHEMO_GAIN = 0.070; // faster, targeted
 
 
 // -----------------------------------------------------
@@ -201,14 +203,15 @@ function updateVesicleLoading() {
 // -----------------------------------------------------
 // CHEMOTACTIC HOMING
 // -----------------------------------------------------
-function applyHoming(p, target) {
+function applyHoming(p, target, gain) {
 
   const dx = target.x - p.x;
   const dy = target.y - p.y;
   const d  = Math.hypot(dx, dy) || 1;
 
-  p.vx += (dx / d) * CHEMO_HOMING;
-  p.vy += (dy / d) * CHEMO_HOMING;
+  p.vx += (dx / d) * gain;
+  p.vy += (dy / d) * gain;
+
 
   p.vx *= CHEMO_DAMPING;
   p.vy *= CHEMO_DAMPING;
@@ -239,7 +242,7 @@ function updatePrimingParticles() {
       continue;
     }
 
-    applyHoming(h, v);
+    applyHoming(h, v, H_CHEMO_GAIN);
     h.x += h.vx;
     h.y += h.vy;
     h.life--;
@@ -261,7 +264,7 @@ function updatePrimingParticles() {
       continue;
     }
 
-    applyHoming(a, v);
+    applyHoming(a, v, ATP_CHEMO_GAIN);
     a.x += a.vx;
     a.y += a.vy;
     a.life--;
