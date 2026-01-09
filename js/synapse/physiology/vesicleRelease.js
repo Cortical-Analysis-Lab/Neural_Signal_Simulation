@@ -69,7 +69,7 @@ function applyFusionApproachForce(v) {
   v.vx *= 0.90;
   v.vy *= 0.95;
 
-
+}
 
 // -----------------------------------------------------
 // AP TRIGGER — CALCIUM-GATED SELECTION
