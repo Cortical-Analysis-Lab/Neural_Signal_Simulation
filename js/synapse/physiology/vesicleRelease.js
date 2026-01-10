@@ -54,17 +54,24 @@ const RECYCLE_OFFSET =
 
 
 // -----------------------------------------------------
-// RELEASE-OWNED APPROACH FORCE (PLANE ONLY)
+// RELEASE-OWNED APPROACH FORCE (SOFT, PLANE ONLY)
 // -----------------------------------------------------
 function applyFusionApproachForce(v) {
 
-  const targetX = window.SYNAPSE_VESICLE_STOP_X;
-  const dx = targetX - v.x;
+  const targetX =
+    window.SYNAPSE_VESICLE_STOP_X + (v.dockBiasX ?? 0);
 
-  const pull = constrain(dx * 0.025, -0.35, 0.35);
+  const dx = targetX - v.x;
+  const dist = Math.abs(dx);
+
+  // Distance-weighted pull (soft near membrane)
+  const strength = map(dist, 0, 40, 0.004, 0.025, true);
+  const pull = constrain(dx * strength, -0.35, 0.35);
 
   v.vx += pull;
-  v.x  += v.vx;
+
+  v.x += v.vx;
+  v.y += v.vy;
 
   v.vx *= 0.90;
   v.vy *= 0.95;
@@ -93,6 +100,10 @@ function triggerVesicleReleaseFromAP() {
 
     v.owner      = "RELEASE";
     v.ownerFrame = frameCount;
+
+    // Per-vesicle docking micro-offset (anti-clustering)
+    v.dockBiasX = random(-2.5, 2.5);
+    v.dockBiasY = random(-3, 3);
 
     v.state  = "DOCKING";
     v.timer  = -Math.floor(
@@ -216,14 +227,17 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // MEMBRANE MERGE → ENDOCYTOSIS
+    // MEMBRANE MERGE → ENDOCYTOSIS (SOFT)
     // =================================================
     else if (v.state === "MEMBRANE_MERGE") {
 
       if (!v.__mergeLocked) {
         v.__mergeLocked = true;
-        v.vx = 0;
-        v.vy = 0;
+
+        // Soften instead of killing velocity
+        v.vx *= 0.25;
+        v.vy *= 0.25;
+
         v.nts = [];
       }
 
@@ -233,7 +247,8 @@ function updateVesicleRelease() {
       v.flatten    = t;
       v.mergePhase = 1 - t;
 
-      v.x = window.SYNAPSE_VESICLE_STOP_X;
+      // Ease into membrane plane (no teleport)
+      v.x += (window.SYNAPSE_VESICLE_STOP_X - v.x) * 0.35;
 
       if (t >= 1) {
 
