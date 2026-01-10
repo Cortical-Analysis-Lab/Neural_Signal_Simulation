@@ -7,7 +7,7 @@ console.log("⚡ vesicleRelease loaded — AUTHORITATIVE MEMBRANE HANDOFF");
 // RESPONSIBILITIES:
 // ✔ AP-gated vesicle selection
 // ✔ Plane-based docking (NO point attraction)
-// ✔ Fusion → pore → open → merge
+// ✔ Vesicle motion across membrane plane
 // ✔ NT release events (vesicle-authoritative membrane)
 // ✔ NT removal BEFORE budding
 // ✔ Clean recycle → recycling handoff
@@ -15,6 +15,7 @@ console.log("⚡ vesicleRelease loaded — AUTHORITATIVE MEMBRANE HANDOFF");
 // OWNERSHIP RULES:
 // • releaseBias === true → THIS FILE OWNS MOTION
 // • recycleBias === true → vesicleRecycling.js owns motion
+// • Geometry owns ALL visual fusion illusion
 //
 // =====================================================
 
@@ -70,8 +71,9 @@ function applyFusionApproachForce(v) {
 
   v.vx += pull;
 
-  v.x  += v.vx;
-  v.y  += v.vy;
+  // Motion integration (RELEASE owns motion)
+  v.x += v.vx;
+  v.y += v.vy;
 
   v.vx *= 0.90;
   v.vy *= 0.95;
@@ -110,10 +112,9 @@ function triggerVesicleReleaseFromAP() {
       random(RELEASE_JITTER_MIN, RELEASE_JITTER_MAX)
     );
 
-    v.fusionProgress = 0;
-    v.poreRadius     = 0;
-    v.flatten        = 0;
-    v.mergePhase     = 1.0;
+    // Geometry-facing parameters (read-only there)
+    v.flatten    = 0;
+    v.mergePhase = 1.0;
 
     v.recycleHold   = Infinity;
     v.__mergeLocked = false;
@@ -134,9 +135,6 @@ function updateVesicleRelease() {
 
     if (v.releaseBias !== true) continue;
 
-    // Defensive clamp (geometry safety)
-    if (!Number.isFinite(v.flatten)) v.flatten = 0;
-
     // =================================================
     // DOCKING
     // =================================================
@@ -156,19 +154,19 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // ZIPPER — BEGIN CURVATURE LOSS
+    // ZIPPER — SLIDE ONTO MEMBRANE
     // =================================================
     else if (v.state === "FUSION_ZIPPER") {
 
       applyFusionApproachForce(v);
 
       v.timer++;
-      v.fusionProgress = constrain(v.timer / ZIPPER_TIME, 0, 1);
+      const t = constrain(v.timer / ZIPPER_TIME, 0, 1);
 
-      // 🔑 EARLY FLATTENING (hemifusion onset)
-      v.flatten = constrain(v.fusionProgress * 0.35, 0, 1);
+      // Early flattening cue for geometry
+      v.flatten = t * 0.35;
 
-      if (v.fusionProgress >= 1) {
+      if (t >= 1) {
         v.state = "FUSION_PORE";
         v.timer = 0;
       }
@@ -180,7 +178,6 @@ function updateVesicleRelease() {
     else if (v.state === "FUSION_PORE") {
 
       v.timer++;
-      v.poreRadius = lerp(0, 6, v.timer / PORE_TIME);
 
       if (v.timer === Math.floor(PORE_TIME * 0.35)) {
 
@@ -233,18 +230,18 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // MEMBRANE MERGE → ENDOCYTOSIS (TRUE FUSION)
+    // MEMBRANE MERGE — FULL OVERLAY → DISAPPEAR
     // =================================================
     else if (v.state === "MEMBRANE_MERGE") {
 
       if (!v.__mergeLocked) {
         v.__mergeLocked = true;
 
-        // Preserve inertia but soften
+        // Soften motion but do not kill it
         v.vx *= 0.25;
         v.vy *= 0.25;
 
-        // NTs cleared before budding
+        // NTs must be gone before endocytosis
         v.nts = [];
       }
 
@@ -254,8 +251,8 @@ function updateVesicleRelease() {
       v.flatten    = t;
       v.mergePhase = 1 - t;
 
-      // 🔒 PIN TO MEMBRANE PLANE (geometry owns shape)
-      v.x = window.SYNAPSE_VESICLE_STOP_X;
+      // Continue sliding OVER membrane plane
+      v.x += (window.SYNAPSE_VESICLE_STOP_X - v.x) * 0.35;
 
       if (t >= 1) {
 
