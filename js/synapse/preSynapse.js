@@ -3,29 +3,72 @@ console.log("🟡 preSynapse loaded — GEOMETRY AUTHORITY");
 // =====================================================
 // PRESYNAPTIC GEOMETRY — SINGLE SOURCE OF TRUTH
 // =====================================================
+//
+// AUTHORITATIVE SPATIAL CONTRACT:
+// • Vesicle center stops at STOP_X
+// • Visual fusion / occlusion occurs at FUSION_PLANE_X
+// • All downstream files MUST reference these values
+//
+// =====================================================
 
-// ---------------- AUTHORITATIVE CONSTANTS ----------------
+
+// -----------------------------------------------------
+// TERMINAL GEOMETRY
+// -----------------------------------------------------
 
 window.SYNAPSE_TERMINAL_CENTER_Y = 0;
 window.SYNAPSE_TERMINAL_RADIUS   = 130;
 
+
+// -----------------------------------------------------
+// VESICLE GEOMETRY
+// -----------------------------------------------------
+
+// Kinematic stop (vesicle center halts here)
 window.SYNAPSE_VESICLE_STOP_X   = 16;
-window.SYNAPSE_BACK_OFFSET_X    = 60;
 
-window.SYNAPSE_VESICLE_RADIUS   = 10;
-window.SYNAPSE_VESICLE_STROKE   = 4;
+// Cytosolic reserve offset
+window.SYNAPSE_BACK_OFFSET_X   = 60;
 
-window.SYNAPSE_MAX_VESICLES     = 7;
+// Vesicle dimensions
+window.SYNAPSE_VESICLE_RADIUS  = 10;
+window.SYNAPSE_VESICLE_STROKE  = 4;
+
+// 🔪 VISUAL FUSION / OCCLUSION PLANE
+// This plane represents the *actual membrane surface*
+// Vesicles slide OVER this plane and visually disappear here
+window.SYNAPSE_FUSION_PLANE_X =
+  window.SYNAPSE_VESICLE_STOP_X +
+  window.SYNAPSE_VESICLE_RADIUS * 0.65;
+
+
+// -----------------------------------------------------
+// POPULATION
+// -----------------------------------------------------
+
+window.SYNAPSE_MAX_VESICLES = 7;
+
+
+// -----------------------------------------------------
+// DEBUG FLAGS
+// -----------------------------------------------------
 
 window.SHOW_SYNAPSE_DEBUG = true;
 
-// ---------------- CONSOLE VERIFICATION ----------------
 
-console.log("▶ SYNAPSE_VESICLE_STOP_X =", window.SYNAPSE_VESICLE_STOP_X);
-console.log("▶ SYNAPSE_VESICLE_RADIUS =", window.SYNAPSE_VESICLE_RADIUS);
+// -----------------------------------------------------
+// CONSOLE VERIFICATION
+// -----------------------------------------------------
+
+console.log("▶ SYNAPSE_VESICLE_STOP_X  =", window.SYNAPSE_VESICLE_STOP_X);
+console.log("▶ SYNAPSE_FUSION_PLANE_X  =", window.SYNAPSE_FUSION_PLANE_X);
+console.log("▶ SYNAPSE_VESICLE_RADIUS  =", window.SYNAPSE_VESICLE_RADIUS);
 console.log("▶ SYNAPSE_TERMINAL_RADIUS =", window.SYNAPSE_TERMINAL_RADIUS);
 
-// ---------------- AP PATH ----------------
+
+// =====================================================
+// PRESYNAPTIC AP PATH (VISUAL ONLY)
+// =====================================================
 
 window.PRESYNAPTIC_AP_PATH = [
   { x: 153.1, y:  4.7 },
@@ -43,7 +86,7 @@ window.PRESYNAPTIC_AP_PATH = [
   { x: 153.5, y:  28.7 }
 ];
 
-window.AP_PATH_SCALE = 6.0;
+window.AP_PATH_SCALE  = 6.0;
 window.AP_PATH_OFFSET = { x: -120, y: 0 };
 
 window.calibratePath = function (path) {
@@ -52,6 +95,7 @@ window.calibratePath = function (path) {
     y: p.y * window.AP_PATH_SCALE + window.AP_PATH_OFFSET.y
   }));
 };
+
 
 // =====================================================
 // PRESYNAPTIC DRAW (GEOMETRY ONLY)
@@ -62,21 +106,28 @@ window.drawPreSynapse = function () {
   push();
 
   // ---------------------------------------------------
-  // CANONICAL ORIENTATION
+  // CANONICAL ORIENTATION (DO NOT CHANGE)
   // ---------------------------------------------------
   rotate(PI);
 
   // ---------------------------------------------------
-  // GROUND-TRUTH GEOMETRY
+  // TERMINAL GEOMETRY
   // ---------------------------------------------------
   drawTNeuronShape(1);
 
+  // ---------------------------------------------------
+  // DEBUG PLANES
+  // ---------------------------------------------------
   drawVesicleStopPlaneDebug();
 
-  // Vesicles (membranes + contents)
+  // ---------------------------------------------------
+  // VESICLES (GEOMETRY + CONTENTS)
+  // ---------------------------------------------------
   drawSynapseVesicleGeometry?.();
 
-  // 🔴 DEBUG: VESICLE CENTERS (CORRECT SPACE)
+  // ---------------------------------------------------
+  // DEBUG: VESICLE CENTERS
+  // ---------------------------------------------------
   if (
     window.SHOW_SYNAPSE_DEBUG &&
     typeof drawVesicleCenters === "function"
@@ -97,8 +148,9 @@ window.drawPreSynapse = function () {
   pop();
 };
 
+
 // =====================================================
-// DEBUG: VESICLE STOP / FUSION PLANE
+// DEBUG: STOP PLANE + FUSION PLANE
 // =====================================================
 
 window.DEBUG_PLANE_HEIGHT = 140;
@@ -107,24 +159,33 @@ window.drawVesicleStopPlaneDebug = function () {
 
   if (!window.SHOW_SYNAPSE_DEBUG) return;
 
-  const x = window.SYNAPSE_VESICLE_STOP_X;
   const H = window.DEBUG_PLANE_HEIGHT;
 
   push();
-  stroke(80, 180, 255, 220);
   strokeWeight(2);
   noFill();
 
-  line(x, -H, x, H);
+  // 🔵 Vesicle center stop plane
+  stroke(80, 180, 255, 220);
+  line(
+    window.SYNAPSE_VESICLE_STOP_X,
+    -H,
+    window.SYNAPSE_VESICLE_STOP_X,
+     H
+  );
 
-  for (let y = -H; y <= H; y += 24) {
-    fill(80, 180, 255, 140);
-    noStroke();
-    circle(x, y, 4);
-  }
+  // 🔴 Fusion / occlusion "knife" plane
+  stroke(255, 90, 90, 220);
+  line(
+    window.SYNAPSE_FUSION_PLANE_X,
+    -H,
+    window.SYNAPSE_FUSION_PLANE_X,
+     H
+  );
 
   pop();
 };
+
 
 // =====================================================
 // DEBUG: AP PATH DOTS
