@@ -9,6 +9,11 @@ console.log("♻️ vesicleRecycling loaded — AUTHORITATIVE");
 // ✔ Hard exclusion from motion / release during travel
 // ✔ Clean pool handoff (NO drift)
 //
+// AUTHORITATIVE RULES:
+// • Presynaptic LOCAL space only
+// • Recycling owns vesicles during RECYCLED_TRAVEL
+// • Pools regain control ONLY after clean handoff
+//
 // =====================================================
 
 
@@ -89,7 +94,7 @@ function updateVesicleRecycling() {
             x: e.x + V_RADIUS + random(8, 14),
             y: e.y + random(-4, 4),
 
-            // Strong directed return toward reserve pool
+            // Directed return toward reserve pool
             vx: random(0.12, 0.18),
             vy: random(-0.04, 0.04),
 
@@ -104,7 +109,7 @@ function updateVesicleRecycling() {
             primedATP: false,
             nts: [],
 
-            // 🔒 EXCLUDE FROM RELEASE & POOLS DURING TRAVEL
+            // 🔒 HARD EXCLUSION FLAGS
             releaseBias: false,
             recycleBias: true
           });
@@ -117,7 +122,7 @@ function updateVesicleRecycling() {
   }
 
   // ===================================================
-  // RECYCLED_TRAVEL → EMPTY (POOL HANDOFF)
+  // RECYCLED_TRAVEL → EMPTY (CLEAN POOL HANDOFF)
   // ===================================================
   const RESERVE_TARGET_X = STOP_X + BACK_X + 20;
 
@@ -125,7 +130,7 @@ function updateVesicleRecycling() {
 
     if (v.state !== "RECYCLED_TRAVEL") continue;
 
-    // Directed inward motion (no Brownian)
+    // Directed inward motion (NO Brownian, NO pools)
     v.vx += (RESERVE_TARGET_X - v.x) * 0.03;
     v.vx *= 0.82;
     v.vy *= 0.94;
@@ -134,14 +139,24 @@ function updateVesicleRecycling() {
     v.y += v.vy;
 
     // --------------------------
-    // CLEAN HANDOFF TO POOLS
+    // AUTHORITATIVE HANDOFF
     // --------------------------
     if (v.x >= RESERVE_TARGET_X - 8) {
 
-      v.state = "EMPTY";       // ✅ pool-compatible
-      v.recycleBias = false;  // ✅ pools regain control
+      // Snap directly into reserve pool bounds
+      if (typeof getReservePoolRect === "function") {
+        const pool = getReservePoolRect();
+        const r = v.radius;
 
-      // 🔒 CRITICAL: kill residual energy
+        v.x = random(pool.xMin + r, pool.xMax - r);
+        v.y = random(pool.yMin + r, pool.yMax - r);
+      }
+
+      // Pool-compatible reset
+      v.state = "EMPTY";
+      v.recycleBias = false;
+
+      // Kill residual energy
       v.vx = 0;
       v.vy = 0;
     }
