@@ -13,6 +13,7 @@ console.log("🫧 vesicleLoading loaded — CHEMISTRY RESTORED");
 // • Chemistry exists ONLY in presynaptic space
 // • Chemistry exists ONLY during loading states
 // • One vesicle loads at a time
+// • Chemistry alone decides LOADED readiness
 //
 // =====================================================
 
@@ -57,11 +58,10 @@ const LOADED_HOLD_FRAMES = 90;
 // -----------------------------------------------------
 // CHEMOTACTIC HOMING
 // -----------------------------------------------------
-const CHEMO_HOMING   = 0.06;
 const CHEMO_DAMPING = 0.92;
 const CHEMO_MAX_V   = 1.2;
-const H_CHEMO_GAIN   = 0.045;  // slower, diffuse
-const ATP_CHEMO_GAIN = 0.070; // faster, targeted
+const H_CHEMO_GAIN   = 0.045;
+const ATP_CHEMO_GAIN = 0.070;
 
 
 // -----------------------------------------------------
@@ -85,7 +85,6 @@ function spawnPrimingParticles(v) {
   if (window.synapseH.some(h => h.target === v)) return;
   if (window.synapseATP.some(a => a.target === v)) return;
 
-  // --- H⁺ ---
   const a1 = random(TWO_PI);
   window.synapseH.push({
     x: v.x + cos(a1) * 36,
@@ -96,7 +95,6 @@ function spawnPrimingParticles(v) {
     life: H_LIFE
   });
 
-  // --- ATP ---
   const a2 = random(TWO_PI);
   window.synapseATP.push({
     x: v.x + cos(a2) * 42,
@@ -118,6 +116,21 @@ function updateVesicleLoading() {
 
   const vesicles = window.synapseVesicles;
   if (!Array.isArray(vesicles) || vesicles.length === 0) return;
+
+  // ---------------------------------------------------
+  // 🔒 HARD GUARD: EMPTY VESICLES MAY NOT TRAVEL LOADED
+  // ---------------------------------------------------
+  for (const v of vesicles) {
+    if (
+      v.state === VESICLE_STATE.LOADED_TRAVEL &&
+      (!v.nts || v.nts.length === 0)
+    ) {
+      v.state     = VESICLE_STATE.EMPTY;
+      v.primedH   = false;
+      v.primedATP = false;
+      v.nts       = [];
+    }
+  }
 
   // ---------------------------------------------------
   // BEGIN PRIMING (SERIAL)
@@ -184,6 +197,32 @@ function updateVesicleLoading() {
       }
     }
 
+    // ---------------- FINALIZE LOADING ----------------
+    // Chemistry declares vesicle READY only once
+    // it is physically inside the loaded pool
+    if (
+      v.state === VESICLE_STATE.LOADED_TRAVEL &&
+      v.nts &&
+      v.nts.length >= NT_TARGET &&
+      typeof getLoadedPoolRect === "function"
+    ) {
+
+      const pool = getLoadedPoolRect();
+      const r = v.radius;
+
+      const insideLoaded =
+        v.x - r >= pool.xMin &&
+        v.x + r <= pool.xMax &&
+        v.y - r >= pool.yMin &&
+        v.y + r <= pool.yMax;
+
+      if (insideLoaded) {
+        v.state = VESICLE_STATE.LOADED;
+        v.vx = 0;
+        v.vy *= 0.5;
+      }
+    }
+
     // ---------------- NT JITTER ----------------
     for (const p of v.nts || []) {
       p.x += p.vx;
@@ -211,7 +250,6 @@ function applyHoming(p, target, gain) {
 
   p.vx += (dx / d) * gain;
   p.vy += (dy / d) * gain;
-
 
   p.vx *= CHEMO_DAMPING;
   p.vy *= CHEMO_DAMPING;
