@@ -23,6 +23,7 @@ console.log("🧭 vesiclePools loaded — ELASTIC CONFINEMENT (AUTHORITATIVE)");
 // ✘ No vesicle–vesicle collisions
 // ✘ No fusion logic
 // ✘ No recycling logic
+// ✘ NO chemistry state decisions
 //
 // =====================================================
 
@@ -168,7 +169,7 @@ window.requestNewEmptyVesicle = function () {
 
 
 // -----------------------------------------------------
-// RESERVE → LOADED ATTRACTION (PLANE-BASED)
+// RESERVE → LOADED ATTRACTION (GEOMETRY ONLY)
 // -----------------------------------------------------
 
 function applyLoadedAttraction(v) {
@@ -185,17 +186,6 @@ function applyLoadedAttraction(v) {
 
   v.x += v.vx;
   v.y += v.vy;
-
-  if (
-    v.x + Rv >= r.xMax &&
-    v.x - Rv >= r.xMin &&
-    v.y - Rv >= r.yMin &&
-    v.y + Rv <= r.yMax
-  ) {
-    v.state = "LOADED";
-    v.vx = 0;
-    v.vy *= 0.5;
-  }
 }
 
 
@@ -245,7 +235,7 @@ function updateVesiclePools() {
     if (v.releaseBias === true) continue;
     if (v.state === "RECYCLED_TRAVEL") continue;
 
-    // EMPTY vesicles near corridor get recruited
+    // EMPTY vesicles may approach loading corridor
     if (v.state === "EMPTY") {
       if (v.x < loaded.xMin + 12) {
         v.state = "LOADED_TRAVEL";
@@ -254,6 +244,7 @@ function updateVesiclePools() {
 
     if (v.state === "LOADED_TRAVEL") {
       applyLoadedAttraction(v);
+      confineToRect(v, loaded);
     }
     else if (v.state === "LOADED") {
       confineToRect(v, loaded);
