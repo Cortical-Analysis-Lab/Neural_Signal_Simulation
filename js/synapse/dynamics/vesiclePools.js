@@ -7,8 +7,13 @@ console.log("🧭 vesiclePools loaded — ELASTIC CONFINEMENT (AUTHORITATIVE)");
 // RESPONSIBILITIES:
 // ✔ Reserve pool (deep cytosol)
 // ✔ Loaded pool (membrane-adjacent, NOT docked)
-// ✔ Smooth reserve → loaded travel
-// ✔ Elastic (soft) confinement
+// ✔ Smooth reserve → loaded travel (force only)
+// ✔ Elastic boundary confinement (NO integration)
+//
+// HARD RULES:
+// • Pools NEVER integrate position
+// • Pools NEVER apply damping
+// • Pools ONLY apply corrective forces when violated
 //
 // =====================================================
 
@@ -27,13 +32,11 @@ const RESERVE_POOL_HEIGHT_FACTOR = 0.9;
 
 
 // -----------------------------------------------------
-// MOTION SOFTENING
+// ELASTIC WALL FORCE
 // -----------------------------------------------------
 
-const WALL_SPRING_K   = 0.12;   // softness of walls
-const WALL_DAMPING   = 0.86;   // wall energy loss
-const TRAVEL_DAMPING = 0.94;   // general glide damping
-const MAX_POOL_SPEED = 0.45;   // absolute cap
+const WALL_SPRING_K   = 0.12;   // penetration response
+const MAX_POOL_SPEED = 0.45;   // safety cap
 
 
 // -----------------------------------------------------
@@ -157,7 +160,7 @@ window.requestNewEmptyVesicle = function () {
 
     radius: r,
 
-    // Persistent micro-bias to avoid stacking
+    // static anti-alignment bias
     poolBiasX: random(-6, 6),
     poolBiasY: random(-8, 8),
 
@@ -173,7 +176,7 @@ window.requestNewEmptyVesicle = function () {
 
 
 // -----------------------------------------------------
-// RESERVE → LOADED ATTRACTION (GLIDE)
+// RESERVE → LOADED ATTRACTION (FORCE ONLY)
 // -----------------------------------------------------
 
 function applyLoadedAttraction(v) {
@@ -182,18 +185,12 @@ function applyLoadedAttraction(v) {
   const Rv = v.radius;
 
   const targetX = r.xMax - Rv + (v.poolBiasX ?? 0);
-
   v.vx += (targetX - v.x) * 0.005;
-  v.vx *= TRAVEL_DAMPING;
-  v.vy *= TRAVEL_DAMPING;
-
-  v.x += v.vx;
-  v.y += v.vy;
 }
 
 
 // -----------------------------------------------------
-// SOFT ELASTIC CONFINEMENT
+// ELASTIC BOUNDARY RESPONSE (NO INTEGRATION)
 // -----------------------------------------------------
 
 function confineToRect(v, r) {
@@ -214,22 +211,16 @@ function confineToRect(v, r) {
     v.vy += (r.yMax - R - v.y) * WALL_SPRING_K;
   }
 
-  v.vx *= WALL_DAMPING;
-  v.vy *= WALL_DAMPING;
-
   const speed = Math.hypot(v.vx, v.vy);
   if (speed > MAX_POOL_SPEED) {
     v.vx *= MAX_POOL_SPEED / speed;
     v.vy *= MAX_POOL_SPEED / speed;
   }
-
-  v.x += v.vx;
-  v.y += v.vy;
 }
 
 
 // -----------------------------------------------------
-// MAIN UPDATE
+// MAIN UPDATE — FORCE APPLICATION ONLY
 // -----------------------------------------------------
 
 function updateVesiclePools() {
@@ -242,11 +233,9 @@ function updateVesiclePools() {
 
   for (const v of vesicles) {
 
-    // 🔒 HARD EXCLUSIONS
     if (v.releaseBias === true) continue;
     if (v.state === "RECYCLED_TRAVEL") continue;
 
-    // EMPTY → LOADED_TRAVEL (gentle capture)
     if (v.state === "EMPTY") {
       if (v.x < loaded.xMin + 14) {
         v.state = "LOADED_TRAVEL";
