@@ -14,6 +14,16 @@ console.log("🧬 vesicleGeometry loaded");
 
 
 // -----------------------------------------------------
+// SAFETY: DEFINE FUSION KNIFE PLANE (IF NOT PRESENT)
+// -----------------------------------------------------
+if (window.SYNAPSE_FUSION_PLANE_X == null) {
+  window.SYNAPSE_FUSION_PLANE_X =
+    window.SYNAPSE_VESICLE_STOP_X +
+    window.SYNAPSE_VESICLE_RADIUS * 0.65;
+}
+
+
+// -----------------------------------------------------
 // COLORS (PURE VISUAL)
 // -----------------------------------------------------
 function vesicleBorderColor() {
@@ -43,7 +53,11 @@ function atpColor(alpha = 255) {
 function drawSynapseVesicleGeometry() {
   push();
 
-  drawVesiclePoolsDebug?.();
+  // 🔒 SAFE DEBUG CALL (NO CRASH)
+  if (typeof window.drawVesiclePoolsDebug === "function") {
+    window.drawVesiclePoolsDebug();
+  }
+
   drawVesicleMembranes();
   drawVesicleContents();
   drawPrimingParticles();
@@ -62,7 +76,7 @@ function drawVesicleMembranes() {
 
   const r       = window.SYNAPSE_VESICLE_RADIUS;
   const strokeW = window.SYNAPSE_VESICLE_STROKE;
-  const dockX   = window.SYNAPSE_VESICLE_STOP_X;
+  const knifeX  = window.SYNAPSE_FUSION_PLANE_X;
 
   stroke(vesicleBorderColor());
 
@@ -83,30 +97,35 @@ function drawVesicleMembranes() {
 
       const t = constrain(v.flatten, 0, 1);
 
-      // How much of vesicle is "consumed" by membrane
-      const clipX = map(t, 0, 1, v.x + r, v.x - r);
+      // How far vesicle has crossed knife plane
+      const penetration = max(0, knifeX - v.x);
+
+      // Convert penetration → eaten fraction
+      const eatenFrac = constrain(
+        penetration / (r * 2),
+        0,
+        1
+      );
+
+      const clipX = v.x + r - eatenFrac * r * 2;
 
       strokeWeight(lerp(strokeW, strokeW * 0.3, t));
       noFill();
 
-      push();
       beginShape();
 
-      // Draw only cytosolic half, progressively removed
+      // Draw only cytosolic-visible arc
       for (let a = -HALF_PI; a <= HALF_PI; a += 0.12) {
 
         const px = v.x + cos(a) * r;
         const py = v.y + sin(a) * r;
 
-        // Skip points that have crossed membrane
         if (px > clipX) continue;
 
         vertex(px, py);
       }
 
       endShape();
-      pop();
-
       continue;
     }
 
@@ -127,7 +146,8 @@ function drawVesicleContents() {
   const vesicles = window.synapseVesicles || [];
   if (!vesicles.length) return;
 
-  const r = window.SYNAPSE_VESICLE_RADIUS;
+  const r      = window.SYNAPSE_VESICLE_RADIUS;
+  const knifeX = window.SYNAPSE_FUSION_PLANE_X;
 
   fill(ntFillColor());
   noStroke();
@@ -142,16 +162,17 @@ function drawVesicleContents() {
     // -------------------------------------------------
     if (v.state === "MEMBRANE_MERGE" && Number.isFinite(v.flatten)) {
 
-      const t = constrain(v.flatten, 0, 1);
-      const spill = t < 0.4 ? 0 : map(t, 0.4, 1, 0, 20);
+      const spill = v.flatten < 0.4
+        ? 0
+        : map(v.flatten, 0.4, 1, 0, 20);
 
       for (const p of v.nts) {
 
         const px = v.x + p.x + spill;
         const py = v.y + p.y;
 
-        // NTs vanish as vesicle disappears
-        if (px > v.x - r * t) continue;
+        // NTs vanish after crossing knife
+        if (px > knifeX) continue;
 
         circle(px, py, 3);
       }
