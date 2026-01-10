@@ -1,21 +1,15 @@
 console.log("🧬 vesicleGeometry loaded");
 
 // =====================================================
-// VESICLE GEOMETRY & RENDERING (READ-ONLY, WORLD SPACE)
+// VESICLE GEOMETRY & RENDERING (READ-ONLY)
 // =====================================================
 //
-// RESPONSIBILITIES:
-// ✔ Draw vesicle membranes
-// ✔ Draw neurotransmitter contents
-// ✔ Draw priming particles (H⁺, ATP, ADP + Pi)
-// ✔ Visualize membrane fusion + merge
-// ✔ Optional debug overlays
+// VISUAL STRATEGY (IMPORTANT):
+// • Vesicle slides OVER membrane
+// • Cleft-facing hemisphere disappears first
+// • No real fusion — pure occlusion illusion
+// • Geometry responds ONLY to v.x and v.flatten
 //
-// COORDINATE CONTRACT:
-// • Presynaptic LOCAL space
-// • +X → toward membrane / fusion plane
-// • NO flips
-// • NO transforms (except local push/pop)
 // =====================================================
 
 
@@ -26,7 +20,7 @@ function vesicleBorderColor() {
   return color(245, 225, 140);
 }
 
-function vesicleFillColor(alpha = 40) {
+function vesicleFillColor(alpha = 50) {
   return color(245, 225, 140, alpha);
 }
 
@@ -42,27 +36,14 @@ function atpColor(alpha = 255) {
   return color(120, 200, 255, alpha);
 }
 
-// --- DEBUG COLORS ---
-function poolBlue(alpha = 50) {
-  return color(80, 160, 255, alpha);
-}
-
-function poolBlueDark(alpha = 70) {
-  return color(40, 120, 220, alpha);
-}
-
-function boundaryOrange(alpha = 200) {
-  return color(255, 170, 60, alpha);
-}
-
 
 // -----------------------------------------------------
-// MAIN DRAW ENTRY POINT
+// MAIN DRAW ENTRY
 // -----------------------------------------------------
 function drawSynapseVesicleGeometry() {
   push();
 
-  drawVesiclePoolsDebug();
+  drawVesiclePoolsDebug?.();
   drawVesicleMembranes();
   drawVesicleContents();
   drawPrimingParticles();
@@ -72,53 +53,12 @@ function drawSynapseVesicleGeometry() {
 
 
 // -----------------------------------------------------
-// DEBUG: VESICLE POOLS (READ-ONLY)
-// -----------------------------------------------------
-function drawVesiclePoolsDebug() {
-
-  if (!window.SHOW_SYNAPSE_DEBUG) return;
-  if (typeof getReservePoolRect !== "function") return;
-  if (typeof getLoadedPoolRect  !== "function") return;
-
-  const reserve = getReservePoolRect();
-  const loaded  = getLoadedPoolRect();
-
-  push();
-  rectMode(CORNERS);
-  noStroke();
-
-  fill(poolBlue(45));
-  rect(reserve.xMin, reserve.yMin, reserve.xMax, reserve.yMax);
-
-  fill(poolBlueDark(65));
-  rect(loaded.xMin, loaded.yMin, loaded.xMax, loaded.yMax);
-
-  noFill();
-  stroke(boundaryOrange(220));
-  strokeWeight(2);
-
-  rect(reserve.xMin, reserve.yMin, reserve.xMax, reserve.yMax);
-  rect(loaded.xMin, loaded.yMin, loaded.xMax, loaded.yMax);
-
-  stroke(255, 80, 80, 200);
-  line(
-    window.SYNAPSE_VESICLE_STOP_X,
-    -400,
-    window.SYNAPSE_VESICLE_STOP_X,
-     400
-  );
-
-  pop();
-}
-
-
-// -----------------------------------------------------
-// VESICLE MEMBRANES (TRUE FUSION GEOMETRY)
+// VESICLE MEMBRANES — OCCLUSION-BASED FUSION
 // -----------------------------------------------------
 function drawVesicleMembranes() {
 
-  const vesicles = window.synapseVesicles;
-  if (!Array.isArray(vesicles)) return;
+  const vesicles = window.synapseVesicles || [];
+  if (!vesicles.length) return;
 
   const r       = window.SYNAPSE_VESICLE_RADIUS;
   const strokeW = window.SYNAPSE_VESICLE_STROKE;
@@ -136,39 +76,43 @@ function drawVesicleMembranes() {
 
     fill(vesicleFillColor(fillAlpha));
 
-    // =========================
-    // MEMBRANE FUSION (CURVATURE LOSS)
-    // =========================
+    // =================================================
+    // MEMBRANE MERGE — VISUAL OCCLUSION
+    // =================================================
     if (v.state === "MEMBRANE_MERGE" && Number.isFinite(v.flatten)) {
 
       const t = constrain(v.flatten, 0, 1);
 
-      // Vesicle center pinned to membrane plane
-      const cx = dockX - r;
+      // How much of vesicle is "consumed" by membrane
+      const clipX = map(t, 0, 1, v.x + r, v.x - r);
 
-      // Vertical flattening (membrane consumption)
-      const squashY = 1 - t;
-
-      // Arc closes as fusion progresses
-      const arcFrac = lerp(1.0, 0.15, t);
-      const startA  = PI * (1 - arcFrac);
-      const endA    = PI * (1 + arcFrac);
-
-      strokeWeight(lerp(strokeW, strokeW * 0.35, t));
+      strokeWeight(lerp(strokeW, strokeW * 0.3, t));
       noFill();
 
       push();
-      translate(cx, v.y);
-      scale(1, squashY);
-      arc(0, 0, r * 2, r * 2, startA, endA);
+      beginShape();
+
+      // Draw only cytosolic half, progressively removed
+      for (let a = -HALF_PI; a <= HALF_PI; a += 0.12) {
+
+        const px = v.x + cos(a) * r;
+        const py = v.y + sin(a) * r;
+
+        // Skip points that have crossed membrane
+        if (px > clipX) continue;
+
+        vertex(px, py);
+      }
+
+      endShape();
       pop();
 
       continue;
     }
 
-    // =========================
+    // =================================================
     // NORMAL VESICLE
-    // =========================
+    // =================================================
     strokeWeight(strokeW);
     ellipse(v.x, v.y, r * 2);
   }
@@ -176,43 +120,48 @@ function drawVesicleMembranes() {
 
 
 // -----------------------------------------------------
-// NEUROTRANSMITTER CONTENTS (MATCH FUSION GEOMETRY)
+// NEUROTRANSMITTER CONTENTS — SPILL THEN DISAPPEAR
 // -----------------------------------------------------
 function drawVesicleContents() {
 
-  const vesicles = window.synapseVesicles;
-  if (!Array.isArray(vesicles)) return;
+  const vesicles = window.synapseVesicles || [];
+  if (!vesicles.length) return;
 
-  const r     = window.SYNAPSE_VESICLE_RADIUS;
-  const dockX = window.SYNAPSE_VESICLE_STOP_X;
+  const r = window.SYNAPSE_VESICLE_RADIUS;
 
   fill(ntFillColor());
   noStroke();
 
   for (const v of vesicles) {
 
-    if (!Array.isArray(v.nts) || v.nts.length === 0) continue;
+    if (!Array.isArray(v.nts) || !v.nts.length) continue;
     if (!Number.isFinite(v.x) || !Number.isFinite(v.y)) continue;
 
+    // -------------------------------------------------
+    // MEMBRANE MERGE
+    // -------------------------------------------------
     if (v.state === "MEMBRANE_MERGE" && Number.isFinite(v.flatten)) {
 
       const t = constrain(v.flatten, 0, 1);
-      const cx = dockX - r;
-      const squashY = 1 - t;
-      const spill = t < 0.5 ? 0 : map(t, 0.5, 1, 0, 18);
-
-      push();
-      translate(cx, v.y);
-      scale(1, squashY);
+      const spill = t < 0.4 ? 0 : map(t, 0.4, 1, 0, 20);
 
       for (const p of v.nts) {
-        circle(p.x + spill, p.y, 3);
+
+        const px = v.x + p.x + spill;
+        const py = v.y + p.y;
+
+        // NTs vanish as vesicle disappears
+        if (px > v.x - r * t) continue;
+
+        circle(px, py, 3);
       }
 
-      pop();
       continue;
     }
 
+    // -------------------------------------------------
+    // NORMAL
+    // -------------------------------------------------
     for (const p of v.nts) {
       circle(v.x + p.x, v.y + p.y, 3);
     }
