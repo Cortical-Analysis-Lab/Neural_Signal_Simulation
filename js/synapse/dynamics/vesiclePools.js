@@ -241,14 +241,13 @@ function updateVesiclePools() {
 
   for (const v of vesicles) {
 
+    // 🔒 HARD EXCLUSIONS
     if (v.releaseBias === true) continue;
-    if (v.state === "RECYCLE_TRAVEL") continue;
+    if (v.state === "RECYCLED_TRAVEL") continue;
 
-    // 🔑 CRITICAL FIX:
-    // EMPTY vesicles near the corridor get recruited
+    // EMPTY vesicles near corridor get recruited
     if (v.state === "EMPTY") {
-      const r = loaded;
-      if (v.x < r.xMin + 12) {
+      if (v.x < loaded.xMin + 12) {
         v.state = "LOADED_TRAVEL";
       }
     }
