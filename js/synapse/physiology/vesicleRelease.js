@@ -61,17 +61,17 @@ function applyFusionApproachForce(v) {
   const targetX =
     window.SYNAPSE_VESICLE_STOP_X + (v.dockBiasX ?? 0);
 
-  const dx = targetX - v.x;
+  const dx   = targetX - v.x;
   const dist = Math.abs(dx);
 
-  // Distance-weighted pull (soft near membrane)
+  // Distance-weighted pull (gentle near membrane)
   const strength = map(dist, 0, 40, 0.004, 0.025, true);
-  const pull = constrain(dx * strength, -0.35, 0.35);
+  const pull     = constrain(dx * strength, -0.35, 0.35);
 
   v.vx += pull;
 
-  v.x += v.vx;
-  v.y += v.vy;
+  v.x  += v.vx;
+  v.y  += v.vy;
 
   v.vx *= 0.90;
   v.vy *= 0.95;
@@ -134,6 +134,9 @@ function updateVesicleRelease() {
 
     if (v.releaseBias !== true) continue;
 
+    // Defensive clamp (geometry safety)
+    if (!Number.isFinite(v.flatten)) v.flatten = 0;
+
     // =================================================
     // DOCKING
     // =================================================
@@ -153,7 +156,7 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // ZIPPER
+    // ZIPPER — BEGIN CURVATURE LOSS
     // =================================================
     else if (v.state === "FUSION_ZIPPER") {
 
@@ -161,6 +164,9 @@ function updateVesicleRelease() {
 
       v.timer++;
       v.fusionProgress = constrain(v.timer / ZIPPER_TIME, 0, 1);
+
+      // 🔑 EARLY FLATTENING (hemifusion onset)
+      v.flatten = constrain(v.fusionProgress * 0.35, 0, 1);
 
       if (v.fusionProgress >= 1) {
         v.state = "FUSION_PORE";
@@ -227,17 +233,18 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // MEMBRANE MERGE → ENDOCYTOSIS (SOFT)
+    // MEMBRANE MERGE → ENDOCYTOSIS (TRUE FUSION)
     // =================================================
     else if (v.state === "MEMBRANE_MERGE") {
 
       if (!v.__mergeLocked) {
         v.__mergeLocked = true;
 
-        // Soften instead of killing velocity
+        // Preserve inertia but soften
         v.vx *= 0.25;
         v.vy *= 0.25;
 
+        // NTs cleared before budding
         v.nts = [];
       }
 
@@ -247,8 +254,8 @@ function updateVesicleRelease() {
       v.flatten    = t;
       v.mergePhase = 1 - t;
 
-      // Ease into membrane plane (no teleport)
-      v.x += (window.SYNAPSE_VESICLE_STOP_X - v.x) * 0.35;
+      // 🔒 PIN TO MEMBRANE PLANE (geometry owns shape)
+      v.x = window.SYNAPSE_VESICLE_STOP_X;
 
       if (t >= 1) {
 
