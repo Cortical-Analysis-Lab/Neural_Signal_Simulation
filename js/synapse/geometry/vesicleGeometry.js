@@ -15,8 +15,7 @@ console.log("🧬 vesicleGeometry loaded");
 // • Presynaptic LOCAL space
 // • +X → toward membrane / fusion plane
 // • NO flips
-// • NO transforms
-//
+// • NO transforms (except local push/pop)
 // =====================================================
 
 
@@ -114,7 +113,7 @@ function drawVesiclePoolsDebug() {
 
 
 // -----------------------------------------------------
-// VESICLE MEMBRANES
+// VESICLE MEMBRANES (TRUE FUSION GEOMETRY)
 // -----------------------------------------------------
 function drawVesicleMembranes() {
 
@@ -137,22 +136,39 @@ function drawVesicleMembranes() {
 
     fill(vesicleFillColor(fillAlpha));
 
+    // =========================
+    // MEMBRANE FUSION (CURVATURE LOSS)
+    // =========================
     if (v.state === "MEMBRANE_MERGE" && Number.isFinite(v.flatten)) {
 
       const t = constrain(v.flatten, 0, 1);
-      const currentR = r * (1 - t);
-      const cx = dockX - currentR;
 
-      const openFrac  = t < 0.5 ? 0 : map(t, 0.5, 1, 0, 1);
-      const openAngle = openFrac * PI;
+      // Vesicle center pinned to membrane plane
+      const cx = dockX - r;
+
+      // Vertical flattening (membrane consumption)
+      const squashY = 1 - t;
+
+      // Arc closes as fusion progresses
+      const arcFrac = lerp(1.0, 0.15, t);
+      const startA  = PI * (1 - arcFrac);
+      const endA    = PI * (1 + arcFrac);
 
       strokeWeight(lerp(strokeW, strokeW * 0.35, t));
       noFill();
 
-      arc(cx, v.y, currentR * 2, currentR * 2, -openAngle, openAngle);
+      push();
+      translate(cx, v.y);
+      scale(1, squashY);
+      arc(0, 0, r * 2, r * 2, startA, endA);
+      pop();
+
       continue;
     }
 
+    // =========================
+    // NORMAL VESICLE
+    // =========================
     strokeWeight(strokeW);
     ellipse(v.x, v.y, r * 2);
   }
@@ -160,7 +176,7 @@ function drawVesicleMembranes() {
 
 
 // -----------------------------------------------------
-// NEUROTRANSMITTER CONTENTS (VESICLE-LOCAL)
+// NEUROTRANSMITTER CONTENTS (MATCH FUSION GEOMETRY)
 // -----------------------------------------------------
 function drawVesicleContents() {
 
@@ -181,13 +197,19 @@ function drawVesicleContents() {
     if (v.state === "MEMBRANE_MERGE" && Number.isFinite(v.flatten)) {
 
       const t = constrain(v.flatten, 0, 1);
-      const currentR = r * (1 - t);
-      const cx = dockX - currentR;
+      const cx = dockX - r;
+      const squashY = 1 - t;
       const spill = t < 0.5 ? 0 : map(t, 0.5, 1, 0, 18);
 
+      push();
+      translate(cx, v.y);
+      scale(1, squashY);
+
       for (const p of v.nts) {
-        circle(cx + p.x + spill, v.y + p.y, 3);
+        circle(p.x + spill, p.y, 3);
       }
+
+      pop();
       continue;
     }
 
@@ -203,7 +225,6 @@ function drawVesicleContents() {
 // -----------------------------------------------------
 function drawPrimingParticles() {
 
-  // ONLY vesicles actively loading may show chemistry
   const ALLOWED_STATES = new Set([
     "PRIMING",
     "PRIMED",
