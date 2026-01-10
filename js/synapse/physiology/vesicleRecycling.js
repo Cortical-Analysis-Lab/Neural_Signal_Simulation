@@ -6,8 +6,8 @@ console.log("♻️ vesicleRecycling loaded — AUTHORITATIVE");
 //
 // ✔ Endocytosis seed → vesicle birth
 // ✔ Directed return to reserve pool
-// ✔ Hard exclusion from motion / release during travel
-// ✔ Clean pool handoff (NO drift)
+// ✔ Smooth, gliding handoff
+// ✔ No teleportation
 //
 // AUTHORITATIVE RULES:
 // • Presynaptic LOCAL space only
@@ -18,20 +18,20 @@ console.log("♻️ vesicleRecycling loaded — AUTHORITATIVE");
 
 
 // -----------------------------------------------------
-// ENDOCYTOSIS SEEDS (PRESYNAPTIC LOCAL SPACE)
+// ENDOCYTOSIS SEEDS
 // -----------------------------------------------------
 window.endocytosisSeeds = window.endocytosisSeeds || [];
 
 
 // -----------------------------------------------------
-// SPAWN ENDOCYTOSIS SEED (FROM vesicleRelease)
+// SPAWN ENDOCYTOSIS SEED
 // -----------------------------------------------------
 window.spawnEndocytosisSeed = function (x, y) {
   window.endocytosisSeeds.push({
     x,
     y,
     timer: 0,
-    stage: "PATCH", // PATCH → BUD → PINCH
+    stage: "PATCH",
     radius: 2,
     alpha: 180
   });
@@ -60,7 +60,6 @@ function updateVesicleRecycling() {
     const e = seeds[i];
     e.timer++;
 
-    // ---------------- PATCH ----------------
     if (e.stage === "PATCH") {
       e.radius = lerp(2, 6, e.timer / 40);
       if (e.timer >= 40) {
@@ -69,7 +68,6 @@ function updateVesicleRecycling() {
       }
     }
 
-    // ---------------- BUD ----------------
     else if (e.stage === "BUD") {
       e.radius = lerp(6, V_RADIUS, e.timer / 60);
       e.alpha  = lerp(180, 220, e.timer / 60);
@@ -79,7 +77,6 @@ function updateVesicleRecycling() {
       }
     }
 
-    // ---------------- PINCH → VESICLE BIRTH ----------------
     else if (e.stage === "PINCH") {
 
       e.radius = lerp(V_RADIUS, V_RADIUS * 0.85, e.timer / 30);
@@ -90,39 +87,36 @@ function updateVesicleRecycling() {
 
           vesicles.push({
 
-            // Born just inside cytosol (LOCAL SPACE)
             x: e.x + V_RADIUS + random(8, 14),
-            y: e.y + random(-4, 4),
+            y: e.y + random(-6, 6),
 
-            // Directed return toward reserve pool
-            vx: random(0.12, 0.18),
+            vx: random(0.10, 0.16),
             vy: random(-0.04, 0.04),
 
             radius: V_RADIUS,
 
-            // --------------------------
-            // TEMPORARY RECYCLING STATE
-            // --------------------------
+            // Per-vesicle return bias (anti-cluster)
+            recycleBiasX: random(-8, 8),
+            recycleBiasY: random(-10, 10),
+
             state: "RECYCLED_TRAVEL",
 
             primedH: false,
             primedATP: false,
             nts: [],
 
-            // 🔒 HARD EXCLUSION FLAGS
             releaseBias: false,
             recycleBias: true
           });
         }
 
-        // Seed is consumed
         seeds.splice(i, 1);
       }
     }
   }
 
   // ===================================================
-  // RECYCLED_TRAVEL → EMPTY (CLEAN POOL HANDOFF)
+  // RECYCLED_TRAVEL → SOFT HANDOFF
   // ===================================================
   const RESERVE_TARGET_X = STOP_X + BACK_X + 20;
 
@@ -130,35 +124,31 @@ function updateVesicleRecycling() {
 
     if (v.state !== "RECYCLED_TRAVEL") continue;
 
-    // Directed inward motion (NO Brownian, NO pools)
-    v.vx += (RESERVE_TARGET_X - v.x) * 0.03;
-    v.vx *= 0.82;
-    v.vy *= 0.94;
+    // Soft inward glide (no snap)
+    const dx = (RESERVE_TARGET_X + (v.recycleBiasX ?? 0)) - v.x;
+    v.vx += dx * 0.02;
+
+    v.vx *= 0.88;
+    v.vy *= 0.90;
 
     v.x += v.vx;
     v.y += v.vy;
 
     // --------------------------
-    // AUTHORITATIVE HANDOFF
+    // CLEAN, SMOOTH HANDOFF
     // --------------------------
-    if (v.x >= RESERVE_TARGET_X - 8) {
+    if (dx > -6) {
 
-      // Snap directly into reserve pool bounds
-      if (typeof getReservePoolRect === "function") {
-        const pool = getReservePoolRect();
-        const r = v.radius;
-
-        v.x = random(pool.xMin + r, pool.xMax - r);
-        v.y = random(pool.yMin + r, pool.yMax - r);
-      }
-
-      // Pool-compatible reset
       v.state = "EMPTY";
       v.recycleBias = false;
 
-      // Kill residual energy
-      v.vx = 0;
-      v.vy = 0;
+      // Gentle energy decay
+      v.vx *= 0.35;
+      v.vy *= 0.35;
+
+      // Remove recycle-only properties
+      delete v.recycleBiasX;
+      delete v.recycleBiasY;
     }
   }
 }
