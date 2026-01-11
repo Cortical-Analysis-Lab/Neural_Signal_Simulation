@@ -9,7 +9,7 @@ console.log("🧬 vesicleGeometry loaded — FUSION KNIFE OCCLUSION");
 // • Fusion plane acts as a visual "knife"
 // • Cleft-facing hemisphere is clipped
 // • Vesicle interior fill covers membrane
-// • Disappears only after full traversal
+// • Geometry erases ONLY after full traversal
 //
 // =====================================================
 
@@ -19,8 +19,8 @@ console.log("🧬 vesicleGeometry loaded — FUSION KNIFE OCCLUSION");
 // -----------------------------------------------------
 if (window.SYNAPSE_FUSION_PLANE_X == null) {
   window.SYNAPSE_FUSION_PLANE_X =
-    window.SYNAPSE_VESICLE_STOP_X +
-    window.SYNAPSE_VESICLE_RADIUS * 0.65;
+    window.SYNAPSE_VESICLE_STOP_X -
+    window.SYNAPSE_VESICLE_RADIUS * 1.65;
 }
 
 
@@ -31,12 +31,12 @@ function vesicleBorderColor() {
   return color(245, 225, 140);
 }
 
-function vesicleFillColor(alpha = 70) {
+function vesicleFillColor(alpha = 80) {
   return color(245, 225, 140, alpha);
 }
 
-function ntFillColor() {
-  return color(185, 120, 255, 210);
+function ntFillColor(alpha = 255) {
+  return color(185, 120, 255, alpha);
 }
 
 function protonColor() {
@@ -67,7 +67,7 @@ function drawSynapseVesicleGeometry() {
 
 
 // -----------------------------------------------------
-// VESICLE MEMBRANES — INTERIOR OCCLUSION MODEL
+// VESICLE MEMBRANES — TRUE KNIFE OCCLUSION
 // -----------------------------------------------------
 function drawVesicleMembranes() {
 
@@ -82,51 +82,47 @@ function drawVesicleMembranes() {
 
     if (!Number.isFinite(v.x) || !Number.isFinite(v.y)) continue;
 
-    let fillAlpha = 40;
-    if (v.state === "PRIMING" || v.state === "LOADING") fillAlpha = 70;
-    if (v.state === "LOADED") fillAlpha = 95;
-
     // =================================================
-    // MEMBRANE MERGE — OCCLUSION + INTERIOR FILL
+    // MEMBRANE MERGE — SPATIAL ERASURE
     // =================================================
-    if (v.state === "MEMBRANE_MERGE" && Number.isFinite(v.flatten)) {
+    if (v.state === "MEMBRANE_MERGE") {
 
-      const t = constrain(v.flatten, 0, 1);
+      const crossFrac =
+        (knifeX - (v.x - r)) / (2 * r);
 
-      // How far vesicle has crossed the knife
-      const penetration = max(0, knifeX - (v.x - r));
+      // Fully erased → draw NOTHING
+      if (crossFrac >= 1) continue;
 
-      const eatenFrac = constrain(
-        penetration / (2 * r),
-        0,
-        1
-      );
+      const visibleFrac = constrain(1 - crossFrac, 0, 1);
+      const theta = HALF_PI * visibleFrac;
 
-      const clipX = v.x + r - eatenFrac * 2 * r;
-
-      // ---- INTERIOR FILL (COVERS MEMBRANE) ----
+      // ---- INTERIOR (covers membrane) ----
       noStroke();
-      fill(vesicleFillColor(85));
+      fill(vesicleFillColor(90 * visibleFrac));
 
       beginShape();
-      for (let a = -HALF_PI; a <= HALF_PI; a += 0.08) {
-        const px = v.x + cos(a) * r;
-        const py = v.y + sin(a) * r;
-        if (px <= clipX) vertex(px, py);
+      for (let a = -theta; a <= theta; a += 0.06) {
+        vertex(
+          v.x + cos(a) * r,
+          v.y + sin(a) * r
+        );
       }
       vertex(v.x - r, v.y);
       endShape(CLOSE);
 
-      // ---- MEMBRANE OUTLINE (REMAINING ARC) ----
+      // ---- MEMBRANE OUTLINE ----
       stroke(vesicleBorderColor());
-      strokeWeight(lerp(strokeW, strokeW * 0.3, t));
+      strokeWeight(
+        lerp(strokeW, strokeW * 0.25, crossFrac)
+      );
       noFill();
 
       beginShape();
-      for (let a = -HALF_PI; a <= HALF_PI; a += 0.08) {
-        const px = v.x + cos(a) * r;
-        const py = v.y + sin(a) * r;
-        if (px <= clipX) vertex(px, py);
+      for (let a = -theta; a <= theta; a += 0.06) {
+        vertex(
+          v.x + cos(a) * r,
+          v.y + sin(a) * r
+        );
       }
       endShape();
 
@@ -138,14 +134,14 @@ function drawVesicleMembranes() {
     // =================================================
     stroke(vesicleBorderColor());
     strokeWeight(strokeW);
-    fill(vesicleFillColor(fillAlpha));
+    fill(vesicleFillColor());
     ellipse(v.x, v.y, r * 2);
   }
 }
 
 
 // -----------------------------------------------------
-// NEUROTRANSMITTER CONTENTS — EXPOSED LUMEN
+// NEUROTRANSMITTER CONTENTS — ERASE WITH VESICLE
 // -----------------------------------------------------
 function drawVesicleContents() {
 
@@ -155,30 +151,31 @@ function drawVesicleContents() {
   const r      = window.SYNAPSE_VESICLE_RADIUS;
   const knifeX = window.SYNAPSE_FUSION_PLANE_X;
 
-  fill(ntFillColor());
-  noStroke();
-
   for (const v of vesicles) {
 
     if (!Array.isArray(v.nts) || !v.nts.length) continue;
 
-    // -------------------------------------------------
-    // MEMBRANE MERGE — CONTENTS EXPOSED
-    // -------------------------------------------------
     if (v.state === "MEMBRANE_MERGE") {
 
+      const crossFrac =
+        (knifeX - (v.x - r)) / (2 * r);
+
+      if (crossFrac >= 1) continue;
+
+      const alpha = 255 * (1 - crossFrac);
+      fill(ntFillColor(alpha));
+      noStroke();
+
       for (const p of v.nts) {
-        const px = v.x + p.x;
-        if (px <= knifeX) {
-          circle(px, v.y + p.y, 3);
-        }
+        circle(v.x + p.x, v.y + p.y, 3);
       }
+
       continue;
     }
 
-    // -------------------------------------------------
-    // NORMAL
-    // -------------------------------------------------
+    // Normal
+    fill(ntFillColor());
+    noStroke();
     for (const p of v.nts) {
       circle(v.x + p.x, v.y + p.y, 3);
     }
@@ -193,7 +190,6 @@ function drawPrimingParticles() {
 
   const ALLOWED = new Set(["PRIMING", "PRIMED", "LOADING"]);
 
-  // --- H⁺ ---
   fill(protonColor());
   textSize(12);
   textAlign(CENTER, CENTER);
@@ -207,7 +203,6 @@ function drawPrimingParticles() {
     pop();
   }
 
-  // --- ATP / ADP + Pi ---
   textSize(10);
   for (const a of window.synapseATP || []) {
     if (!a.target || !ALLOWED.has(a.target.state)) continue;
@@ -222,7 +217,7 @@ function drawPrimingParticles() {
 
 
 // -----------------------------------------------------
-// OPTIONAL DEBUG: VESICLE CENTERS
+// DEBUG: VESICLE CENTERS
 // -----------------------------------------------------
 window.drawVesicleCenters = function () {
   push();
