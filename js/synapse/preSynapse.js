@@ -39,7 +39,7 @@ window.SYNAPSE_VESICLE_STROKE  = 4;
 // Vesicles slide OVER this plane and visually disappear here
 window.SYNAPSE_FUSION_PLANE_X =
   window.SYNAPSE_VESICLE_STOP_X +
-  window.SYNAPSE_VESICLE_RADIUS * -1;
+  window.SYNAPSE_VESICLE_RADIUS * -1.35;
 
 
 // -----------------------------------------------------
