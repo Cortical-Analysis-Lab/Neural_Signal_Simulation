@@ -1,20 +1,21 @@
-console.log("🧬 vesicleGeometry loaded");
+console.log("🧬 vesicleGeometry loaded — FUSION KNIFE OCCLUSION");
 
 // =====================================================
 // VESICLE GEOMETRY & RENDERING (READ-ONLY)
 // =====================================================
 //
-// VISUAL STRATEGY (IMPORTANT):
+// VISUAL STRATEGY:
 // • Vesicle slides OVER membrane
-// • Cleft-facing hemisphere disappears first
-// • No real fusion — pure occlusion illusion
-// • Geometry responds ONLY to v.x and v.flatten
+// • Fusion plane acts as a visual "knife"
+// • Cleft-facing hemisphere is clipped
+// • Vesicle interior fill covers membrane
+// • Disappears only after full traversal
 //
 // =====================================================
 
 
 // -----------------------------------------------------
-// SAFETY: DEFINE FUSION KNIFE PLANE (IF NOT PRESENT)
+// SAFETY: DEFINE FUSION PLANE IF MISSING
 // -----------------------------------------------------
 if (window.SYNAPSE_FUSION_PLANE_X == null) {
   window.SYNAPSE_FUSION_PLANE_X =
@@ -30,7 +31,7 @@ function vesicleBorderColor() {
   return color(245, 225, 140);
 }
 
-function vesicleFillColor(alpha = 50) {
+function vesicleFillColor(alpha = 70) {
   return color(245, 225, 140, alpha);
 }
 
@@ -53,7 +54,6 @@ function atpColor(alpha = 255) {
 function drawSynapseVesicleGeometry() {
   push();
 
-  // 🔒 SAFE DEBUG CALL (NO CRASH)
   if (typeof window.drawVesiclePoolsDebug === "function") {
     window.drawVesiclePoolsDebug();
   }
@@ -67,7 +67,7 @@ function drawSynapseVesicleGeometry() {
 
 
 // -----------------------------------------------------
-// VESICLE MEMBRANES — OCCLUSION-BASED FUSION
+// VESICLE MEMBRANES — INTERIOR OCCLUSION MODEL
 // -----------------------------------------------------
 function drawVesicleMembranes() {
 
@@ -78,8 +78,6 @@ function drawVesicleMembranes() {
   const strokeW = window.SYNAPSE_VESICLE_STROKE;
   const knifeX  = window.SYNAPSE_FUSION_PLANE_X;
 
-  stroke(vesicleBorderColor());
-
   for (const v of vesicles) {
 
     if (!Number.isFinite(v.x) || !Number.isFinite(v.y)) continue;
@@ -88,58 +86,66 @@ function drawVesicleMembranes() {
     if (v.state === "PRIMING" || v.state === "LOADING") fillAlpha = 70;
     if (v.state === "LOADED") fillAlpha = 95;
 
-    fill(vesicleFillColor(fillAlpha));
-
     // =================================================
-    // MEMBRANE MERGE — VISUAL OCCLUSION
+    // MEMBRANE MERGE — OCCLUSION + INTERIOR FILL
     // =================================================
     if (v.state === "MEMBRANE_MERGE" && Number.isFinite(v.flatten)) {
 
       const t = constrain(v.flatten, 0, 1);
 
-      // How far vesicle has crossed knife plane
-      const penetration = max(0, knifeX - v.x);
+      // How far vesicle has crossed the knife
+      const penetration = max(0, knifeX - (v.x - r));
 
-      // Convert penetration → eaten fraction
       const eatenFrac = constrain(
-        penetration / (r * 2),
+        penetration / (2 * r),
         0,
         1
       );
 
-      const clipX = v.x + r - eatenFrac * r * 2;
+      const clipX = v.x + r - eatenFrac * 2 * r;
 
+      // ---- INTERIOR FILL (COVERS MEMBRANE) ----
+      noStroke();
+      fill(vesicleFillColor(85));
+
+      beginShape();
+      for (let a = -HALF_PI; a <= HALF_PI; a += 0.08) {
+        const px = v.x + cos(a) * r;
+        const py = v.y + sin(a) * r;
+        if (px <= clipX) vertex(px, py);
+      }
+      vertex(v.x - r, v.y);
+      endShape(CLOSE);
+
+      // ---- MEMBRANE OUTLINE (REMAINING ARC) ----
+      stroke(vesicleBorderColor());
       strokeWeight(lerp(strokeW, strokeW * 0.3, t));
       noFill();
 
       beginShape();
-
-      // Draw only cytosolic-visible arc
-      for (let a = -HALF_PI; a <= HALF_PI; a += 0.12) {
-
+      for (let a = -HALF_PI; a <= HALF_PI; a += 0.08) {
         const px = v.x + cos(a) * r;
         const py = v.y + sin(a) * r;
-
-        if (px > clipX) continue;
-
-        vertex(px, py);
+        if (px <= clipX) vertex(px, py);
       }
-
       endShape();
+
       continue;
     }
 
     // =================================================
     // NORMAL VESICLE
     // =================================================
+    stroke(vesicleBorderColor());
     strokeWeight(strokeW);
+    fill(vesicleFillColor(fillAlpha));
     ellipse(v.x, v.y, r * 2);
   }
 }
 
 
 // -----------------------------------------------------
-// NEUROTRANSMITTER CONTENTS — SPILL THEN DISAPPEAR
+// NEUROTRANSMITTER CONTENTS — EXPOSED LUMEN
 // -----------------------------------------------------
 function drawVesicleContents() {
 
@@ -155,28 +161,18 @@ function drawVesicleContents() {
   for (const v of vesicles) {
 
     if (!Array.isArray(v.nts) || !v.nts.length) continue;
-    if (!Number.isFinite(v.x) || !Number.isFinite(v.y)) continue;
 
     // -------------------------------------------------
-    // MEMBRANE MERGE
+    // MEMBRANE MERGE — CONTENTS EXPOSED
     // -------------------------------------------------
-    if (v.state === "MEMBRANE_MERGE" && Number.isFinite(v.flatten)) {
-
-      const spill = v.flatten < 0.4
-        ? 0
-        : map(v.flatten, 0.4, 1, 0, 20);
+    if (v.state === "MEMBRANE_MERGE") {
 
       for (const p of v.nts) {
-
-        const px = v.x + p.x + spill;
-        const py = v.y + p.y;
-
-        // NTs vanish after crossing knife
-        if (px > knifeX) continue;
-
-        circle(px, py, 3);
+        const px = v.x + p.x;
+        if (px <= knifeX) {
+          circle(px, v.y + p.y, 3);
+        }
       }
-
       continue;
     }
 
@@ -195,11 +191,7 @@ function drawVesicleContents() {
 // -----------------------------------------------------
 function drawPrimingParticles() {
 
-  const ALLOWED_STATES = new Set([
-    "PRIMING",
-    "PRIMED",
-    "LOADING"
-  ]);
+  const ALLOWED = new Set(["PRIMING", "PRIMED", "LOADING"]);
 
   // --- H⁺ ---
   fill(protonColor());
@@ -207,10 +199,7 @@ function drawPrimingParticles() {
   textAlign(CENTER, CENTER);
 
   for (const h of window.synapseH || []) {
-
-    const v = h.target;
-    if (!v || !ALLOWED_STATES.has(v.state)) continue;
-
+    if (!h.target || !ALLOWED.has(h.target.state)) continue;
     push();
     translate(h.x, h.y);
     rotate(-PI);
@@ -220,13 +209,8 @@ function drawPrimingParticles() {
 
   // --- ATP / ADP + Pi ---
   textSize(10);
-  textAlign(CENTER, CENTER);
-
   for (const a of window.synapseATP || []) {
-
-    const v = a.target;
-    if (!v || !ALLOWED_STATES.has(v.state)) continue;
-
+    if (!a.target || !ALLOWED.has(a.target.state)) continue;
     fill(atpColor(a.alpha ?? 255));
     push();
     translate(a.x, a.y);
