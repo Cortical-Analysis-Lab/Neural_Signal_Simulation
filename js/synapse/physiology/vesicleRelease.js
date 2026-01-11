@@ -1,21 +1,14 @@
-console.log("⚡ vesicleRelease loaded — FUSION PLANE AWARE");
+console.log("⚡ vesicleRelease loaded — CONTINUOUS FUSION MODEL");
 
 // =====================================================
-// VESICLE RELEASE — MULTIVESICULAR (AUTHORITATIVE)
+// VESICLE RELEASE — SPATIALLY CONTINUOUS (AUTHORITATIVE)
 // =====================================================
 //
-// RESPONSIBILITIES:
-// ✔ AP-gated vesicle selection
-// ✔ Plane-based docking (NO point attraction)
-// ✔ Vesicle motion across fusion plane
-// ✔ NT release events (vesicle-authoritative membrane)
-// ✔ NT removal BEFORE budding
-// ✔ Clean recycle → recycling handoff
-//
-// OWNERSHIP RULES:
-// • releaseBias === true → THIS FILE OWNS MOTION
-// • recycleBias === true → vesicleRecycling.js owns motion
-// • Geometry owns ALL visual fusion illusion
+// CORE MODEL:
+// • Vesicle center moves continuously across fusion plane
+// • Fusion progress = spatial overlap, NOT timers
+// • NT release begins after 25% membrane crossing
+// • Geometry reacts only to v.flatten
 //
 // =====================================================
 
@@ -29,57 +22,47 @@ function unrotateLocal(x, y) {
 
 
 // -----------------------------------------------------
-// BIOLOGICAL TIMING (FRAMES)
+// TIMING (ONLY FOR DOCKING DELAY)
 // -----------------------------------------------------
-const DOCK_TIME   = 90;
-const ZIPPER_TIME = 140;
-const PORE_TIME   = 160;
-const OPEN_TIME   = 220;
-const MERGE_TIME  = 260;
-
+const DOCK_TIME = 90;
+const RELEASE_JITTER_MIN = 0;
+const RELEASE_JITTER_MAX = 18;
 const RECYCLE_HOLD_FRAMES = 40;
 
 
 // -----------------------------------------------------
-// MULTIVESICULAR JITTER
-// -----------------------------------------------------
-const RELEASE_JITTER_MIN = 0;
-const RELEASE_JITTER_MAX = 18;
-
-
-// -----------------------------------------------------
-// RECYCLING OFFSET (LOCAL SPACE)
+// RECYCLING OFFSET
 // -----------------------------------------------------
 const RECYCLE_OFFSET =
   window.SYNAPSE_VESICLE_RADIUS * 2.5;
 
 
 // -----------------------------------------------------
-// APPROACH FORCE (CENTER → STOP PLANE)
+// APPROACH FORCE (TO STOP PLANE ONLY)
 // -----------------------------------------------------
-function applyFusionApproachForce(v) {
+function applyDockingForce(v) {
 
   const targetX =
     window.SYNAPSE_VESICLE_STOP_X + (v.dockBiasX ?? 0);
 
-  const dx   = targetX - v.x;
+  const dx = targetX - v.x;
   const dist = Math.abs(dx);
 
   const strength = map(dist, 0, 40, 0.004, 0.025, true);
-  const pull     = constrain(dx * strength, -0.35, 0.35);
+  const pull = constrain(dx * strength, -0.35, 0.35);
 
   v.vx += pull;
 
   v.x += v.vx;
   v.y += v.vy;
 
-  v.vx *= 0.90;
+  v.vx *= 0.9;
   v.vy *= 0.95;
 }
 
 
 // -----------------------------------------------------
-// AP TRIGGER — MULTIVESICULAR
+// AP TRIGGER
 // -----------------------------------------------------
 function triggerVesicleReleaseFromAP() {
 
@@ -87,34 +70,30 @@ function triggerVesicleReleaseFromAP() {
 
   const ready = vesicles.filter(v =>
     v.state === "LOADED" &&
-    v.releaseBias !== true &&
-    v.recycleBias !== true
+    !v.releaseBias &&
+    !v.recycleBias
   );
-
-  if (!ready.length) return;
 
   for (const v of ready) {
 
     v.releaseBias = true;
     v.recycleBias = false;
 
-    v.owner      = "RELEASE";
+    v.owner = "RELEASE";
     v.ownerFrame = frameCount;
 
-    // Anti-clustering micro-offset
     v.dockBiasX = random(-2.5, 2.5);
     v.dockBiasY = random(-3, 3);
 
-    v.state  = "DOCKING";
-    v.timer  = -Math.floor(
+    v.state = "DOCKING";
+    v.timer = -Math.floor(
       random(RELEASE_JITTER_MIN, RELEASE_JITTER_MAX)
     );
 
-    // Geometry-facing parameters
-    v.flatten    = 0;
-    v.mergePhase = 1.0;
+    // Geometry-visible values
+    v.flatten = 0;
 
-    v.recycleHold   = Infinity;
+    v.__ntStarted = false;
     v.__mergeLocked = false;
 
     v.vy *= 0.3;
@@ -123,15 +102,17 @@ function triggerVesicleReleaseFromAP() {
 
 
 // -----------------------------------------------------
-// UPDATE RELEASE SEQUENCE
+// MAIN UPDATE
 // -----------------------------------------------------
 function updateVesicleRelease() {
 
   const vesicles = window.synapseVesicles || [];
+  const r = window.SYNAPSE_VESICLE_RADIUS;
+  const knifeX = window.SYNAPSE_FUSION_PLANE_X;
 
   for (const v of vesicles) {
 
-    if (v.releaseBias !== true) continue;
+    if (!v.releaseBias) continue;
 
     // =================================================
     // DOCKING
@@ -143,40 +124,42 @@ function updateVesicleRelease() {
         continue;
       }
 
-      applyFusionApproachForce(v);
+      applyDockingForce(v);
 
       if (++v.timer >= DOCK_TIME) {
-        v.state = "FUSION_ZIPPER";
+        v.state = "FUSING";
         v.timer = 0;
       }
     }
 
     // =================================================
-    // ZIPPER — SLIDE TOWARD MEMBRANE
+    // FUSING — CONTINUOUS SLIDE ACROSS KNIFE
     // =================================================
-    else if (v.state === "FUSION_ZIPPER") {
+    else if (v.state === "FUSING") {
 
-      applyFusionApproachForce(v);
+      // Slow forward drift INTO membrane
+      v.vx += -0.012;
+      v.x += v.vx;
+      v.y += v.vy;
 
-      v.timer++;
-      const t = constrain(v.timer / ZIPPER_TIME, 0, 1);
+      v.vx *= 0.92;
+      v.vy *= 0.97;
 
-      v.flatten = t * 0.35;
+      // -----------------------------------------------
+      // Spatial fusion progress
+      // -----------------------------------------------
+      const fusionDepth =
+        (knifeX - v.x) / r;
 
-      if (t >= 1) {
-        v.state = "FUSION_PORE";
-        v.timer = 0;
-      }
-    }
+      const f = constrain(fusionDepth, 0, 1);
+      v.flatten = f;
 
-    // =================================================
-    // FUSION PORE — INITIAL NT RELEASE
-    // =================================================
-    else if (v.state === "FUSION_PORE") {
+      // -----------------------------------------------
+      // NT RELEASE STARTS AT 25%
+      // -----------------------------------------------
+      if (f >= 0.25 && !v.__ntStarted) {
 
-      v.timer++;
-
-      if (v.timer === Math.floor(PORE_TIME * 0.35)) {
+        v.__ntStarted = true;
 
         const p = unrotateLocal(v.x, v.y);
 
@@ -191,18 +174,10 @@ function updateVesicleRelease() {
         }));
       }
 
-      if (v.timer >= PORE_TIME) {
-        v.state = "FUSION_OPEN";
-        v.timer = 0;
-      }
-    }
-
-    // =================================================
-    // FUSION OPEN — SUSTAINED RELEASE
-    // =================================================
-    else if (v.state === "FUSION_OPEN") {
-
-      if (v.timer % 10 === 0) {
+      // -----------------------------------------------
+      // CONTINUOUS RELEASE WHILE CROSSING
+      // -----------------------------------------------
+      if (v.__ntStarted && frameCount % 12 === 0 && f < 0.95) {
 
         const p = unrotateLocal(
           v.x + random(-2, 2),
@@ -215,43 +190,18 @@ function updateVesicleRelease() {
             y: p.y,
             membraneX: p.x,
             normalX: -1,
-            strength: 1.0
+            strength: 0.8
           }
         }));
       }
 
-      if (++v.timer >= OPEN_TIME) {
-        v.state = "MEMBRANE_MERGE";
-        v.timer = 0;
-      }
-    }
+      // -----------------------------------------------
+      // FULLY CONSUMED → RECYCLE
+      // -----------------------------------------------
+      if (f >= 1 && !v.__mergeLocked) {
 
-    // =================================================
-    // MEMBRANE MERGE — SLIDE PAST FUSION PLANE
-    // =================================================
-    else if (v.state === "MEMBRANE_MERGE") {
-
-      if (!v.__mergeLocked) {
         v.__mergeLocked = true;
-
-        v.vx *= 0.25;
-        v.vy *= 0.25;
-
         v.nts = [];
-      }
-
-      v.timer++;
-      const t = constrain(v.timer / MERGE_TIME, 0, 1);
-
-      v.flatten    = t;
-      v.mergePhase = 1 - t;
-
-      // 🔑 KEY CHANGE:
-      // Vesicle center moves *past* the fusion plane
-      v.x +=
-        (window.SYNAPSE_FUSION_PLANE_X - v.x) * 0.25;
-
-      if (t >= 1) {
 
         spawnEndocytosisSeed?.(
           v.x + RECYCLE_OFFSET,
