@@ -1,14 +1,13 @@
-console.log("🧬 vesicleGeometry loaded — HARD FUSION PLANE ERASE");
+console.log("🧬 vesicleGeometry loaded — HARD ERASE FIXED");
 
 // =====================================================
 // VESICLE GEOMETRY & RENDERING (READ-ONLY)
 // =====================================================
 //
-// FINAL VISUAL CONTRACT:
-// • Vesicle slides bodily across membrane
-// • Vesicle interior covers membrane (draw order)
-// • No clipping, no arcs, no partial geometry
-// • Vesicle ERASES once fully past fusion plane
+// FINAL RULES:
+// • Vesicle drawn as full circle
+// • Alpha fades as center crosses fusion plane
+// • Vesicle ERASES once center passes knife − radius
 //
 // =====================================================
 
@@ -52,17 +51,15 @@ function atpColor(alpha = 255) {
 // -----------------------------------------------------
 function drawSynapseVesicleGeometry() {
   push();
-
   drawVesicleMembranes();
   drawVesicleContents();
   drawPrimingParticles();
-
   pop();
 }
 
 
 // -----------------------------------------------------
-// VESICLE MEMBRANES — HARD SPATIAL ERASE
+// VESICLE MEMBRANES — CORRECT ERASE LOGIC
 // -----------------------------------------------------
 function drawVesicleMembranes() {
 
@@ -77,32 +74,32 @@ function drawVesicleMembranes() {
 
     if (!Number.isFinite(v.x) || !Number.isFinite(v.y)) continue;
 
-    // -------------------------------------------------
-    // MEMBRANE MERGE — ERASE AFTER FULL CROSS
-    // -------------------------------------------------
+    // ---------------------------------------------
+    // MEMBRANE MERGE — HARD ERASE CONDITION
+    // ---------------------------------------------
     if (v.state === "MEMBRANE_MERGE") {
 
-      // Trailing edge crossed → erase completely
-      if (v.x + r < knifeX) continue;
+      // ✅ THIS IS THE FIX
+      if (v.x < knifeX - r) continue;
 
-      // Fade only while crossing
-      const crossFrac = constrain(
-        (knifeX - v.x + r) / (2 * r),
+      // Fade as center crosses knife
+      const fadeFrac = constrain(
+        (v.x - knifeX + r) / (2 * r),
         0,
         1
       );
 
       stroke(vesicleBorderColor());
-      strokeWeight(lerp(strokeW, strokeW * 0.25, crossFrac));
-      fill(vesicleFillColor(lerp(90, 0, crossFrac)));
+      strokeWeight(lerp(strokeW, strokeW * 0.25, 1 - fadeFrac));
+      fill(vesicleFillColor(90 * fadeFrac));
 
       ellipse(v.x, v.y, r * 2);
       continue;
     }
 
-    // -------------------------------------------------
+    // ---------------------------------------------
     // NORMAL VESICLE
-    // -------------------------------------------------
+    // ---------------------------------------------
     stroke(vesicleBorderColor());
     strokeWeight(strokeW);
     fill(vesicleFillColor());
@@ -112,7 +109,7 @@ function drawVesicleMembranes() {
 
 
 // -----------------------------------------------------
-// NEUROTRANSMITTER CONTENTS — ERASE WITH VESICLE
+// NEUROTRANSMITTER CONTENTS — MATCH ERASE
 // -----------------------------------------------------
 function drawVesicleContents() {
 
@@ -128,25 +125,23 @@ function drawVesicleContents() {
 
     if (v.state === "MEMBRANE_MERGE") {
 
-      if (v.x + r < knifeX) continue;
+      if (v.x < knifeX - r) continue;
 
-      const crossFrac = constrain(
-        (knifeX - v.x + r) / (2 * r),
+      const fadeFrac = constrain(
+        (v.x - knifeX + r) / (2 * r),
         0,
         1
       );
 
-      fill(ntFillColor(255 * (1 - crossFrac)));
+      fill(ntFillColor(255 * fadeFrac));
       noStroke();
 
       for (const p of v.nts) {
         circle(v.x + p.x, v.y + p.y, 3);
       }
-
       continue;
     }
 
-    // Normal
     fill(ntFillColor());
     noStroke();
     for (const p of v.nts) {
@@ -187,22 +182,6 @@ function drawPrimingParticles() {
     pop();
   }
 }
-
-
-// -----------------------------------------------------
-// DEBUG: VESICLE CENTERS
-// -----------------------------------------------------
-window.drawVesicleCenters = function () {
-  push();
-  fill(255, 0, 0);
-  noStroke();
-  for (const v of window.synapseVesicles || []) {
-    if (Number.isFinite(v.x) && Number.isFinite(v.y)) {
-      circle(v.x, v.y, 4);
-    }
-  }
-  pop();
-};
 
 
 // -----------------------------------------------------
