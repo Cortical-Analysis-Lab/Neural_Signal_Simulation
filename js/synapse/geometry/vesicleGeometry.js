@@ -1,21 +1,20 @@
-console.log("🧬 vesicleGeometry loaded — FUSION KNIFE OCCLUSION");
+console.log("🧬 vesicleGeometry loaded — HARD FUSION PLANE ERASE");
 
 // =====================================================
 // VESICLE GEOMETRY & RENDERING (READ-ONLY)
 // =====================================================
 //
-// VISUAL STRATEGY:
-// • Vesicle slides OVER membrane
-// • Fusion plane acts as a visual "knife"
-// • Cleft-facing hemisphere is clipped
-// • Vesicle interior fill covers membrane
-// • Geometry erases ONLY after full traversal
+// FINAL VISUAL CONTRACT:
+// • Vesicle slides bodily across membrane
+// • Vesicle interior covers membrane (draw order)
+// • No clipping, no arcs, no partial geometry
+// • Vesicle ERASES once fully past fusion plane
 //
 // =====================================================
 
 
 // -----------------------------------------------------
-// SAFETY: DEFINE FUSION PLANE IF MISSING
+// SAFETY: DEFINE FUSION PLANE
 // -----------------------------------------------------
 if (window.SYNAPSE_FUSION_PLANE_X == null) {
   window.SYNAPSE_FUSION_PLANE_X =
@@ -25,13 +24,13 @@ if (window.SYNAPSE_FUSION_PLANE_X == null) {
 
 
 // -----------------------------------------------------
-// COLORS (PURE VISUAL)
+// COLORS
 // -----------------------------------------------------
 function vesicleBorderColor() {
   return color(245, 225, 140);
 }
 
-function vesicleFillColor(alpha = 80) {
+function vesicleFillColor(alpha = 90) {
   return color(245, 225, 140, alpha);
 }
 
@@ -54,10 +53,6 @@ function atpColor(alpha = 255) {
 function drawSynapseVesicleGeometry() {
   push();
 
-  if (typeof window.drawVesiclePoolsDebug === "function") {
-    window.drawVesiclePoolsDebug();
-  }
-
   drawVesicleMembranes();
   drawVesicleContents();
   drawPrimingParticles();
@@ -67,7 +62,7 @@ function drawSynapseVesicleGeometry() {
 
 
 // -----------------------------------------------------
-// VESICLE MEMBRANES — TRUE KNIFE OCCLUSION
+// VESICLE MEMBRANES — HARD SPATIAL ERASE
 // -----------------------------------------------------
 function drawVesicleMembranes() {
 
@@ -82,56 +77,32 @@ function drawVesicleMembranes() {
 
     if (!Number.isFinite(v.x) || !Number.isFinite(v.y)) continue;
 
-    // =================================================
-    // MEMBRANE MERGE — SPATIAL ERASURE
-    // =================================================
+    // -------------------------------------------------
+    // MEMBRANE MERGE — ERASE AFTER FULL CROSS
+    // -------------------------------------------------
     if (v.state === "MEMBRANE_MERGE") {
 
-      const crossFrac =
-        (knifeX - (v.x - r)) / (2 * r);
+      // Trailing edge crossed → erase completely
+      if (v.x + r < knifeX) continue;
 
-      // Fully erased → draw NOTHING
-      if (crossFrac >= 1) continue;
-
-      const visibleFrac = constrain(1 - crossFrac, 0, 1);
-      const theta = HALF_PI * visibleFrac;
-
-      // ---- INTERIOR (covers membrane) ----
-      noStroke();
-      fill(vesicleFillColor(90 * visibleFrac));
-
-      beginShape();
-      for (let a = -theta; a <= theta; a += 0.06) {
-        vertex(
-          v.x + cos(a) * r,
-          v.y + sin(a) * r
-        );
-      }
-      vertex(v.x - r, v.y);
-      endShape(CLOSE);
-
-      // ---- MEMBRANE OUTLINE ----
-      stroke(vesicleBorderColor());
-      strokeWeight(
-        lerp(strokeW, strokeW * 0.25, crossFrac)
+      // Fade only while crossing
+      const crossFrac = constrain(
+        (knifeX - v.x + r) / (2 * r),
+        0,
+        1
       );
-      noFill();
 
-      beginShape();
-      for (let a = -theta; a <= theta; a += 0.06) {
-        vertex(
-          v.x + cos(a) * r,
-          v.y + sin(a) * r
-        );
-      }
-      endShape();
+      stroke(vesicleBorderColor());
+      strokeWeight(lerp(strokeW, strokeW * 0.25, crossFrac));
+      fill(vesicleFillColor(lerp(90, 0, crossFrac)));
 
+      ellipse(v.x, v.y, r * 2);
       continue;
     }
 
-    // =================================================
+    // -------------------------------------------------
     // NORMAL VESICLE
-    // =================================================
+    // -------------------------------------------------
     stroke(vesicleBorderColor());
     strokeWeight(strokeW);
     fill(vesicleFillColor());
@@ -157,13 +128,15 @@ function drawVesicleContents() {
 
     if (v.state === "MEMBRANE_MERGE") {
 
-      const crossFrac =
-        (knifeX - (v.x - r)) / (2 * r);
+      if (v.x + r < knifeX) continue;
 
-      if (crossFrac >= 1) continue;
+      const crossFrac = constrain(
+        (knifeX - v.x + r) / (2 * r),
+        0,
+        1
+      );
 
-      const alpha = 255 * (1 - crossFrac);
-      fill(ntFillColor(alpha));
+      fill(ntFillColor(255 * (1 - crossFrac)));
       noStroke();
 
       for (const p of v.nts) {
@@ -184,7 +157,7 @@ function drawVesicleContents() {
 
 
 // -----------------------------------------------------
-// PRIMING PARTICLES (STRICTLY PRESYNAPTIC)
+// PRIMING PARTICLES
 // -----------------------------------------------------
 function drawPrimingParticles() {
 
