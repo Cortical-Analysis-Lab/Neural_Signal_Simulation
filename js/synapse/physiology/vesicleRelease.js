@@ -1,4 +1,4 @@
-console.log("⚡ vesicleRelease loaded — AUTHORITATIVE MEMBRANE HANDOFF");
+console.log("⚡ vesicleRelease loaded — FUSION PLANE AWARE");
 
 // =====================================================
 // VESICLE RELEASE — MULTIVESICULAR (AUTHORITATIVE)
@@ -7,7 +7,7 @@ console.log("⚡ vesicleRelease loaded — AUTHORITATIVE MEMBRANE HANDOFF");
 // RESPONSIBILITIES:
 // ✔ AP-gated vesicle selection
 // ✔ Plane-based docking (NO point attraction)
-// ✔ Vesicle motion across membrane plane
+// ✔ Vesicle motion across fusion plane
 // ✔ NT release events (vesicle-authoritative membrane)
 // ✔ NT removal BEFORE budding
 // ✔ Clean recycle → recycling handoff
@@ -55,7 +55,7 @@ const RECYCLE_OFFSET =
 
 
 // -----------------------------------------------------
-// RELEASE-OWNED APPROACH FORCE (SOFT, PLANE ONLY)
+// APPROACH FORCE (CENTER → STOP PLANE)
 // -----------------------------------------------------
 function applyFusionApproachForce(v) {
 
@@ -65,13 +65,11 @@ function applyFusionApproachForce(v) {
   const dx   = targetX - v.x;
   const dist = Math.abs(dx);
 
-  // Distance-weighted pull (gentle near membrane)
   const strength = map(dist, 0, 40, 0.004, 0.025, true);
   const pull     = constrain(dx * strength, -0.35, 0.35);
 
   v.vx += pull;
 
-  // Motion integration (RELEASE owns motion)
   v.x += v.vx;
   v.y += v.vy;
 
@@ -103,7 +101,7 @@ function triggerVesicleReleaseFromAP() {
     v.owner      = "RELEASE";
     v.ownerFrame = frameCount;
 
-    // Per-vesicle docking micro-offset (anti-clustering)
+    // Anti-clustering micro-offset
     v.dockBiasX = random(-2.5, 2.5);
     v.dockBiasY = random(-3, 3);
 
@@ -112,7 +110,7 @@ function triggerVesicleReleaseFromAP() {
       random(RELEASE_JITTER_MIN, RELEASE_JITTER_MAX)
     );
 
-    // Geometry-facing parameters (read-only there)
+    // Geometry-facing parameters
     v.flatten    = 0;
     v.mergePhase = 1.0;
 
@@ -154,7 +152,7 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // ZIPPER — SLIDE ONTO MEMBRANE
+    // ZIPPER — SLIDE TOWARD MEMBRANE
     // =================================================
     else if (v.state === "FUSION_ZIPPER") {
 
@@ -163,7 +161,6 @@ function updateVesicleRelease() {
       v.timer++;
       const t = constrain(v.timer / ZIPPER_TIME, 0, 1);
 
-      // Early flattening cue for geometry
       v.flatten = t * 0.35;
 
       if (t >= 1) {
@@ -173,7 +170,7 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // FUSION PORE — NT RELEASE
+    // FUSION PORE — INITIAL NT RELEASE
     // =================================================
     else if (v.state === "FUSION_PORE") {
 
@@ -230,18 +227,16 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // MEMBRANE MERGE — FULL OVERLAY → DISAPPEAR
+    // MEMBRANE MERGE — SLIDE PAST FUSION PLANE
     // =================================================
     else if (v.state === "MEMBRANE_MERGE") {
 
       if (!v.__mergeLocked) {
         v.__mergeLocked = true;
 
-        // Soften motion but do not kill it
         v.vx *= 0.25;
         v.vy *= 0.25;
 
-        // NTs must be gone before endocytosis
         v.nts = [];
       }
 
@@ -251,8 +246,10 @@ function updateVesicleRelease() {
       v.flatten    = t;
       v.mergePhase = 1 - t;
 
-      // Continue sliding OVER membrane plane
-      v.x += (window.SYNAPSE_VESICLE_STOP_X - v.x) * 0.35;
+      // 🔑 KEY CHANGE:
+      // Vesicle center moves *past* the fusion plane
+      v.x +=
+        (window.SYNAPSE_FUSION_PLANE_X - v.x) * 0.25;
 
       if (t >= 1) {
 
