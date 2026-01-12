@@ -93,7 +93,7 @@ function triggerVesicleReleaseFromAP() {
       random(RELEASE_JITTER_MIN, RELEASE_JITTER_MAX)
     );
 
-    // Geometry-visible values
+    // Geometry-visible value (ONLY thing geometry reads)
     v.flatten = 0;
 
     // Debug sentinels
@@ -151,13 +151,20 @@ function updateVesicleRelease() {
       v.vy *= 0.97;
 
       // -----------------------------------------------
-      // Spatial fusion progress (CRITICAL)
+      // Spatial fusion progress
       // -----------------------------------------------
-      const fusionDepth =
-        (knifeX - v.x) / r;
-
+      const fusionDepth = (knifeX - v.x) / r;
       const f = constrain(fusionDepth, 0, 1);
+
       v.flatten = f;
+
+      // -----------------------------------------------
+      // 🔒 CRITICAL FIX — FORCE COMPLETION
+      // Once center passes the knife, fusion is done
+      // -----------------------------------------------
+      if (v.x <= knifeX) {
+        v.flatten = 1;
+      }
 
       // -----------------------------------------------
       // 🔎 DEBUG LOG (THROTTLED)
@@ -169,18 +176,18 @@ function updateVesicleRelease() {
           "knifeX:", knifeX.toFixed(2),
           "Δ:", (knifeX - v.x).toFixed(2),
           "fusionDepth:", fusionDepth.toFixed(2),
-          "flatten:", f.toFixed(2)
+          "flatten:", v.flatten.toFixed(2)
         );
       }
 
       // -----------------------------------------------
       // NT RELEASE STARTS AT 25%
       // -----------------------------------------------
-      if (f >= 0.25 && !v.__ntStarted) {
+      if (v.flatten >= 0.25 && !v.__ntStarted) {
 
         v.__ntStarted = true;
 
-        console.log("🧠 NT RELEASE START @ flatten =", f.toFixed(2));
+        console.log("🧠 NT RELEASE START @ flatten =", v.flatten.toFixed(2));
 
         const p = unrotateLocal(v.x, v.y);
 
@@ -198,7 +205,7 @@ function updateVesicleRelease() {
       // -----------------------------------------------
       // CONTINUOUS RELEASE WHILE CROSSING
       // -----------------------------------------------
-      if (v.__ntStarted && frameCount % 12 === 0 && f < 0.95) {
+      if (v.__ntStarted && frameCount % 12 === 0 && v.flatten < 0.95) {
 
         const p = unrotateLocal(
           v.x + random(-2, 2),
@@ -219,11 +226,11 @@ function updateVesicleRelease() {
       // -----------------------------------------------
       // FULLY CONSUMED → RECYCLE
       // -----------------------------------------------
-      if (f >= 1 && !v.__mergeLocked) {
+      if (v.flatten >= 1 && !v.__mergeLocked) {
 
-        console.log("✅ FULL FUSION REACHED — flatten =", f.toFixed(2));
+        console.log("✅ FULL FUSION REACHED — flatten =", v.flatten.toFixed(2));
+
         v.__mergeLocked = true;
-
         v.nts = [];
 
         spawnEndocytosisSeed?.(
@@ -239,19 +246,6 @@ function updateVesicleRelease() {
 
         v.vx = random(0.06, 0.10);
         v.vy = random(-0.04, 0.04);
-      }
-
-      // -----------------------------------------------
-      // ❗ SAFETY WARNING (ONE TIME)
-      // -----------------------------------------------
-      if (v.flatten < 1 && v.x < knifeX - 3 * r && !v.__reportedFullFusion) {
-        console.warn(
-          "⚠️ Vesicle passed knife but flatten < 1",
-          "x:", v.x.toFixed(2),
-          "knifeX:", knifeX.toFixed(2),
-          "flatten:", v.flatten.toFixed(2)
-        );
-        v.__reportedFullFusion = true;
       }
     }
   }
