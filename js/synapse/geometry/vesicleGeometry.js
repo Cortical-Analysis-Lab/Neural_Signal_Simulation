@@ -65,11 +65,11 @@ function drawVesicleMembranes() {
     if (!Number.isFinite(v.x) || !Number.isFinite(v.y)) continue;
 
     // -------------------------------------------------
-    // MEMBRANE MERGE — HARD ERASE (SINGLE SOURCE OF TRUTH)
+    // FUSING / MERGING — FADE, THEN HARD ERASE
     // -------------------------------------------------
-    if (v.state === "MEMBRANE_MERGE" || v.state === "FUSING") {
+    if (v.state === "FUSING" || v.state === "MEMBRANE_MERGE") {
 
-      // 🔑 ABSOLUTE KILL CONDITION
+      // 🔑 ABSOLUTE ERASE — NO DRAW
       if (v.flatten >= 1) {
         continue;
       }
@@ -110,9 +110,9 @@ function drawVesicleContents() {
     if (!Array.isArray(v.nts) || !v.nts.length) continue;
 
     // -------------------------------------------------
-    // FUSING / MERGING — FADE WITH FLATTEN
+    // FUSING / MERGING — FADE, THEN HARD ERASE
     // -------------------------------------------------
-    if (v.state === "MEMBRANE_MERGE" || v.state === "FUSING") {
+    if (v.state === "FUSING" || v.state === "MEMBRANE_MERGE") {
 
       if (v.flatten >= 1) continue;
 
@@ -147,6 +147,7 @@ function drawPrimingParticles() {
 
   const ALLOWED = new Set(["PRIMING", "PRIMED", "LOADING"]);
 
+  // --- H⁺ ---
   fill(protonColor());
   textSize(12);
   textAlign(CENTER, CENTER);
@@ -162,6 +163,7 @@ function drawPrimingParticles() {
     pop();
   }
 
+  // --- ATP / ADP + Pi ---
   textSize(10);
 
   for (const a of window.synapseATP || []) {
