@@ -6,20 +6,11 @@ console.log("🧬 vesicleGeometry loaded — HARD ERASE FIXED");
 //
 // FINAL RULES:
 // • Vesicle drawn as full circle
-// • Alpha fades as center crosses fusion plane
-// • Vesicle ERASES once center passes knife − radius
+// • Alpha fades with v.flatten
+// • Vesicle ERASES when v.flatten >= 1
+// • Geometry NEVER infers biology
 //
 // =====================================================
-
-
-// -----------------------------------------------------
-// SAFETY: DEFINE FUSION PLANE
-// -----------------------------------------------------
-if (window.SYNAPSE_FUSION_PLANE_X == null) {
-  window.SYNAPSE_FUSION_PLANE_X =
-    window.SYNAPSE_VESICLE_STOP_X -
-    window.SYNAPSE_VESICLE_RADIUS * 1.65;
-}
 
 
 // -----------------------------------------------------
@@ -59,7 +50,7 @@ function drawSynapseVesicleGeometry() {
 
 
 // -----------------------------------------------------
-// VESICLE MEMBRANES — CORRECT ERASE LOGIC
+// VESICLE MEMBRANES — AUTHORITATIVE ERASE
 // -----------------------------------------------------
 function drawVesicleMembranes() {
 
@@ -68,38 +59,34 @@ function drawVesicleMembranes() {
 
   const r       = window.SYNAPSE_VESICLE_RADIUS;
   const strokeW = window.SYNAPSE_VESICLE_STROKE;
-  const knifeX  = window.SYNAPSE_FUSION_PLANE_X;
 
   for (const v of vesicles) {
 
     if (!Number.isFinite(v.x) || !Number.isFinite(v.y)) continue;
 
-    // ---------------------------------------------
-    // MEMBRANE MERGE — HARD ERASE CONDITION
-    // ---------------------------------------------
+    // =================================================
+    // MEMBRANE MERGE — HARD ERASE (THE FIX)
+    // =================================================
     if (v.state === "MEMBRANE_MERGE") {
 
-      // ✅ THIS IS THE FIX
-      if (v.x < knifeX - r) continue;
+      // 🔑 AUTHORITATIVE KILL
+      if (v.flatten >= 1) continue;
 
-      // Fade as center crosses knife
-      const fadeFrac = constrain(
-        (v.x - knifeX + r) / (2 * r),
-        0,
-        1
-      );
+      const fade = 1 - v.flatten;
 
       stroke(vesicleBorderColor());
-      strokeWeight(lerp(strokeW, strokeW * 0.25, 1 - fadeFrac));
-      fill(vesicleFillColor(90 * fadeFrac));
+      strokeWeight(
+        lerp(strokeW, strokeW * 0.25, v.flatten)
+      );
+      fill(vesicleFillColor(90 * fade));
 
       ellipse(v.x, v.y, r * 2);
       continue;
     }
 
-    // ---------------------------------------------
+    // =================================================
     // NORMAL VESICLE
-    // ---------------------------------------------
+    // =================================================
     stroke(vesicleBorderColor());
     strokeWeight(strokeW);
     fill(vesicleFillColor());
@@ -116,24 +103,19 @@ function drawVesicleContents() {
   const vesicles = window.synapseVesicles || [];
   if (!vesicles.length) return;
 
-  const r      = window.SYNAPSE_VESICLE_RADIUS;
-  const knifeX = window.SYNAPSE_FUSION_PLANE_X;
-
   for (const v of vesicles) {
 
     if (!Array.isArray(v.nts) || !v.nts.length) continue;
 
+    // =================================================
+    // MEMBRANE MERGE — CONTENTS FADE
+    // =================================================
     if (v.state === "MEMBRANE_MERGE") {
 
-      if (v.x < knifeX - r) continue;
+      if (v.flatten >= 1) continue;
 
-      const fadeFrac = constrain(
-        (v.x - knifeX + r) / (2 * r),
-        0,
-        1
-      );
-
-      fill(ntFillColor(255 * fadeFrac));
+      const fade = 1 - v.flatten;
+      fill(ntFillColor(255 * fade));
       noStroke();
 
       for (const p of v.nts) {
@@ -142,6 +124,9 @@ function drawVesicleContents() {
       continue;
     }
 
+    // =================================================
+    // NORMAL
+    // =================================================
     fill(ntFillColor());
     noStroke();
     for (const p of v.nts) {
@@ -152,7 +137,7 @@ function drawVesicleContents() {
 
 
 // -----------------------------------------------------
-// PRIMING PARTICLES
+// PRIMING PARTICLES (STRICTLY PRESYNAPTIC)
 // -----------------------------------------------------
 function drawPrimingParticles() {
 
