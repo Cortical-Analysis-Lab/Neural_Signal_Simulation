@@ -1,16 +1,16 @@
-console.log("⚡ vesicleRelease loaded — CONTINUOUS FUSION MODEL (RIGHTWARD, LOCKED)");
+console.log("⚡ vesicleRelease loaded — CONTINUOUS FUSION MODEL (PRESYNAPTIC, -X → CLEFT)");
 
 // =====================================================
 // VESICLE RELEASE — SPATIALLY CONTINUOUS (AUTHORITATIVE)
 // =====================================================
 //
 // COORDINATE MODEL (LOCKED):
-// • +X points TOWARD synaptic cleft
-// • Vesicles move RIGHTWARD (+X)
-// • Fusion begins when vesicle overlaps fusion plane
+// • Presynaptic local space
+// • Cleft is reached by DECREASING X
+// • Vesicles move LEFTWARD (−X) to fuse
 //
 // CORE MODEL:
-// • Fusion progress = spatial overlap (EDGE-BASED)
+// • Fusion progress = spatial overlap with fusion plane
 // • NT release begins after 25% overlap
 // • Geometry reacts ONLY to v.flatten
 //
@@ -26,7 +26,7 @@ function unrotateLocal(x, y) {
 
 
 // -----------------------------------------------------
-// TIMING (DOCKING ONLY — VISUAL)
+// TIMING (DOCKING ONLY)
 // -----------------------------------------------------
 const DOCK_TIME = 90;
 const RELEASE_JITTER_MIN = 0;
@@ -35,7 +35,7 @@ const RECYCLE_HOLD_FRAMES = 40;
 
 
 // -----------------------------------------------------
-// RECYCLING OFFSET (POST-FUSION)
+// RECYCLING OFFSET (BACK INTO CYTOSOL, +X)
 // -----------------------------------------------------
 const RECYCLE_OFFSET =
   window.SYNAPSE_VESICLE_RADIUS * 2.5;
@@ -94,10 +94,9 @@ function triggerVesicleReleaseFromAP() {
       random(RELEASE_JITTER_MIN, RELEASE_JITTER_MAX)
     );
 
-    // 🔑 SINGLE GEOMETRY INPUT
+    // 🔑 ONLY geometry-facing scalar
     v.flatten = 0;
 
-    // Debug sentinels
     v.__ntStarted = false;
     v.__mergeLocked = false;
 
@@ -138,14 +137,14 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // FUSING — RIGHTWARD INTO CLEFT (+X)
+    // FUSING — MOVE TOWARD CLEFT (−X)
     // =================================================
     else if (v.state === "FUSING") {
 
       // -----------------------------------------------
-      // FORWARD MOTION (RIGHTWARD)
+      // FORWARD MOTION (LEFTWARD)
       // -----------------------------------------------
-      v.vx += +0.012;
+      v.vx += -0.012;
       v.x  += v.vx;
       v.y  += v.vy;
 
@@ -153,22 +152,19 @@ function updateVesicleRelease() {
       v.vy *= 0.97;
 
       // -----------------------------------------------
-      // EDGE-BASED FUSION PROGRESS (MONOTONIC, CORRECT)
-      //
-      // rightEdge hits knife FIRST
-      // leftEdge clears knife LAST
+      // EDGE-BASED FUSION PROGRESS (CORRECT FOR −X)
       // -----------------------------------------------
-      const leftEdge  = v.x - r;
-      const rightEdge = v.x + r;
+      const leftEdge  = v.x - r; // cleft-facing
+      const rightEdge = v.x + r; // cytosolic
 
       const fusionDepth =
-        (rightEdge - knifeX) / (2 * r);
+        (knifeX - leftEdge) / (2 * r);
 
       const f = constrain(fusionDepth, 0, 1);
       v.flatten = f;
 
       // -----------------------------------------------
-      // 🔎 DEBUG — SHOULD RAMP 0 → 1 ONCE
+      // 🔎 DEBUG — MUST RAMP 0 → 1
       // -----------------------------------------------
       if (frameCount % 15 === 0) {
         console.log(
@@ -203,7 +199,7 @@ function updateVesicleRelease() {
       }
 
       // -----------------------------------------------
-      // CONTINUOUS RELEASE WHILE CROSSING
+      // CONTINUOUS RELEASE
       // -----------------------------------------------
       if (v.__ntStarted && frameCount % 12 === 0 && f < 0.95) {
 
@@ -234,7 +230,7 @@ function updateVesicleRelease() {
         v.nts = [];
 
         spawnEndocytosisSeed?.(
-          v.x + RECYCLE_OFFSET,
+          v.x + RECYCLE_OFFSET, // back into cytosol (+X)
           v.y
         );
 
@@ -244,8 +240,7 @@ function updateVesicleRelease() {
         v.state = "RECYCLED_TRAVEL";
         v.recycleHold = RECYCLE_HOLD_FRAMES;
 
-        // Move vesicle back LEFT after fusion
-        v.vx = random(-0.10, -0.06);
+        v.vx = random(0.06, 0.10); // move RIGHT (away from cleft)
         v.vy = random(-0.04, 0.04);
       }
     }
