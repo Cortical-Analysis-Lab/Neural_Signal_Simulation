@@ -1,4 +1,4 @@
-console.log("🧬 vesicleGeometry loaded — HARD ERASE FIXED");
+console.log("🧬 vesicleGeometry loaded — HARD ERASE + OPTIONAL CLIP");
 
 // =====================================================
 // VESICLE GEOMETRY & RENDERING (READ-ONLY)
@@ -9,6 +9,7 @@ console.log("🧬 vesicleGeometry loaded — HARD ERASE FIXED");
 // • Alpha fades strictly with v.flatten
 // • Vesicle ERASES when v.flatten >= 1
 // • Geometry NEVER infers biology or position
+// • Geometry MAY honor externally-provided clipX
 //
 // =====================================================
 
@@ -50,7 +51,7 @@ function drawSynapseVesicleGeometry() {
 
 
 // -----------------------------------------------------
-// VESICLE MEMBRANES — AUTHORITATIVE ERASE
+// VESICLE MEMBRANES — ERASE + OPTIONAL CLIP
 // -----------------------------------------------------
 function drawVesicleMembranes() {
 
@@ -64,17 +65,27 @@ function drawVesicleMembranes() {
 
     if (!Number.isFinite(v.x) || !Number.isFinite(v.y)) continue;
 
-    // -------------------------------------------------
-    // FUSING / MERGING — FADE, THEN HARD ERASE
-    // -------------------------------------------------
+    // ---------------------------------------------
+    // FUSING / MERGING
+    // ---------------------------------------------
     if (v.state === "FUSING" || v.state === "MEMBRANE_MERGE") {
 
-      // 🔑 ABSOLUTE ERASE — NO DRAW
-      if (v.flatten >= 1) {
-        continue;
-      }
+      // 🔑 Absolute erase
+      if (v.flatten >= 1) continue;
 
       const fade = constrain(1 - v.flatten, 0, 1);
+
+      push();
+
+      // 🔪 OPTIONAL CLIP (AUTHORITATIVE FROM BIOLOGY)
+      if (Number.isFinite(v.clipX)) {
+        clip(
+          -width,
+          -height,
+          v.clipX + width,
+          height * 2
+        );
+      }
 
       stroke(vesicleBorderColor());
       strokeWeight(
@@ -83,12 +94,14 @@ function drawVesicleMembranes() {
       fill(vesicleFillColor(90 * fade));
 
       ellipse(v.x, v.y, r * 2);
+
+      pop();
       continue;
     }
 
-    // -------------------------------------------------
+    // ---------------------------------------------
     // NORMAL VESICLE
-    // -------------------------------------------------
+    // ---------------------------------------------
     stroke(vesicleBorderColor());
     strokeWeight(strokeW);
     fill(vesicleFillColor());
@@ -98,7 +111,7 @@ function drawVesicleMembranes() {
 
 
 // -----------------------------------------------------
-// NEUROTRANSMITTER CONTENTS — MATCH ERASE
+// NEUROTRANSMITTER CONTENTS — MATCH CLIP
 // -----------------------------------------------------
 function drawVesicleContents() {
 
@@ -109,14 +122,22 @@ function drawVesicleContents() {
 
     if (!Array.isArray(v.nts) || !v.nts.length) continue;
 
-    // -------------------------------------------------
-    // FUSING / MERGING — FADE, THEN HARD ERASE
-    // -------------------------------------------------
     if (v.state === "FUSING" || v.state === "MEMBRANE_MERGE") {
 
       if (v.flatten >= 1) continue;
 
       const fade = constrain(1 - v.flatten, 0, 1);
+
+      push();
+
+      if (Number.isFinite(v.clipX)) {
+        clip(
+          -width,
+          -height,
+          v.clipX + width,
+          height * 2
+        );
+      }
 
       fill(ntFillColor(255 * fade));
       noStroke();
@@ -124,12 +145,11 @@ function drawVesicleContents() {
       for (const p of v.nts) {
         circle(v.x + p.x, v.y + p.y, 3);
       }
+
+      pop();
       continue;
     }
 
-    // -------------------------------------------------
-    // NORMAL
-    // -------------------------------------------------
     fill(ntFillColor());
     noStroke();
 
@@ -147,15 +167,13 @@ function drawPrimingParticles() {
 
   const ALLOWED = new Set(["PRIMING", "PRIMED", "LOADING"]);
 
-  // --- H⁺ ---
+  // H⁺
   fill(protonColor());
   textSize(12);
   textAlign(CENTER, CENTER);
 
   for (const h of window.synapseH || []) {
-
     if (!h.target || !ALLOWED.has(h.target.state)) continue;
-
     push();
     translate(h.x, h.y);
     rotate(-PI);
@@ -163,13 +181,11 @@ function drawPrimingParticles() {
     pop();
   }
 
-  // --- ATP / ADP + Pi ---
+  // ATP / ADP + Pi
   textSize(10);
 
   for (const a of window.synapseATP || []) {
-
     if (!a.target || !ALLOWED.has(a.target.state)) continue;
-
     fill(atpColor(a.alpha ?? 255));
     push();
     translate(a.x, a.y);
