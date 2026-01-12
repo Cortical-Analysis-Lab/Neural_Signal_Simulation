@@ -1,17 +1,18 @@
-console.log("⚡ vesicleRelease loaded — CONTINUOUS FUSION MODEL (INSTRUMENTED)");
+console.log("⚡ vesicleRelease loaded — CONTINUOUS FUSION MODEL (RIGHTWARD, INSTRUMENTED)");
 
 // =====================================================
 // VESICLE RELEASE — SPATIALLY CONTINUOUS (AUTHORITATIVE)
 // =====================================================
 //
-// CORE MODEL:
-// • Vesicle center moves continuously across fusion plane
-// • Fusion progress = spatial overlap, NOT timers
-// • NT release begins after 25% membrane crossing
-// • Geometry reacts only to v.flatten
+// COORDINATE MODEL (CRITICAL):
+// • +X points TOWARD synaptic cleft
+// • Vesicles move RIGHTWARD (increasing x)
+// • Fusion plane is crossed when vesicle overlaps it
 //
-// DEBUG GOAL:
-// • PROVE spatial crossing numerically
+// CORE MODEL:
+// • Fusion progress = spatial overlap of vesicle with plane
+// • NT release begins after 25% overlap
+// • Geometry reacts ONLY to v.flatten
 //
 // =====================================================
 
@@ -34,7 +35,7 @@ const RECYCLE_HOLD_FRAMES = 40;
 
 
 // -----------------------------------------------------
-// RECYCLING OFFSET
+// RECYCLING OFFSET (POST-FUSION)
 // -----------------------------------------------------
 const RECYCLE_OFFSET =
   window.SYNAPSE_VESICLE_RADIUS * 2.5;
@@ -93,13 +94,13 @@ function triggerVesicleReleaseFromAP() {
       random(RELEASE_JITTER_MIN, RELEASE_JITTER_MAX)
     );
 
-    // Geometry-visible value (ONLY thing geometry reads)
+    // 🔑 Geometry-facing scalar (ONLY thing geometry reads)
     v.flatten = 0;
 
     // Debug sentinels
     v.__ntStarted = false;
     v.__mergeLocked = false;
-    v.__reportedFullFusion = false;
+    v.__reported = false;
 
     v.vy *= 0.3;
   }
@@ -138,56 +139,55 @@ function updateVesicleRelease() {
     }
 
     // =================================================
-    // FUSING — CONTINUOUS SLIDE ACROSS KNIFE
+    // FUSING — CONTINUOUS RIGHTWARD CROSSING
     // =================================================
     else if (v.state === "FUSING") {
 
-      // Slow forward drift INTO membrane
-      v.vx += -0.012;
-      v.x += v.vx;
-      v.y += v.vy;
+      // Gentle push INTO membrane (RIGHTWARD)
+      v.vx += 0.012;
+      v.x  += v.vx;
+      v.y  += v.vy;
 
       v.vx *= 0.92;
       v.vy *= 0.97;
 
-      // -----------------------------------------------
-      // Spatial fusion progress
-      // -----------------------------------------------
-      const fusionDepth = (knifeX - v.x) / r;
-      const f = constrain(fusionDepth, 0, 1);
+      // -------------------------------------------------
+      // 🔑 SPATIAL FUSION PROGRESS (RIGHTWARD)
+      //
+      // Leading edge  = v.x + r
+      // Trailing edge = v.x - r
+      //
+      // Fusion starts when leading edge hits knife
+      // Fusion completes when trailing edge passes knife
+      // -------------------------------------------------
+      const fusionDepth =
+        ((v.x + r) - knifeX) / (2 * r);
 
+      const f = constrain(fusionDepth, 0, 1);
       v.flatten = f;
 
-      // -----------------------------------------------
-      // 🔒 CRITICAL FIX — FORCE COMPLETION
-      // Once center passes the knife, fusion is done
-      // -----------------------------------------------
-      if (v.x <= knifeX) {
-        v.flatten = 1;
-      }
-
-      // -----------------------------------------------
-      // 🔎 DEBUG LOG (THROTTLED)
-      // -----------------------------------------------
+      // -------------------------------------------------
+      // 🔎 DEBUG (THROTTLED)
+      // -------------------------------------------------
       if (frameCount % 15 === 0) {
         console.log(
           "[FUSING]",
           "x:", v.x.toFixed(2),
           "knifeX:", knifeX.toFixed(2),
-          "Δ:", (knifeX - v.x).toFixed(2),
+          "lead:", (v.x + r).toFixed(2),
+          "trail:", (v.x - r).toFixed(2),
           "fusionDepth:", fusionDepth.toFixed(2),
-          "flatten:", v.flatten.toFixed(2)
+          "flatten:", f.toFixed(2)
         );
       }
 
-      // -----------------------------------------------
+      // -------------------------------------------------
       // NT RELEASE STARTS AT 25%
-      // -----------------------------------------------
-      if (v.flatten >= 0.25 && !v.__ntStarted) {
+      // -------------------------------------------------
+      if (f >= 0.25 && !v.__ntStarted) {
 
         v.__ntStarted = true;
-
-        console.log("🧠 NT RELEASE START @ flatten =", v.flatten.toFixed(2));
+        console.log("🧠 NT RELEASE START @ flatten =", f.toFixed(2));
 
         const p = unrotateLocal(v.x, v.y);
 
@@ -202,10 +202,10 @@ function updateVesicleRelease() {
         }));
       }
 
-      // -----------------------------------------------
+      // -------------------------------------------------
       // CONTINUOUS RELEASE WHILE CROSSING
-      // -----------------------------------------------
-      if (v.__ntStarted && frameCount % 12 === 0 && v.flatten < 0.95) {
+      // -------------------------------------------------
+      if (v.__ntStarted && frameCount % 12 === 0 && f < 0.95) {
 
         const p = unrotateLocal(
           v.x + random(-2, 2),
@@ -223,12 +223,12 @@ function updateVesicleRelease() {
         }));
       }
 
-      // -----------------------------------------------
+      // -------------------------------------------------
       // FULLY CONSUMED → RECYCLE
-      // -----------------------------------------------
-      if (v.flatten >= 1 && !v.__mergeLocked) {
+      // -------------------------------------------------
+      if (f >= 1 && !v.__mergeLocked) {
 
-        console.log("✅ FULL FUSION REACHED — flatten =", v.flatten.toFixed(2));
+        console.log("✅ FULL FUSION REACHED — flatten =", f.toFixed(2));
 
         v.__mergeLocked = true;
         v.nts = [];
