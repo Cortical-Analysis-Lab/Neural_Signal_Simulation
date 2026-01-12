@@ -4,11 +4,11 @@ console.log("🧬 vesicleGeometry loaded — HARD ERASE FIXED");
 // VESICLE GEOMETRY & RENDERING (READ-ONLY)
 // =====================================================
 //
-// FINAL RULES:
+// FINAL RULES (LOCKED):
 // • Vesicle drawn as full circle
-// • Alpha fades with v.flatten
+// • Alpha fades strictly with v.flatten
 // • Vesicle ERASES when v.flatten >= 1
-// • Geometry NEVER infers biology
+// • Geometry NEVER infers biology or position
 //
 // =====================================================
 
@@ -64,15 +64,17 @@ function drawVesicleMembranes() {
 
     if (!Number.isFinite(v.x) || !Number.isFinite(v.y)) continue;
 
-    // =================================================
-    // MEMBRANE MERGE — HARD ERASE (THE FIX)
-    // =================================================
-    if (v.state === "MEMBRANE_MERGE") {
+    // -------------------------------------------------
+    // MEMBRANE MERGE — HARD ERASE (SINGLE SOURCE OF TRUTH)
+    // -------------------------------------------------
+    if (v.state === "MEMBRANE_MERGE" || v.state === "FUSING") {
 
-      // 🔑 AUTHORITATIVE KILL
-      if (v.flatten >= 1) continue;
+      // 🔑 ABSOLUTE KILL CONDITION
+      if (v.flatten >= 1) {
+        continue;
+      }
 
-      const fade = 1 - v.flatten;
+      const fade = constrain(1 - v.flatten, 0, 1);
 
       stroke(vesicleBorderColor());
       strokeWeight(
@@ -84,9 +86,9 @@ function drawVesicleMembranes() {
       continue;
     }
 
-    // =================================================
+    // -------------------------------------------------
     // NORMAL VESICLE
-    // =================================================
+    // -------------------------------------------------
     stroke(vesicleBorderColor());
     strokeWeight(strokeW);
     fill(vesicleFillColor());
@@ -107,14 +109,15 @@ function drawVesicleContents() {
 
     if (!Array.isArray(v.nts) || !v.nts.length) continue;
 
-    // =================================================
-    // MEMBRANE MERGE — CONTENTS FADE
-    // =================================================
-    if (v.state === "MEMBRANE_MERGE") {
+    // -------------------------------------------------
+    // FUSING / MERGING — FADE WITH FLATTEN
+    // -------------------------------------------------
+    if (v.state === "MEMBRANE_MERGE" || v.state === "FUSING") {
 
       if (v.flatten >= 1) continue;
 
-      const fade = 1 - v.flatten;
+      const fade = constrain(1 - v.flatten, 0, 1);
+
       fill(ntFillColor(255 * fade));
       noStroke();
 
@@ -124,11 +127,12 @@ function drawVesicleContents() {
       continue;
     }
 
-    // =================================================
+    // -------------------------------------------------
     // NORMAL
-    // =================================================
+    // -------------------------------------------------
     fill(ntFillColor());
     noStroke();
+
     for (const p of v.nts) {
       circle(v.x + p.x, v.y + p.y, 3);
     }
@@ -148,7 +152,9 @@ function drawPrimingParticles() {
   textAlign(CENTER, CENTER);
 
   for (const h of window.synapseH || []) {
+
     if (!h.target || !ALLOWED.has(h.target.state)) continue;
+
     push();
     translate(h.x, h.y);
     rotate(-PI);
@@ -157,8 +163,11 @@ function drawPrimingParticles() {
   }
 
   textSize(10);
+
   for (const a of window.synapseATP || []) {
+
     if (!a.target || !ALLOWED.has(a.target.state)) continue;
+
     fill(atpColor(a.alpha ?? 255));
     push();
     translate(a.x, a.y);
