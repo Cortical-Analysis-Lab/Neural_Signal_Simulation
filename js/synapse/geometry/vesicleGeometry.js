@@ -7,9 +7,9 @@ console.log("🧬 vesicleGeometry loaded — PRODUCTION (OPAQUE + CLEAN)");
 // FINAL RULES (LOCKED):
 // • Vesicle drawn as rigid circle (no scaling)
 // • Vesicle erases directionally via clipX
-// • Alpha fades ONLY as a secondary cue
+// • Alpha fades ONLY as secondary cue
 // • NTs always render purple & visible
-// • NO debug lines or plane visuals
+// • Geometry NEVER hides vesicles unless FUSING
 //
 // =====================================================
 
@@ -21,12 +21,12 @@ function vesicleBorderColor() {
   return color(245, 225, 140);
 }
 
-// 🔒 More opaque interior
+// More opaque interior
 function vesicleFillColor(alpha = 160) {
   return color(245, 225, 140, alpha);
 }
 
-// 🔒 Always-purple NTs
+// Always-purple NTs
 function ntFillColor(alpha = 255) {
   return color(185, 120, 255, alpha);
 }
@@ -45,15 +45,15 @@ function atpColor(alpha = 255) {
 // -----------------------------------------------------
 function drawSynapseVesicleGeometry() {
   push();
-  drawVesicleMembranes();   // membranes first
-  drawVesicleContents();    // NTs always on top
+  drawVesicleMembranes();
+  drawVesicleContents();
   drawPrimingParticles();
   pop();
 }
 
 
 // -----------------------------------------------------
-// VESICLE MEMBRANES — DIRECTIONAL ERASE
+// VESICLE MEMBRANES — SAFE, STATE-GATED ERASE
 // -----------------------------------------------------
 function drawVesicleMembranes() {
 
@@ -66,15 +66,23 @@ function drawVesicleMembranes() {
   for (const v of vesicles) {
 
     if (!Number.isFinite(v.x) || !Number.isFinite(v.y)) continue;
-    if (v.flatten >= 1) continue; // hard erase
+
+    // ---------------------------------------------
+    // Determine fusion state safely
+    // ---------------------------------------------
+    const isFusing = v.state === "FUSING";
+    const flatten  = isFusing ? (v.flatten ?? 0) : 0;
+
+    // Hard erase ONLY during fusion
+    if (isFusing && flatten >= 1) continue;
 
     push();
     translate(v.x, v.y);
 
-    // -------------------------------------------------
-    // CLIP AWAY CLEFT-SIDE (AUTHORITATIVE FROM RELEASE)
-    // -------------------------------------------------
-    if (Number.isFinite(v.clipX)) {
+    // ---------------------------------------------
+    // Directional clip ONLY during fusion
+    // ---------------------------------------------
+    if (isFusing && Number.isFinite(v.clipX)) {
 
       const localClipX = v.clipX - v.x;
 
@@ -89,7 +97,7 @@ function drawVesicleMembranes() {
       drawingContext.clip();
     }
 
-    const fade = constrain(1 - v.flatten, 0, 1);
+    const fade = isFusing ? constrain(1 - flatten, 0, 1) : 1;
 
     stroke(vesicleBorderColor());
     strokeWeight(strokeW);
@@ -97,7 +105,7 @@ function drawVesicleMembranes() {
 
     ellipse(0, 0, r * 2);
 
-    if (Number.isFinite(v.clipX)) {
+    if (isFusing && Number.isFinite(v.clipX)) {
       drawingContext.restore();
     }
 
@@ -107,7 +115,7 @@ function drawVesicleMembranes() {
 
 
 // -----------------------------------------------------
-// NEUROTRANSMITTER CONTENTS — FULL COLOR + CLIP
+// NEUROTRANSMITTER CONTENTS — ALWAYS VISIBLE
 // -----------------------------------------------------
 function drawVesicleContents() {
 
@@ -119,12 +127,16 @@ function drawVesicleContents() {
   for (const v of vesicles) {
 
     if (!Array.isArray(v.nts) || !v.nts.length) continue;
-    if (v.flatten >= 1) continue;
+
+    const isFusing = v.state === "FUSING";
+    const flatten  = isFusing ? (v.flatten ?? 0) : 0;
+
+    if (isFusing && flatten >= 1) continue;
 
     push();
     translate(v.x, v.y);
 
-    if (Number.isFinite(v.clipX)) {
+    if (isFusing && Number.isFinite(v.clipX)) {
 
       const localClipX = v.clipX - v.x;
 
@@ -139,7 +151,6 @@ function drawVesicleContents() {
       drawingContext.clip();
     }
 
-    // 🔒 Always vivid purple
     fill(ntFillColor(255));
     noStroke();
 
@@ -147,7 +158,7 @@ function drawVesicleContents() {
       circle(p.x, p.y, 3);
     }
 
-    if (Number.isFinite(v.clipX)) {
+    if (isFusing && Number.isFinite(v.clipX)) {
       drawingContext.restore();
     }
 
@@ -163,7 +174,6 @@ function drawPrimingParticles() {
 
   const ALLOWED = new Set(["PRIMING", "PRIMED", "LOADING"]);
 
-  // H⁺
   fill(protonColor());
   textSize(12);
   textAlign(CENTER, CENTER);
@@ -177,7 +187,6 @@ function drawPrimingParticles() {
     pop();
   }
 
-  // ATP / ADP + Pi
   textSize(10);
 
   for (const a of window.synapseATP || []) {
