@@ -42,12 +42,19 @@ const RECYCLE_OFFSET =
 
 
 // -----------------------------------------------------
-// APPROACH FORCE (TO STOP PLANE ONLY)
+// APPROACH FORCE (CURVED DOCKING PLANE)
 // -----------------------------------------------------
 function applyDockingForce(v) {
 
+  // 🔑 membrane surface at this Y
+  const membraneX =
+    window.getSynapticMembraneX?.(v.y) ?? 0;
+
+  // 🔵 curved vesicle stop surface
   const targetX =
-    window.SYNAPSE_VESICLE_STOP_X + (v.dockBiasX ?? 0);
+    membraneX +
+    window.SYNAPSE_VESICLE_STOP_X +
+    (v.dockBiasX ?? 0);
 
   const dx = targetX - v.x;
   const dist = Math.abs(dx);
@@ -97,7 +104,7 @@ function triggerVesicleReleaseFromAP() {
     // 🔑 ONLY geometry-facing scalar
     v.flatten = 0;
 
-    v.__ntStarted = false;
+    v.__ntStarted   = false;
     v.__mergeLocked = false;
 
     v.vy *= 0.3;
@@ -112,7 +119,6 @@ function updateVesicleRelease() {
 
   const vesicles = window.synapseVesicles || [];
   const r = window.SYNAPSE_VESICLE_RADIUS;
-  const knifeX = window.SYNAPSE_FUSION_PLANE_X;
 
   for (const v of vesicles) {
 
@@ -152,30 +158,27 @@ function updateVesicleRelease() {
       v.vy *= 0.97;
 
       // -----------------------------------------------
-      // EDGE-BASED FUSION PROGRESS (CORRECT FOR −X)
+      // CURVED MEMBRANE + FUSION PLANE
       // -----------------------------------------------
-      const leftEdge  = v.x - r; // cleft-facing
-      const rightEdge = v.x + r; // cytosolic
+      const membraneX =
+        window.getSynapticMembraneX?.(v.y) ?? 0;
+
+      const knifeX =
+        membraneX + window.SYNAPSE_FUSION_PLANE_X;
+
+      // geometry authority (for clipping)
+      v.clipX = knifeX;
+
+      // -----------------------------------------------
+      // EDGE-BASED FUSION PROGRESS (−X)
+      // -----------------------------------------------
+      const leftEdge = v.x - r; // cleft-facing edge
 
       const fusionDepth =
         (knifeX - leftEdge) / (2 * r);
 
       const f = constrain(fusionDepth, 0, 1);
       v.flatten = f;
-      v.clipX = knifeX;
-      // -----------------------------------------------
-      // 🔎 DEBUG — MUST RAMP 0 → 1
-      // -----------------------------------------------
-      if (frameCount % 15 === 0) {
-        console.log(
-          "[FUSING]",
-          "x:", v.x.toFixed(2),
-          "left:", leftEdge.toFixed(2),
-          "right:", rightEdge.toFixed(2),
-          "knifeX:", knifeX.toFixed(2),
-          "flatten:", f.toFixed(2)
-        );
-      }
 
       // -----------------------------------------------
       // NT RELEASE STARTS AT 25%
@@ -183,7 +186,6 @@ function updateVesicleRelease() {
       if (f >= 0.25 && !v.__ntStarted) {
 
         v.__ntStarted = true;
-        console.log("🧠 NT RELEASE START @ flatten =", f.toFixed(2));
 
         const p = unrotateLocal(v.x, v.y);
 
@@ -199,7 +201,7 @@ function updateVesicleRelease() {
       }
 
       // -----------------------------------------------
-      // CONTINUOUS RELEASE
+      // CONTINUOUS RELEASE WHILE CROSSING
       // -----------------------------------------------
       if (v.__ntStarted && frameCount % 12 === 0 && f < 0.95) {
 
@@ -223,8 +225,6 @@ function updateVesicleRelease() {
       // FULL FUSION → RECYCLE
       // -----------------------------------------------
       if (f >= 1 && !v.__mergeLocked) {
-
-        console.log("✅ FULL FUSION REACHED");
 
         v.__mergeLocked = true;
         v.nts = [];
