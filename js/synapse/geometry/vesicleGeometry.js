@@ -1,15 +1,15 @@
-console.log("🧬 vesicleGeometry loaded — HARD ERASE + OPTIONAL CLIP (FIXED)");
+console.log("🧬 vesicleGeometry loaded — PRODUCTION (OPAQUE + CLEAN)");
 
 // =====================================================
 // VESICLE GEOMETRY & RENDERING (READ-ONLY)
 // =====================================================
 //
 // FINAL RULES (LOCKED):
-// • Vesicle drawn as full circle
-// • Alpha fades strictly with v.flatten
-// • Vesicle ERASES when v.flatten >= 1
-// • Geometry NEVER infers biology or position
-// • Geometry MAY honor externally-provided clipX
+// • Vesicle drawn as rigid circle (no scaling)
+// • Vesicle erases directionally via clipX
+// • Alpha fades ONLY as a secondary cue
+// • NTs always render purple & visible
+// • NO debug lines or plane visuals
 //
 // =====================================================
 
@@ -21,10 +21,12 @@ function vesicleBorderColor() {
   return color(245, 225, 140);
 }
 
-function vesicleFillColor(alpha = 90) {
+// 🔒 More opaque interior
+function vesicleFillColor(alpha = 160) {
   return color(245, 225, 140, alpha);
 }
 
+// 🔒 Always-purple NTs
 function ntFillColor(alpha = 255) {
   return color(185, 120, 255, alpha);
 }
@@ -43,15 +45,15 @@ function atpColor(alpha = 255) {
 // -----------------------------------------------------
 function drawSynapseVesicleGeometry() {
   push();
-  drawVesicleMembranes();
-  drawVesicleContents();
+  drawVesicleMembranes();   // membranes first
+  drawVesicleContents();    // NTs always on top
   drawPrimingParticles();
   pop();
 }
 
 
 // -----------------------------------------------------
-// VESICLE MEMBRANES — ERASE + OPTIONAL CLIP (CORRECT)
+// VESICLE MEMBRANES — DIRECTIONAL ERASE
 // -----------------------------------------------------
 function drawVesicleMembranes() {
 
@@ -64,65 +66,48 @@ function drawVesicleMembranes() {
   for (const v of vesicles) {
 
     if (!Number.isFinite(v.x) || !Number.isFinite(v.y)) continue;
+    if (v.flatten >= 1) continue; // hard erase
 
-    // ---------------------------------------------
-    // FUSING / MERGING
-    // ---------------------------------------------
-    if (v.state === "FUSING" || v.state === "MEMBRANE_MERGE") {
+    push();
+    translate(v.x, v.y);
 
-      // 🔑 Absolute erase
-      if (v.flatten >= 1) continue;
+    // -------------------------------------------------
+    // CLIP AWAY CLEFT-SIDE (AUTHORITATIVE FROM RELEASE)
+    // -------------------------------------------------
+    if (Number.isFinite(v.clipX)) {
 
-      const fade = constrain(1 - v.flatten, 0, 1);
+      const localClipX = v.clipX - v.x;
 
-      push();
-      translate(v.x, v.y);
-
-      // 🔪 OPTIONAL CLIP (VESICLE-LOCAL SPACE)
-      if (Number.isFinite(v.clipX)) {
-
-        const localClipX = v.clipX - v.x;
-
-        drawingContext.save();
-        drawingContext.beginPath();
-        drawingContext.rect(
-          localClipX,
-          -r * 2,
-          r * 4,
-          r * 4
-        );
-        drawingContext.clip();
-      }
-
-      stroke(vesicleBorderColor());
-      strokeWeight(
-        lerp(strokeW, strokeW * 0.25, v.flatten)
+      drawingContext.save();
+      drawingContext.beginPath();
+      drawingContext.rect(
+        localClipX,
+        -r * 2,
+        r * 4,
+        r * 4
       );
-      fill(vesicleFillColor(90 * fade));
-
-      ellipse(0, 0, r * 2);
-
-      if (Number.isFinite(v.clipX)) {
-        drawingContext.restore();
-      }
-
-      pop();
-      continue;
+      drawingContext.clip();
     }
 
-    // ---------------------------------------------
-    // NORMAL VESICLE
-    // ---------------------------------------------
+    const fade = constrain(1 - v.flatten, 0, 1);
+
     stroke(vesicleBorderColor());
     strokeWeight(strokeW);
-    fill(vesicleFillColor());
-    ellipse(v.x, v.y, r * 2);
+    fill(vesicleFillColor(160 * fade));
+
+    ellipse(0, 0, r * 2);
+
+    if (Number.isFinite(v.clipX)) {
+      drawingContext.restore();
+    }
+
+    pop();
   }
 }
 
 
 // -----------------------------------------------------
-// NEUROTRANSMITTER CONTENTS — MATCH CLIP
+// NEUROTRANSMITTER CONTENTS — FULL COLOR + CLIP
 // -----------------------------------------------------
 function drawVesicleContents() {
 
@@ -135,8 +120,6 @@ function drawVesicleContents() {
 
     if (!Array.isArray(v.nts) || !v.nts.length) continue;
     if (v.flatten >= 1) continue;
-
-    const fade = constrain(1 - v.flatten, 0, 1);
 
     push();
     translate(v.x, v.y);
@@ -156,7 +139,8 @@ function drawVesicleContents() {
       drawingContext.clip();
     }
 
-    fill(ntFillColor(255 * fade));
+    // 🔒 Always vivid purple
+    fill(ntFillColor(255));
     noStroke();
 
     for (const p of v.nts) {
@@ -173,7 +157,7 @@ function drawVesicleContents() {
 
 
 // -----------------------------------------------------
-// PRIMING PARTICLES (STRICTLY PRESYNAPTIC)
+// PRIMING PARTICLES (UNCHANGED)
 // -----------------------------------------------------
 function drawPrimingParticles() {
 
