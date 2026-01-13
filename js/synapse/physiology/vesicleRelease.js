@@ -162,7 +162,7 @@ function updateVesicleRelease() {
 
       const f = constrain(fusionDepth, 0, 1);
       v.flatten = f;
-
+      v.clipX = knifeX;
       // -----------------------------------------------
       // 🔎 DEBUG — MUST RAMP 0 → 1
       // -----------------------------------------------
