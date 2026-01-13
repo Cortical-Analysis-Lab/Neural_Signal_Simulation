@@ -25,21 +25,20 @@ window.SYNAPSE_TERMINAL_RADIUS   = 130;
 // -----------------------------------------------------
 
 // Kinematic stop (vesicle center halts here)
-window.SYNAPSE_VESICLE_STOP_X   = 16;
+window.SYNAPSE_VESICLE_STOP_X = 16;
 
 // Cytosolic reserve offset
-window.SYNAPSE_BACK_OFFSET_X   = 60;
+window.SYNAPSE_BACK_OFFSET_X = 60;
 
 // Vesicle dimensions
-window.SYNAPSE_VESICLE_RADIUS  = 10;
-window.SYNAPSE_VESICLE_STROKE  = 4;
+window.SYNAPSE_VESICLE_RADIUS = 10;
+window.SYNAPSE_VESICLE_STROKE = 4;
 
 // 🔪 VISUAL FUSION / OCCLUSION PLANE
-// This plane represents the *actual membrane surface*
-// Vesicles slide OVER this plane and visually disappear here
+// Represents the true synaptic membrane surface
 window.SYNAPSE_FUSION_PLANE_X =
-  window.SYNAPSE_VESICLE_STOP_X +
-  window.SYNAPSE_VESICLE_RADIUS * -1.65;
+  window.SYNAPSE_VESICLE_STOP_X -
+  window.SYNAPSE_VESICLE_RADIUS * 1.65;
 
 
 // -----------------------------------------------------
@@ -105,29 +104,19 @@ window.drawPreSynapse = function () {
 
   push();
 
-  // ---------------------------------------------------
-  // CANONICAL ORIENTATION (DO NOT CHANGE)
-  // ---------------------------------------------------
+  // Canonical orientation — DO NOT CHANGE
   rotate(PI);
 
-  // ---------------------------------------------------
-  // TERMINAL GEOMETRY
-  // ---------------------------------------------------
+  // Terminal geometry
   drawTNeuronShape(1);
 
-  // ---------------------------------------------------
-  // DEBUG PLANES
-  // ---------------------------------------------------
+  // Debug planes (curved)
   drawVesicleStopPlaneDebug();
 
-  // ---------------------------------------------------
-  // VESICLES (GEOMETRY + CONTENTS)
-  // ---------------------------------------------------
+  // Vesicles (geometry + contents)
   drawSynapseVesicleGeometry?.();
 
-  // ---------------------------------------------------
-  // DEBUG: VESICLE CENTERS
-  // ---------------------------------------------------
+  // Debug: vesicle centers
   if (
     window.SHOW_SYNAPSE_DEBUG &&
     typeof drawVesicleCenters === "function"
@@ -135,9 +124,7 @@ window.drawPreSynapse = function () {
     drawVesicleCenters();
   }
 
-  // ---------------------------------------------------
-  // TERMINAL AP (VISUAL ONLY)
-  // ---------------------------------------------------
+  // Terminal AP (visual only)
   const calibratedPath = calibratePath(window.PRESYNAPTIC_AP_PATH);
   drawTerminalAP?.(calibratedPath);
 
@@ -150,7 +137,7 @@ window.drawPreSynapse = function () {
 
 
 // =====================================================
-// DEBUG: STOP PLANE + FUSION PLANE
+// DEBUG: STOP PLANE + FUSION PLANE (CURVED)
 // =====================================================
 
 window.DEBUG_PLANE_HEIGHT = 140;
@@ -159,16 +146,14 @@ window.drawVesicleStopPlaneDebug = function () {
 
   if (!window.SHOW_SYNAPSE_DEBUG) return;
 
-  const H = window.DEBUG_PLANE_HEIGHT;
+  const H    = window.DEBUG_PLANE_HEIGHT;
   const step = 3;
 
   push();
   strokeWeight(2);
   noFill();
 
-  // =========================
   // 🔵 Vesicle STOP curve
-  // =========================
   stroke(80, 180, 255, 220);
   beginShape();
   for (let y = -H; y <= H; y += step) {
@@ -180,9 +165,7 @@ window.drawVesicleStopPlaneDebug = function () {
   }
   endShape();
 
-  // =========================
   // 🔴 Fusion / knife curve
-  // =========================
   stroke(255, 90, 90, 220);
   beginShape();
   for (let y = -H; y <= H; y += step) {
@@ -196,7 +179,6 @@ window.drawVesicleStopPlaneDebug = function () {
 
   pop();
 };
-
 
 
 // =====================================================
@@ -223,31 +205,35 @@ window.drawAPDebugDots = function (path) {
   pop();
 };
 
+
 // =====================================================
 // MEMBRANE SURFACE SAMPLER (AUTHORITATIVE)
 // =====================================================
 //
-// Returns x-position of synaptic membrane face at y
-// Matches neuronShape.js geometry exactly
+// Returns X offset of synaptic membrane face at Y
+// Matches neuronShape.js synaptic face exactly
 //
 window.getSynapticMembraneX = function (y) {
 
-  const barHalf  = 140;
-  const rBar     = 80;
+  const barHalf = 140;
+  const rBar    = 80;
 
   // --- Top curved corner ---
   if (y < -barHalf + rBar) {
-    const dy = y + barHalf;
-    return Math.sqrt(Math.max(0, rBar*rBar - dy*dy));
+    const dy = y + barHalf - rBar;
+    return rBar - Math.sqrt(
+      Math.max(0, rBar * rBar - dy * dy)
+    );
   }
 
   // --- Bottom curved corner ---
   if (y > barHalf - rBar) {
-    const dy = y - barHalf;
-    return Math.sqrt(Math.max(0, rBar*rBar - dy*dy));
+    const dy = y - (barHalf - rBar);
+    return rBar - Math.sqrt(
+      Math.max(0, rBar * rBar - dy * dy)
+    );
   }
 
-  // --- Flat middle section ---
+  // --- Flat synaptic face ---
   return 0;
 };
-
