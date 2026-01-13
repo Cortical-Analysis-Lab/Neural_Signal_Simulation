@@ -46,11 +46,9 @@ const RECYCLE_OFFSET =
 // -----------------------------------------------------
 function applyDockingForce(v) {
 
-  // 🔑 membrane surface at this Y
   const membraneX =
     window.getSynapticMembraneX?.(v.y) ?? 0;
 
-  // 🔵 curved vesicle stop surface
   const targetX =
     membraneX +
     window.SYNAPSE_VESICLE_STOP_X +
@@ -104,8 +102,12 @@ function triggerVesicleReleaseFromAP() {
     // 🔑 ONLY geometry-facing scalar
     v.flatten = 0;
 
+    // 🔒 release-local flags
     v.__ntStarted   = false;
     v.__mergeLocked = false;
+
+    // 🔑 ensure clean start
+    delete v.clipX;
 
     v.vy *= 0.3;
   }
@@ -166,13 +168,13 @@ function updateVesicleRelease() {
       const knifeX =
         membraneX + window.SYNAPSE_FUSION_PLANE_X;
 
-      // geometry authority (for clipping)
+      // 🔑 clip ONLY while fusing
       v.clipX = knifeX;
 
       // -----------------------------------------------
       // EDGE-BASED FUSION PROGRESS (−X)
       // -----------------------------------------------
-      const leftEdge = v.x - r; // cleft-facing edge
+      const leftEdge = v.x - r;
 
       const fusionDepth =
         (knifeX - leftEdge) / (2 * r);
@@ -227,10 +229,15 @@ function updateVesicleRelease() {
       if (f >= 1 && !v.__mergeLocked) {
 
         v.__mergeLocked = true;
+        v.flatten = 1;
+
+        // 🔑 CRITICAL FIX
+        delete v.clipX;
+
         v.nts = [];
 
         spawnEndocytosisSeed?.(
-          v.x + RECYCLE_OFFSET, // back into cytosol (+X)
+          v.x + RECYCLE_OFFSET,
           v.y
         );
 
