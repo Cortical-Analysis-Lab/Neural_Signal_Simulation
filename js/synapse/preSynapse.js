@@ -160,31 +160,43 @@ window.drawVesicleStopPlaneDebug = function () {
   if (!window.SHOW_SYNAPSE_DEBUG) return;
 
   const H = window.DEBUG_PLANE_HEIGHT;
+  const step = 3;
 
   push();
   strokeWeight(2);
   noFill();
 
-  // 🔵 Vesicle center stop plane
+  // =========================
+  // 🔵 Vesicle STOP curve
+  // =========================
   stroke(80, 180, 255, 220);
-  line(
-    window.SYNAPSE_VESICLE_STOP_X,
-    -H,
-    window.SYNAPSE_VESICLE_STOP_X,
-     H
-  );
+  beginShape();
+  for (let y = -H; y <= H; y += step) {
+    const membraneX = window.getSynapticMembraneX(y);
+    vertex(
+      membraneX + window.SYNAPSE_VESICLE_STOP_X,
+      y
+    );
+  }
+  endShape();
 
-  // 🔴 Fusion / occlusion "knife" plane
+  // =========================
+  // 🔴 Fusion / knife curve
+  // =========================
   stroke(255, 90, 90, 220);
-  line(
-    window.SYNAPSE_FUSION_PLANE_X,
-    -H,
-    window.SYNAPSE_FUSION_PLANE_X,
-     H
-  );
+  beginShape();
+  for (let y = -H; y <= H; y += step) {
+    const membraneX = window.getSynapticMembraneX(y);
+    vertex(
+      membraneX + window.SYNAPSE_FUSION_PLANE_X,
+      y
+    );
+  }
+  endShape();
 
   pop();
 };
+
 
 
 // =====================================================
@@ -210,3 +222,32 @@ window.drawAPDebugDots = function (path) {
   blendMode(BLEND);
   pop();
 };
+
+// =====================================================
+// MEMBRANE SURFACE SAMPLER (AUTHORITATIVE)
+// =====================================================
+//
+// Returns x-position of synaptic membrane face at y
+// Matches neuronShape.js geometry exactly
+//
+window.getSynapticMembraneX = function (y) {
+
+  const barHalf  = 140;
+  const rBar     = 80;
+
+  // --- Top curved corner ---
+  if (y < -barHalf + rBar) {
+    const dy = y + barHalf;
+    return Math.sqrt(Math.max(0, rBar*rBar - dy*dy));
+  }
+
+  // --- Bottom curved corner ---
+  if (y > barHalf - rBar) {
+    const dy = y - barHalf;
+    return Math.sqrt(Math.max(0, rBar*rBar - dy*dy));
+  }
+
+  // --- Flat middle section ---
+  return 0;
+};
+
