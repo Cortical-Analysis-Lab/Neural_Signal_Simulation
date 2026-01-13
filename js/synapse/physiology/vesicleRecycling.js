@@ -1,13 +1,13 @@
-console.log("♻️ vesicleRecycling loaded — AUTHORITATIVE (SLOW + BUDDING)");
+console.log("♻️ vesicleRecycling loaded — AUTHORITATIVE (SLOW + TRUE BUDDING)");
 
 // =====================================================
 // VESICLE RECYCLING — BIOLOGICAL ENDOCYTOSIS
 // =====================================================
 //
-// ✔ Slower, readable endocytosis
-// ✔ Patch → bud → pinch (membrane-attached)
+// ✔ Slow, readable membrane budding
+// ✔ Patch → bud → pinch (membrane-anchored)
+// ✔ Bud grows OUT of curved membrane
 // ✔ Vesicle detaches ONLY at final pinch
-// ✔ Smooth return to reserve pool
 //
 // =====================================================
 
@@ -19,17 +19,17 @@ window.endocytosisSeeds = window.endocytosisSeeds || [];
 
 
 // -----------------------------------------------------
-// SPAWN ENDOCYTOSIS SEED (MEMBRANE-LOCKED)
+// SPAWN ENDOCYTOSIS SEED (Y-LOCKED, MEMBRANE-X DYNAMIC)
 // -----------------------------------------------------
 window.spawnEndocytosisSeed = function (x, y) {
   window.endocytosisSeeds.push({
-    x,
     y,
     timer: 0,
     stage: "PATCH",
     radius: 2,
+    offset: 0,   // distance outward from membrane
     neck: 0,
-    alpha: 180
+    alpha: 160
   });
 };
 
@@ -43,13 +43,13 @@ function updateVesicleRecycling() {
   const vesicles = window.synapseVesicles || [];
 
   const MAX_VES  = window.SYNAPSE_MAX_VESICLES;
-  const V_RADIUS = window.SYNAPSE_VESICLE_RADIUS;
+  const R        = window.SYNAPSE_VESICLE_RADIUS;
 
   const STOP_X = window.SYNAPSE_VESICLE_STOP_X;
   const BACK_X = window.SYNAPSE_BACK_OFFSET_X;
 
   // ===================================================
-  // ENDOCYTOSIS SEED STATE MACHINE (SLOW + BIOLOGICAL)
+  // ENDOCYTOSIS STATE MACHINE (SLOW + BIOLOGICAL)
   // ===================================================
   for (let i = seeds.length - 1; i >= 0; i--) {
 
@@ -62,7 +62,8 @@ function updateVesicleRecycling() {
     if (e.stage === "PATCH") {
 
       e.radius = lerp(2, 6, e.timer / 70);
-      e.alpha  = lerp(140, 190, e.timer / 70);
+      e.offset = lerp(0, 2, e.timer / 70);
+      e.alpha  = lerp(140, 180, e.timer / 70);
 
       if (e.timer >= 70) {
         e.stage = "BUD";
@@ -71,13 +72,14 @@ function updateVesicleRecycling() {
     }
 
     // -------------------------
-    // BUD (growing sphere)
+    // BUD (sphere grows outward)
     // -------------------------
     else if (e.stage === "BUD") {
 
-      e.radius = lerp(6, V_RADIUS, e.timer / 120);
+      e.radius = lerp(6, R, e.timer / 120);
+      e.offset = lerp(2, R * 0.85, e.timer / 120);
       e.neck   = lerp(0, 6, e.timer / 120);
-      e.alpha  = lerp(190, 220, e.timer / 120);
+      e.alpha  = lerp(180, 220, e.timer / 120);
 
       if (e.timer >= 120) {
         e.stage = "PINCH";
@@ -91,36 +93,27 @@ function updateVesicleRecycling() {
     else if (e.stage === "PINCH") {
 
       e.neck   = lerp(6, 0, e.timer / 90);
-      e.radius = lerp(V_RADIUS, V_RADIUS * 0.9, e.timer / 90);
+      e.offset = lerp(R * 0.85, R * 1.2, e.timer / 90);
+      e.radius = lerp(R, R * 0.9, e.timer / 90);
 
       if (e.timer >= 90) {
 
-        // ----------- Detach vesicle -----------
         if (vesicles.length < MAX_VES) {
 
-          vesicles.push({
+          const membraneX =
+            window.getSynapticMembraneX?.(e.y) ?? 0;
 
-            // Start just cytosolic to membrane
-            x: e.x + V_RADIUS + random(6, 12),
+          vesicles.push({
+            x: membraneX + STOP_X + BACK_X + random(8, 14),
             y: e.y + random(-6, 6),
 
             vx: random(0.04, 0.07),
             vy: random(-0.03, 0.03),
 
-            radius: V_RADIUS,
-
-            recycleBiasX: random(-10, 10),
-            recycleBiasY: random(-12, 12),
-
             state: "RECYCLED_TRAVEL",
-
-            primedH: false,
-            primedATP: false,
-            nts: [],
-
-            releaseBias: false,
             recycleBias: true,
 
+            nts: [],
             flatten: 0,
             clipX: undefined
           });
@@ -132,7 +125,7 @@ function updateVesicleRecycling() {
   }
 
   // ===================================================
-  // RECYCLED_TRAVEL → SOFT HANDOFF (SLOWER)
+  // RECYCLED_TRAVEL → SOFT HANDOFF (SLOW)
   // ===================================================
   const RESERVE_TARGET_X = STOP_X + BACK_X + 20;
 
@@ -140,38 +133,27 @@ function updateVesicleRecycling() {
 
     if (v.state !== "RECYCLED_TRAVEL") continue;
 
-    const dx =
-      (RESERVE_TARGET_X + (v.recycleBiasX ?? 0)) - v.x;
+    const dx = RESERVE_TARGET_X - v.x;
 
     v.vx += dx * 0.015;
-    v.vy += (v.recycleBiasY ?? 0) * 0.002;
-
     v.vx *= 0.90;
     v.vy *= 0.92;
 
     v.x += v.vx;
     v.y += v.vy;
 
-    // --------------------------
-    // CLEAN HANDOFF
-    // --------------------------
     if (dx > -6) {
-
       v.state = "EMPTY";
       v.recycleBias = false;
-
       v.vx *= 0.3;
       v.vy *= 0.3;
-
-      delete v.recycleBiasX;
-      delete v.recycleBiasY;
     }
   }
 }
 
 
 // -----------------------------------------------------
-// DRAW ENDOCYTOSIS (VISUAL ONLY)
+// DRAW ENDOCYTOSIS — TRUE MEMBRANE BUDDING
 // -----------------------------------------------------
 function drawVesicleRecycling() {
 
@@ -182,18 +164,24 @@ function drawVesicleRecycling() {
 
   for (const e of window.endocytosisSeeds) {
 
+    const membraneX =
+      window.getSynapticMembraneX?.(e.y) ?? 0;
+
+    const baseX = membraneX + window.SYNAPSE_VESICLE_STOP_X;
+    const budX  = baseX + e.offset;
+
     // Bud body
     fill(245, 225, 140, e.alpha);
-    ellipse(e.x, e.y, e.radius * 2);
+    ellipse(budX, e.y, e.radius * 2);
 
-    // Neck (during bud/pinch)
+    // Neck
     if (e.neck > 0) {
       stroke(245, 225, 140, e.alpha);
       strokeWeight(e.neck);
       line(
-        e.x - e.radius,
+        baseX,
         e.y,
-        e.x - e.radius - 6,
+        budX - e.radius,
         e.y
       );
     }
