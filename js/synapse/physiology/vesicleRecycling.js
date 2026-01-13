@@ -1,4 +1,4 @@
-console.log("♻️ vesicleRecycling loaded — AUTHORITATIVE");
+console.log("♻️ vesicleRecycling loaded — AUTHORITATIVE (CURVED MEMBRANE SAFE)");
 
 // =====================================================
 // VESICLE RECYCLING — BIOLOGICAL ENDOCYTOSIS
@@ -6,8 +6,8 @@ console.log("♻️ vesicleRecycling loaded — AUTHORITATIVE");
 //
 // ✔ Endocytosis seed → vesicle birth
 // ✔ Directed return to reserve pool
+// ✔ Curved membrane aware
 // ✔ Smooth, gliding handoff
-// ✔ No teleportation
 //
 // AUTHORITATIVE RULES:
 // • Presynaptic LOCAL space only
@@ -24,11 +24,21 @@ window.endocytosisSeeds = window.endocytosisSeeds || [];
 
 
 // -----------------------------------------------------
-// SPAWN ENDOCYTOSIS SEED
+// SPAWN ENDOCYTOSIS SEED (CURVED MEMBRANE SAFE)
 // -----------------------------------------------------
 window.spawnEndocytosisSeed = function (x, y) {
+
+  // Sample membrane face at this y
+  const membraneX =
+    typeof window.getSynapticMembraneX === "function"
+      ? window.getSynapticMembraneX(y)
+      : 0;
+
+  // Spawn slightly cytosolic (+X) from membrane
+  const spawnX = membraneX + window.SYNAPSE_VESICLE_RADIUS * 0.8;
+
   window.endocytosisSeeds.push({
-    x,
+    x: spawnX,
     y,
     timer: 0,
     stage: "PATCH",
@@ -87,7 +97,7 @@ function updateVesicleRecycling() {
 
           vesicles.push({
 
-            x: e.x + V_RADIUS + random(8, 14),
+            x: e.x + random(6, 12),
             y: e.y + random(-6, 6),
 
             vx: random(0.10, 0.16),
@@ -95,7 +105,7 @@ function updateVesicleRecycling() {
 
             radius: V_RADIUS,
 
-            // Per-vesicle return bias (anti-cluster)
+            // Anti-clustering bias
             recycleBiasX: random(-8, 8),
             recycleBiasY: random(-10, 10),
 
@@ -124,8 +134,9 @@ function updateVesicleRecycling() {
 
     if (v.state !== "RECYCLED_TRAVEL") continue;
 
-    // Soft inward glide (no snap)
-    const dx = (RESERVE_TARGET_X + (v.recycleBiasX ?? 0)) - v.x;
+    const dx =
+      (RESERVE_TARGET_X + (v.recycleBiasX ?? 0)) - v.x;
+
     v.vx += dx * 0.02;
 
     v.vx *= 0.88;
@@ -135,18 +146,16 @@ function updateVesicleRecycling() {
     v.y += v.vy;
 
     // --------------------------
-    // CLEAN, SMOOTH HANDOFF
+    // CLEAN HANDOFF
     // --------------------------
     if (dx > -6) {
 
       v.state = "EMPTY";
       v.recycleBias = false;
 
-      // Gentle energy decay
       v.vx *= 0.35;
       v.vy *= 0.35;
 
-      // Remove recycle-only properties
       delete v.recycleBiasX;
       delete v.recycleBiasY;
     }
