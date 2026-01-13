@@ -1,4 +1,4 @@
-console.log("🧬 vesicleGeometry loaded — HARD ERASE + OPTIONAL CLIP");
+console.log("🧬 vesicleGeometry loaded — HARD ERASE + OPTIONAL CLIP (FIXED)");
 
 // =====================================================
 // VESICLE GEOMETRY & RENDERING (READ-ONLY)
@@ -51,7 +51,7 @@ function drawSynapseVesicleGeometry() {
 
 
 // -----------------------------------------------------
-// VESICLE MEMBRANES — ERASE + OPTIONAL CLIP
+// VESICLE MEMBRANES — ERASE + OPTIONAL CLIP (CORRECT)
 // -----------------------------------------------------
 function drawVesicleMembranes() {
 
@@ -76,15 +76,22 @@ function drawVesicleMembranes() {
       const fade = constrain(1 - v.flatten, 0, 1);
 
       push();
+      translate(v.x, v.y);
 
-      // 🔪 OPTIONAL CLIP (AUTHORITATIVE FROM BIOLOGY)
+      // 🔪 OPTIONAL CLIP (VESICLE-LOCAL SPACE)
       if (Number.isFinite(v.clipX)) {
-        clip(
-          -width,
-          -height,
-          v.clipX + width,
-          height * 2
+
+        const localClipX = v.clipX - v.x;
+
+        drawingContext.save();
+        drawingContext.beginPath();
+        drawingContext.rect(
+          localClipX,
+          -r * 2,
+          r * 4,
+          r * 4
         );
+        drawingContext.clip();
       }
 
       stroke(vesicleBorderColor());
@@ -93,7 +100,11 @@ function drawVesicleMembranes() {
       );
       fill(vesicleFillColor(90 * fade));
 
-      ellipse(v.x, v.y, r * 2);
+      ellipse(0, 0, r * 2);
+
+      if (Number.isFinite(v.clipX)) {
+        drawingContext.restore();
+      }
 
       pop();
       continue;
@@ -118,44 +129,45 @@ function drawVesicleContents() {
   const vesicles = window.synapseVesicles || [];
   if (!vesicles.length) return;
 
+  const r = window.SYNAPSE_VESICLE_RADIUS;
+
   for (const v of vesicles) {
 
     if (!Array.isArray(v.nts) || !v.nts.length) continue;
+    if (v.flatten >= 1) continue;
 
-    if (v.state === "FUSING" || v.state === "MEMBRANE_MERGE") {
+    const fade = constrain(1 - v.flatten, 0, 1);
 
-      if (v.flatten >= 1) continue;
+    push();
+    translate(v.x, v.y);
 
-      const fade = constrain(1 - v.flatten, 0, 1);
+    if (Number.isFinite(v.clipX)) {
 
-      push();
+      const localClipX = v.clipX - v.x;
 
-      if (Number.isFinite(v.clipX)) {
-        clip(
-          -width,
-          -height,
-          v.clipX + width,
-          height * 2
-        );
-      }
-
-      fill(ntFillColor(255 * fade));
-      noStroke();
-
-      for (const p of v.nts) {
-        circle(v.x + p.x, v.y + p.y, 3);
-      }
-
-      pop();
-      continue;
+      drawingContext.save();
+      drawingContext.beginPath();
+      drawingContext.rect(
+        localClipX,
+        -r * 2,
+        r * 4,
+        r * 4
+      );
+      drawingContext.clip();
     }
 
-    fill(ntFillColor());
+    fill(ntFillColor(255 * fade));
     noStroke();
 
     for (const p of v.nts) {
-      circle(v.x + p.x, v.y + p.y, 3);
+      circle(p.x, p.y, 3);
     }
+
+    if (Number.isFinite(v.clipX)) {
+      drawingContext.restore();
+    }
+
+    pop();
   }
 }
 
