@@ -52,7 +52,7 @@ window.SYNAPSE_MAX_VESICLES = 7;
 // DEBUG FLAGS
 // -----------------------------------------------------
 
-window.SHOW_SYNAPSE_DEBUG = true;
+window.SHOW_SYNAPSE_DEBUG = false;
 
 
 // -----------------------------------------------------
