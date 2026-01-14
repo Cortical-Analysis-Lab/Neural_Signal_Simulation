@@ -1,4 +1,4 @@
-console.log("⚡ vesicleRelease loaded — CONTINUOUS FUSION MODEL (PRESYNAPTIC, -X → CLEFT)");
+console.log("⚡ vesicleRelease loaded — CONTINUOUS FUSION (ENDOCYTOSIS-ONLY)");
 
 // =====================================================
 // VESICLE RELEASE — SPATIALLY CONTINUOUS (AUTHORITATIVE)
@@ -13,6 +13,10 @@ console.log("⚡ vesicleRelease loaded — CONTINUOUS FUSION MODEL (PRESYNAPTIC,
 // • Fusion progress = spatial overlap with fusion plane
 // • NT release begins after 25% overlap
 // • Geometry reacts ONLY to v.flatten
+//
+// CRITICAL BIOLOGICAL RULE (ENFORCED):
+// • Fused vesicles NEVER re-enter pool directly
+// • Recycling occurs ONLY via membrane endocytosis
 //
 // =====================================================
 
@@ -31,14 +35,6 @@ function unrotateLocal(x, y) {
 const DOCK_TIME = 90;
 const RELEASE_JITTER_MIN = 0;
 const RELEASE_JITTER_MAX = 18;
-const RECYCLE_HOLD_FRAMES = 40;
-
-
-// -----------------------------------------------------
-// RECYCLING OFFSET (BACK INTO CYTOSOL, +X)
-// -----------------------------------------------------
-const RECYCLE_OFFSET =
-  window.SYNAPSE_VESICLE_RADIUS * 2.5;
 
 
 // -----------------------------------------------------
@@ -122,8 +118,9 @@ function updateVesicleRelease() {
   const vesicles = window.synapseVesicles || [];
   const r = window.SYNAPSE_VESICLE_RADIUS;
 
-  for (const v of vesicles) {
+  for (let i = vesicles.length - 1; i >= 0; i--) {
 
+    const v = vesicles[i];
     if (!v.releaseBias) continue;
 
     // =================================================
@@ -175,7 +172,6 @@ function updateVesicleRelease() {
       // EDGE-BASED FUSION PROGRESS (−X)
       // -----------------------------------------------
       const leftEdge = v.x - r;
-
       const fusionDepth =
         (knifeX - leftEdge) / (2 * r);
 
@@ -224,31 +220,24 @@ function updateVesicleRelease() {
       }
 
       // -----------------------------------------------
-      // FULL FUSION → RECYCLE
+      // FULL FUSION → MEMBRANE ENDOCYTOSIS ONLY
       // -----------------------------------------------
       if (f >= 1 && !v.__mergeLocked) {
 
         v.__mergeLocked = true;
         v.flatten = 1;
 
-        // 🔑 CRITICAL FIX
         delete v.clipX;
-
         v.nts = [];
 
+        // 🔑 seed budding EXACTLY at fusion plane
         spawnEndocytosisSeed?.(
-          v.x + RECYCLE_OFFSET,
+          membraneX + window.SYNAPSE_FUSION_PLANE_X,
           v.y
         );
 
-        v.releaseBias = false;
-        v.recycleBias = true;
-
-        v.state = "RECYCLED_TRAVEL";
-        v.recycleHold = RECYCLE_HOLD_FRAMES;
-
-        v.vx = random(0.06, 0.10); // move RIGHT (away from cleft)
-        v.vy = random(-0.04, 0.04);
+        // 🔥 vesicle ceases to exist after fusion
+        vesicles.splice(i, 1);
       }
     }
   }
