@@ -234,7 +234,7 @@ function updateVesiclePools() {
   for (const v of vesicles) {
 
     if (v.releaseBias === true) continue;
-    if (v.state === "RECYCLED_TRAVEL") continue;
+    if (v.state === "RECYCLED_TRAVEL" && v.recycleBias === true) continue;
 
     if (v.state === "EMPTY") {
       if (v.x < loaded.xMin + 14) {
