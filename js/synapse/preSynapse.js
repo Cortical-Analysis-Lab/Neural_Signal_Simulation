@@ -120,9 +120,21 @@ window.calibratePath = function (path) {
 // • Rotation happens HERE and only here
 // • Vesicles, fusion, and recycling depend on this
 //
+// DEBUG ADDITIONS:
+// • Verifies recycling draw space
+// • Confirms seed presence
+// • Visual origin marker
+//
 // =====================================================
 
 window.drawPreSynapse = function () {
+
+  // -----------------------------------------------
+  // DEBUG: function entry
+  // -----------------------------------------------
+  if (frameCount % 120 === 0) {
+    console.log("🧠 drawPreSynapse() frame", frameCount);
+  }
 
   push();
 
@@ -130,6 +142,17 @@ window.drawPreSynapse = function () {
   // CANONICAL ORIENTATION (DO NOT CHANGE)
   // ---------------------------------------------------
   rotate(PI);
+
+  // ---------------------------------------------------
+  // DEBUG: rotated origin marker
+  // ---------------------------------------------------
+  if (window.SHOW_SYNAPSE_DEBUG) {
+    push();
+    noStroke();
+    fill(255, 0, 0, 180);
+    circle(0, 0, 10); // MUST appear centered on terminal
+    pop();
+  }
 
   // ---------------------------------------------------
   // TERMINAL GEOMETRY (AUTHORITATIVE SHAPE)
@@ -140,6 +163,24 @@ window.drawPreSynapse = function () {
   // DEBUG: CURVED STOP + FUSION PLANES
   // ---------------------------------------------------
   drawVesicleStopPlaneDebug();
+
+  // ---------------------------------------------------
+  // ♻️ ENDOCYTOSIS BUDDING (MEMBRANE-OWNED)
+  // ---------------------------------------------------
+  if (typeof drawVesicleRecycling === "function") {
+
+    // DEBUG: seed count
+    if (frameCount % 60 === 0) {
+      console.log(
+        "♻️ drawVesicleRecycling() called | seeds =",
+        window.endocytosisSeeds?.length ?? "N/A"
+      );
+    }
+
+    drawVesicleRecycling();
+  } else {
+    console.warn("⚠️ drawVesicleRecycling not defined");
+  }
 
   // ---------------------------------------------------
   // VESICLES (GEOMETRY + CONTENTS)
