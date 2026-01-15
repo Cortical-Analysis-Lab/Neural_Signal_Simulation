@@ -1,26 +1,40 @@
 console.log("🔬 SynapseView loaded");
 
 // =====================================================
-// SYNAPSE VIEW — ORCHESTRATOR (WORLD SPACE)
+// SYNAPSE VIEW — ORCHESTRATOR (SCREEN-FRAMED, FIXED RATIO)
 // =====================================================
 //
-// ✔ Single coordinate space
-// ✔ No flips
-// ✔ No synapseConstants dependency
-// ✔ Deterministic update → draw order
+// ✔ Independent view (NOT overview zoom)
+// ✔ Fixed aspect ratio
+// ✔ Uniform scaling across screen sizes
+// ✔ No camera / world coupling
 // ✔ Vesicles drawn ONLY in preSynapse.js
 //
 // =====================================================
 
 
 // =====================================================
-// SCREEN-SPACE LAYOUT (VIEW ONLY)
+// 🔑 SYNAPSE DESIGN FRAME (AUTHORITATIVE)
 // =====================================================
-const SYNAPSE_SCALE    = 1.45;
-const SYNAPSE_SCREEN_X = 0.5;
-const SYNAPSE_SCREEN_Y = 0.55;
+//
+// This defines the intended synapse composition size.
+// Everything scales uniformly to fit the screen.
+//
+const SYNAPSE_FRAME = {
+  width:  900,
+  height: 500
+};
 
-// World anchors
+
+// =====================================================
+// USER SCALE (ARTISTIC, SAFE)
+// =====================================================
+const SYNAPSE_SCALE = 1.45;
+
+
+// =====================================================
+// WORLD ANCHORS (LOCAL TO SYNAPSE VIEW)
+// =====================================================
 const PRE_X    = -180;
 const POST_X   = +180;
 const NEURON_Y = 40;
@@ -52,7 +66,6 @@ function ensureVesiclePoolInitialized() {
 
   const maxVes = window.SYNAPSE_MAX_VESICLES ?? 7;
 
-  // Seed reserve pool ONLY ONCE
   if (window.synapseVesicles.length === 0) {
     for (let i = 0; i < maxVes; i++) {
       window.requestNewEmptyVesicle?.();
@@ -70,13 +83,29 @@ function drawSynapseView() {
   push();
   resetMatrix();
 
-  // ---------------- INPUT + ELECTRICAL ----------------
+  // ---------------------------------------------------
+  // 🔒 FIXED-RATIO SCREEN FRAMING
+  // ---------------------------------------------------
+  const sx = width  / SYNAPSE_FRAME.width;
+  const sy = height / SYNAPSE_FRAME.height;
+  const fitScale = min(sx, sy);
+
+  translate(width / 2, height / 2);
+  scale(fitScale * SYNAPSE_SCALE);
+
+
+  // ---------------------------------------------------
+  // INPUT + ELECTRICAL
+  // ---------------------------------------------------
   handleSynapseInput();
   updateVoltageWave?.();
 
   ensureVesiclePoolInitialized();
 
-  // ---------------- UPDATE ORDER (AUTHORITATIVE) ------
+
+  // ---------------------------------------------------
+  // UPDATE ORDER (AUTHORITATIVE)
+  // ---------------------------------------------------
   updateVesicleLoading?.();
   updateVesicleMotion?.();
   updateVesiclePools?.();
@@ -84,25 +113,24 @@ function drawSynapseView() {
   updateVesicleRecycling?.();
   updateSynapticBurst?.();
 
-  // ---------------- SCREEN → WORLD --------------------
-  translate(
-    width  * SYNAPSE_SCREEN_X,
-    height * SYNAPSE_SCREEN_Y
-  );
-  scale(SYNAPSE_SCALE);
 
   strokeWeight(6);
   strokeJoin(ROUND);
   strokeCap(ROUND);
 
-  // ---------------- ASTROCYTE -------------------------
+
+  // ---------------------------------------------------
+  // ASTROCYTE (DRAW FIRST)
+  // ---------------------------------------------------
   drawAstrocyteSynapse?.();
 
-  // ---------------- PRESYNAPTIC TERMINAL --------------
+
+  // ---------------------------------------------------
+  // PRESYNAPTIC TERMINAL
+  // ---------------------------------------------------
   push();
   translate(PRE_X, NEURON_Y);
 
-  // Terminal AP (visual + trigger)
   if (
     typeof calibratePath === "function" &&
     typeof updateTerminalAP === "function" &&
@@ -113,22 +141,26 @@ function drawSynapseView() {
     );
   }
 
-  // ✅ PRESYNAPTIC GEOMETRY OWNERSHIP
-  // (vesicles are drawn INSIDE this function)
   drawPreSynapse?.();
   drawSynapticBurst?.();
+  pop();
 
-   pop();
 
-  // ---------------- POSTSYNAPTIC TERMINAL --------------
+  // ---------------------------------------------------
+  // POSTSYNAPTIC TERMINAL
+  // ---------------------------------------------------
   push();
   translate(POST_X, NEURON_Y);
   drawPostSynapse?.();
   pop();
 
+
   pop();
 
-  // ---------------- CONSOLE PROBE ---------------------
+
+  // ---------------------------------------------------
+  // DEBUG PROBE
+  // ---------------------------------------------------
   if (window.SHOW_SYNAPSE_DEBUG && frameCount % 60 === 0) {
     console.log(
       "🧪 vesicles:",
