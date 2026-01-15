@@ -35,8 +35,8 @@ const SYNAPSE_SCALE = 1.45;
 // =====================================================
 // WORLD ANCHORS (LOCAL TO SYNAPSE VIEW)
 // =====================================================
-const PRE_X    = -180;
-const POST_X   = +180;
+const PRE_X    = -130;
+const POST_X   = +130;
 const NEURON_Y = 40;
 
 
