@@ -237,10 +237,15 @@ function updateVesiclePools() {
     if (v.state === "RECYCLED_TRAVEL" && v.recycleBias === true) continue;
 
     if (v.state === "EMPTY") {
-      if (v.x < loaded.xMin + 14) {
-        v.state = "LOADED_TRAVEL";
-      }
+
+    if (v.recycleCooldown && v.recycleCooldown > 0) {
+      v.recycleCooldown--;
     }
+    else if (v.x < loaded.xMin + 14) {
+      v.state = "LOADED_TRAVEL";
+    }
+  }
+
 
     if (v.state === "LOADED_TRAVEL") {
       applyLoadedAttraction(v);
