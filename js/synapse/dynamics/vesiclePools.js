@@ -144,6 +144,9 @@ function getLoadedPoolRect() {
 
 window.requestNewEmptyVesicle = function () {
 
+    if (window.endocytosisSeeds && window.endocytosisSeeds.length > 0) {
+    return;
+  }
   const vesicles = window.synapseVesicles;
   if (!Array.isArray(vesicles)) return;
   if (vesicles.length >= window.SYNAPSE_MAX_VESICLES) return;
