@@ -10,6 +10,13 @@ const state = {
   mode: "overview",          
   transition: null           // null | toSynapse | toOverviewFade | toOverviewZoom
 };
+// =====================================================
+// 🔒 AUTHORITATIVE WORLD FRAME (NEVER CHANGES)
+// =====================================================
+window.WORLD_FRAME = {
+  width:  1400,
+  height: 900
+};
 
 // -----------------------------------------------------
 // Global Toggles
@@ -263,13 +270,25 @@ function draw() {
   // ---------------------------------------------------
   if (state.mode !== "synapse") drawArtery();
 
-  // ---------------------------------------------------
-  // WORLD SPACE
-  // ---------------------------------------------------
-  push();
+  // -----------------------------------------------------
+  // WORLD → SCREEN (LETTERBOXED, LOCKED)
+  // -----------------------------------------------------
+  const wf = window.WORLD_FRAME;
+  
+  const sx = width  / wf.width;
+  const sy = height / wf.height;
+  const worldScale = min(sx, sy);
+  
+  // center world
   translate(width / 2, height / 2);
+  scale(worldScale);
+  
+  // -----------------------------------------------------
+  // CAMERA (WORLD SPACE ONLY)
+  // -----------------------------------------------------
   scale(camera.zoom);
   translate(-camera.x, -camera.y);
+
 
   // ===================================================
   // 🌊 EXTRACELLULAR SPACE (BACKGROUND ENVIRONMENT)
