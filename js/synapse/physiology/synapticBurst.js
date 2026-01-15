@@ -1,67 +1,57 @@
-console.log("🫧 synapticBurst loaded — OPTION A (VESICLE-AUTHORITATIVE)");
+console.log("🫧 synapticBurst loaded — DIFFUSIVE CLEFT MODEL (AUTHORITATIVE)");
 
 // =====================================================
-// SYNAPTIC NEUROTRANSMITTER BURST SYSTEM (LOCAL SPACE)
+// SYNAPTIC NEUROTRANSMITTER BURST — DIFFUSION DOMINATED
 // =====================================================
 //
-// OPTION A CONTRACT (LOCKED):
-// • Presynaptic LOCAL space ONLY
-// • Drawn INSIDE drawPreSynapse()
-// • Inherits ALL transforms (rotate(PI) handled upstream)
-// • NO rotation math here
-// • NO global membrane geometry
+// ✔ Vesicle-authoritative release
+// ✔ Diffusion-first (not ballistic)
+// ✔ Sparse, wide cleft filling
+// ✔ Soft confinement to synaptic gap
 //
-// 🔑 SINGLE SOURCE OF TRUTH:
-// • membraneX is provided PER RELEASE EVENT
-// • membraneX ALWAYS equals vesicle fusion plane
+// CONTRACT (UNCHANGED):
+// • Presynaptic LOCAL space only
+// • membraneX provided per release
+// • No geometry lookups here
 //
 // =====================================================
 
 
 // -----------------------------------------------------
-// STORAGE (GLOBAL, RELOAD SAFE)
+// STORAGE (RELOAD SAFE)
 // -----------------------------------------------------
 window.synapticNTs = window.synapticNTs || [];
 
 
 // -----------------------------------------------------
-// TUNING PARAMETERS
+// TUNING — DIFFUSION FIRST
 // -----------------------------------------------------
-const NT_BASE_COUNT = 18;
+const NT_BASE_COUNT = 14;
 
-const NT_ARC_WIDTH = Math.PI * 0.55;
-const NT_SPEED_MIN = 0.25;
-const NT_SPEED_MAX = 0.85;
+const NT_INITIAL_JITTER = 0.06;   // tiny launch noise
+const NT_DIFFUSION     = 0.18;   // dominant motion
+const NT_DRAG          = 0.88;
 
-const NT_DIFFUSION = 0.07;
-const NT_DRAG      = 0.968;
+const NT_OUTWARD_BIAS  = 0.006;  // gentle cleft push
 
-const NT_LIFE_MIN  = 90;
-const NT_LIFE_MAX  = 150;
+const NT_LIFE_MIN = 160;
+const NT_LIFE_MAX = 260;
 
-const NT_RADIUS    = 3;
-const CLEFT_LIMIT  = 120;
+const NT_RADIUS = 2.6;
+
+// Cleft bounds (teaching-friendly, not hard geometry)
+const CLEFT_DEPTH  = 140;
+const CLEFT_HEIGHT = 120;
 
 
 // -----------------------------------------------------
-// DEBUG TOGGLES
+// DEBUG
 // -----------------------------------------------------
 const DEBUG_NT = false;
 
 
 // -----------------------------------------------------
-// EVENT LISTENER — VESICLE-AUTHORITATIVE RELEASE
-// -----------------------------------------------------
-//
-// REQUIRED event detail (LOCAL SPACE):
-// {
-//   x, y,              // fusion pore (local)
-//   membraneX,         // 🔑 AUTHORITATIVE membrane plane
-//   normalX,           // -1 | +1 (local)
-//   spread,
-//   strength
-// }
-//
+// EVENT — VESICLE-AUTHORITATIVE RELEASE
 // -----------------------------------------------------
 window.addEventListener("synapticRelease", (e) => {
 
@@ -69,8 +59,6 @@ window.addEventListener("synapticRelease", (e) => {
     x,
     y,
     membraneX,
-    normalX  = -1,
-    spread   = 1,
     strength = 1
   } = e.detail || {};
 
@@ -79,40 +67,28 @@ window.addEventListener("synapticRelease", (e) => {
     !Number.isFinite(y) ||
     !Number.isFinite(membraneX)
   ) {
-    console.warn("❌ synapticRelease rejected — missing membraneX", e.detail);
+    console.warn("❌ NT release rejected — missing membraneX", e.detail);
     return;
-  }
-
-  if (DEBUG_NT) {
-    console.log(
-      "🫧 NT release @",
-      { x: x.toFixed(2), y: y.toFixed(2) },
-      "membraneX =", membraneX.toFixed(2)
-    );
   }
 
   const count = Math.floor(NT_BASE_COUNT * strength);
   if (count <= 0) return;
 
-  // +X is cleft by DEFINITION of membraneX
-  const baseAngle = normalX < 0 ? 0 : Math.PI;
+  if (DEBUG_NT) {
+    console.log("🫧 NT burst @", x.toFixed(1), y.toFixed(1));
+  }
 
   for (let i = 0; i < count; i++) {
 
-    const theta =
-      baseAngle +
-      random(-NT_ARC_WIDTH, NT_ARC_WIDTH) * spread;
-
-    const speed = random(NT_SPEED_MIN, NT_SPEED_MAX);
-
     window.synapticNTs.push({
-      x: x + random(-2.5, 2.5),
-      y: y + random(-3.5, 3.5),
+      x: x + random(-1.2, 1.2),
+      y: y + random(-2.0, 2.0),
 
-      vx: Math.cos(theta) * speed,
-      vy: Math.sin(theta) * speed,
+      // near-zero initial motion
+      vx: random(-NT_INITIAL_JITTER, NT_INITIAL_JITTER),
+      vy: random(-NT_INITIAL_JITTER, NT_INITIAL_JITTER),
 
-      membraneX, // 🔑 PER-PARTICLE MEMBRANE
+      membraneX,
       life: random(NT_LIFE_MIN, NT_LIFE_MAX),
       alpha: 255
     });
@@ -121,42 +97,59 @@ window.addEventListener("synapticRelease", (e) => {
 
 
 // -----------------------------------------------------
-// UPDATE — DIFFUSION DOMINATED (NO GEOMETRY LOOKUPS)
+// UPDATE — DIFFUSION DOMINATED
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
   const nts = window.synapticNTs;
-  if (!nts || nts.length === 0) return;
+  if (!nts.length) return;
 
   for (let i = nts.length - 1; i >= 0; i--) {
 
     const p = nts[i];
 
-    // Brownian diffusion
+    // -----------------------------------------------
+    // Brownian diffusion (dominant)
+    // -----------------------------------------------
     p.vx += random(-NT_DIFFUSION, NT_DIFFUSION);
     p.vy += random(-NT_DIFFUSION, NT_DIFFUSION);
 
-    p.x += p.vx;
-    p.y += p.vy;
+    // Gentle outward bias (membrane → cleft)
+    if (p.x > p.membraneX) {
+      p.vx += NT_OUTWARD_BIAS;
+    }
 
     p.vx *= NT_DRAG;
     p.vy *= NT_DRAG;
 
-    // -------------------------------------------------
-    // 🔒 HARD EXCLUSION — SINGLE MEMBRANE ONLY
-    // -------------------------------------------------
-    if (p.x < p.membraneX + 2) {
-      p.x  = p.membraneX + 2;
-      p.vx = Math.abs(p.vx) * 0.25;
+    p.x += p.vx;
+    p.y += p.vy;
+
+    // -----------------------------------------------
+    // HARD EXCLUSION — presynaptic membrane
+    // -----------------------------------------------
+    if (p.x < p.membraneX + 1.5) {
+      p.x  = p.membraneX + 1.5;
+      p.vx = Math.abs(p.vx) * 0.3;
     }
 
-    // Soft fade into cleft
-    if (Math.abs(p.x - p.membraneX) > CLEFT_LIMIT) {
-      p.alpha -= 3.0;
+    // -----------------------------------------------
+    // SOFT CLEFT CONFINEMENT (Y)
+    // -----------------------------------------------
+    if (Math.abs(p.y) > CLEFT_HEIGHT) {
+      p.vy *= -0.4;
+      p.y = constrain(p.y, -CLEFT_HEIGHT, CLEFT_HEIGHT);
+    }
+
+    // -----------------------------------------------
+    // FADE OUT DEEP IN CLEFT
+    // -----------------------------------------------
+    if (p.x - p.membraneX > CLEFT_DEPTH) {
+      p.alpha -= 2.0;
     }
 
     // Lifetime decay
-    p.alpha -= 1.6;
+    p.alpha -= 1.2;
     p.life--;
 
     if (p.life <= 0 || p.alpha <= 0) {
@@ -167,7 +160,7 @@ function updateSynapticBurst() {
 
 
 // -----------------------------------------------------
-// DRAW — PURE LOCAL SPACE (NO TRANSFORMS)
+// DRAW — SPARSE, ADDITIVE CLOUD
 // -----------------------------------------------------
 function drawSynapticBurst() {
 
