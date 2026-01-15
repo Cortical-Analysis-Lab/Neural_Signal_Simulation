@@ -79,18 +79,6 @@ function drawSynapseView() {
   // ✔ WORLD_FRAME already applied in main.js
 
   // ---------------------------------------------------
-  // 🔒 OVERRIDE CAMERA POSITION *FOR SYNAPSE ONLY*
-  // ---------------------------------------------------
-  //
-  // Overview camera zoomed into a bouton.
-  // SynapseView must now reframe the microscopic scene.
-  //
-  translate(
-    -window.synapseFocus.x,
-    -window.synapseFocus.y
-  );
-
-  // ---------------------------------------------------
   // INPUT + ELECTRICAL
   // ---------------------------------------------------
   handleSynapseInput();
