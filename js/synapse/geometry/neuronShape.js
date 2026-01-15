@@ -16,7 +16,7 @@ console.log("🧠 neuronShape.js loaded — SCALED GEOMETRY");
 // -----------------------------------------------------
 // 🔑 AUTHORITATIVE GEOMETRY SCALE
 // -----------------------------------------------------
-window.NEURON_GEOMETRY_SCALE = 5.0;
+window.NEURON_GEOMETRY_SCALE = 2.5;
 
 
 // -----------------------------------------------------
