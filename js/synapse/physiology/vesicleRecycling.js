@@ -123,9 +123,10 @@ function updateVesicleRecycling() {
             poolBiasX: random(-6, 6),
             poolBiasY: random(-8, 8),
 
-            state: "RECYCLED_TRAVEL",
+            state: "RECYCLED_FREE",
             recycleBias: true,
             recycleCooldown: 120,
+
 
             primedH: false,
             primedATP: false,
@@ -148,7 +149,7 @@ function updateVesicleRecycling() {
   // ===================================================
   for (const v of vesicles) {
 
-    if (v.state !== "RECYCLED_TRAVEL") continue;
+    if (v.state !== "RECYCLED_FREE") continue;
 
     const membraneX =
       window.getSynapticMembraneX?.(v.y) ?? 0;
