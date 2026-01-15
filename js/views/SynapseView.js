@@ -1,29 +1,36 @@
-console.log("🔬 SynapseView loaded — WORLD SPACE LOCKED");
+console.log("🔬 SynapseView loaded — WORLD SPACE LOCKED (SYNAPSE-FRAMED)");
 
 // =====================================================
 // SYNAPSE VIEW — ORCHESTRATOR (WORLD SPACE)
 // =====================================================
 //
 // ✔ Single authoritative coordinate system
-// ✔ Inherits WORLD_FRAME + camera from main.js
-// ✔ NO resetMatrix()
-// ✔ NO screen-relative layout
-// ✔ Deterministic update → draw order
+// ✔ Inherits WORLD_FRAME from main.js
+// ✔ Camera zoom from overview is IGNORED after fade
+// ✔ Explicit synapse framing (microscopic scale)
 // ✔ Vesicles drawn ONLY in preSynapse.js
 //
 // =====================================================
 
 
 // =====================================================
-// WORLD-SPACE LAYOUT (AUTHORITATIVE)
+// 🔑 SYNAPSE GEOMETRY SCALE (AUTHORITATIVE)
+// =====================================================
+const S = window.NEURON_GEOMETRY_SCALE ?? 1;
+
+
+// =====================================================
+// 🔑 SYNAPSE WORLD LAYOUT (AUTHORITATIVE)
 // =====================================================
 //
-// These are REAL WORLD COORDINATES.
-// Resize window → NOTHING MOVES.
+// These define the *true* synapse micro-environment.
+// If geometry scale changes, spacing scales automatically.
 //
-const PRE_X    = -140;
-const POST_X   = +140;
-const NEURON_Y =   40;
+const CLEFT_HALF_WIDTH = 140 * S;
+
+const PRE_X    = -CLEFT_HALF_WIDTH;
+const POST_X   =  CLEFT_HALF_WIDTH;
+const NEURON_Y =  40 * S;
 
 
 // =====================================================
@@ -52,7 +59,6 @@ function ensureVesiclePoolInitialized() {
 
   const maxVes = window.SYNAPSE_MAX_VESICLES ?? 7;
 
-  // Seed reserve pool ONLY ONCE
   if (window.synapseVesicles.length === 0) {
     for (let i = 0; i < maxVes; i++) {
       window.requestNewEmptyVesicle?.();
@@ -69,13 +75,23 @@ function drawSynapseView() {
 
   push();
   // ❌ NO resetMatrix()
-  // ❌ NO translate(width/height)
-  // ❌ NO scale()
-  //
-  // ✔ camera + WORLD_FRAME already applied in main.js
+  // ❌ NO screen-relative translate
+  // ✔ WORLD_FRAME already applied in main.js
 
   // ---------------------------------------------------
-  // INPUT + ELECTRICAL (WORLD-RELATIVE)
+  // 🔒 OVERRIDE CAMERA POSITION *FOR SYNAPSE ONLY*
+  // ---------------------------------------------------
+  //
+  // Overview camera zoomed into a bouton.
+  // SynapseView must now reframe the microscopic scene.
+  //
+  translate(
+    -window.synapseFocus.x,
+    -window.synapseFocus.y
+  );
+
+  // ---------------------------------------------------
+  // INPUT + ELECTRICAL
   // ---------------------------------------------------
   handleSynapseInput();
   updateVoltageWave?.();
@@ -83,7 +99,7 @@ function drawSynapseView() {
   ensureVesiclePoolInitialized();
 
   // ---------------------------------------------------
-  // UPDATE ORDER (AUTHORITATIVE, BIOLOGICAL)
+  // UPDATE ORDER (BIOLOGICAL AUTHORITY)
   // ---------------------------------------------------
   updateVesicleLoading?.();
   updateVesicleMotion?.();
@@ -97,9 +113,8 @@ function drawSynapseView() {
   strokeCap(ROUND);
 
   // ===================================================
-  // 🌿 ASTROCYTE (WORLD SPACE)
+  // 🌿 ASTROCYTE (DRAW FIRST — CONTAINS TERMINALS)
   // ===================================================
-  // Draw FIRST so terminals sit inside it
   drawAstrocyteSynapse?.();
 
   // ===================================================
@@ -108,7 +123,6 @@ function drawSynapseView() {
   push();
   translate(PRE_X, NEURON_Y);
 
-  // Terminal AP (visual + trigger)
   if (
     typeof calibratePath === "function" &&
     typeof updateTerminalAP === "function" &&
@@ -119,11 +133,8 @@ function drawSynapseView() {
     );
   }
 
-  // 🔑 PRESYNAPTIC GEOMETRY OWNERSHIP
-  // Vesicles + fusion + recycling live here
   drawPreSynapse?.();
   drawSynapticBurst?.();
-
   pop();
 
   // ===================================================
