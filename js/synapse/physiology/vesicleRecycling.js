@@ -139,6 +139,8 @@ function updateVesicleRecycling() {
 
             state: "RECYCLED_TRAVEL",
             recycleBias: true,
+            recycleCooldown: 120, // frames before eligible to load
+
 
             nts: [],
             flatten: 0,
