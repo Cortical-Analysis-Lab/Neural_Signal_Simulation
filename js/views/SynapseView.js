@@ -1,12 +1,13 @@
-console.log("🔬 SynapseView loaded");
+console.log("🔬 SynapseView loaded — WORLD SPACE LOCKED");
 
 // =====================================================
 // SYNAPSE VIEW — ORCHESTRATOR (WORLD SPACE)
 // =====================================================
 //
-// ✔ Single coordinate space
-// ✔ No flips
-// ✔ No synapseConstants dependency
+// ✔ Single authoritative coordinate system
+// ✔ Inherits WORLD_FRAME + camera from main.js
+// ✔ NO resetMatrix
+// ✔ NO screen-relative layout
 // ✔ Deterministic update → draw order
 // ✔ Vesicles drawn ONLY in preSynapse.js
 //
@@ -14,16 +15,15 @@ console.log("🔬 SynapseView loaded");
 
 
 // =====================================================
-// SCREEN-SPACE LAYOUT (VIEW ONLY)
+// WORLD-SPACE LAYOUT (AUTHORITATIVE)
 // =====================================================
-const SYNAPSE_SCALE    = 1.45;
-const SYNAPSE_SCREEN_X = 0.5;
-const SYNAPSE_SCREEN_Y = 0.55;
-
-// World anchors
-const PRE_X    = -180;
-const POST_X   = +180;
-const NEURON_Y = 40;
+//
+// These are REAL WORLD COORDINATES.
+// Resize window → NOTHING MOVES.
+//
+const PRE_X    = -140;
+const POST_X   = +140;
+const NEURON_Y =  40;
 
 
 // =====================================================
@@ -68,15 +68,21 @@ function ensureVesiclePoolInitialized() {
 function drawSynapseView() {
 
   push();
-  resetMatrix();
+  // ❌ NO resetMatrix()
+  // ❌ NO screen-relative translate / scale
+  // ✔ camera + WORLD_FRAME already applied upstream
 
-  // ---------------- INPUT + ELECTRICAL ----------------
+  // ---------------------------------------------------
+  // INPUT + ELECTRICAL
+  // ---------------------------------------------------
   handleSynapseInput();
   updateVoltageWave?.();
 
   ensureVesiclePoolInitialized();
 
-  // ---------------- UPDATE ORDER (AUTHORITATIVE) ------
+  // ---------------------------------------------------
+  // UPDATE ORDER (AUTHORITATIVE, BIOLOGICAL)
+  // ---------------------------------------------------
   updateVesicleLoading?.();
   updateVesicleMotion?.();
   updateVesiclePools?.();
@@ -84,21 +90,18 @@ function drawSynapseView() {
   updateVesicleRecycling?.();
   updateSynapticBurst?.();
 
-  // ---------------- SCREEN → WORLD --------------------
-  translate(
-    width  * SYNAPSE_SCREEN_X,
-    height * SYNAPSE_SCREEN_Y
-  );
-  scale(SYNAPSE_SCALE);
-
   strokeWeight(6);
   strokeJoin(ROUND);
   strokeCap(ROUND);
 
-  // ---------------- ASTROCYTE -------------------------
+  // ===================================================
+  // 🌿 ASTROCYTE (WORLD SPACE)
+  // ===================================================
   drawAstrocyteSynapse?.();
 
-  // ---------------- PRESYNAPTIC TERMINAL --------------
+  // ===================================================
+  // 🟡 PRESYNAPTIC TERMINAL
+  // ===================================================
   push();
   translate(PRE_X, NEURON_Y);
 
@@ -113,21 +116,22 @@ function drawSynapseView() {
     );
   }
 
-  // ✅ PRESYNAPTIC GEOMETRY OWNERSHIP
-  // (vesicles are drawn INSIDE this function)
+  // 🔑 PRESYNAPTIC GEOMETRY OWNERSHIP
+  // Vesicles + fusion + recycling live here
   drawPreSynapse?.();
   drawSynapticBurst?.();
 
-   pop();
+  pop();
 
-  // ---------------- POSTSYNAPTIC TERMINAL --------------
+  // ===================================================
+  // 🔵 POSTSYNAPTIC TERMINAL
+  // ===================================================
   push();
   translate(POST_X, NEURON_Y);
   drawPostSynapse?.();
   pop();
 
   pop();
-
 }
 
 
