@@ -113,28 +113,28 @@ function updateVesicleRecycling() {
 
           // 🔑 CANONICAL VESICLE CREATION
           vesicles.push({
-            x: membraneX + BACK_X + random(10, 16),
-            y: e.y + random(-6, 6),
-
-            vx: random(0.035, 0.06),
-            vy: random(-0.025, 0.025),
-
-            radius: R,
-            poolBiasX: random(-6, 6),
-            poolBiasY: random(-8, 8),
-
-            state: "RECYCLED_FREE",
-            recycleBias: true,
-            recycleCooldown: 120,
-
-
-            primedH: false,
-            primedATP: false,
-            nts: [],
-
-            flatten: 0,
-            clipX: undefined
-          });
+          x: membraneX + window.SYNAPSE_FUSION_PLANE_X + e.offset,
+          y: e.y,
+        
+          // 🧬 gentle post-pinch motion only
+          vx: random(-0.003, 0.003),
+          vy: random(-0.003, 0.003),
+        
+          radius: R,
+        
+          state: "DETACHED_FLOAT",
+          detachTimer: 0,
+        
+          recycleBias: true,
+          recycleCooldown: 120,
+        
+          primedH: false,
+          primedATP: false,
+          nts: [],
+        
+          flatten: 0,
+          clipX: undefined
+        });
 
           console.log("♻️ vesicle DETACHED at y =", e.y);
         }
@@ -145,33 +145,61 @@ function updateVesicleRecycling() {
   }
 
   // ===================================================
+// DETACHED_FLOAT — slow cytosolic drift
+// ===================================================
+for (const v of vesicles) {
+
+  if (v.state !== "DETACHED_FLOAT") continue;
+
+  v.detachTimer++;
+
+  // Brownian drift only
+  v.vx += random(-0.0015, 0.0015);
+  v.vy += random(-0.0015, 0.0015);
+
+  v.vx *= 0.96;
+  v.vy *= 0.96;
+
+  v.x += v.vx;
+  v.y += v.vy;
+
+  // After clear separation, begin recycling travel
+  if (v.detachTimer > 120) {
+    v.state = "RECYCLED_TRAVEL";
+    v.vx *= 0.4;
+    v.vy *= 0.4;
+  }
+}
+
+  // ===================================================
   // RECYCLED_TRAVEL → RESERVE POOL (MEMBRANE-RELATIVE)
   // ===================================================
   for (const v of vesicles) {
 
-    if (v.state !== "RECYCLED_FREE") continue;
+    if (v.state !== "RECYCLED_TRAVEL") continue;
 
     const membraneX =
       window.getSynapticMembraneX?.(v.y) ?? 0;
-
+    
     const RESERVE_TARGET_X =
       membraneX + BACK_X + 20;
-
+    
     const dx = RESERVE_TARGET_X - v.x;
-
-    v.vx += dx * 0.012;
+    
+    v.vx += dx * 0.010;
     v.vx *= 0.92;
     v.vy *= 0.94;
-
+    
     v.x += v.vx;
     v.y += v.vy;
-
+    
     if (dx > -6) {
       v.state = "EMPTY";
       v.recycleBias = false;
       v.vx *= 0.3;
       v.vy *= 0.3;
     }
+
   }
 }
 
