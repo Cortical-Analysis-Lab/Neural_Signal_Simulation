@@ -5,7 +5,7 @@ console.log("♻️ vesicleRecycling loaded — ENDOCYTOSIS (FUSION-PLANE ANCHOR
 // =====================================================
 //
 // ✔ Patch → bud → pinch (membrane deformation)
-// ✔ Buds anchored at FUSION PLANE (NOT docking plane)
+// ✔ Buds anchored at FUSION PLANE
 // ✔ Vesicle detaches ONLY at final pinch
 // ✔ No vesicle continuity after fusion
 //
@@ -13,7 +13,6 @@ console.log("♻️ vesicleRecycling loaded — ENDOCYTOSIS (FUSION-PLANE ANCHOR
 // • NO vesicle geometry until DETACH
 // • NO flatten / clipX during budding
 // • ALL positions membrane-relative
-// • STOP_X is NOT used for budding
 //
 // =====================================================
 
@@ -27,12 +26,7 @@ window.endocytosisSeeds = window.endocytosisSeeds || [];
 // -----------------------------------------------------
 // SPAWN ENDOCYTOSIS SEED (FUSION-LOCKED)
 // -----------------------------------------------------
-//
-// NOTE:
-// • x is intentionally ignored
-// • Bud anchor = membraneX(y) + SYNAPSE_FUSION_PLANE_X
-//
-window.spawnEndocytosisSeed = function (x, y) {
+window.spawnEndocytosisSeed = function (_x, y) {
 
   if (frameCount % 30 === 0) {
     console.log("♻️ spawnEndocytosisSeed at y =", y);
@@ -43,11 +37,9 @@ window.spawnEndocytosisSeed = function (x, y) {
     timer: 0,
     stage: "PATCH",
 
-    // Geometry (membrane-relative)
     radius: 0.5,
     offset: 0,
     neck: 0,
-
     alpha: 120
   });
 };
@@ -66,20 +58,17 @@ function updateVesicleRecycling() {
   const BACK_X  = window.SYNAPSE_BACK_OFFSET_X;
 
   // ===================================================
-  // ENDOCYTOSIS STATE MACHINE (PATCH → BUD → PINCH)
+  // ENDOCYTOSIS STATE MACHINE
   // ===================================================
   for (let i = seeds.length - 1; i >= 0; i--) {
 
     const e = seeds[i];
     e.timer++;
 
-    // -------------------------------
-    // PATCH — membrane dimple
-    // -------------------------------
+    // ---------------- PATCH ----------------
     if (e.stage === "PATCH") {
 
       const t = constrain(e.timer / 80, 0, 1);
-
       e.radius = lerp(0.5, 2.5, t);
       e.offset = lerp(0.0, 1.2, t);
       e.alpha  = lerp(110, 150, t);
@@ -87,18 +76,14 @@ function updateVesicleRecycling() {
       if (e.timer >= 80) {
         e.stage = "BUD";
         e.timer = 0;
-
         console.log("♻️ endocytosis → BUD at y =", e.y);
       }
     }
 
-    // -------------------------------
-    // BUD — membrane bulges outward
-    // -------------------------------
+    // ---------------- BUD ----------------
     else if (e.stage === "BUD") {
 
       const t = constrain(e.timer / 150, 0, 1);
-
       e.offset = lerp(1.2, R * 1.1, t);
       e.radius = lerp(2.5, R, t);
       e.neck   = lerp(0, 6, t);
@@ -107,18 +92,14 @@ function updateVesicleRecycling() {
       if (e.timer >= 150) {
         e.stage = "PINCH";
         e.timer = 0;
-
         console.log("♻️ endocytosis → PINCH at y =", e.y);
       }
     }
 
-    // -------------------------------
-    // PINCH — constriction & detach
-    // -------------------------------
+    // ---------------- PINCH ----------------
     else if (e.stage === "PINCH") {
 
       const t = constrain(e.timer / 110, 0, 1);
-
       e.neck   = lerp(6, 0, t);
       e.offset = lerp(R * 1.1, R * 1.4, t);
       e.radius = lerp(R, R * 0.9, t);
@@ -130,6 +111,7 @@ function updateVesicleRecycling() {
           const membraneX =
             window.getSynapticMembraneX?.(e.y) ?? 0;
 
+          // 🔑 CANONICAL VESICLE CREATION
           vesicles.push({
             x: membraneX + BACK_X + random(10, 16),
             y: e.y + random(-6, 6),
@@ -137,12 +119,18 @@ function updateVesicleRecycling() {
             vx: random(0.035, 0.06),
             vy: random(-0.025, 0.025),
 
+            radius: R,
+            poolBiasX: random(-6, 6),
+            poolBiasY: random(-8, 8),
+
             state: "RECYCLED_TRAVEL",
             recycleBias: true,
-            recycleCooldown: 120, // frames before eligible to load
+            recycleCooldown: 120,
 
-
+            primedH: false,
+            primedATP: false,
             nts: [],
+
             flatten: 0,
             clipX: undefined
           });
@@ -156,13 +144,17 @@ function updateVesicleRecycling() {
   }
 
   // ===================================================
-  // RECYCLED_TRAVEL → RESERVE POOL
+  // RECYCLED_TRAVEL → RESERVE POOL (MEMBRANE-RELATIVE)
   // ===================================================
-  const RESERVE_TARGET_X = BACK_X + 20;
-
   for (const v of vesicles) {
 
     if (v.state !== "RECYCLED_TRAVEL") continue;
+
+    const membraneX =
+      window.getSynapticMembraneX?.(v.y) ?? 0;
+
+    const RESERVE_TARGET_X =
+      membraneX + BACK_X + 20;
 
     const dx = RESERVE_TARGET_X - v.x;
 
@@ -197,32 +189,25 @@ function drawVesicleRecycling() {
     const membraneX =
       window.getSynapticMembraneX?.(e.y) ?? 0;
 
-    // 🔑 FUSION-PLANE ANCHOR
     const baseX =
       membraneX + window.SYNAPSE_FUSION_PLANE_X;
 
     const budX = baseX + e.offset;
 
-    // -------------------------------
     // Membrane overlap cue
-    // -------------------------------
     noStroke();
     fill(245, 225, 140, e.alpha * 0.45);
     ellipse(
       baseX + e.offset * 0.25,
       e.y,
-      e.radius * 1.6,
       e.radius * 1.6
     );
 
-    // -------------------------------
-    // Neck constriction
-    // -------------------------------
+    // Neck
     if (e.stage === "PINCH" && e.neck > 0) {
       noFill();
       stroke(245, 225, 140, e.alpha);
       strokeWeight(2);
-
       circle(
         baseX + e.offset * 0.35,
         e.y,
@@ -230,9 +215,7 @@ function drawVesicleRecycling() {
       );
     }
 
-    // -------------------------------
     // Bud body
-    // -------------------------------
     noStroke();
     fill(245, 225, 140, e.alpha);
     ellipse(budX, e.y, e.radius * 2);
