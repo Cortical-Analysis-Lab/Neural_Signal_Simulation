@@ -6,7 +6,7 @@ console.log("🔬 SynapseView loaded — WORLD SPACE LOCKED");
 //
 // ✔ Single authoritative coordinate system
 // ✔ Inherits WORLD_FRAME + camera from main.js
-// ✔ NO resetMatrix
+// ✔ NO resetMatrix()
 // ✔ NO screen-relative layout
 // ✔ Deterministic update → draw order
 // ✔ Vesicles drawn ONLY in preSynapse.js
@@ -23,7 +23,7 @@ console.log("🔬 SynapseView loaded — WORLD SPACE LOCKED");
 //
 const PRE_X    = -140;
 const POST_X   = +140;
-const NEURON_Y =  40;
+const NEURON_Y =   40;
 
 
 // =====================================================
@@ -69,11 +69,13 @@ function drawSynapseView() {
 
   push();
   // ❌ NO resetMatrix()
-  // ❌ NO screen-relative translate / scale
-  // ✔ camera + WORLD_FRAME already applied upstream
+  // ❌ NO translate(width/height)
+  // ❌ NO scale()
+  //
+  // ✔ camera + WORLD_FRAME already applied in main.js
 
   // ---------------------------------------------------
-  // INPUT + ELECTRICAL
+  // INPUT + ELECTRICAL (WORLD-RELATIVE)
   // ---------------------------------------------------
   handleSynapseInput();
   updateVoltageWave?.();
@@ -97,6 +99,7 @@ function drawSynapseView() {
   // ===================================================
   // 🌿 ASTROCYTE (WORLD SPACE)
   // ===================================================
+  // Draw FIRST so terminals sit inside it
   drawAstrocyteSynapse?.();
 
   // ===================================================
