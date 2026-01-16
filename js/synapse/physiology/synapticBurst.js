@@ -5,12 +5,12 @@ console.log("🫧 synapticBurst loaded — CHEMICAL CLOUD (ELASTIC GAS, SLOWED)"
 // =====================================================
 //
 // ✔ Vesicle-authoritative release
-// ✔ Strong initial outward spill
+// ✔ Slower outward spill
 // ✔ Angular fan-out + decorrelation
 // ✔ Elastic NT–NT collisions (momentum exchange)
-// ✔ Elastic membrane scattering
-// ✔ Time-based decay ONLY (~10 s)
-// ✔ No spatial sinks
+// ✔ Elastic membrane + astrocyte scattering
+// ✔ Time-based decay ONLY (~10 s @ 60fps)
+// ✔ No spatial sinks, no pinning
 //
 // =====================================================
 
@@ -23,26 +23,26 @@ window.lastSynapticRelease = null;
 
 
 // -----------------------------------------------------
-// CORE TUNING (SLOWED)
+// CORE TUNING (REDUCED DENSITY + SLOWER)
 // -----------------------------------------------------
-const NT_BASE_COUNT = 11;
+const NT_BASE_COUNT = 11; // 🔻 cut in half
 
-// Initial launch  🔽 SLOWED
-const NT_INITIAL_SPEED  = 0.26;      // was 0.42
+// Initial launch
+const NT_INITIAL_SPEED  = 0.26;
 const NT_INITIAL_SPREAD = 0.35;
 
-// Gentle drift (VERY small — symmetry breaker only)
-const NT_DRIFT_X = 0.006;             // was 0.010
-const NT_DRIFT_Y = 0.002;             // was 0.004
+// Very gentle drift (symmetry breaker only)
+const NT_DRIFT_X = 0.006;
+const NT_DRIFT_Y = 0.002;
 
 // Fan-out texture
 const NT_ANGULAR_NOISE = 0.028;
-const NT_BROWNIAN     = 0.010;         // slightly reduced
+const NT_BROWNIAN     = 0.010;
 
-// Drag (higher = slower, smoother)
-const NT_DRAG = 0.990;                // 🔽 increased from 0.985
+// Drag (high inertia = smooth float)
+const NT_DRAG = 0.990;
 
-// Lifetime (~10 seconds @ 60fps)
+// Lifetime (~10 seconds)
 const NT_LIFE_MIN = 600;
 const NT_LIFE_MAX = 720;
 
@@ -51,23 +51,22 @@ const NT_LIFE_MAX = 720;
 // GEOMETRY
 // -----------------------------------------------------
 const NT_RADIUS = 2.4;
-const CLEFT_DEPTH  = 220;
-const CLEFT_HEIGHT = 180;
+const CLEFT_DEPTH = 220;
 
 
 // -----------------------------------------------------
-// NT–NT COLLISION PARAMETERS
+// NT–NT COLLISIONS
 // -----------------------------------------------------
 const NT_COLLISION_RADIUS = NT_RADIUS * 2.1;
-const NT_COLLISION_DAMP   = 0.90;     // slightly more damping
-const NT_THERMAL_JITTER   = 0.012;    // 🔽 reduced but nonzero
+const NT_COLLISION_DAMP   = 0.90;
+const NT_THERMAL_JITTER   = 0.012;
 
 
 // -----------------------------------------------------
 // POST-FUSION TRICKLE
 // -----------------------------------------------------
 const NT_TRICKLE_PROB  = 0.10;
-const NT_TRICKLE_SPEED = 0.16;        // 🔽 slower trickle
+const NT_TRICKLE_SPEED = 0.16;
 
 
 // -----------------------------------------------------
@@ -85,10 +84,7 @@ window.addEventListener("synapticRelease", (e) => {
     window.synapticNTs.push(makeNT(x, y, membraneX));
   }
 
-  window.lastSynapticRelease = {
-    x, y, membraneX,
-    life: 60
-  };
+  window.lastSynapticRelease = { x, y, membraneX, life: 60 };
 });
 
 
@@ -128,7 +124,7 @@ function updateSynapticBurst() {
     nts.push({
       x: r.x,
       y: r.y,
-      vx: random(0.08, NT_TRICKLE_SPEED),
+      vx: random(0.06, NT_TRICKLE_SPEED),
       vy: random(-0.08, 0.08),
       membraneX: r.membraneX,
       life: random(420, 600),
@@ -140,13 +136,13 @@ function updateSynapticBurst() {
   if (!nts.length) return;
 
   // -----------------------------------------------
-  // MAIN UPDATE LOOP
+  // MAIN LOOP
   // -----------------------------------------------
   for (let i = nts.length - 1; i >= 0; i--) {
 
     const p = nts[i];
 
-    // ---- angular decorrelation (fan-out)
+    // ---- angular decorrelation
     const speed = Math.hypot(p.vx, p.vy);
     let angle = atan2(p.vy, p.vx);
     angle += random(-NT_ANGULAR_NOISE, NT_ANGULAR_NOISE);
@@ -158,17 +154,17 @@ function updateSynapticBurst() {
     p.vx += NT_DRIFT_X + random(-NT_BROWNIAN, NT_BROWNIAN);
     p.vy += NT_DRIFT_Y * Math.sign(p.y || random(-1, 1));
 
-    // ---- inertia (slower)
+    // ---- inertia
     p.vx *= NT_DRAG;
     p.vy *= NT_DRAG;
 
-    // ---- position
+    // ---- integrate
     p.x += p.vx;
     p.y += p.vy;
 
 
     // -------------------------------------------
-    // PRESYNAPTIC MEMBRANE
+    // PRESYNAPTIC MEMBRANE (LEFT)
     // -------------------------------------------
     if (p.x < p.membraneX + 1.5) {
       p.x  = p.membraneX + 1.5;
@@ -177,41 +173,40 @@ function updateSynapticBurst() {
 
 
     // -------------------------------------------
-    // POSTSYNAPTIC MEMBRANE — SOFT ELASTIC ZONE
+    // POSTSYNAPTIC MEMBRANE (SOFT ELASTIC ZONE)
     // -------------------------------------------
-    const reboundStart = p.membraneX + CLEFT_DEPTH * 0.85;
-    const reboundEnd   = p.membraneX + CLEFT_DEPTH * 1.05;
+    const postX = p.membraneX + CLEFT_DEPTH;
 
-    if (p.x > reboundStart) {
-
-      const t = constrain(
-        (p.x - reboundStart) / (reboundEnd - reboundStart),
-        0, 1
-      );
-
-      p.vx -= t * random(0.05, 0.09);
+    if (p.x > postX) {
+      p.x = postX - (p.x - postX);
 
       const sp = Math.hypot(p.vx, p.vy);
-      const a  = atan2(p.vy, p.vx) + random(-0.30, 0.30);
+      const a  = atan2(p.vy, p.vx) + random(-0.4, 0.4);
 
-      p.vx = cos(a) * sp;
-      p.vy = sin(a) * sp;
+      p.vx = -cos(a) * sp * random(0.45, 0.75);
+      p.vy =  sin(a) * sp * random(0.60, 1.00);
     }
 
 
     // -------------------------------------------
-    // ASTROCYTE / VERTICAL CONFINEMENT (TAPERED)
+    // ASTROCYTE ELASTIC BOUNDARY (AUTHORITATIVE)
     // -------------------------------------------
-    const yLimit = CLEFT_HEIGHT * (1 - 0.15 * (p.x - p.membraneX) / CLEFT_DEPTH);
+    if (typeof window.getAstrocyteBoundaryY === "function") {
 
-    if (Math.abs(p.y) > yLimit) {
-      p.y  = constrain(p.y, -yLimit, yLimit);
-      p.vy *= -0.55;
+      const astroY = window.getAstrocyteBoundaryY(p.x);
+
+      if (p.y < astroY) {
+        const penetration = astroY - p.y;
+        p.y += penetration;
+
+        p.vy = Math.abs(p.vy) * random(0.4, 0.7);
+        p.vx += random(-0.10, 0.10);
+      }
     }
 
 
     // -------------------------------------------
-    // NT–NT ELASTIC COLLISIONS (GLOBAL)
+    // NT–NT ELASTIC COLLISIONS
     // -------------------------------------------
     for (let j = i - 1; j >= 0; j--) {
 
@@ -244,7 +239,6 @@ function updateSynapticBurst() {
         q.vx += impulse * nx;
         q.vy += impulse * ny;
 
-        // thermal energy (prevents pooling)
         p.vx += random(-NT_THERMAL_JITTER, NT_THERMAL_JITTER);
         p.vy += random(-NT_THERMAL_JITTER, NT_THERMAL_JITTER);
       }
@@ -252,12 +246,12 @@ function updateSynapticBurst() {
 
 
     // -------------------------------------------
-    // TIME-BASED DECAY ONLY
+    // TIME-ONLY DECAY
     // -------------------------------------------
     p.life--;
     p.alpha = map(p.life, 0, NT_LIFE_MAX, 0, 255, true);
 
-    if (p.life <= 0 || p.alpha <= 0) {
+    if (p.life <= 0) {
       nts.splice(i, 1);
     }
   }
@@ -286,7 +280,7 @@ function drawSynapticBurst() {
 
 
 // -----------------------------------------------------
-// EXPORT
+// EXPORTS
 // -----------------------------------------------------
 window.updateSynapticBurst = updateSynapticBurst;
 window.drawSynapticBurst   = drawSynapticBurst;
