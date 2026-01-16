@@ -20,7 +20,7 @@ const ASTRO_Y_OFFSET = -140;
 //   window.DEBUG_ASTROCYTE.sampleStep = 8
 //
 window.DEBUG_ASTROCYTE = window.DEBUG_ASTROCYTE ?? {
-  enabled: false,
+  enabled: true,
 
   // Boundary curve
   color: [255, 80, 80],
