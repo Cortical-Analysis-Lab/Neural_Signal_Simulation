@@ -1,14 +1,19 @@
-console.log("🫧 synapticBurst loaded — FLOAT-DRIFT CLEFT MODEL");
+console.log("🫧 synapticBurst loaded — PLUME + COLLISION MODEL");
 
 // =====================================================
-// SYNAPTIC NEUROTRANSMITTER BURST — FLOAT / DRIFT DOMINANT
+// SYNAPTIC NEUROTRANSMITTER BURST — FAN + FLOAT MODEL
 // =====================================================
 //
 // ✔ Vesicle-authoritative release
-// ✔ Drift-dominated motion
-// ✔ Wide cleft filling
-// ✔ Smooth laminar-like flow
-// ✔ Minimal Brownian jitter
+// ✔ Directional plume (fan-out)
+// ✔ Weak diffusion (secondary)
+// ✔ Boundary collisions (membrane + astrocyte)
+// ✔ Dissolving coherence over time
+//
+// CONTRACT (UNCHANGED):
+// • Presynaptic LOCAL space only
+// • membraneX provided per release
+// • No geometry lookups here
 //
 // =====================================================
 
@@ -20,38 +25,30 @@ window.synapticNTs = window.synapticNTs || [];
 
 
 // -----------------------------------------------------
-// TUNING — DRIFT > DIFFUSION
+// TUNING — MOTION MODEL
 // -----------------------------------------------------
 const NT_BASE_COUNT = 22;
 
-// Initial launch
-const NT_INITIAL_SPEED = 0.35;     // 🔑 gives NTs momentum
-const NT_INITIAL_SPREAD = 0.18;
+// Initial plume
+const NT_CONE_ANGLE = Math.PI * 0.65; // wide fan
+const NT_SPEED_MIN  = 0.35;
+const NT_SPEED_MAX  = 0.85;
 
-// Motion model
-const NT_DRIFT_X   = 0.035;        // main outward flow
-const NT_DRIFT_Y   = 0.010;        // gentle vertical spreading
-
-const NT_BROWNIAN  = 0.035;        // ↓ greatly reduced
-const NT_DRAG      = 0.965;        // high inertia (smooth glide)
+// Motion evolution
+const NT_DIFFUSION  = 0.05;   // LOW Brownian noise
+const NT_DRAG       = 0.93;
+const NT_COHERENCE_DECAY = 0.0015;
 
 // Lifetime
-const NT_LIFE_MIN = 260;
-const NT_LIFE_MAX = 420;
+const NT_LIFE_MIN = 220;
+const NT_LIFE_MAX = 360;
 
 // Visual
-const NT_RADIUS = 2.4;
+const NT_RADIUS = 2.6;
 
-// Cleft bounds
-const CLEFT_DEPTH  = 220;
-const CLEFT_HEIGHT = 180;
-
-
-// -----------------------------------------------------
-// SECONDARY SPILL (POST-FUSION FLOAT)
-// -----------------------------------------------------
-const NT_TRICKLE_PROB = 0.10;
-const NT_TRICKLE_SPEED = 0.25;
+// Cleft bounds (teaching-friendly)
+const CLEFT_DEPTH  = 160;
+const CLEFT_HEIGHT = 130;
 
 
 // -----------------------------------------------------
@@ -59,87 +56,80 @@ const NT_TRICKLE_SPEED = 0.25;
 // -----------------------------------------------------
 window.addEventListener("synapticRelease", (e) => {
 
-  const { x, y, membraneX, strength = 1 } = e.detail || {};
-  if (!isFinite(x) || !isFinite(y) || !isFinite(membraneX)) return;
+  const {
+    x,
+    y,
+    membraneX,
+    strength = 1
+  } = e.detail || {};
+
+  if (
+    !Number.isFinite(x) ||
+    !Number.isFinite(y) ||
+    !Number.isFinite(membraneX)
+  ) {
+    console.warn("❌ NT release rejected — missing membraneX", e.detail);
+    return;
+  }
 
   const count = Math.floor(NT_BASE_COUNT * strength);
   if (count <= 0) return;
 
-  for (let i = 0; i < count; i++) {
-    window.synapticNTs.push(makeNT(x, y, membraneX));
-  }
+  // Central plume direction → into cleft
+  const baseAngle = 0; // +x direction
 
-  // Store release site for lingering spill
-  window.lastSynapticRelease = {
-    x, y, membraneX,
-    life: 50
-  };
+  for (let i = 0; i < count; i++) {
+
+    const angle =
+      baseAngle +
+      random(-NT_CONE_ANGLE / 2, NT_CONE_ANGLE / 2);
+
+    const speed = random(NT_SPEED_MIN, NT_SPEED_MAX);
+
+    window.synapticNTs.push({
+      x: x + random(-1.5, 1.5),
+      y: y + random(-3, 3),
+
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+
+      angle,
+      coherence: 1.0,
+
+      membraneX,
+      life: random(NT_LIFE_MIN, NT_LIFE_MAX),
+      alpha: 255
+    });
+  }
 });
 
 
 // -----------------------------------------------------
-// NT FACTORY — MOMENTUM-FIRST
-// -----------------------------------------------------
-function makeNT(x, y, membraneX) {
-
-  const angle = random(-PI / 5, PI / 5); // mostly outward cone
-
-  return {
-    x: x + random(-2, 2),
-    y: y + random(-4, 4),
-
-    vx: cos(angle) * NT_INITIAL_SPEED,
-    vy: sin(angle) * NT_INITIAL_SPEED * 0.6,
-
-    membraneX,
-    life: random(NT_LIFE_MIN, NT_LIFE_MAX),
-    alpha: 255
-  };
-}
-
-
-// -----------------------------------------------------
-// UPDATE — FLOAT / DRIFT DOMINANT
+// UPDATE — PLUME + COLLISIONS
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
   const nts = window.synapticNTs;
+  if (!nts.length) return;
 
-  // -----------------------------------------------
-  // SECONDARY FLOAT-SPILL
-  // -----------------------------------------------
-  const r = window.lastSynapticRelease;
-  if (r && r.life-- > 0 && random() < NT_TRICKLE_PROB) {
-
-    nts.push({
-      x: r.x + random(-1, 1),
-      y: r.y + random(-2, 2),
-      vx: random(0.15, NT_TRICKLE_SPEED),
-      vy: random(-0.08, 0.08),
-      membraneX: r.membraneX,
-      life: random(200, 340),
-      alpha: 255
-    });
-  }
-  if (r && r.life <= 0) window.lastSynapticRelease = null;
-
-
-  // -----------------------------------------------
-  // MAIN UPDATE LOOP
-  // -----------------------------------------------
   for (let i = nts.length - 1; i >= 0; i--) {
 
     const p = nts[i];
 
-    // Gentle stochastic wobble (NOT dominant)
-    p.vx += random(-NT_BROWNIAN, NT_BROWNIAN);
-    p.vy += random(-NT_BROWNIAN, NT_BROWNIAN);
+    // -----------------------------------------------
+    // Weak diffusion (secondary)
+    // -----------------------------------------------
+    p.vx += random(-NT_DIFFUSION, NT_DIFFUSION);
+    p.vy += random(-NT_DIFFUSION, NT_DIFFUSION);
 
-    // Laminar cleft flow
-    p.vx += NT_DRIFT_X;
-    p.vy += NT_DRIFT_Y * Math.sign(p.y || random(-1, 1));
+    // -----------------------------------------------
+    // Coherence decay (plume dissolves)
+    // -----------------------------------------------
+    p.coherence = max(0, p.coherence - NT_COHERENCE_DECAY);
 
-    // Inertia
+    // -----------------------------------------------
+    // Velocity damping
+    // -----------------------------------------------
     p.vx *= NT_DRAG;
     p.vy *= NT_DRAG;
 
@@ -147,30 +137,61 @@ function updateSynapticBurst() {
     p.y += p.vy;
 
     // -----------------------------------------------
-    // PRESYNAPTIC MEMBRANE EXCLUSION
+    // PRESYNAPTIC MEMBRANE COLLISION
     // -----------------------------------------------
-    if (p.x < p.membraneX + 1.5) {
-      p.x  = p.membraneX + 1.5;
-      p.vx = abs(p.vx) * 0.2;
+    if (p.x < p.membraneX + 2) {
+      p.x  = p.membraneX + 2;
+      p.vx = Math.abs(p.vx) * 0.6;
     }
 
     // -----------------------------------------------
-    // SOFT VERTICAL CONFINEMENT
+    // POSTSYNAPTIC SOFT BOUNCE
     // -----------------------------------------------
-    if (abs(p.y) > CLEFT_HEIGHT) {
-      p.vy *= -0.25;
+    if (p.x > p.membraneX + CLEFT_DEPTH) {
+      p.vx *= -0.35;
+      p.x = p.membraneX + CLEFT_DEPTH;
+      p.alpha -= 1.5;
+    }
+
+    // -----------------------------------------------
+    // ASTROCYTE COLLISION (SOFT DOME)
+    // -----------------------------------------------
+    // Approximate astrocyte endfoot as ellipse
+    const ax = 0;
+    const ay = -140;
+    const rx = 210;
+    const ry = 95;
+
+    const dx = (p.x - ax) / rx;
+    const dy = (p.y - ay) / ry;
+    const d2 = dx * dx + dy * dy;
+
+    if (d2 < 1.0 && p.y < ay + 30) {
+      // reflect away from astrocyte surface
+      const nx = dx;
+      const ny = dy;
+      const dot = p.vx * nx + p.vy * ny;
+
+      p.vx -= 2 * dot * nx;
+      p.vy -= 2 * dot * ny;
+
+      p.vx *= 0.5;
+      p.vy *= 0.5;
+    }
+
+    // -----------------------------------------------
+    // VERTICAL CONFINEMENT
+    // -----------------------------------------------
+    if (Math.abs(p.y) > CLEFT_HEIGHT) {
+      p.vy *= -0.45;
       p.y = constrain(p.y, -CLEFT_HEIGHT, CLEFT_HEIGHT);
     }
 
     // -----------------------------------------------
-    // FADE WITH DISTANCE
+    // Lifetime
     // -----------------------------------------------
-    if (p.x - p.membraneX > CLEFT_DEPTH) {
-      p.alpha -= 1.2;
-    }
-
-    p.alpha -= 0.6;
     p.life--;
+    p.alpha -= 0.8;
 
     if (p.life <= 0 || p.alpha <= 0) {
       nts.splice(i, 1);
@@ -180,7 +201,7 @@ function updateSynapticBurst() {
 
 
 // -----------------------------------------------------
-// DRAW — FLOATING CHEMICAL FIELD
+// DRAW — FLOATING PLUME
 // -----------------------------------------------------
 function drawSynapticBurst() {
 
