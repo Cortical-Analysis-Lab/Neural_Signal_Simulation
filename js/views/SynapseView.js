@@ -1,13 +1,13 @@
-console.log("🔬 SynapseView loaded");
+console.log("🔬 SynapseView loaded — SCREEN-FRAMED, CLIPPED");
 
 // =====================================================
-// SYNAPSE VIEW — ORCHESTRATOR (SCREEN-FRAMED, FIXED RATIO)
+// SYNAPSE VIEW — ORCHESTRATOR (FIXED-RATIO, CLIPPED)
 // =====================================================
 //
 // ✔ Independent view (NOT overview zoom)
 // ✔ Fixed aspect ratio
 // ✔ Uniform scaling across screen sizes
-// ✔ No camera / world coupling
+// ✔ HARD viewport clipping
 // ✔ Vesicles drawn ONLY in preSynapse.js
 //
 // =====================================================
@@ -16,10 +16,6 @@ console.log("🔬 SynapseView loaded");
 // =====================================================
 // 🔑 SYNAPSE DESIGN FRAME (AUTHORITATIVE)
 // =====================================================
-//
-// This defines the intended synapse composition size.
-// Everything scales uniformly to fit the screen.
-//
 const SYNAPSE_FRAME = {
   width:  900,
   height: 500
@@ -46,7 +42,7 @@ const NEURON_Y = 40;
 let spaceWasDown = false;
 
 function handleSynapseInput() {
-  const spaceDown = keyIsDown(32); // spacebar
+  const spaceDown = keyIsDown(32);
   if (spaceDown && !spaceWasDown) {
     triggerTerminalAP?.();
   }
@@ -84,14 +80,25 @@ function drawSynapseView() {
   resetMatrix();
 
   // ---------------------------------------------------
-  // 🔒 FIXED-RATIO SCREEN FRAMING
+  // 🔒 FIXED-RATIO VIEWPORT + CLIPPING
   // ---------------------------------------------------
   const sx = width  / SYNAPSE_FRAME.width;
   const sy = height / SYNAPSE_FRAME.height;
-  const fitScale = min(sx, sy);
+  const fitScale = min(sx, sy) * SYNAPSE_SCALE;
 
-  translate(width / 2, height / 2);
-  scale(fitScale * SYNAPSE_SCALE);
+  const viewW = SYNAPSE_FRAME.width  * fitScale;
+  const viewH = SYNAPSE_FRAME.height * fitScale;
+
+  const viewX = (width  - viewW) / 2;
+  const viewY = (height - viewH) / 2;
+
+  // ---- CLIP TO SYNAPSE VIEWPORT ----
+  push();
+  clip(() => rect(viewX, viewY, viewW, viewH));
+
+  // ---- CENTER + SCALE WORLD ----
+  translate(viewX + viewW / 2, viewY + viewH / 2);
+  scale(fitScale);
 
 
   // ---------------------------------------------------
@@ -155,7 +162,8 @@ function drawSynapseView() {
   pop();
 
 
-  pop();
+  pop(); // end clip
+  pop(); // end view
 
 
   // ---------------------------------------------------
