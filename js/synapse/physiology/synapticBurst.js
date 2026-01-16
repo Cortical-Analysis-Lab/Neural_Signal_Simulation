@@ -166,12 +166,29 @@ function updateSynapticBurst() {
     }
 
     // -------------------------------------------
-    // POSTSYNAPTIC MEMBRANE (RIGHT WALL)
+    // POSTSYNAPTIC MEMBRANE — ELASTIC SCATTER
     // -------------------------------------------
-    if (p.x - p.membraneX > CLEFT_DEPTH) {
-      p.x  = p.membraneX + CLEFT_DEPTH;
-      p.vx *= -0.6;
+    const postX = p.membraneX + CLEFT_DEPTH;
+    
+    if (p.x > postX) {
+    
+      // reflect without pinning
+      p.x = postX - (p.x - postX);
+    
+      // reverse + damp normal component
+      p.vx = -Math.abs(p.vx) * random(0.45, 0.75);
+    
+      // add tangential scatter so NTs re-mix
+      p.vy += random(-0.12, 0.12);
+    
+      // slight angular decorrelation on impact
+      const speed = Math.hypot(p.vx, p.vy);
+      const angle = atan2(p.vy, p.vx) + random(-0.25, 0.25);
+    
+      p.vx = cos(angle) * speed;
+      p.vy = sin(angle) * speed;
     }
+
 
     // -------------------------------------------
     // ASTROCYTE / VERTICAL CONFINEMENT
