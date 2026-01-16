@@ -11,20 +11,36 @@ const ASTRO_PURPLE = window.COLORS?.astrocyte ?? [185, 145, 220];
 const ASTRO_Y_OFFSET = -140;
 
 // =====================================================
-// DEBUG TOGGLE (SAFE, OPT-IN)
+// 🔧 DEBUG CONFIG (TUNABLE, RUNTIME-SAFE)
 // =====================================================
-// Enable in console when needed:
-//   window.DEBUG_ASTROCYTE_BOUNDARY = true;
-window.DEBUG_ASTROCYTE_BOUNDARY = window.DEBUG_ASTROCYTE_BOUNDARY ?? false;
+//
+// Toggle + tune directly from console:
+//   window.DEBUG_ASTROCYTE.enabled = true
+//   window.DEBUG_ASTROCYTE.lineWeight = 3
+//   window.DEBUG_ASTROCYTE.sampleStep = 8
+//
+window.DEBUG_ASTROCYTE = window.DEBUG_ASTROCYTE ?? {
+  enabled: false,
+
+  // Boundary curve
+  color: [255, 80, 80],
+  alpha: 190,
+  lineWeight: 2,
+
+  // Sampling
+  sampleStep: 6,        // px between samples
+  drawPoints: true,
+  pointSize: 4,
+
+  // Normals (direction check)
+  drawNormals: false,
+  normalLength: 10
+};
 
 
 // =====================================================
 // ASTROCYTIC ENDFOOT (DRAW ONLY)
 // =====================================================
-// • Pure visual geometry
-// • NO physics
-// • NO NT logic
-//
 function drawAstrocyteSynapse() {
   push();
   translate(0, ASTRO_Y_OFFSET);
@@ -57,69 +73,81 @@ function drawAstrocyteSynapse() {
 // =====================================================
 // 🔑 ASTROCYTE BOUNDARY SAMPLER (AUTHORITATIVE)
 // =====================================================
-//
-// • Single source of truth for NT collisions
-// • Synapse-local coordinates
-// • Matches underside of drawn astrocyte
-//
 window.getAstrocyteBoundaryY = function (x) {
 
-  if (!Number.isFinite(x)) {
-    console.warn("⚠️ getAstrocyteBoundaryY received invalid x:", x);
-    return ASTRO_Y_OFFSET - 125;
-  }
+  if (!Number.isFinite(x)) return ASTRO_Y_OFFSET - 125;
 
-  // Normalize X across astrocyte width
   const t = constrain(Math.abs(x) / 220, 0, 1);
 
-  // Smooth dome approximation
   const yLocal =
-    -125 +            // deepest point
-    55 * (t * t);     // rise toward edges
+    -125 +
+    55 * (t * t);
 
-  const yWorld = ASTRO_Y_OFFSET + yLocal;
-
-  if (!Number.isFinite(yWorld)) {
-    console.warn("⚠️ getAstrocyteBoundaryY produced NaN:", { x, yLocal });
-    return ASTRO_Y_OFFSET - 125;
-  }
-
-  return yWorld;
+  return ASTRO_Y_OFFSET + yLocal;
 };
 
 
 // =====================================================
-// 🧪 ASTROCYTE BOUNDARY DEBUG OVERLAY
+// 🧪 DEBUG DRAW — TUNABLE BOUNDARY LINES
 // =====================================================
-//
-// • Visualizes collision boundary
-// • Confirms alignment with astrocyte geometry
-// • Zero cost when disabled
-//
 function drawAstrocyteBoundaryDebug() {
 
-  if (!window.DEBUG_ASTROCYTE_BOUNDARY) return;
-  if (typeof window.getAstrocyteBoundaryY !== "function") return;
+  const D = window.DEBUG_ASTROCYTE;
+  if (!D.enabled) return;
 
   push();
 
+  // -----------------------------
   // Boundary curve
-  stroke(255, 80, 80, 180);
-  strokeWeight(2);
+  // -----------------------------
+  stroke(...D.color, D.alpha);
+  strokeWeight(D.lineWeight);
   noFill();
 
   beginShape();
-  for (let x = -220; x <= 220; x += 6) {
+  for (let x = -220; x <= 220; x += D.sampleStep) {
     vertex(x, window.getAstrocyteBoundaryY(x));
   }
   endShape();
 
-  // Sample probes
-  noStroke();
-  fill(255, 80, 80);
-  for (let x = -200; x <= 200; x += 40) {
-    const y = window.getAstrocyteBoundaryY(x);
-    circle(x, y, 4);
+  // -----------------------------
+  // Sample points
+  // -----------------------------
+  if (D.drawPoints) {
+    noStroke();
+    fill(...D.color, 220);
+
+    for (let x = -200; x <= 200; x += D.sampleStep * 4) {
+      const y = window.getAstrocyteBoundaryY(x);
+      circle(x, y, D.pointSize);
+    }
+  }
+
+  // -----------------------------
+  // Normal vectors (orientation check)
+  // -----------------------------
+  if (D.drawNormals) {
+    stroke(...D.color, 180);
+    strokeWeight(1);
+
+    for (let x = -180; x <= 180; x += 40) {
+      const y  = window.getAstrocyteBoundaryY(x);
+      const y2 = window.getAstrocyteBoundaryY(x + 1);
+
+      // tangent → normal
+      const dx = 1;
+      const dy = y2 - y;
+      const mag = Math.hypot(dx, dy) || 1;
+
+      const nx = -dy / mag;
+      const ny =  dx / mag;
+
+      line(
+        x, y,
+        x + nx * D.normalLength,
+        y + ny * D.normalLength
+      );
+    }
   }
 
   pop();
