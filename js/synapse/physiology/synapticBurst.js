@@ -1,14 +1,16 @@
-console.log("🫧 synapticBurst loaded — FAN-OUT + BOUNDARY MODEL");
+console.log("🫧 synapticBurst loaded — CHEMICAL CLOUD (ELASTIC GAS)");
 
 // =====================================================
-// SYNAPTIC NEUROTRANSMITTER BURST — CHEMICAL CLOUD
+// SYNAPTIC NEUROTRANSMITTER BURST — ELASTIC CHEMICAL GAS
 // =====================================================
 //
 // ✔ Vesicle-authoritative release
-// ✔ Sustained outward drift
-// ✔ Progressive fan-out (angular decorrelation)
-// ✔ Elastic boundary interactions
-// ✔ Soft NT–NT repulsion
+// ✔ Strong initial outward spill
+// ✔ Angular fan-out + decorrelation
+// ✔ Elastic NT–NT collisions (momentum exchange)
+// ✔ Elastic membrane scattering
+// ✔ Time-based decay ONLY (~10 s)
+// ✔ No spatial sinks
 //
 // =====================================================
 
@@ -17,6 +19,7 @@ console.log("🫧 synapticBurst loaded — FAN-OUT + BOUNDARY MODEL");
 // STORAGE (RELOAD SAFE)
 // -----------------------------------------------------
 window.synapticNTs = window.synapticNTs || [];
+window.lastSynapticRelease = null;
 
 
 // -----------------------------------------------------
@@ -28,41 +31,44 @@ const NT_BASE_COUNT = 22;
 const NT_INITIAL_SPEED  = 0.42;
 const NT_INITIAL_SPREAD = 0.35;
 
-// Drift (keeps outward flow alive)
-const NT_DRIFT_X = 0.040;
-const NT_DRIFT_Y = 0.010;
+// Gentle drift (VERY small — only breaks symmetry)
+const NT_DRIFT_X = 0.010;
+const NT_DRIFT_Y = 0.004;
 
-// Fan-out mechanics
-const NT_ANGULAR_NOISE = 0.035;   // 🔑 direction decorrelation
-const NT_BROWNIAN     = 0.020;
+// Fan-out
+const NT_ANGULAR_NOISE = 0.030;
+const NT_BROWNIAN     = 0.012;
 
-// Drag
-const NT_DRAG_X = 0.975;
-const NT_DRAG_Y = 0.950;
+// Drag (high inertia)
+const NT_DRAG = 0.985;
 
-// Lifetime
-const NT_LIFE_MIN = 280;
-const NT_LIFE_MAX = 420;
+// Lifetime (~10 seconds @ 60fps)
+const NT_LIFE_MIN = 600;
+const NT_LIFE_MAX = 720;
 
 // Geometry
 const NT_RADIUS = 2.4;
 const CLEFT_DEPTH  = 220;
 const CLEFT_HEIGHT = 180;
 
-// NT–NT interaction
-const NT_REPEL_RADIUS = 7;
-const NT_REPEL_FORCE  = 0.015;
+
+// -----------------------------------------------------
+// NT–NT COLLISION PARAMETERS
+// -----------------------------------------------------
+const NT_COLLISION_RADIUS = NT_RADIUS * 2.0;
+const NT_COLLISION_DAMP   = 0.92;   // energy loss per collision
+const NT_THERMAL_JITTER   = 0.015;  // keeps cloud alive
 
 
 // -----------------------------------------------------
 // POST-FUSION TRICKLE
 // -----------------------------------------------------
 const NT_TRICKLE_PROB  = 0.10;
-const NT_TRICKLE_SPEED = 0.25;
+const NT_TRICKLE_SPEED = 0.22;
 
 
 // -----------------------------------------------------
-// EVENT — RELEASE
+// EVENT — VESICLE RELEASE
 // -----------------------------------------------------
 window.addEventListener("synapticRelease", (e) => {
 
@@ -78,7 +84,7 @@ window.addEventListener("synapticRelease", (e) => {
 
   window.lastSynapticRelease = {
     x, y, membraneX,
-    life: 50
+    life: 60
   };
 });
 
@@ -94,8 +100,8 @@ function makeNT(x, y, membraneX) {
     x: x + random(-2, 2),
     y: y + random(-4, 4),
 
-    vx: Math.cos(angle) * NT_INITIAL_SPEED,
-    vy: Math.sin(angle) * NT_INITIAL_SPEED * 0.7,
+    vx: cos(angle) * NT_INITIAL_SPEED,
+    vy: sin(angle) * NT_INITIAL_SPEED * 0.7,
 
     membraneX,
     life: random(NT_LIFE_MIN, NT_LIFE_MAX),
@@ -113,16 +119,16 @@ function updateSynapticBurst() {
   const r   = window.lastSynapticRelease;
 
   // -----------------------------------------------
-  // SECONDARY TRICKLE
+  // SECONDARY TRICKLE (POST-FUSION)
   // -----------------------------------------------
   if (r && r.life-- > 0 && random() < NT_TRICKLE_PROB) {
     nts.push({
       x: r.x,
       y: r.y,
-      vx: random(0.15, NT_TRICKLE_SPEED),
-      vy: random(-0.08, 0.08),
+      vx: random(0.12, NT_TRICKLE_SPEED),
+      vy: random(-0.10, 0.10),
       membraneX: r.membraneX,
-      life: random(220, 360),
+      life: random(420, 600),
       alpha: 255
     });
   }
@@ -131,62 +137,55 @@ function updateSynapticBurst() {
   if (!nts.length) return;
 
   // -----------------------------------------------
-  // MAIN LOOP
+  // MAIN UPDATE LOOP
   // -----------------------------------------------
   for (let i = nts.length - 1; i >= 0; i--) {
 
     const p = nts[i];
 
-    // ---- angular decorrelation (fan-out)
+    // ---- angular decorrelation
     const speed = Math.hypot(p.vx, p.vy);
-    let angle = Math.atan2(p.vy, p.vx);
+    let angle = atan2(p.vy, p.vx);
     angle += random(-NT_ANGULAR_NOISE, NT_ANGULAR_NOISE);
 
-    p.vx = Math.cos(angle) * speed;
-    p.vy = Math.sin(angle) * speed;
+    p.vx = cos(angle) * speed;
+    p.vy = sin(angle) * speed;
 
-    // ---- drift + texture
+    // ---- subtle drift + texture
     p.vx += NT_DRIFT_X + random(-NT_BROWNIAN, NT_BROWNIAN);
-    p.vy += NT_DRIFT_Y * Math.sign(p.y || random(-1,1));
+    p.vy += NT_DRIFT_Y * Math.sign(p.y || random(-1, 1));
 
-    // ---- drag
-    p.vx *= NT_DRAG_X;
-    p.vy *= NT_DRAG_Y;
+    // ---- inertia
+    p.vx *= NT_DRAG;
+    p.vy *= NT_DRAG;
 
-    // ---- position update
+    // ---- position
     p.x += p.vx;
     p.y += p.vy;
 
+
     // -------------------------------------------
-    // PRESYNAPTIC MEMBRANE (LEFT WALL)
+    // PRESYNAPTIC MEMBRANE
     // -------------------------------------------
     if (p.x < p.membraneX + 1.5) {
       p.x  = p.membraneX + 1.5;
-      p.vx = Math.abs(p.vx) * 0.6;
+      p.vx = Math.abs(p.vx) * 0.7;
     }
 
+
     // -------------------------------------------
-    // POSTSYNAPTIC MEMBRANE — ELASTIC SCATTER
+    // POSTSYNAPTIC MEMBRANE — DIFFUSE SCATTER
     // -------------------------------------------
     const postX = p.membraneX + CLEFT_DEPTH;
-    
+
     if (p.x > postX) {
-    
-      // reflect without pinning
       p.x = postX - (p.x - postX);
-    
-      // reverse + damp normal component
-      p.vx = -Math.abs(p.vx) * random(0.45, 0.75);
-    
-      // add tangential scatter so NTs re-mix
-      p.vy += random(-0.12, 0.12);
-    
-      // slight angular decorrelation on impact
+
       const speed = Math.hypot(p.vx, p.vy);
-      const angle = atan2(p.vy, p.vx) + random(-0.25, 0.25);
-    
-      p.vx = cos(angle) * speed;
-      p.vy = sin(angle) * speed;
+      const theta = random(-PI * 0.8, PI * 0.8);
+
+      p.vx = -cos(theta) * speed * random(0.5, 0.8);
+      p.vy =  sin(theta) * speed * random(0.6, 1.0);
     }
 
 
@@ -195,36 +194,58 @@ function updateSynapticBurst() {
     // -------------------------------------------
     if (Math.abs(p.y) > CLEFT_HEIGHT) {
       p.y  = constrain(p.y, -CLEFT_HEIGHT, CLEFT_HEIGHT);
-      p.vy *= -0.5;
+      p.vy *= -0.6;
     }
 
+
     // -------------------------------------------
-    // NT–NT MICRO-REPULSION
+    // NT–NT ELASTIC COLLISIONS (GLOBAL)
     // -------------------------------------------
     for (let j = i - 1; j >= 0; j--) {
+
       const q = nts[j];
       const dx = p.x - q.x;
       const dy = p.y - q.y;
       const d2 = dx*dx + dy*dy;
 
-      if (d2 > 0 && d2 < NT_REPEL_RADIUS * NT_REPEL_RADIUS) {
-        const d = Math.sqrt(d2);
-        const f = (NT_REPEL_RADIUS - d) / NT_REPEL_RADIUS * NT_REPEL_FORCE;
-        const fx = (dx / d) * f;
-        const fy = (dy / d) * f;
+      if (d2 > 0 && d2 < NT_COLLISION_RADIUS * NT_COLLISION_RADIUS) {
 
-        p.vx += fx;
-        p.vy += fy;
-        q.vx -= fx;
-        q.vy -= fy;
+        const d = Math.sqrt(d2);
+        const nx = dx / d;
+        const ny = dy / d;
+
+        // separate overlap
+        const overlap = 0.5 * (NT_COLLISION_RADIUS - d);
+        p.x += nx * overlap;
+        p.y += ny * overlap;
+        q.x -= nx * overlap;
+        q.y -= ny * overlap;
+
+        // relative velocity
+        const dvx = p.vx - q.vx;
+        const dvy = p.vy - q.vy;
+        const impact = dvx * nx + dvy * ny;
+        if (impact > 0) continue;
+
+        const impulse = impact * NT_COLLISION_DAMP;
+
+        p.vx -= impulse * nx;
+        p.vy -= impulse * ny;
+        q.vx += impulse * nx;
+        q.vy += impulse * ny;
+
+        // thermal noise (prevents freezing)
+        p.vx += random(-NT_THERMAL_JITTER, NT_THERMAL_JITTER);
+        p.vy += random(-NT_THERMAL_JITTER, NT_THERMAL_JITTER);
       }
     }
 
+
     // -------------------------------------------
-    // FADE + DEATH
+    // TIME-BASED DECAY ONLY
     // -------------------------------------------
-    p.alpha -= 0.6;
     p.life--;
+    p.alpha = map(p.life, 0, NT_LIFE_MAX, 0, 255, true);
 
     if (p.life <= 0 || p.alpha <= 0) {
       nts.splice(i, 1);
