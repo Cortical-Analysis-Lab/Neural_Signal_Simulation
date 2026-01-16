@@ -25,7 +25,7 @@ window.lastSynapticRelease = null;
 // -----------------------------------------------------
 // CORE TUNING (SLOWED)
 // -----------------------------------------------------
-const NT_BASE_COUNT = 22;
+const NT_BASE_COUNT = 11;
 
 // Initial launch  🔽 SLOWED
 const NT_INITIAL_SPEED  = 0.26;      // was 0.42
