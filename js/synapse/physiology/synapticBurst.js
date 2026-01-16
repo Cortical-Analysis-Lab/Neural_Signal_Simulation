@@ -1,19 +1,14 @@
-console.log("🫧 synapticBurst loaded — FLOAT / DRIFT CLEFT MODEL (SPILLING)");
+console.log("🫧 synapticBurst loaded — FAN-OUT + BOUNDARY MODEL");
 
 // =====================================================
-// SYNAPTIC NEUROTRANSMITTER BURST — DRIFT-DOMINANT
+// SYNAPTIC NEUROTRANSMITTER BURST — CHEMICAL CLOUD
 // =====================================================
 //
 // ✔ Vesicle-authoritative release
-// ✔ Strong outward flow (membrane → cleft)
-// ✔ Wide fan-out, laminar feel
-// ✔ Brownian motion is SECONDARY
-// ✔ Sustained spill after fusion
-//
-// CONTRACT (UNCHANGED):
-// • Presynaptic LOCAL space only
-// • membraneX provided per release
-// • No geometry lookups here
+// ✔ Sustained outward drift
+// ✔ Progressive fan-out (angular decorrelation)
+// ✔ Elastic boundary interactions
+// ✔ Soft NT–NT repulsion
 //
 // =====================================================
 
@@ -25,48 +20,49 @@ window.synapticNTs = window.synapticNTs || [];
 
 
 // -----------------------------------------------------
-// TUNING — AUTHORITATIVE
+// CORE TUNING
 // -----------------------------------------------------
 const NT_BASE_COUNT = 22;
 
-// Initial release
-const NT_INITIAL_SPEED  = 0.42;     // 🔑 gives real momentum
-const NT_INITIAL_SPREAD = 0.35;     // angular fan-out
-const NT_INITIAL_JITTER = 0.08;
+// Initial launch
+const NT_INITIAL_SPEED  = 0.42;
+const NT_INITIAL_SPREAD = 0.35;
 
-// Drift field (dominant)
-const NT_DRIFT_X = 0.045;           // 🔑 sustained outward flow
-const NT_DRIFT_Y = 0.012;
+// Drift (keeps outward flow alive)
+const NT_DRIFT_X = 0.040;
+const NT_DRIFT_Y = 0.010;
 
-// Diffusion (secondary)
-const NT_BROWNIAN = 0.025;
-const NT_DIFFUSION = 0.04;
+// Fan-out mechanics
+const NT_ANGULAR_NOISE = 0.035;   // 🔑 direction decorrelation
+const NT_BROWNIAN     = 0.020;
 
-// Drag (anisotropic)
-const NT_DRAG_X = 0.975;            // preserve outward motion
-const NT_DRAG_Y = 0.94;
+// Drag
+const NT_DRAG_X = 0.975;
+const NT_DRAG_Y = 0.950;
 
 // Lifetime
 const NT_LIFE_MIN = 280;
 const NT_LIFE_MAX = 420;
 
-// Visual
+// Geometry
 const NT_RADIUS = 2.4;
-
-// Cleft bounds
 const CLEFT_DEPTH  = 220;
 const CLEFT_HEIGHT = 180;
 
+// NT–NT interaction
+const NT_REPEL_RADIUS = 7;
+const NT_REPEL_FORCE  = 0.015;
+
 
 // -----------------------------------------------------
-// POST-FUSION SPILL (LINGERING RELEASE)
+// POST-FUSION TRICKLE
 // -----------------------------------------------------
 const NT_TRICKLE_PROB  = 0.10;
-const NT_TRICKLE_SPEED = 0.26;
+const NT_TRICKLE_SPEED = 0.25;
 
 
 // -----------------------------------------------------
-// EVENT — VESICLE-AUTHORITATIVE RELEASE
+// EVENT — RELEASE
 // -----------------------------------------------------
 window.addEventListener("synapticRelease", (e) => {
 
@@ -74,13 +70,12 @@ window.addEventListener("synapticRelease", (e) => {
   if (!isFinite(x) || !isFinite(y) || !isFinite(membraneX)) return;
 
   const count = Math.floor(NT_BASE_COUNT * strength);
-  if (count <= 0) return;
+  if (!count) return;
 
   for (let i = 0; i < count; i++) {
     window.synapticNTs.push(makeNT(x, y, membraneX));
   }
 
-  // Store release site for sustained spill
   window.lastSynapticRelease = {
     x, y, membraneX,
     life: 50
@@ -89,14 +84,11 @@ window.addEventListener("synapticRelease", (e) => {
 
 
 // -----------------------------------------------------
-// NT FACTORY — MOMENTUM FIRST
+// NT FACTORY
 // -----------------------------------------------------
 function makeNT(x, y, membraneX) {
 
-  const angle = random(
-    -NT_INITIAL_SPREAD,
-     NT_INITIAL_SPREAD
-  );
+  const angle = random(-NT_INITIAL_SPREAD, NT_INITIAL_SPREAD);
 
   return {
     x: x + random(-2, 2),
@@ -113,7 +105,7 @@ function makeNT(x, y, membraneX) {
 
 
 // -----------------------------------------------------
-// UPDATE — DRIFT DOMINANT
+// UPDATE LOOP
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
@@ -121,12 +113,12 @@ function updateSynapticBurst() {
   const r   = window.lastSynapticRelease;
 
   // -----------------------------------------------
-  // SECONDARY FLOAT-SPILL
+  // SECONDARY TRICKLE
   // -----------------------------------------------
   if (r && r.life-- > 0 && random() < NT_TRICKLE_PROB) {
     nts.push({
-      x: r.x + random(-1, 1),
-      y: r.y + random(-2, 2),
+      x: r.x,
+      y: r.y,
       vx: random(0.15, NT_TRICKLE_SPEED),
       vy: random(-0.08, 0.08),
       membraneX: r.membraneX,
@@ -139,51 +131,81 @@ function updateSynapticBurst() {
   if (!nts.length) return;
 
   // -----------------------------------------------
-  // MAIN UPDATE LOOP
+  // MAIN LOOP
   // -----------------------------------------------
   for (let i = nts.length - 1; i >= 0; i--) {
 
     const p = nts[i];
 
-    // --- weak diffusion (texture only)
-    p.vx += random(-NT_BROWNIAN, NT_BROWNIAN);
-    p.vy += random(-NT_BROWNIAN, NT_BROWNIAN);
+    // ---- angular decorrelation (fan-out)
+    const speed = Math.hypot(p.vx, p.vy);
+    let angle = Math.atan2(p.vy, p.vx);
+    angle += random(-NT_ANGULAR_NOISE, NT_ANGULAR_NOISE);
 
-    // --- laminar cleft flow (dominant)
-    p.vx += NT_DRIFT_X;
-    p.vy += NT_DRIFT_Y * Math.sign(p.y || random(-1, 1));
+    p.vx = Math.cos(angle) * speed;
+    p.vy = Math.sin(angle) * speed;
 
-    // --- drag (direction-aware)
+    // ---- drift + texture
+    p.vx += NT_DRIFT_X + random(-NT_BROWNIAN, NT_BROWNIAN);
+    p.vy += NT_DRIFT_Y * Math.sign(p.y || random(-1,1));
+
+    // ---- drag
     p.vx *= NT_DRAG_X;
     p.vy *= NT_DRAG_Y;
 
+    // ---- position update
     p.x += p.vx;
     p.y += p.vy;
 
-    // -----------------------------------------------
-    // PRESYNAPTIC MEMBRANE EXCLUSION
-    // -----------------------------------------------
+    // -------------------------------------------
+    // PRESYNAPTIC MEMBRANE (LEFT WALL)
+    // -------------------------------------------
     if (p.x < p.membraneX + 1.5) {
       p.x  = p.membraneX + 1.5;
-      p.vx = Math.max(0.12, Math.abs(p.vx) * 0.4);
+      p.vx = Math.abs(p.vx) * 0.6;
     }
 
-    // -----------------------------------------------
-    // SOFT VERTICAL CONFINEMENT
-    // -----------------------------------------------
-    if (Math.abs(p.y) > CLEFT_HEIGHT) {
-      p.vy *= -0.25;
-      p.y = constrain(p.y, -CLEFT_HEIGHT, CLEFT_HEIGHT);
-    }
-
-    // -----------------------------------------------
-    // FADE WITH DISTANCE
-    // -----------------------------------------------
+    // -------------------------------------------
+    // POSTSYNAPTIC MEMBRANE (RIGHT WALL)
+    // -------------------------------------------
     if (p.x - p.membraneX > CLEFT_DEPTH) {
-      p.alpha -= 1.2;
+      p.x  = p.membraneX + CLEFT_DEPTH;
+      p.vx *= -0.6;
     }
 
-    // Lifetime decay
+    // -------------------------------------------
+    // ASTROCYTE / VERTICAL CONFINEMENT
+    // -------------------------------------------
+    if (Math.abs(p.y) > CLEFT_HEIGHT) {
+      p.y  = constrain(p.y, -CLEFT_HEIGHT, CLEFT_HEIGHT);
+      p.vy *= -0.5;
+    }
+
+    // -------------------------------------------
+    // NT–NT MICRO-REPULSION
+    // -------------------------------------------
+    for (let j = i - 1; j >= 0; j--) {
+      const q = nts[j];
+      const dx = p.x - q.x;
+      const dy = p.y - q.y;
+      const d2 = dx*dx + dy*dy;
+
+      if (d2 > 0 && d2 < NT_REPEL_RADIUS * NT_REPEL_RADIUS) {
+        const d = Math.sqrt(d2);
+        const f = (NT_REPEL_RADIUS - d) / NT_REPEL_RADIUS * NT_REPEL_FORCE;
+        const fx = (dx / d) * f;
+        const fy = (dy / d) * f;
+
+        p.vx += fx;
+        p.vy += fy;
+        q.vx -= fx;
+        q.vy -= fy;
+      }
+    }
+
+    // -------------------------------------------
+    // FADE + DEATH
+    // -------------------------------------------
     p.alpha -= 0.6;
     p.life--;
 
@@ -195,7 +217,7 @@ function updateSynapticBurst() {
 
 
 // -----------------------------------------------------
-// DRAW — FLOATING CHEMICAL FIELD
+// DRAW
 // -----------------------------------------------------
 function drawSynapticBurst() {
 
@@ -216,7 +238,7 @@ function drawSynapticBurst() {
 
 
 // -----------------------------------------------------
-// EXPORTS
+// EXPORT
 // -----------------------------------------------------
 window.updateSynapticBurst = updateSynapticBurst;
 window.drawSynapticBurst   = drawSynapticBurst;
