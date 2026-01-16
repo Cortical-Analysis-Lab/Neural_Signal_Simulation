@@ -130,6 +130,8 @@ function drawSynapseView() {
   // ASTROCYTE (DRAW FIRST)
   // ---------------------------------------------------
   drawAstrocyteSynapse?.();
+  drawAstrocyteBoundaryDebug?.();
+
 
 
   // ---------------------------------------------------
