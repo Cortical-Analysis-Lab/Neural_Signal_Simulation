@@ -1,23 +1,23 @@
-console.log("🫧 synapticBurst loaded — TRUE ELASTIC GAS (NO SLABS)");
+console.log("🫧 synapticBurst loaded — TRUE ELASTIC GAS (NO VOLUMES)");
 
 // =====================================================
 // SYNAPTIC NEUROTRANSMITTER BURST — TRUE FREE GAS
 // =====================================================
 //
 // ✔ Vesicle-authoritative release
-// ✔ Isotropic diffusion (no directional bias)
+// ✔ Isotropic free diffusion
 // ✔ Elastic NT–NT collisions
 // ✔ Elastic presynaptic membrane
-// ✔ Elastic postsynaptic membrane (CURVED, sampled)
-// ✔ Elastic astrocyte membrane (CURVED, sampled)
+// ✔ Elastic postsynaptic membrane (sampled)
+// ✔ Elastic astrocyte membrane (sampled)
 // ✔ Time-based decay ONLY (~10 s)
-// ✔ ZERO volumetric constraints
+// ✘ NO slabs, boxes, funnels, or cleft volumes
 //
 // =====================================================
 
 
 // -----------------------------------------------------
-// STORAGE
+// STORAGE (GLOBAL, SAFE)
 // -----------------------------------------------------
 window.synapticNTs = window.synapticNTs || [];
 window.lastSynapticRelease = null;
@@ -31,10 +31,8 @@ const NT_BASE_COUNT = 11;
 const NT_INITIAL_SPEED  = 0.26;
 const NT_INITIAL_SPREAD = 0.35;
 
-const NT_BROWNIAN = 0.012;
-const NT_DRIFT_X  = 0.006;   // cleft bias only
-
-const NT_DRAG = 0.990;
+const NT_BROWNIAN = 0.014;
+const NT_DRAG     = 0.992;
 
 const NT_LIFE_MIN = 600;
 const NT_LIFE_MAX = 720;
@@ -50,26 +48,24 @@ const NT_RADIUS = 2.4;
 // NT–NT COLLISIONS
 // -----------------------------------------------------
 const NT_COLLISION_RADIUS = NT_RADIUS * 2.1;
-const NT_COLLISION_DAMP   = 0.90;
-const NT_THERMAL_JITTER   = 0.012;
+const NT_COLLISION_DAMP   = 0.92;
+const NT_THERMAL_JITTER   = 0.010;
 
 
 // -----------------------------------------------------
-// EVENT — RELEASE
+// RELEASE EVENT
 // -----------------------------------------------------
 window.addEventListener("synapticRelease", (e) => {
 
   const { x, y, membraneX, strength = 1 } = e.detail || {};
   if (!isFinite(x) || !isFinite(y) || !isFinite(membraneX)) return;
 
-  const count = Math.floor(NT_BASE_COUNT * strength);
-  if (!count) return;
+  const n = Math.floor(NT_BASE_COUNT * strength);
+  if (!n) return;
 
-  for (let i = 0; i < count; i++) {
+  for (let i = 0; i < n; i++) {
     window.synapticNTs.push(makeNT(x, y, membraneX));
   }
-
-  window.lastSynapticRelease = { x, y, membraneX, life: 60 };
 });
 
 
@@ -82,10 +78,10 @@ function makeNT(x, y, membraneX) {
 
   return {
     x: x + random(-2, 2),
-    y: y + random(-4, 4),
+    y: y + random(-2, 2),
 
     vx: cos(a) * NT_INITIAL_SPEED,
-    vy: sin(a) * NT_INITIAL_SPEED * 0.65,
+    vy: sin(a) * NT_INITIAL_SPEED,
 
     membraneX,
     life: random(NT_LIFE_MIN, NT_LIFE_MAX),
@@ -95,18 +91,7 @@ function makeNT(x, y, membraneX) {
 
 
 // -----------------------------------------------------
-// POSTSYNAPTIC MEMBRANE SAMPLER (SAFE DEFAULT)
-// -----------------------------------------------------
-//
-// Replace later with true geometry if desired
-//
-window.getPostSynapseBoundaryX = window.getPostSynapseBoundaryX || function (y) {
-  return +130; // matches POST_X in synapse view
-};
-
-
-// -----------------------------------------------------
-// UPDATE LOOP
+// UPDATE LOOP — PURE FREE GAS
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
@@ -118,9 +103,8 @@ function updateSynapticBurst() {
     const p = nts[i];
 
     // -------------------------------------------
-    // ISOTROPIC MOTION
+    // FREE DIFFUSION (NO FIELD)
     // -------------------------------------------
-    p.vx += NT_DRIFT_X;
     p.vx += random(-NT_BROWNIAN, NT_BROWNIAN);
     p.vy += random(-NT_BROWNIAN, NT_BROWNIAN);
 
@@ -132,33 +116,31 @@ function updateSynapticBurst() {
 
 
     // -------------------------------------------
-    // PRESYNAPTIC MEMBRANE (LEFT)
+    // PRESYNAPTIC MEMBRANE (LEFT WALL)
     // -------------------------------------------
     if (p.x < p.membraneX + NT_RADIUS) {
       p.x  = p.membraneX + NT_RADIUS;
-      p.vx = Math.abs(p.vx) * 0.6;
+      p.vx = Math.abs(p.vx);
     }
 
 
     // -------------------------------------------
-    // POSTSYNAPTIC MEMBRANE (RIGHT — TRUE BOUNCE)
+    // POSTSYNAPTIC MEMBRANE (SAMPLED SURFACE)
     // -------------------------------------------
     if (typeof window.getPostSynapseBoundaryX === "function") {
 
       const postX = window.getPostSynapseBoundaryX(p.y);
 
       if (p.x > postX - NT_RADIUS) {
-
         p.x = postX - NT_RADIUS;
-
-        p.vx = -Math.abs(p.vx) * random(0.45, 0.75);
-        p.vy += random(-0.10, 0.10);
+        p.vx = -Math.abs(p.vx);
+        p.vy += random(-0.08, 0.08);
       }
     }
 
 
     // -------------------------------------------
-    // ASTROCYTE MEMBRANE (CURVED)
+    // ASTROCYTE MEMBRANE (SAMPLED CURVE)
     // -------------------------------------------
     if (typeof window.getAstrocyteBoundaryY === "function") {
 
@@ -168,7 +150,7 @@ function updateSynapticBurst() {
 
         p.y = astroY + NT_RADIUS;
 
-        // numerical normal
+        // Numerical surface normal
         const eps = 1;
         const yL = window.getAstrocyteBoundaryY(p.x - eps);
         const yR = window.getAstrocyteBoundaryY(p.x + eps);
@@ -184,8 +166,8 @@ function updateSynapticBurst() {
         p.vx -= 2 * dot * nx;
         p.vy -= 2 * dot * ny;
 
-        p.vx *= 0.92;
-        p.vy *= 0.92;
+        p.vx *= 0.95;
+        p.vy *= 0.95;
       }
     }
 
