@@ -11,7 +11,17 @@ const ASTRO_PURPLE = window.COLORS?.astrocyte ?? [185, 145, 220];
 const ASTRO_Y_OFFSET = -140;
 
 // =====================================================
-// 🔧 DEBUG CONFIG (TUNABLE, RUNTIME-SAFE)
+// ASTROCYTE EXTENT (AUTHORITATIVE FOR PHYSICS)
+// =====================================================
+//
+// NTs should ONLY interact with astrocyte
+// within this lateral span.
+//
+const ASTRO_X_MIN = -220;
+const ASTRO_X_MAX =  220;
+
+// =====================================================
+// 🔧 DEBUG CONFIG (TUNABLE AT RUNTIME)
 // =====================================================
 window.DEBUG_ASTROCYTE = window.DEBUG_ASTROCYTE ?? {
   enabled: true,
@@ -32,7 +42,7 @@ window.DEBUG_ASTROCYTE = window.DEBUG_ASTROCYTE ?? {
 };
 
 // =====================================================
-// ASTROCYTIC ENDFOOT (DRAW ONLY)
+// ASTROCYTIC ENDFOOT (DRAW ONLY — NO PHYSICS)
 // =====================================================
 function drawAstrocyteSynapse() {
   push();
@@ -63,32 +73,38 @@ function drawAstrocyteSynapse() {
 }
 
 // =====================================================
-// 🔑 ASTROCYTE BOUNDARY SAMPLER (FIXED & FLIPPED)
+// 🔑 ASTROCYTE MEMBRANE SAMPLER (PHYSICS ONLY)
 // =====================================================
 //
-// Returns Y position of the *astrocyte membrane facing
-// the synaptic cleft* (LOWER boundary)
+// Returns the Y position of the *lower astrocyte membrane*
+// that faces the synaptic cleft.
+//
+// IMPORTANT:
+// • Finite in X
+// • No clamping outside bounds
+// • NO side effects
 //
 window.getAstrocyteBoundaryY = function (x) {
 
-  if (!Number.isFinite(x)) {
-    return ASTRO_Y_OFFSET + 65;
+  // Outside astrocyte → no membrane
+  if (!Number.isFinite(x) || x < ASTRO_X_MIN || x > ASTRO_X_MAX) {
+    return null;
   }
 
   // Normalize lateral distance
-  const t = constrain(Math.abs(x) / 220, 0, 1);
+  const t = Math.abs(x) / ASTRO_X_MAX;
 
-  // 🔑 LOWER MEMBRANE CURVE (FLIPPED)
-  // Matches the drawn bottom contour
+  // LOWER membrane curvature
+  // Matches drawn contour exactly
   const yLocal =
-    65 -               // bottom-most rim
-    45 * (t * t);      // curvature upward toward center
+    65 -                // rim
+    45 * (t * t);       // dome rise toward center
 
   return ASTRO_Y_OFFSET + yLocal;
 };
 
 // =====================================================
-// 🧪 DEBUG DRAW — BOUNDARY VISUALIZATION
+// 🧪 DEBUG DRAW — MEMBRANE VISUALIZATION
 // =====================================================
 function drawAstrocyteBoundaryDebug() {
 
@@ -97,49 +113,47 @@ function drawAstrocyteBoundaryDebug() {
 
   push();
 
-  // -----------------------------
-  // Boundary curve
-  // -----------------------------
   stroke(...D.color, D.alpha);
   strokeWeight(D.lineWeight);
   noFill();
 
+  // ---- boundary curve ----
   beginShape();
-  for (let x = -220; x <= 220; x += D.sampleStep) {
-    vertex(x, window.getAstrocyteBoundaryY(x));
+  for (let x = ASTRO_X_MIN; x <= ASTRO_X_MAX; x += D.sampleStep) {
+    const y = window.getAstrocyteBoundaryY(x);
+    if (y !== null) vertex(x, y);
   }
   endShape();
 
-  // -----------------------------
-  // Sample points
-  // -----------------------------
+  // ---- sample points ----
   if (D.drawPoints) {
     noStroke();
     fill(...D.color, 220);
 
-    for (let x = -200; x <= 200; x += D.sampleStep * 4) {
+    for (let x = ASTRO_X_MIN; x <= ASTRO_X_MAX; x += D.sampleStep * 4) {
       const y = window.getAstrocyteBoundaryY(x);
-      circle(x, y, D.pointSize);
+      if (y !== null) circle(x, y, D.pointSize);
     }
   }
 
-  // -----------------------------
-  // Normals (optional)
-  // -----------------------------
+  // ---- normals (optional) ----
   if (D.drawNormals) {
     stroke(...D.color, 180);
     strokeWeight(1);
 
-    for (let x = -180; x <= 180; x += 40) {
-      const y  = window.getAstrocyteBoundaryY(x);
+    for (let x = ASTRO_X_MIN + 40; x <= ASTRO_X_MAX - 40; x += 40) {
+      const y1 = window.getAstrocyteBoundaryY(x - 1);
       const y2 = window.getAstrocyteBoundaryY(x + 1);
+      if (y1 === null || y2 === null) continue;
 
-      const dx = 1;
-      const dy = y2 - y;
+      const dx = 2;
+      const dy = y2 - y1;
       const mag = Math.hypot(dx, dy) || 1;
 
       const nx = -dy / mag;
       const ny =  dx / mag;
+
+      const y = window.getAstrocyteBoundaryY(x);
 
       line(
         x, y,
@@ -157,3 +171,5 @@ function drawAstrocyteBoundaryDebug() {
 // =====================================================
 window.drawAstrocyteSynapse       = drawAstrocyteSynapse;
 window.drawAstrocyteBoundaryDebug = drawAstrocyteBoundaryDebug;
+window.ASTRO_X_MIN               = ASTRO_X_MIN;
+window.ASTRO_X_MAX               = ASTRO_X_MAX;
