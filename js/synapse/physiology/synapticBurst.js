@@ -27,7 +27,7 @@ window.activeNTEmitters = window.activeNTEmitters || [];
 // -----------------------------------------------------
 // CORE TUNING
 // -----------------------------------------------------
-const NT_BASE_COUNT = 11;
+const NT_BASE_COUNT = 7;
 
 // Stream emission
 const NT_STREAM_DURATION_MIN = 18;
@@ -44,8 +44,8 @@ const NT_BROWNIAN = 0.004;        // 🔻 subordinate
 const NT_DRAG     = 0.994;        // 🔑 glide dominates
 
 // Lifetime (~10 s @ 60 fps)
-const NT_LIFE_MIN = 600;
-const NT_LIFE_MAX = 720;
+const NT_LIFE_MIN = 1200;
+const NT_LIFE_MAX = 1500;
 
 
 // -----------------------------------------------------
