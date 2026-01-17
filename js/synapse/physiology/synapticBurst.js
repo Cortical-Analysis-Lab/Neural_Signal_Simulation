@@ -8,7 +8,7 @@ console.log("🫧 synapticBurst loaded — CHEMICAL CLOUD (ELASTIC GAS, SLOWED)"
 // ✔ Slower outward spill
 // ✔ Angular fan-out + decorrelation
 // ✔ Elastic NT–NT collisions (momentum exchange)
-// ✔ Elastic membrane + astrocyte scattering
+// ✔ TRUE elastic astrocyte scattering (curved surface)
 // ✔ Time-based decay ONLY (~10 s @ 60fps)
 // ✔ No spatial sinks, no pinning
 //
@@ -25,13 +25,13 @@ window.lastSynapticRelease = null;
 // -----------------------------------------------------
 // CORE TUNING (REDUCED DENSITY + SLOWER)
 // -----------------------------------------------------
-const NT_BASE_COUNT = 11; // 🔻 cut in half
+const NT_BASE_COUNT = 11;
 
 // Initial launch
 const NT_INITIAL_SPEED  = 0.26;
 const NT_INITIAL_SPREAD = 0.35;
 
-// Very gentle drift (symmetry breaker only)
+// Gentle drift
 const NT_DRIFT_X = 0.006;
 const NT_DRIFT_Y = 0.002;
 
@@ -39,7 +39,7 @@ const NT_DRIFT_Y = 0.002;
 const NT_ANGULAR_NOISE = 0.028;
 const NT_BROWNIAN     = 0.010;
 
-// Drag (high inertia = smooth float)
+// Drag (high inertia)
 const NT_DRAG = 0.990;
 
 // Lifetime (~10 seconds)
@@ -118,7 +118,7 @@ function updateSynapticBurst() {
   const r   = window.lastSynapticRelease;
 
   // -----------------------------------------------
-  // SECONDARY TRICKLE (POST-FUSION)
+  // SECONDARY TRICKLE
   // -----------------------------------------------
   if (r && r.life-- > 0 && random() < NT_TRICKLE_PROB) {
     nts.push({
@@ -150,7 +150,7 @@ function updateSynapticBurst() {
     p.vx = cos(angle) * speed;
     p.vy = sin(angle) * speed;
 
-    // ---- subtle drift + texture
+    // ---- drift + texture
     p.vx += NT_DRIFT_X + random(-NT_BROWNIAN, NT_BROWNIAN);
     p.vy += NT_DRIFT_Y * Math.sign(p.y || random(-1, 1));
 
@@ -164,7 +164,7 @@ function updateSynapticBurst() {
 
 
     // -------------------------------------------
-    // PRESYNAPTIC MEMBRANE (LEFT)
+    // PRESYNAPTIC MEMBRANE
     // -------------------------------------------
     if (p.x < p.membraneX + 1.5) {
       p.x  = p.membraneX + 1.5;
@@ -173,7 +173,7 @@ function updateSynapticBurst() {
 
 
     // -------------------------------------------
-    // POSTSYNAPTIC MEMBRANE (SOFT ELASTIC ZONE)
+    // POSTSYNAPTIC MEMBRANE
     // -------------------------------------------
     const postX = p.membraneX + CLEFT_DEPTH;
 
@@ -189,18 +189,42 @@ function updateSynapticBurst() {
 
 
     // -------------------------------------------
-    // ASTROCYTE ELASTIC BOUNDARY (AUTHORITATIVE)
+    // ASTROCYTE — TRUE CURVED ELASTIC COLLISION
     // -------------------------------------------
     if (typeof window.getAstrocyteBoundaryY === "function") {
 
       const astroY = window.getAstrocyteBoundaryY(p.x);
 
-      if (p.y < astroY) {
-        const penetration = astroY - p.y;
-        p.y += penetration;
+      if (p.y < astroY + NT_RADIUS) {
 
-        p.vy = Math.abs(p.vy) * random(0.4, 0.7);
-        p.vx += random(-0.10, 0.10);
+        // push out of membrane
+        p.y = astroY + NT_RADIUS;
+
+        // estimate surface normal
+        const eps = 1;
+        const y1 = window.getAstrocyteBoundaryY(p.x - eps);
+        const y2 = window.getAstrocyteBoundaryY(p.x + eps);
+
+        const tx = 2 * eps;
+        const ty = y2 - y1;
+
+        let nx = -ty;
+        let ny =  tx;
+
+        const mag = Math.hypot(nx, ny) || 1;
+        nx /= mag;
+        ny /= mag;
+
+        // reflect velocity
+        const dot = p.vx * nx + p.vy * ny;
+        p.vx -= 2 * dot * nx;
+        p.vy -= 2 * dot * ny;
+
+        // damping + micro scatter
+        p.vx *= 0.92;
+        p.vy *= 0.92;
+        p.vx += random(-0.04, 0.04);
+        p.vy += random(-0.02, 0.02);
       }
     }
 
