@@ -1,4 +1,4 @@
-console.log("🔬 SynapseView loaded — SCREEN-FRAMED, CLIPPED");
+console.log("🔬 SynapseView loaded — SCREEN-FRAMED, CLIPPED (FIXED)");
 
 // =====================================================
 // SYNAPSE VIEW — ORCHESTRATOR (FIXED-RATIO, CLIPPED)
@@ -7,7 +7,7 @@ console.log("🔬 SynapseView loaded — SCREEN-FRAMED, CLIPPED");
 // ✔ Independent view (NOT overview zoom)
 // ✔ Fixed aspect ratio
 // ✔ Uniform scaling across screen sizes
-// ✔ HARD viewport clipping
+// ✔ HARD viewport clipping (Canvas-native)
 // ✔ Vesicles drawn ONLY in preSynapse.js
 //
 // =====================================================
@@ -80,7 +80,7 @@ function drawSynapseView() {
   resetMatrix();
 
   // ---------------------------------------------------
-  // 🔒 FIXED-RATIO VIEWPORT + CLIPPING
+  // 🔒 FIXED-RATIO VIEWPORT CALCULATION
   // ---------------------------------------------------
   const sx = width  / SYNAPSE_FRAME.width;
   const sy = height / SYNAPSE_FRAME.height;
@@ -92,11 +92,19 @@ function drawSynapseView() {
   const viewX = (width  - viewW) / 2;
   const viewY = (height - viewH) / 2;
 
-  // ---- CLIP TO SYNAPSE VIEWPORT ----
-  push();
-  clip(() => rect(viewX, viewY, viewW, viewH));
 
-  // ---- CENTER + SCALE WORLD ----
+  // ---------------------------------------------------
+  // 🔒 HARD CLIP (CANVAS-NATIVE — FIXED)
+  // ---------------------------------------------------
+  drawingContext.save();
+  drawingContext.beginPath();
+  drawingContext.rect(viewX, viewY, viewW, viewH);
+  drawingContext.clip();
+
+
+  // ---------------------------------------------------
+  // CENTER + SCALE SYNAPSE WORLD
+  // ---------------------------------------------------
   translate(viewX + viewW / 2, viewY + viewH / 2);
   scale(fitScale);
 
@@ -130,8 +138,7 @@ function drawSynapseView() {
   // ASTROCYTE (DRAW FIRST)
   // ---------------------------------------------------
   drawAstrocyteSynapse?.();
-  drawAstrocyteBoundaryDebug?.();
-
+  drawAstrocyteBoundaryDebug?.();   // 🔴 RED LINE NOW VISIBLE
 
 
   // ---------------------------------------------------
@@ -164,8 +171,11 @@ function drawSynapseView() {
   pop();
 
 
-  pop(); // end clip
-  pop(); // end view
+  // ---------------------------------------------------
+  // RESTORE CLIP + STATE
+  // ---------------------------------------------------
+  drawingContext.restore();
+  pop();
 
 
   // ---------------------------------------------------
