@@ -1,18 +1,18 @@
-console.log("🫧 synapticBurst loaded — STREAMING ELASTIC GAS (NO SLABS)");
+console.log("🫧 synapticBurst loaded — TRUE FREE GAS (NT–NT ONLY)");
 
 // =====================================================
-// SYNAPTIC NEUROTRANSMITTER BURST — CONTINUOUS STREAM
+// SYNAPTIC NEUROTRANSMITTER BURST — TRUE FREE GAS
 // =====================================================
 //
 // ✔ Vesicle-authoritative streaming release
 // ✔ Wide angular plume
 // ✔ Velocity-dominated motion
 // ✔ Minimal Brownian noise
-// ✔ Elastic NT–NT collisions
-// ✔ Elastic membrane scattering ONLY
+// ✔ Elastic NT–NT collisions ONLY
 // ✔ Time-based decay ONLY
-// ✘ NO planar clamps
-// ✘ NO slabs / boxes / funnels
+// ✘ NO membranes
+// ✘ NO astrocyte interaction
+// ✘ NO slabs / boxes / clamps
 //
 // =====================================================
 
@@ -37,13 +37,13 @@ const NT_PER_FRAME_MAX = 3;
 
 // Initial velocity
 const NT_INITIAL_SPEED  = 0.30;
-const NT_INITIAL_SPREAD = 0.55;   // 🔑 wide plume
+const NT_INITIAL_SPREAD = 0.55;
 
 // Motion physics
-const NT_BROWNIAN = 0.004;        // 🔻 subordinate
-const NT_DRAG     = 0.994;        // 🔑 glide dominates
+const NT_BROWNIAN = 0.004;   // small texture only
+const NT_DRAG     = 0.994;   // glide dominates
 
-// Lifetime (~10 s @ 60 fps)
+// Lifetime (~10–12 s @ 60 fps)
 const NT_LIFE_MIN = 1200;
 const NT_LIFE_MAX = 1500;
 
@@ -67,12 +67,12 @@ const NT_THERMAL_JITTER   = 0.008;
 // -----------------------------------------------------
 window.addEventListener("synapticRelease", (e) => {
 
-  const { x, y, membraneX, strength = 1 } = e.detail || {};
-  if (!isFinite(x) || !isFinite(y) || !isFinite(membraneX)) return;
+  const { x, y, strength = 1 } = e.detail || {};
+  if (!isFinite(x) || !isFinite(y)) return;
 
   window.activeNTEmitters.push({
-    x, y,
-    membraneX,
+    x,
+    y,
     framesLeft: Math.floor(
       random(NT_STREAM_DURATION_MIN, NT_STREAM_DURATION_MAX) * strength
     )
@@ -81,11 +81,10 @@ window.addEventListener("synapticRelease", (e) => {
 
 
 // -----------------------------------------------------
-// NT FACTORY — STREAM PARTICLE
+// NT FACTORY — PURE PARTICLE
 // -----------------------------------------------------
-function makeNT(x, y, membraneX) {
+function makeNT(x, y) {
 
-  // Emit AWAY FROM PRESYNAPTIC MEMBRANE into cleft
   const angle = random(-NT_INITIAL_SPREAD, NT_INITIAL_SPREAD);
 
   return {
@@ -95,7 +94,6 @@ function makeNT(x, y, membraneX) {
     vx: Math.cos(angle) * NT_INITIAL_SPEED,
     vy: Math.sin(angle) * NT_INITIAL_SPEED,
 
-    membraneX, // semantic reference ONLY
     life: random(NT_LIFE_MIN, NT_LIFE_MAX),
     alpha: 255
   };
@@ -103,7 +101,7 @@ function makeNT(x, y, membraneX) {
 
 
 // -----------------------------------------------------
-// UPDATE LOOP
+// UPDATE LOOP — PURE FREE FLIGHT
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
@@ -114,14 +112,17 @@ function updateSynapticBurst() {
   // STREAMING EMISSION
   // -------------------------------------------
   for (let i = emitters.length - 1; i >= 0; i--) {
-    const e = emitters[i];
 
+    const e = emitters[i];
     const n = Math.floor(random(NT_PER_FRAME_MIN, NT_PER_FRAME_MAX + 1));
+
     for (let k = 0; k < n; k++) {
-      nts.push(makeNT(e.x, e.y, e.membraneX));
+      nts.push(makeNT(e.x, e.y));
     }
 
-    if (--e.framesLeft <= 0) emitters.splice(i, 1);
+    if (--e.framesLeft <= 0) {
+      emitters.splice(i, 1);
+    }
   }
 
   if (!nts.length) return;
@@ -133,7 +134,7 @@ function updateSynapticBurst() {
 
     const p = nts[i];
 
-    // ---- velocity dominates
+    // ---- velocity-dominated motion
     p.vx += random(-NT_BROWNIAN, NT_BROWNIAN);
     p.vy += random(-NT_BROWNIAN, NT_BROWNIAN);
 
@@ -143,77 +144,8 @@ function updateSynapticBurst() {
     p.x += p.vx;
     p.y += p.vy;
 
-
     // -------------------------------------------
-    // PRESYNAPTIC MEMBRANE — SOFT SCATTER ONLY
-    // (NO CLAMP, NO WALL)
-    // -------------------------------------------
-    if (p.x < p.membraneX - NT_RADIUS) {
-
-      const speed = Math.hypot(p.vx, p.vy);
-      const a = random(-Math.PI / 2, Math.PI / 2);
-
-      p.x = p.membraneX - NT_RADIUS;
-      p.vx = Math.cos(a) * speed * 0.6;
-      p.vy = Math.sin(a) * speed * 0.6;
-    }
-
-
-    // -------------------------------------------
-    // POSTSYNAPTIC MEMBRANE — SAMPLED CURVE
-    // -------------------------------------------
-    if (typeof window.getPostSynapseBoundaryX === "function") {
-
-      const postX = window.getPostSynapseBoundaryX(p.y);
-
-      if (p.x > postX + NT_RADIUS) {
-
-        const speed = Math.hypot(p.vx, p.vy);
-        const a = Math.PI + random(-0.6, 0.6);
-
-        p.x = postX + NT_RADIUS;
-        p.vx = Math.cos(a) * speed * 0.7;
-        p.vy = Math.sin(a) * speed * 0.7;
-      }
-    }
-
-
-    // -------------------------------------------
-    // ASTROCYTE MEMBRANE — TRUE CURVED SCATTER
-    // -------------------------------------------
-    if (typeof window.getAstrocyteBoundaryY === "function") {
-
-      const astroY = window.getAstrocyteBoundaryY(p.x);
-
-      if (p.y < astroY + NT_RADIUS) {
-
-        // push out
-        p.y = astroY + NT_RADIUS;
-
-        // numerical surface normal
-        const eps = 1;
-        const yL = window.getAstrocyteBoundaryY(p.x - eps);
-        const yR = window.getAstrocyteBoundaryY(p.x + eps);
-
-        let nx = -(yR - yL);
-        let ny =  2 * eps;
-
-        const mag = Math.hypot(nx, ny) || 1;
-        nx /= mag;
-        ny /= mag;
-
-        const dot = p.vx * nx + p.vy * ny;
-        p.vx -= 2 * dot * nx;
-        p.vy -= 2 * dot * ny;
-
-        p.vx *= 0.96;
-        p.vy *= 0.96;
-      }
-    }
-
-
-    // -------------------------------------------
-    // NT–NT ELASTIC COLLISIONS
+    // NT–NT ELASTIC COLLISIONS ONLY
     // -------------------------------------------
     for (let j = i - 1; j >= 0; j--) {
 
@@ -222,7 +154,7 @@ function updateSynapticBurst() {
       const dy = p.y - q.y;
       const d2 = dx * dx + dy * dy;
 
-      if (d2 > 0 && d2 < NT_COLLISION_RADIUS ** 2) {
+      if (d2 > 0 && d2 < NT_COLLISION_RADIUS * NT_COLLISION_RADIUS) {
 
         const d = Math.sqrt(d2);
         const nx = dx / d;
@@ -240,6 +172,7 @@ function updateSynapticBurst() {
         if (impact > 0) continue;
 
         const impulse = impact * NT_COLLISION_DAMP;
+
         p.vx -= impulse * nx;
         p.vy -= impulse * ny;
         q.vx += impulse * nx;
@@ -250,14 +183,15 @@ function updateSynapticBurst() {
       }
     }
 
-
     // -------------------------------------------
     // TIME-ONLY DECAY
     // -------------------------------------------
     p.life--;
     p.alpha = map(p.life, 0, NT_LIFE_MAX, 0, 255, true);
 
-    if (p.life <= 0) nts.splice(i, 1);
+    if (p.life <= 0) {
+      nts.splice(i, 1);
+    }
   }
 }
 
