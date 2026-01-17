@@ -13,12 +13,6 @@ const ASTRO_Y_OFFSET = -140;
 // =====================================================
 // 🔧 DEBUG CONFIG (TUNABLE, RUNTIME-SAFE)
 // =====================================================
-//
-// Toggle + tune directly from console:
-//   window.DEBUG_ASTROCYTE.enabled = true
-//   window.DEBUG_ASTROCYTE.lineWeight = 3
-//   window.DEBUG_ASTROCYTE.sampleStep = 8
-//
 window.DEBUG_ASTROCYTE = window.DEBUG_ASTROCYTE ?? {
   enabled: true,
 
@@ -32,7 +26,7 @@ window.DEBUG_ASTROCYTE = window.DEBUG_ASTROCYTE ?? {
   drawPoints: true,
   pointSize: 4,
 
-  // Normals (direction check)
+  // Normals
   drawNormals: false,
   normalLength: 10
 };
@@ -69,11 +63,11 @@ function drawAstrocyteSynapse() {
 }
 
 // =====================================================
-// 🔑 ASTROCYTE BOUNDARY SAMPLER (AUTHORITATIVE)
+// 🔑 ASTROCYTE BOUNDARY SAMPLER (FIXED & FLIPPED)
 // =====================================================
 //
-// Returns the Y position of the *underside membrane*
-// facing the synaptic cleft
+// Returns Y position of the *astrocyte membrane facing
+// the synaptic cleft* (LOWER boundary)
 //
 window.getAstrocyteBoundaryY = function (x) {
 
@@ -81,19 +75,20 @@ window.getAstrocyteBoundaryY = function (x) {
     return ASTRO_Y_OFFSET + 65;
   }
 
-  // Normalized lateral distance
+  // Normalize lateral distance
   const t = constrain(Math.abs(x) / 220, 0, 1);
 
-  // Underside dome curve (matches drawing)
+  // 🔑 LOWER MEMBRANE CURVE (FLIPPED)
+  // Matches the drawn bottom contour
   const yLocal =
-    65 -               // lowest membrane point
-    75 * (1 - t * t);  // smooth curvature upward
+    65 -               // bottom-most rim
+    45 * (t * t);      // curvature upward toward center
 
   return ASTRO_Y_OFFSET + yLocal;
 };
 
 // =====================================================
-// 🧪 DEBUG DRAW — TUNABLE BOUNDARY LINES
+// 🧪 DEBUG DRAW — BOUNDARY VISUALIZATION
 // =====================================================
 function drawAstrocyteBoundaryDebug() {
 
@@ -129,7 +124,7 @@ function drawAstrocyteBoundaryDebug() {
   }
 
   // -----------------------------
-  // Normal vectors (orientation check)
+  // Normals (optional)
   // -----------------------------
   if (D.drawNormals) {
     stroke(...D.color, 180);
