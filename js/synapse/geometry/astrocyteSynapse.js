@@ -28,7 +28,7 @@ window.DEBUG_ASTROCYTE = window.DEBUG_ASTROCYTE ?? {
   lineWeight: 2,
 
   // Sampling
-  sampleStep: 6,        // px between samples
+  sampleStep: 6,
   drawPoints: true,
   pointSize: 4,
 
@@ -36,7 +36,6 @@ window.DEBUG_ASTROCYTE = window.DEBUG_ASTROCYTE ?? {
   drawNormals: false,
   normalLength: 10
 };
-
 
 // =====================================================
 // ASTROCYTIC ENDFOOT (DRAW ONLY)
@@ -69,23 +68,29 @@ function drawAstrocyteSynapse() {
   pop();
 }
 
-
 // =====================================================
 // 🔑 ASTROCYTE BOUNDARY SAMPLER (AUTHORITATIVE)
 // =====================================================
+//
+// Returns the Y position of the *underside membrane*
+// facing the synaptic cleft
+//
 window.getAstrocyteBoundaryY = function (x) {
 
-  if (!Number.isFinite(x)) return ASTRO_Y_OFFSET - 125;
+  if (!Number.isFinite(x)) {
+    return ASTRO_Y_OFFSET + 65;
+  }
 
+  // Normalized lateral distance
   const t = constrain(Math.abs(x) / 220, 0, 1);
 
+  // Underside dome curve (matches drawing)
   const yLocal =
-    -125 +
-    55 * (t * t);
+    65 -               // lowest membrane point
+    75 * (1 - t * t);  // smooth curvature upward
 
   return ASTRO_Y_OFFSET + yLocal;
 };
-
 
 // =====================================================
 // 🧪 DEBUG DRAW — TUNABLE BOUNDARY LINES
@@ -134,7 +139,6 @@ function drawAstrocyteBoundaryDebug() {
       const y  = window.getAstrocyteBoundaryY(x);
       const y2 = window.getAstrocyteBoundaryY(x + 1);
 
-      // tangent → normal
       const dx = 1;
       const dy = y2 - y;
       const mag = Math.hypot(dx, dy) || 1;
@@ -152,7 +156,6 @@ function drawAstrocyteBoundaryDebug() {
 
   pop();
 }
-
 
 // =====================================================
 // EXPORTS
