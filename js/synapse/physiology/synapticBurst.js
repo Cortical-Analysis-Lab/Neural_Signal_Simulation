@@ -1,15 +1,15 @@
-console.log("🫧 synapticBurst loaded — DIRECTED FREE FLOW (JET)");
+console.log("🫧 synapticBurst loaded — FREE FLOW w/ POSTSYNAPTIC BIAS (ONE-DIRECTION)");
 
 // =====================================================
-// SYNAPTIC NEUROTRANSMITTER BURST — DIRECTED GAS JET
+// SYNAPTIC NEUROTRANSMITTER BURST — BIASED FREE GAS
 // =====================================================
 //
-// ✔ Vesicle-authoritative streaming release
-// ✔ STRICT postsynaptic directionality
-// ✔ Vertical emission aperture (NOT radial)
+// ✔ Continuous streaming (non-pulsed)
+// ✔ Wide spatial plume
+// ✔ STRICT one-direction release (+X)
 // ✔ Velocity-dominated motion
 // ✔ Minimal Brownian texture
-// ✔ NT–NT elastic collisions ONLY
+// ✔ Elastic NT–NT collisions ONLY
 // ✔ Time-based decay ONLY
 // ✘ NO membranes
 // ✘ NO astrocyte interaction
@@ -26,31 +26,31 @@ window.activeNTEmitters = window.activeNTEmitters || [];
 
 
 // -----------------------------------------------------
-// CORE TUNING — PRIMARY CONTROLS
+// CORE TUNING — FLOW + DENSITY
 // -----------------------------------------------------
 
-// Density
+// Emission
+const NT_STREAM_DURATION_MIN = 16;
+const NT_STREAM_DURATION_MAX = 28;
+
 const NT_PER_FRAME_MIN = 1;
-const NT_PER_FRAME_MAX = 2;
+const NT_PER_FRAME_MAX = 2;   // less dense
 
-// Stream duration
-const NT_STREAM_DURATION_MIN = 22;
-const NT_STREAM_DURATION_MAX = 36;
+// Initial velocity (FORWARD ONLY)
+const NT_INITIAL_SPEED_MIN = 0.28;
+const NT_INITIAL_SPEED_MAX = 0.36;
 
-// Velocity (FORWARD ONLY)
-const NT_FORWARD_SPEED_MIN = 0.22;
-const NT_FORWARD_SPEED_MAX = 0.34;
+// Vertical dispersion (controls plume width)
+const NT_VERTICAL_SPEED_MAX = 0.32;
 
-// Vertical dispersion (visual width of plume)
-const NT_VERTICAL_SPEED_MAX = 0.28;
-
-// Motion texture
-const NT_BROWNIAN = 0.003;
-const NT_DRAG     = 0.995;
+// Motion physics
+const NT_ADVECT_X = 0.018;     // gentle downstream bias
+const NT_BROWNIAN = 0.003;     // very subtle texture
+const NT_DRAG     = 0.995;     // long glide
 
 // Lifetime (~10–12 s @ 60 fps)
-const NT_LIFE_MIN = 1200;
-const NT_LIFE_MAX = 1500;
+const NT_LIFE_MIN = 1100;
+const NT_LIFE_MAX = 1400;
 
 
 // -----------------------------------------------------
@@ -86,21 +86,21 @@ window.addEventListener("synapticRelease", (e) => {
 
 
 // -----------------------------------------------------
-// NT FACTORY — TRUE UNIDIRECTIONAL EMISSION
+// NT FACTORY — STRICTLY UNIDIRECTIONAL
 // -----------------------------------------------------
 function makeNT(x, y) {
 
   return {
-    // 🔑 ONLY spawn into cleft (no backward halo)
-    x: x + random(0.8, 1.8),
+    // 🔑 spawn ONLY into cleft side
+    x: x + random(0.8, 2.0),
 
-    // 🔑 vertical emission slit (not radial)
-    y: y + random(-6, 6),
+    // 🔑 vertical slit emission (not radial)
+    y: y + random(-8, 8),
 
-    // 🔑 guaranteed postsynaptic flow
-    vx: random(NT_FORWARD_SPEED_MIN, NT_FORWARD_SPEED_MAX),
+    // 🔒 guaranteed forward velocity
+    vx: random(NT_INITIAL_SPEED_MIN, NT_INITIAL_SPEED_MAX),
 
-    // vertical dispersion
+    // vertical dispersion only
     vy: random(-NT_VERTICAL_SPEED_MAX, NT_VERTICAL_SPEED_MAX),
 
     life: random(NT_LIFE_MIN, NT_LIFE_MAX),
@@ -110,7 +110,7 @@ function makeNT(x, y) {
 
 
 // -----------------------------------------------------
-// UPDATE LOOP — PURE DIRECTED FREE FLOW
+// UPDATE LOOP — BIASED FREE FLOW
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
@@ -118,7 +118,7 @@ function updateSynapticBurst() {
   const emitters = window.activeNTEmitters;
 
   // -------------------------------------------
-  // STREAM EMISSION
+  // STREAMING EMISSION
   // -------------------------------------------
   for (let i = emitters.length - 1; i >= 0; i--) {
 
@@ -129,9 +129,7 @@ function updateSynapticBurst() {
       nts.push(makeNT(e.x, e.y));
     }
 
-    if (--e.framesLeft <= 0) {
-      emitters.splice(i, 1);
-    }
+    if (--e.framesLeft <= 0) emitters.splice(i, 1);
   }
 
   if (!nts.length) return;
@@ -143,13 +141,14 @@ function updateSynapticBurst() {
 
     const p = nts[i];
 
-    // Subtle texture only
+    // ---- gentle downstream bias + texture
+    p.vx += NT_ADVECT_X;
     p.vx += random(-NT_BROWNIAN, NT_BROWNIAN);
     p.vy += random(-NT_BROWNIAN, NT_BROWNIAN);
 
-    // Hard forward guarantee (never backward)
-    if (p.vx < NT_FORWARD_SPEED_MIN * 0.5) {
-      p.vx = NT_FORWARD_SPEED_MIN * 0.5;
+    // hard forward guarantee (never flip)
+    if (p.vx < NT_INITIAL_SPEED_MIN * 0.5) {
+      p.vx = NT_INITIAL_SPEED_MIN * 0.5;
     }
 
     p.vx *= NT_DRAG;
@@ -169,7 +168,7 @@ function updateSynapticBurst() {
       const dy = p.y - q.y;
       const d2 = dx * dx + dy * dy;
 
-      if (d2 > 0 && d2 < NT_COLLISION_RADIUS ** 2) {
+      if (d2 > 0 && d2 < NT_COLLISION_RADIUS * NT_COLLISION_RADIUS) {
 
         const d = Math.sqrt(d2);
         const nx = dx / d;
@@ -204,9 +203,7 @@ function updateSynapticBurst() {
     p.life--;
     p.alpha = map(p.life, 0, NT_LIFE_MAX, 0, 255, true);
 
-    if (p.life <= 0) {
-      nts.splice(i, 1);
-    }
+    if (p.life <= 0) nts.splice(i, 1);
   }
 }
 
