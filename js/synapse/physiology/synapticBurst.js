@@ -1,13 +1,14 @@
-console.log("🫧 synapticBurst loaded — TRUE FREE GAS (NT–NT ONLY)");
+console.log("🫧 synapticBurst loaded — FREE FLOW w/ POSTSYNAPTIC BIAS");
 
 // =====================================================
-// SYNAPTIC NEUROTRANSMITTER BURST — TRUE FREE GAS
+// SYNAPTIC NEUROTRANSMITTER BURST — BIASED FREE GAS
 // =====================================================
 //
-// ✔ Vesicle-authoritative streaming release
-// ✔ Wide angular plume
+// ✔ Continuous streaming (non-pulsed)
+// ✔ Wide spatial plume
+// ✔ Net drift toward postsynapse (+X)
 // ✔ Velocity-dominated motion
-// ✔ Minimal Brownian noise
+// ✔ Minimal Brownian texture
 // ✔ Elastic NT–NT collisions ONLY
 // ✔ Time-based decay ONLY
 // ✘ NO membranes
@@ -25,27 +26,28 @@ window.activeNTEmitters = window.activeNTEmitters || [];
 
 
 // -----------------------------------------------------
-// CORE TUNING
+// CORE TUNING — FLOW + DENSITY
 // -----------------------------------------------------
-const NT_BASE_COUNT = 7;
 
-// Stream emission
-const NT_STREAM_DURATION_MIN = 18;
-const NT_STREAM_DURATION_MAX = 32;
+// Emission
+const NT_STREAM_DURATION_MIN = 16;
+const NT_STREAM_DURATION_MAX = 28;
+
 const NT_PER_FRAME_MIN = 1;
-const NT_PER_FRAME_MAX = 3;
+const NT_PER_FRAME_MAX = 2;   // 🔻 less dense
 
 // Initial velocity
-const NT_INITIAL_SPEED  = 0.30;
-const NT_INITIAL_SPREAD = 0.55;
+const NT_INITIAL_SPEED  = 0.34;   // 🔺 faster separation
+const NT_INITIAL_SPREAD = 0.75;   // 🔺 wider plume
 
 // Motion physics
-const NT_BROWNIAN = 0.004;   // small texture only
-const NT_DRAG     = 0.994;   // glide dominates
+const NT_ADVECT_X = 0.018;        // 🔑 net drift toward postsynapse
+const NT_BROWNIAN = 0.003;        // very subtle texture
+const NT_DRAG     = 0.995;        // long glide
 
 // Lifetime (~10–12 s @ 60 fps)
-const NT_LIFE_MIN = 1200;
-const NT_LIFE_MAX = 1500;
+const NT_LIFE_MIN = 1100;
+const NT_LIFE_MAX = 1400;
 
 
 // -----------------------------------------------------
@@ -59,7 +61,7 @@ const NT_RADIUS = 2.4;
 // -----------------------------------------------------
 const NT_COLLISION_RADIUS = NT_RADIUS * 2.1;
 const NT_COLLISION_DAMP   = 0.92;
-const NT_THERMAL_JITTER   = 0.008;
+const NT_THERMAL_JITTER   = 0.006;
 
 
 // -----------------------------------------------------
@@ -81,15 +83,16 @@ window.addEventListener("synapticRelease", (e) => {
 
 
 // -----------------------------------------------------
-// NT FACTORY — PURE PARTICLE
+// NT FACTORY — WIDE SOURCE
 // -----------------------------------------------------
 function makeNT(x, y) {
 
+  // Wide angular plume centered forward (+X)
   const angle = random(-NT_INITIAL_SPREAD, NT_INITIAL_SPREAD);
 
   return {
-    x: x + random(-1.5, 1.5),
-    y: y + random(-1.5, 1.5),
+    x: x + random(-4, 4),    // 🔺 wider spatial origin
+    y: y + random(-6, 6),
 
     vx: Math.cos(angle) * NT_INITIAL_SPEED,
     vy: Math.sin(angle) * NT_INITIAL_SPEED,
@@ -101,7 +104,7 @@ function makeNT(x, y) {
 
 
 // -----------------------------------------------------
-// UPDATE LOOP — PURE FREE FLIGHT
+// UPDATE LOOP — BIASED FREE FLOW
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
@@ -120,9 +123,7 @@ function updateSynapticBurst() {
       nts.push(makeNT(e.x, e.y));
     }
 
-    if (--e.framesLeft <= 0) {
-      emitters.splice(i, 1);
-    }
+    if (--e.framesLeft <= 0) emitters.splice(i, 1);
   }
 
   if (!nts.length) return;
@@ -134,7 +135,8 @@ function updateSynapticBurst() {
 
     const p = nts[i];
 
-    // ---- velocity-dominated motion
+    // ---- biased diffusion (free flow)
+    p.vx += NT_ADVECT_X;
     p.vx += random(-NT_BROWNIAN, NT_BROWNIAN);
     p.vy += random(-NT_BROWNIAN, NT_BROWNIAN);
 
@@ -189,9 +191,7 @@ function updateSynapticBurst() {
     p.life--;
     p.alpha = map(p.life, 0, NT_LIFE_MAX, 0, 255, true);
 
-    if (p.life <= 0) {
-      nts.splice(i, 1);
-    }
+    if (p.life <= 0) nts.splice(i, 1);
   }
 }
 
