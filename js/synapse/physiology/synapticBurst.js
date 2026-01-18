@@ -1,19 +1,16 @@
-console.log("🫧 synapticBurst loaded — BALLISTIC JET → DIFFUSIVE GAS");
+console.log("🫧 synapticBurst loaded — DIRECTED FAN FLOW (NO COLLISIONS)");
 
 // =====================================================
-// SYNAPTIC NEUROTRANSMITTER BURST — TWO-PHASE FLOW
+// SYNAPTIC NEUROTRANSMITTER BURST — FAN-OUT FREE FLOW
 // =====================================================
 //
-// PHASE 1: Ballistic jet (NO collisions)
-// PHASE 2: Diffusive gas (NT–NT collisions)
-//
 // ✔ Vesicle-authoritative streaming
-// ✔ STRICT postsynaptic directionality
-// ✔ Loose spatial spread
+// ✔ STRICT postsynaptic direction (+X)
+// ✔ Broad fan-out across cleft
 // ✔ Velocity-dominated motion
 // ✔ Minimal Brownian texture
-// ✔ NT–NT collisions AFTER separation
 // ✔ Time-based decay ONLY
+// ✘ NO NT–NT collisions
 // ✘ NO membranes
 // ✘ NO astrocyte
 // ✘ NO volumetric constraints
@@ -29,41 +26,35 @@ window.activeNTEmitters = window.activeNTEmitters || [];
 
 
 // -----------------------------------------------------
-// CORE TUNING (PRIMARY CONTROLS)
+// CORE TUNING — THESE ARE YOUR MAIN KNOBS
 // -----------------------------------------------------
 
-// Emission density (🔑 LOWER = looser cloud)
-const NT_PER_FRAME_MIN = 0.5;
-const NT_PER_FRAME_MAX = 1;
+// Emission density (lower = looser cloud)
+const NT_PER_FRAME_MIN = 1;
+const NT_PER_FRAME_MAX = 2;
 
 // Stream duration
 const NT_STREAM_DURATION_MIN = 18;
 const NT_STREAM_DURATION_MAX = 28;
 
-// Forward velocity
-const NT_FORWARD_SPEED_MIN = 0.32;
-const NT_FORWARD_SPEED_MAX = 0.40;
+// Forward velocity (🔑 reach postsynapse)
+const NT_FORWARD_SPEED_MIN = 0.40;
+const NT_FORWARD_SPEED_MAX = 0.55;
 
-// Vertical spawn width (🔑 plume width)
-const NT_SPAWN_Y_RANGE = 16;
+// Initial vertical fan (at release)
+const NT_INITIAL_VY_RANGE = 0.12;
+
+// Progressive fan-out (🔑 spread across cleft)
+const NT_FAN_ACCEL = 0.0025;
 
 // Motion texture
-const NT_BROWNIAN = 0.002;
+const NT_BROWNIAN = 0.0015;
 const NT_DRAG_X   = 0.996;
-const NT_DRAG_Y   = 0.990;
+const NT_DRAG_Y   = 0.992;
 
 // Lifetime
-const NT_LIFE_MIN = 1200;
-const NT_LIFE_MAX = 1500;
-
-
-// -----------------------------------------------------
-// COLLISION PHASE CONTROL (🔑 THIS IS THE FIX)
-// -----------------------------------------------------
-
-// Frames before collisions are allowed
-const NT_COLLISION_DELAY_MIN = 50;
-const NT_COLLISION_DELAY_MAX = 100;
+const NT_LIFE_MIN = 1100;
+const NT_LIFE_MAX = 1400;
 
 
 // -----------------------------------------------------
@@ -73,16 +64,7 @@ const NT_RADIUS = 2.4;
 
 
 // -----------------------------------------------------
-// NT–NT COLLISIONS (ACTIVE ONLY AFTER DELAY)
-// -----------------------------------------------------
-const NT_COLLISION_RADIUS = NT_RADIUS * 2.1;
-const NT_COLLISION_DAMP_X = 0.80;
-const NT_COLLISION_DAMP_Y = 0.55;
-const NT_THERMAL_JITTER   = 0.004;
-
-
-// -----------------------------------------------------
-// RELEASE EVENT → EMITTER
+// RELEASE EVENT → CREATE STREAM EMITTER
 // -----------------------------------------------------
 window.addEventListener("synapticRelease", (e) => {
 
@@ -100,27 +82,26 @@ window.addEventListener("synapticRelease", (e) => {
 
 
 // -----------------------------------------------------
-// NT FACTORY — BALLISTIC PARTICLE
+// NT FACTORY — DIRECTED FAN PARTICLE
 // -----------------------------------------------------
 function makeNT(x, y) {
+
+  // Random vertical sign ensures symmetric fan
+  const fanSign = random() < 0.5 ? -1 : 1;
 
   return {
     // Spawn just outside vesicle
     x: x + random(1.0, 2.5),
+    y: y + random(-3, 3),
 
-    // Vertical spread only at birth
-    y: y + random(-NT_SPAWN_Y_RANGE, NT_SPAWN_Y_RANGE),
-
-    // Forward jet
+    // Strong forward velocity ONLY
     vx: random(NT_FORWARD_SPEED_MIN, NT_FORWARD_SPEED_MAX),
 
-    // Very small initial lateral motion
-    vy: random(-0.05, 0.05),
+    // Initial vertical divergence
+    vy: fanSign * random(0, NT_INITIAL_VY_RANGE),
 
-    // Collision gate
-    collisionDelay: Math.floor(
-      random(NT_COLLISION_DELAY_MIN, NT_COLLISION_DELAY_MAX)
-    ),
+    // Fan direction memory
+    fanSign,
 
     life: random(NT_LIFE_MIN, NT_LIFE_MAX),
     alpha: 255
@@ -129,7 +110,7 @@ function makeNT(x, y) {
 
 
 // -----------------------------------------------------
-// UPDATE LOOP — TWO-PHASE FLOW
+// UPDATE LOOP — FAN-OUT FREE FLOW
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
@@ -144,7 +125,9 @@ function updateSynapticBurst() {
     const e = emitters[i];
     const n = Math.floor(random(NT_PER_FRAME_MIN, NT_PER_FRAME_MAX + 1));
 
-    for (let k = 0; k < n; k++) nts.push(makeNT(e.x, e.y));
+    for (let k = 0; k < n; k++) {
+      nts.push(makeNT(e.x, e.y));
+    }
 
     if (--e.framesLeft <= 0) emitters.splice(i, 1);
   }
@@ -153,18 +136,21 @@ function updateSynapticBurst() {
 
   // -------------------------------------------
   // PARTICLE DYNAMICS
-// -------------------------------------------
+  // -------------------------------------------
   for (let i = nts.length - 1; i >= 0; i--) {
 
     const p = nts[i];
 
-    // Subtle texture
+    // Subtle texture only
     p.vx += random(-NT_BROWNIAN, NT_BROWNIAN);
     p.vy += random(-NT_BROWNIAN, NT_BROWNIAN);
 
+    // Progressive fan-out over time
+    p.vy += p.fanSign * NT_FAN_ACCEL;
+
     // Enforce forward dominance
-    if (p.vx < NT_FORWARD_SPEED_MIN * 0.6) {
-      p.vx = NT_FORWARD_SPEED_MIN * 0.6;
+    if (p.vx < NT_FORWARD_SPEED_MIN * 0.7) {
+      p.vx = NT_FORWARD_SPEED_MIN * 0.7;
     }
 
     p.vx *= NT_DRAG_X;
@@ -174,54 +160,11 @@ function updateSynapticBurst() {
     p.y += p.vy;
 
     // -------------------------------------------
-    // NT–NT COLLISIONS (ONLY AFTER DELAY)
-    // -------------------------------------------
-    if (p.collisionDelay > 0) {
-      p.collisionDelay--;
-    } else {
-
-      for (let j = i - 1; j >= 0; j--) {
-
-        const q = nts[j];
-        if (q.collisionDelay > 0) continue;
-
-        const dx = p.x - q.x;
-        const dy = p.y - q.y;
-        const d2 = dx*dx + dy*dy;
-
-        if (d2 > 0 && d2 < NT_COLLISION_RADIUS * NT_COLLISION_RADIUS) {
-
-          const d = Math.sqrt(d2);
-          const nx = dx / d;
-          const ny = dy / d;
-
-          const overlap = 0.5 * (NT_COLLISION_RADIUS - d);
-          p.x += nx * overlap;
-          p.y += ny * overlap;
-          q.x -= nx * overlap;
-          q.y -= ny * overlap;
-
-          const dvx = p.vx - q.vx;
-          const dvy = p.vy - q.vy;
-          const impact = dvx * nx + dvy * ny;
-          if (impact > 0) continue;
-
-          p.vx -= impact * nx * NT_COLLISION_DAMP_X;
-          p.vy -= impact * ny * NT_COLLISION_DAMP_Y;
-          q.vx += impact * nx * NT_COLLISION_DAMP_X;
-          q.vy += impact * ny * NT_COLLISION_DAMP_Y;
-
-          p.vx += random(-NT_THERMAL_JITTER, NT_THERMAL_JITTER);
-          p.vy += random(-NT_THERMAL_JITTER, NT_THERMAL_JITTER);
-        }
-      }
-    }
-
-    // -------------------------------------------
     // TIME-ONLY DECAY
     // -------------------------------------------
     p.life--;
     p.alpha = map(p.life, 0, NT_LIFE_MAX, 0, 255, true);
+
     if (p.life <= 0) nts.splice(i, 1);
   }
 }
@@ -231,6 +174,7 @@ function updateSynapticBurst() {
 // DRAW
 // -----------------------------------------------------
 function drawSynapticBurst() {
+
   if (!window.synapticNTs.length) return;
 
   push();
