@@ -1,18 +1,19 @@
-console.log("🫧 synapticBurst loaded — DIRECTIONAL FREE GAS");
+console.log("🫧 synapticBurst loaded — DIRECTED FREE FLOW");
 
 // =====================================================
-// SYNAPTIC NEUROTRANSMITTER BURST — FREE FLOW WITH BIAS
+// SYNAPTIC NEUROTRANSMITTER BURST — DIRECTED GAS JET
 // =====================================================
 //
 // ✔ Vesicle-authoritative streaming release
-// ✔ Continuous plume (no pulses)
+// ✔ STRICT postsynaptic directionality
+// ✔ Wide vertical dispersion
 // ✔ Velocity-dominated motion
-// ✔ Wide vertical spread
+// ✔ Minimal Brownian noise
 // ✔ NT–NT elastic collisions ONLY
-// ✔ Net flux toward postsynapse
-// ✘ NO walls
-// ✘ NO membrane collision
+// ✔ Time-based decay ONLY
+// ✘ NO membranes
 // ✘ NO astrocyte interaction
+// ✘ NO volumetric constraints
 //
 // =====================================================
 
@@ -25,29 +26,26 @@ window.activeNTEmitters = window.activeNTEmitters || [];
 
 
 // -----------------------------------------------------
-// CORE TUNING (YOU WILL TUNE THESE)
+// CORE TUNING (THE ONLY KNOBS THAT MATTER NOW)
 // -----------------------------------------------------
 
 // Density
 const NT_PER_FRAME_MIN = 1;
 const NT_PER_FRAME_MAX = 2;
 
-// Stream duration (frames)
+// Stream duration
 const NT_STREAM_DURATION_MIN = 22;
 const NT_STREAM_DURATION_MAX = 36;
 
-// Velocity
-const NT_INITIAL_SPEED = 0.28;
+// Velocity (FORWARD ONLY)
+const NT_FORWARD_SPEED_MIN = 0.22;
+const NT_FORWARD_SPEED_MAX = 0.34;
 
-// Angular spread (VERTICAL fan-out)
-const NT_VERTICAL_SPREAD = 0.65;   // radians
+// Vertical spread
+const NT_VERTICAL_SPEED_MAX = 0.28;
 
-// Directional bias
-const NT_MIN_FORWARD_VX = 0.06;    // 🔑 prevents backflow
-const NT_FORWARD_BIAS   = 0.004;   // gentle push each frame
-
-// Noise
-const NT_BROWNIAN = 0.003;          // texture only
+// Motion texture
+const NT_BROWNIAN = 0.003;
 const NT_DRAG     = 0.995;
 
 // Lifetime
@@ -66,7 +64,7 @@ const NT_RADIUS = 2.4;
 // -----------------------------------------------------
 const NT_COLLISION_RADIUS = NT_RADIUS * 2.1;
 const NT_COLLISION_DAMP   = 0.92;
-const NT_THERMAL_JITTER   = 0.008;
+const NT_THERMAL_JITTER   = 0.006;
 
 
 // -----------------------------------------------------
@@ -88,24 +86,19 @@ window.addEventListener("synapticRelease", (e) => {
 
 
 // -----------------------------------------------------
-// NT FACTORY — FORWARD-BIASED PARTICLE
+// NT FACTORY — FORWARD-ONLY EMISSION
 // -----------------------------------------------------
 function makeNT(x, y) {
 
-  // Forward-facing cone (NOT symmetric)
-  const a = random(-NT_VERTICAL_SPREAD, NT_VERTICAL_SPREAD);
-
-  const vx = Math.max(
-    Math.cos(a) * NT_INITIAL_SPEED,
-    NT_MIN_FORWARD_VX
-  );
-
   return {
-    x: x + random(-1.5, 1.5),
-    y: y + random(-1.5, 1.5),
+    x: x + random(-1.2, 1.2),
+    y: y + random(-1.2, 1.2),
 
-    vx,
-    vy: Math.sin(a) * NT_INITIAL_SPEED,
+    // 🔑 GUARANTEED POSTSYNAPTIC FLOW
+    vx: random(NT_FORWARD_SPEED_MIN, NT_FORWARD_SPEED_MAX),
+
+    // Wide vertical dispersion
+    vy: random(-NT_VERTICAL_SPEED_MAX, NT_VERTICAL_SPEED_MAX),
 
     life: random(NT_LIFE_MIN, NT_LIFE_MAX),
     alpha: 255
@@ -114,7 +107,7 @@ function makeNT(x, y) {
 
 
 // -----------------------------------------------------
-// UPDATE LOOP — FREE FLOW WITH RECTIFIED VX
+// UPDATE LOOP — PURE DIRECTED FREE FLOW
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
@@ -125,9 +118,10 @@ function updateSynapticBurst() {
   // STREAM EMISSION
   // -------------------------------------------
   for (let i = emitters.length - 1; i >= 0; i--) {
-    const e = emitters[i];
 
+    const e = emitters[i];
     const n = Math.floor(random(NT_PER_FRAME_MIN, NT_PER_FRAME_MAX + 1));
+
     for (let k = 0; k < n; k++) {
       nts.push(makeNT(e.x, e.y));
     }
@@ -146,23 +140,18 @@ function updateSynapticBurst() {
 
     const p = nts[i];
 
-    // --- texture only
+    // Subtle texture ONLY
     p.vx += random(-NT_BROWNIAN, NT_BROWNIAN);
     p.vy += random(-NT_BROWNIAN, NT_BROWNIAN);
 
-    // --- enforce net forward flux (NO POSITION CLAMP)
-    if (p.vx < NT_MIN_FORWARD_VX) {
-      p.vx = lerp(p.vx, NT_MIN_FORWARD_VX, 0.08);
+    // 🔒 HARD DIRECTIONAL GUARANTEE
+    if (p.vx < NT_FORWARD_SPEED_MIN * 0.6) {
+      p.vx = NT_FORWARD_SPEED_MIN * 0.6;
     }
 
-    // --- gentle bias
-    p.vx += NT_FORWARD_BIAS;
-
-    // --- inertia
     p.vx *= NT_DRAG;
     p.vy *= NT_DRAG;
 
-    // --- integrate
     p.x += p.vx;
     p.y += p.vy;
 
