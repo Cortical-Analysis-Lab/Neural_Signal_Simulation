@@ -1,4 +1,4 @@
-console.log("🫧 synapticBurst loaded — FREE FLOW + ASTROCYTE BOUNCE");
+console.log("🫧 synapticBurst loaded — FREE FLOW + FINITE ASTROCYTE");
 
 // =====================================================
 // SYNAPTIC NEUROTRANSMITTER BURST — BIASED FREE GAS
@@ -10,10 +10,10 @@ console.log("🫧 synapticBurst loaded — FREE FLOW + ASTROCYTE BOUNCE");
 // ✔ Velocity-dominated motion
 // ✔ Minimal Brownian texture
 // ✔ Time-based decay ONLY
-// ✔ Elastic astrocyte membrane scattering
+// ✔ Astrocyte interaction ONLY within footprint
 // ✘ NO NT–NT collisions
 // ✘ NO presynaptic / postsynaptic walls
-// ✘ NO slabs / boxes / clamps
+// ✘ NO global slabs / invisible planes
 //
 // =====================================================
 
@@ -29,7 +29,6 @@ window.activeNTEmitters = window.activeNTEmitters || [];
 // CORE TUNING — FLOW + DENSITY
 // -----------------------------------------------------
 
-// Emission
 const NT_STREAM_DURATION_MIN = 16;
 const NT_STREAM_DURATION_MAX = 28;
 
@@ -45,7 +44,7 @@ const NT_ADVECT_X = 0.018;
 const NT_BROWNIAN = 0.003;
 const NT_DRAG     = 0.995;
 
-// Lifetime (~10–12 s @ 60 fps)
+// Lifetime
 const NT_LIFE_MIN = 1100;
 const NT_LIFE_MAX = 1400;
 
@@ -57,7 +56,7 @@ const NT_RADIUS = 2.4;
 
 
 // -----------------------------------------------------
-// RELEASE EVENT → CREATE STREAM EMITTER
+// RELEASE EVENT → STREAM EMITTER
 // -----------------------------------------------------
 window.addEventListener("synapticRelease", (e) => {
 
@@ -75,7 +74,7 @@ window.addEventListener("synapticRelease", (e) => {
 
 
 // -----------------------------------------------------
-// NT FACTORY — WIDE SOURCE
+// NT FACTORY — FOUNDATIONAL VERSION (UNCHANGED)
 // -----------------------------------------------------
 function makeNT(x, y) {
 
@@ -95,7 +94,7 @@ function makeNT(x, y) {
 
 
 // -----------------------------------------------------
-// UPDATE LOOP — FREE FLOW + ASTROCYTE SCATTER
+// UPDATE LOOP — FREE FLOW + FINITE ASTROCYTE
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
@@ -141,37 +140,41 @@ function updateSynapticBurst() {
 
 
     // -------------------------------------------
-    // ASTROCYTE MEMBRANE — TRUE CURVED REFLECTION
+    // ASTROCYTE INTERACTION (FINITE & SAFE)
     // -------------------------------------------
     if (typeof window.getAstrocyteBoundaryY === "function") {
 
       const astroY = window.getAstrocyteBoundaryY(p.x);
 
-      if (p.y < astroY + NT_RADIUS) {
+      // 🔑 ONLY interact if membrane exists here
+      if (astroY !== null && p.y < astroY + NT_RADIUS) {
 
-        // Push particle out of membrane
+        // Push NT just outside membrane
         p.y = astroY + NT_RADIUS;
 
-        // Numerical surface normal
+        // Compute local surface normal
         const eps = 1;
         const yL = window.getAstrocyteBoundaryY(p.x - eps);
         const yR = window.getAstrocyteBoundaryY(p.x + eps);
 
-        let nx = -(yR - yL);
-        let ny =  2 * eps;
+        if (yL !== null && yR !== null) {
 
-        const mag = Math.hypot(nx, ny) || 1;
-        nx /= mag;
-        ny /= mag;
+          let nx = -(yR - yL);
+          let ny =  2 * eps;
 
-        // Reflect velocity
-        const dot = p.vx * nx + p.vy * ny;
-        p.vx -= 2 * dot * nx;
-        p.vy -= 2 * dot * ny;
+          const mag = Math.hypot(nx, ny) || 1;
+          nx /= mag;
+          ny /= mag;
 
-        // Gentle damping to avoid chatter
-        p.vx *= 0.96;
-        p.vy *= 0.96;
+          // Reflect velocity
+          const dot = p.vx * nx + p.vy * ny;
+          p.vx -= 2 * dot * nx;
+          p.vy -= 2 * dot * ny;
+
+          // Gentle energy loss
+          p.vx *= 0.96;
+          p.vy *= 0.96;
+        }
       }
     }
 
