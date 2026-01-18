@@ -1,19 +1,16 @@
-console.log("🫧 synapticBurst loaded — DIRECTED FAN FLOW (NO COLLISIONS)");
+console.log("🫧 synapticBurst loaded — DIRECTED FAN w/ SELF-SEPARATION");
 
 // =====================================================
-// SYNAPTIC NEUROTRANSMITTER BURST — FAN-OUT FREE FLOW
+// SYNAPTIC NEUROTRANSMITTER BURST — FAN + SHEAR FLOW
 // =====================================================
 //
 // ✔ Vesicle-authoritative streaming
 // ✔ STRICT postsynaptic direction (+X)
-// ✔ Broad fan-out across cleft
-// ✔ Velocity-dominated motion
-// ✔ Minimal Brownian texture
+// ✔ Strong early fan-out (self-separation)
+// ✔ Forward velocity preserved
+// ✔ NO NT–NT collisions
+// ✔ NO membranes / astrocyte
 // ✔ Time-based decay ONLY
-// ✘ NO NT–NT collisions
-// ✘ NO membranes
-// ✘ NO astrocyte
-// ✘ NO volumetric constraints
 //
 // =====================================================
 
@@ -26,10 +23,10 @@ window.activeNTEmitters = window.activeNTEmitters || [];
 
 
 // -----------------------------------------------------
-// CORE TUNING — THESE ARE YOUR MAIN KNOBS
+// CORE TUNING (PRIMARY CONTROLS)
 // -----------------------------------------------------
 
-// Emission density (lower = looser cloud)
+// Density (lower = looser cloud)
 const NT_PER_FRAME_MIN = 1;
 const NT_PER_FRAME_MAX = 2;
 
@@ -37,18 +34,19 @@ const NT_PER_FRAME_MAX = 2;
 const NT_STREAM_DURATION_MIN = 18;
 const NT_STREAM_DURATION_MAX = 28;
 
-// Forward velocity (🔑 reach postsynapse)
+// Forward velocity
 const NT_FORWARD_SPEED_MIN = 0.40;
 const NT_FORWARD_SPEED_MAX = 0.55;
 
-// Initial vertical fan (at release)
-const NT_INITIAL_VY_RANGE = 0.12;
+// Initial fan strength (🔑 separation power)
+const NT_FAN_VY_MAX = 0.35;
 
-// Progressive fan-out (🔑 spread across cleft)
-const NT_FAN_ACCEL = 0.0025;
+// How long fan force acts (frames)
+const NT_FAN_DURATION_MIN = 25;
+const NT_FAN_DURATION_MAX = 45;
 
 // Motion texture
-const NT_BROWNIAN = 0.0015;
+const NT_BROWNIAN = 0.0012;
 const NT_DRAG_X   = 0.996;
 const NT_DRAG_Y   = 0.992;
 
@@ -64,7 +62,7 @@ const NT_RADIUS = 2.4;
 
 
 // -----------------------------------------------------
-// RELEASE EVENT → CREATE STREAM EMITTER
+// RELEASE EVENT → STREAM EMITTER
 // -----------------------------------------------------
 window.addEventListener("synapticRelease", (e) => {
 
@@ -82,25 +80,28 @@ window.addEventListener("synapticRelease", (e) => {
 
 
 // -----------------------------------------------------
-// NT FACTORY — DIRECTED FAN PARTICLE
+// NT FACTORY — FAN-OUT PARTICLE
 // -----------------------------------------------------
 function makeNT(x, y) {
 
-  // Random vertical sign ensures symmetric fan
   const fanSign = random() < 0.5 ? -1 : 1;
 
   return {
-    // Spawn just outside vesicle
-    x: x + random(1.0, 2.5),
-    y: y + random(-3, 3),
+    // spawn slightly forward of vesicle
+    x: x + random(1.2, 2.8),
+    y: y + random(-2.5, 2.5),
 
-    // Strong forward velocity ONLY
+    // forward ballistic motion
     vx: random(NT_FORWARD_SPEED_MIN, NT_FORWARD_SPEED_MAX),
 
-    // Initial vertical divergence
-    vy: fanSign * random(0, NT_INITIAL_VY_RANGE),
+    // initial lateral velocity
+    vy: fanSign * random(0.05, NT_FAN_VY_MAX),
 
-    // Fan direction memory
+    // early separation timer
+    fanFrames: Math.floor(
+      random(NT_FAN_DURATION_MIN, NT_FAN_DURATION_MAX)
+    ),
+
     fanSign,
 
     life: random(NT_LIFE_MIN, NT_LIFE_MAX),
@@ -110,7 +111,7 @@ function makeNT(x, y) {
 
 
 // -----------------------------------------------------
-// UPDATE LOOP — FAN-OUT FREE FLOW
+// UPDATE LOOP — FAN → BALLISTIC FLOW
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
@@ -141,16 +142,21 @@ function updateSynapticBurst() {
 
     const p = nts[i];
 
-    // Subtle texture only
+    // very subtle texture
     p.vx += random(-NT_BROWNIAN, NT_BROWNIAN);
     p.vy += random(-NT_BROWNIAN, NT_BROWNIAN);
 
-    // Progressive fan-out over time
-    p.vy += p.fanSign * NT_FAN_ACCEL;
+    // -------------------------------------------
+    // EARLY FAN-OUT (SELF-SEPARATION)
+    // -------------------------------------------
+    if (p.fanFrames > 0) {
+      p.vy += p.fanSign * 0.012;
+      p.fanFrames--;
+    }
 
-    // Enforce forward dominance
-    if (p.vx < NT_FORWARD_SPEED_MIN * 0.7) {
-      p.vx = NT_FORWARD_SPEED_MIN * 0.7;
+    // enforce forward dominance
+    if (p.vx < NT_FORWARD_SPEED_MIN * 0.75) {
+      p.vx = NT_FORWARD_SPEED_MIN * 0.75;
     }
 
     p.vx *= NT_DRAG_X;
