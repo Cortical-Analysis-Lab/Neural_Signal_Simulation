@@ -33,8 +33,8 @@ window.activeNTEmitters = window.activeNTEmitters || [];
 // -----------------------------------------------------
 
 // Emission density (🔑 LOWER = looser cloud)
-const NT_PER_FRAME_MIN = 0.3;
-const NT_PER_FRAME_MAX = 0.5;
+const NT_PER_FRAME_MIN = 0.5;
+const NT_PER_FRAME_MAX = 1;
 
 // Stream duration
 const NT_STREAM_DURATION_MIN = 18;
@@ -62,8 +62,8 @@ const NT_LIFE_MAX = 1500;
 // -----------------------------------------------------
 
 // Frames before collisions are allowed
-const NT_COLLISION_DELAY_MIN = 200;
-const NT_COLLISION_DELAY_MAX = 400;
+const NT_COLLISION_DELAY_MIN = 50;
+const NT_COLLISION_DELAY_MAX = 100;
 
 
 // -----------------------------------------------------
