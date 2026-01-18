@@ -37,8 +37,8 @@ const NT_PER_FRAME_MIN = 1;
 const NT_PER_FRAME_MAX = 2;
 
 // Initial velocity
-const NT_INITIAL_SPEED  = 0.2;
-const NT_INITIAL_SPREAD = 1;
+const NT_INITIAL_SPEED  = 0.34;
+const NT_INITIAL_SPREAD = 0.75;
 
 // Motion physics
 const NT_ADVECT_X = 0.018;
