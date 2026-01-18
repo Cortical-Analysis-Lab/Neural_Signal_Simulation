@@ -1,18 +1,19 @@
-console.log("🫧 synapticBurst loaded — WATERFALL FAN-OUT");
+console.log("🫧 synapticBurst loaded — FREE FLOW (NO COLLISIONS)");
 
 // =====================================================
-// SYNAPTIC NEUROTRANSMITTER BURST — WATERFALL JET
+// SYNAPTIC NEUROTRANSMITTER BURST — BIASED FREE GAS
 // =====================================================
 //
-// ✔ Vesicle-authoritative streaming
-// ✔ STRONG postsynaptic directionality (+X)
-// ✔ Natural fan-out over time (no collisions)
-// ✔ Sheet-like waterfall spread
+// ✔ Continuous streaming (non-pulsed)
+// ✔ Wide spatial plume
+// ✔ Net drift toward postsynapse (+X)
 // ✔ Velocity-dominated motion
+// ✔ Minimal Brownian texture
 // ✔ Time-based decay ONLY
-// ✘ NO membranes
-// ✘ NO astrocyte
 // ✘ NO NT–NT collisions
+// ✘ NO membranes
+// ✘ NO astrocyte interaction
+// ✘ NO slabs / boxes / clamps
 //
 // =====================================================
 
@@ -25,35 +26,28 @@ window.activeNTEmitters = window.activeNTEmitters || [];
 
 
 // -----------------------------------------------------
-// CORE TUNING — THESE ARE THE IMPORTANT KNOBS
+// CORE TUNING — FLOW + DENSITY
 // -----------------------------------------------------
 
-// Density (🔑 lower = looser plume)
-const NT_PER_FRAME_MIN = 0.5;
-const NT_PER_FRAME_MAX = 1.2;
+// Emission
+const NT_STREAM_DURATION_MIN = 16;
+const NT_STREAM_DURATION_MAX = 28;
 
-// Stream duration
-const NT_STREAM_DURATION_MIN = 20;
-const NT_STREAM_DURATION_MAX = 32;
+const NT_PER_FRAME_MIN = 1;
+const NT_PER_FRAME_MAX = 2;   // keep loose
 
-// Forward velocity (🔑 dominates everything)
-const NT_FORWARD_SPEED_MIN = 0.34;
-const NT_FORWARD_SPEED_MAX = 0.42;
+// Initial velocity
+const NT_INITIAL_SPEED  = 0.34;
+const NT_INITIAL_SPREAD = 0.75;   // wide plume
 
-// Initial narrowness at release
-const NT_INITIAL_VY_RANGE = 0.04;
+// Motion physics
+const NT_ADVECT_X = 0.018;        // 🔑 net drift toward postsynapse
+const NT_BROWNIAN = 0.003;        // subtle texture only
+const NT_DRAG     = 0.995;        // long glide
 
-// Fan-out growth over time (🔑 WATERFALL EFFECT)
-const NT_DIVERGENCE_RATE = 0.0022;
-
-// Motion texture
-const NT_BROWNIAN = 0.0015;
-const NT_DRAG_X   = 0.997;
-const NT_DRAG_Y   = 0.992;
-
-// Lifetime (~10–12 s)
-const NT_LIFE_MIN = 1200;
-const NT_LIFE_MAX = 1500;
+// Lifetime (~10–12 s @ 60 fps)
+const NT_LIFE_MIN = 1100;
+const NT_LIFE_MAX = 1400;
 
 
 // -----------------------------------------------------
@@ -63,7 +57,7 @@ const NT_RADIUS = 2.4;
 
 
 // -----------------------------------------------------
-// RELEASE EVENT → EMITTER
+// RELEASE EVENT → CREATE STREAM EMITTER
 // -----------------------------------------------------
 window.addEventListener("synapticRelease", (e) => {
 
@@ -81,32 +75,28 @@ window.addEventListener("synapticRelease", (e) => {
 
 
 // -----------------------------------------------------
-// NT FACTORY — BALLISTIC SEED
+// NT FACTORY — WIDE SOURCE (FOUNDATIONAL)
 // -----------------------------------------------------
 function makeNT(x, y) {
 
+  // Wide angular plume centered forward (+X)
+  const angle = random(-NT_INITIAL_SPREAD, NT_INITIAL_SPREAD);
+
   return {
-    x: x + random(1.5, 3.0),
+    x: x + random(-4, 4),
     y: y + random(-6, 6),
 
-    // Strong forward jet
-    vx: random(NT_FORWARD_SPEED_MIN, NT_FORWARD_SPEED_MAX),
-
-    // Almost no vertical bias at birth
-    vy: random(-NT_INITIAL_VY_RANGE, NT_INITIAL_VY_RANGE),
-
-    // Per-particle divergence accumulator
-    divergence: random(-1, 1),
+    vx: Math.cos(angle) * NT_INITIAL_SPEED,
+    vy: Math.sin(angle) * NT_INITIAL_SPEED,
 
     life: random(NT_LIFE_MIN, NT_LIFE_MAX),
-    age: 0,
     alpha: 255
   };
 }
 
 
 // -----------------------------------------------------
-// UPDATE LOOP — WATERFALL FLOW
+// UPDATE LOOP — PURE BIASED FREE FLOW
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
@@ -131,31 +121,22 @@ function updateSynapticBurst() {
   if (!nts.length) return;
 
   // -------------------------------------------
-  // PARTICLE DYNAMICS
+  // PARTICLE DYNAMICS (NO COLLISIONS)
   // -------------------------------------------
   for (let i = nts.length - 1; i >= 0; i--) {
 
     const p = nts[i];
-    p.age++;
 
-    // ---- forward dominance (never lost)
+    // Net forward advection
+    p.vx += NT_ADVECT_X;
+
+    // Gentle texture
     p.vx += random(-NT_BROWNIAN, NT_BROWNIAN);
-    if (p.vx < NT_FORWARD_SPEED_MIN * 0.7) {
-      p.vx = NT_FORWARD_SPEED_MIN * 0.7;
-    }
-
-    // ---- divergence grows with time (WATERFALL)
-    p.divergence += random(-0.15, 0.15);
-    p.vy += p.divergence * NT_DIVERGENCE_RATE * p.age;
-
-    // ---- texture only
     p.vy += random(-NT_BROWNIAN, NT_BROWNIAN);
 
-    // ---- drag
-    p.vx *= NT_DRAG_X;
-    p.vy *= NT_DRAG_Y;
+    p.vx *= NT_DRAG;
+    p.vy *= NT_DRAG;
 
-    // ---- integrate
     p.x += p.vx;
     p.y += p.vy;
 
