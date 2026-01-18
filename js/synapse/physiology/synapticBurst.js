@@ -1,16 +1,18 @@
-console.log("🫧 synapticBurst loaded — DIRECTED FAN w/ SELF-SEPARATION");
+console.log("🫧 synapticBurst loaded — WATERFALL FAN-OUT");
 
 // =====================================================
-// SYNAPTIC NEUROTRANSMITTER BURST — FAN + SHEAR FLOW
+// SYNAPTIC NEUROTRANSMITTER BURST — WATERFALL JET
 // =====================================================
 //
 // ✔ Vesicle-authoritative streaming
-// ✔ STRICT postsynaptic direction (+X)
-// ✔ Strong early fan-out (self-separation)
-// ✔ Forward velocity preserved
-// ✔ NO NT–NT collisions
-// ✔ NO membranes / astrocyte
+// ✔ STRONG postsynaptic directionality (+X)
+// ✔ Natural fan-out over time (no collisions)
+// ✔ Sheet-like waterfall spread
+// ✔ Velocity-dominated motion
 // ✔ Time-based decay ONLY
+// ✘ NO membranes
+// ✘ NO astrocyte
+// ✘ NO NT–NT collisions
 //
 // =====================================================
 
@@ -23,36 +25,35 @@ window.activeNTEmitters = window.activeNTEmitters || [];
 
 
 // -----------------------------------------------------
-// CORE TUNING (PRIMARY CONTROLS)
+// CORE TUNING — THESE ARE THE IMPORTANT KNOBS
 // -----------------------------------------------------
 
-// Density (lower = looser cloud)
-const NT_PER_FRAME_MIN = 1;
-const NT_PER_FRAME_MAX = 2;
+// Density (🔑 lower = looser plume)
+const NT_PER_FRAME_MIN = 0.5;
+const NT_PER_FRAME_MAX = 1.2;
 
 // Stream duration
-const NT_STREAM_DURATION_MIN = 18;
-const NT_STREAM_DURATION_MAX = 28;
+const NT_STREAM_DURATION_MIN = 20;
+const NT_STREAM_DURATION_MAX = 32;
 
-// Forward velocity
-const NT_FORWARD_SPEED_MIN = 0.40;
-const NT_FORWARD_SPEED_MAX = 0.55;
+// Forward velocity (🔑 dominates everything)
+const NT_FORWARD_SPEED_MIN = 0.34;
+const NT_FORWARD_SPEED_MAX = 0.42;
 
-// Initial fan strength (🔑 separation power)
-const NT_FAN_VY_MAX = 0.35;
+// Initial narrowness at release
+const NT_INITIAL_VY_RANGE = 0.04;
 
-// How long fan force acts (frames)
-const NT_FAN_DURATION_MIN = 25;
-const NT_FAN_DURATION_MAX = 45;
+// Fan-out growth over time (🔑 WATERFALL EFFECT)
+const NT_DIVERGENCE_RATE = 0.0022;
 
 // Motion texture
-const NT_BROWNIAN = 0.0012;
-const NT_DRAG_X   = 0.996;
+const NT_BROWNIAN = 0.0015;
+const NT_DRAG_X   = 0.997;
 const NT_DRAG_Y   = 0.992;
 
-// Lifetime
-const NT_LIFE_MIN = 1100;
-const NT_LIFE_MAX = 1400;
+// Lifetime (~10–12 s)
+const NT_LIFE_MIN = 1200;
+const NT_LIFE_MAX = 1500;
 
 
 // -----------------------------------------------------
@@ -62,7 +63,7 @@ const NT_RADIUS = 2.4;
 
 
 // -----------------------------------------------------
-// RELEASE EVENT → STREAM EMITTER
+// RELEASE EVENT → EMITTER
 // -----------------------------------------------------
 window.addEventListener("synapticRelease", (e) => {
 
@@ -80,38 +81,32 @@ window.addEventListener("synapticRelease", (e) => {
 
 
 // -----------------------------------------------------
-// NT FACTORY — FAN-OUT PARTICLE
+// NT FACTORY — BALLISTIC SEED
 // -----------------------------------------------------
 function makeNT(x, y) {
 
-  const fanSign = random() < 0.5 ? -1 : 1;
-
   return {
-    // spawn slightly forward of vesicle
-    x: x + random(1.2, 2.8),
-    y: y + random(-2.5, 2.5),
+    x: x + random(1.5, 3.0),
+    y: y + random(-6, 6),
 
-    // forward ballistic motion
+    // Strong forward jet
     vx: random(NT_FORWARD_SPEED_MIN, NT_FORWARD_SPEED_MAX),
 
-    // initial lateral velocity
-    vy: fanSign * random(0.05, NT_FAN_VY_MAX),
+    // Almost no vertical bias at birth
+    vy: random(-NT_INITIAL_VY_RANGE, NT_INITIAL_VY_RANGE),
 
-    // early separation timer
-    fanFrames: Math.floor(
-      random(NT_FAN_DURATION_MIN, NT_FAN_DURATION_MAX)
-    ),
-
-    fanSign,
+    // Per-particle divergence accumulator
+    divergence: random(-1, 1),
 
     life: random(NT_LIFE_MIN, NT_LIFE_MAX),
+    age: 0,
     alpha: 255
   };
 }
 
 
 // -----------------------------------------------------
-// UPDATE LOOP — FAN → BALLISTIC FLOW
+// UPDATE LOOP — WATERFALL FLOW
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
@@ -119,7 +114,7 @@ function updateSynapticBurst() {
   const emitters = window.activeNTEmitters;
 
   // -------------------------------------------
-  // STREAM EMISSION
+  // STREAMING EMISSION
   // -------------------------------------------
   for (let i = emitters.length - 1; i >= 0; i--) {
 
@@ -141,27 +136,26 @@ function updateSynapticBurst() {
   for (let i = nts.length - 1; i >= 0; i--) {
 
     const p = nts[i];
+    p.age++;
 
-    // very subtle texture
+    // ---- forward dominance (never lost)
     p.vx += random(-NT_BROWNIAN, NT_BROWNIAN);
+    if (p.vx < NT_FORWARD_SPEED_MIN * 0.7) {
+      p.vx = NT_FORWARD_SPEED_MIN * 0.7;
+    }
+
+    // ---- divergence grows with time (WATERFALL)
+    p.divergence += random(-0.15, 0.15);
+    p.vy += p.divergence * NT_DIVERGENCE_RATE * p.age;
+
+    // ---- texture only
     p.vy += random(-NT_BROWNIAN, NT_BROWNIAN);
 
-    // -------------------------------------------
-    // EARLY FAN-OUT (SELF-SEPARATION)
-    // -------------------------------------------
-    if (p.fanFrames > 0) {
-      p.vy += p.fanSign * 0.012;
-      p.fanFrames--;
-    }
-
-    // enforce forward dominance
-    if (p.vx < NT_FORWARD_SPEED_MIN * 0.75) {
-      p.vx = NT_FORWARD_SPEED_MIN * 0.75;
-    }
-
+    // ---- drag
     p.vx *= NT_DRAG_X;
     p.vy *= NT_DRAG_Y;
 
+    // ---- integrate
     p.x += p.vx;
     p.y += p.vy;
 
