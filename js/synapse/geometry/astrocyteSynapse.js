@@ -6,7 +6,7 @@ console.log("🟣 astrocyteSynapse loaded");
 const ASTRO_PURPLE = window.COLORS?.astrocyte ?? [185, 145, 220];
 
 // =====================================================
-// ASTROCYTE POSITION (AUTHORITATIVE)
+// ASTROCYTE POSITION (DRAW SPACE ONLY)
 // =====================================================
 const ASTRO_Y_OFFSET = -140;
 
@@ -73,38 +73,34 @@ function drawAstrocyteSynapse() {
 }
 
 // =====================================================
-// 🔑 ASTROCYTE MEMBRANE SAMPLER (PHYSICS ONLY)
+// 🔑 ASTROCYTE MEMBRANE SAMPLER (PHYSICS SPACE ONLY)
 // =====================================================
 //
-// Returns the Y position of the *lower astrocyte membrane*
-// that faces the synaptic cleft.
+// Returns Y position of the *lower astrocyte membrane*
+// in SYNAPSE-LOCAL coordinates.
 //
 // IMPORTANT:
+// • NO ASTRO_Y_OFFSET here
 // • Finite in X
 // • No clamping outside bounds
-// • NO side effects
 //
 window.getAstrocyteBoundaryY = function (x) {
 
-  // Outside astrocyte → no membrane
   if (!Number.isFinite(x) || x < ASTRO_X_MIN || x > ASTRO_X_MAX) {
     return null;
   }
 
-  // Normalize lateral distance
   const t = Math.abs(x) / ASTRO_X_MAX;
 
-  // LOWER membrane curvature
-  // Matches drawn contour exactly
-  const yLocal =
-    65 -                // rim
-    45 * (t * t);       // dome rise toward center
-
-  return ASTRO_Y_OFFSET + yLocal;
+  // LOWER membrane curvature (local space)
+  return (
+    65 -
+    45 * (t * t)
+  );
 };
 
 // =====================================================
-// 🧪 DEBUG DRAW — MEMBRANE VISUALIZATION
+// 🧪 DEBUG DRAW — MEMBRANE VISUALIZATION (RED LINE)
 // =====================================================
 function drawAstrocyteBoundaryDebug() {
 
@@ -112,6 +108,7 @@ function drawAstrocyteBoundaryDebug() {
   if (!D.enabled) return;
 
   push();
+  translate(0, ASTRO_Y_OFFSET); // 🔑 DRAW SPACE ONLY
 
   stroke(...D.color, D.alpha);
   strokeWeight(D.lineWeight);
