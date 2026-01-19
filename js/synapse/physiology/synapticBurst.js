@@ -167,9 +167,15 @@ function updateSynapticBurst() {
           const yR = window.getAstrocyteBoundaryY(p.x + eps);
 
           if (yL !== null && yR !== null) {
+          let nx = -(yR - yL);
+          let ny =  2 * eps;
+          
+          // Ensure normal opposes incoming velocity
+          if (p.vx * nx + p.vy * ny > 0) {
+            nx = -nx;
+            ny = -ny;
+}
 
-            let nx = -(yR - yL);
-            let ny =  2 * eps;
 
             const mag = Math.hypot(nx, ny) || 1;
             nx /= mag;
