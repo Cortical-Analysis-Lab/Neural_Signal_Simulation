@@ -1,20 +1,19 @@
-console.log("🫧 synapticBurst loaded — FREE FLOW + FINITE ASTROCYTE (DEBUGGED)");
+console.log("🫧 synapticBurst loaded — FREE FLOW + FINITE ASTROCYTE (FINAL, HARD-BOUNDARY)");
 
 // =====================================================
 // SYNAPTIC NEUROTRANSMITTER BURST — BIASED FREE GAS
 // =====================================================
 //
-// ✔ Continuous streaming (non-pulsed)
+// ✔ Continuous streaming
 // ✔ Wide spatial plume
 // ✔ Net drift toward postsynapse (+X)
-// ✔ Velocity-dominated motion
 // ✔ Minimal Brownian texture
 // ✔ Time-based decay ONLY
 // ✔ Astrocyte interaction ONLY via visible membrane
-// ✔ One-sided, crossing-based collision
+// ✔ One-sided impermeable membrane (GUARANTEED)
 //
-// DEBUG ADDITIONS:
-// ✔ ORANGE line = boundary as used by synapticBurst.js
+// DEBUG:
+// ✔ ORANGE line = physics boundary used here
 //
 // =====================================================
 
@@ -27,7 +26,7 @@ window.activeNTEmitters = window.activeNTEmitters || [];
 
 
 // -----------------------------------------------------
-// CORE TUNING — FLOW + DENSITY
+// CORE TUNING
 // -----------------------------------------------------
 const NT_STREAM_DURATION_MIN = 16;
 const NT_STREAM_DURATION_MAX = 28;
@@ -35,28 +34,25 @@ const NT_STREAM_DURATION_MAX = 28;
 const NT_PER_FRAME_MIN = 1;
 const NT_PER_FRAME_MAX = 2;
 
-// Initial velocity
 const NT_INITIAL_SPEED  = 0.34;
 const NT_INITIAL_SPREAD = 0.75;
 
-// Motion physics
 const NT_ADVECT_X = 0.018;
 const NT_BROWNIAN = 0.003;
 const NT_DRAG     = 0.995;
 
-// Lifetime
 const NT_LIFE_MIN = 1100;
 const NT_LIFE_MAX = 1400;
 
 
 // -----------------------------------------------------
-// GEOMETRY
+// GEOMETRY (DRAW ONLY)
 // -----------------------------------------------------
-const NT_RADIUS = 2.4; // draw-only
+const NT_RADIUS = 2.4;
 
 
 // -----------------------------------------------------
-// RELEASE EVENT → STREAM EMITTER
+// RELEASE EVENT
 // -----------------------------------------------------
 window.addEventListener("synapticRelease", (e) => {
 
@@ -101,9 +97,7 @@ function updateSynapticBurst() {
   const nts = window.synapticNTs;
   const emitters = window.activeNTEmitters;
 
-  // -------------------------------------------
-  // STREAMING EMISSION
-  // -------------------------------------------
+  // ---- streaming emission ----
   for (let i = emitters.length - 1; i >= 0; i--) {
 
     const e = emitters[i];
@@ -118,14 +112,12 @@ function updateSynapticBurst() {
 
   if (!nts.length) return;
 
-  // -------------------------------------------
-  // PARTICLE DYNAMICS
-  // -------------------------------------------
+  // ---- particle dynamics ----
   for (let i = nts.length - 1; i >= 0; i--) {
 
     const p = nts[i];
 
-    // Forces
+    // forces
     p.vx += NT_ADVECT_X;
     p.vx += random(-NT_BROWNIAN, NT_BROWNIAN);
     p.vy += random(-NT_BROWNIAN, NT_BROWNIAN);
@@ -133,32 +125,24 @@ function updateSynapticBurst() {
     p.vx *= NT_DRAG;
     p.vy *= NT_DRAG;
 
-    // Integrate
-    const prevY = p.y;
-
+    // integrate
     p.x += p.vx;
     p.y += p.vy;
 
-    // -------------------------------------------
-    // ASTROCYTE MEMBRANE — ONE-SIDED (p5 Y-CORRECT)
-    // -------------------------------------------
+    // ---- ASTROCYTE HARD BOUNDARY (ONE-SIDED) ----
     if (typeof window.getAstrocyteBoundaryY === "function") {
 
       const astroY = window.getAstrocyteBoundaryY(p.x);
 
       if (astroY !== null) {
 
-        // p5.js Y AXIS:
-        //  - larger Y = lower on screen
-        //  - NT in cleft has Y > astroY
-        //  - NT enters astrocyte when crossing DOWNWARD past astroY
+        // ❗ ABSOLUTE EXCLUSION
+        if (p.y < astroY) {
 
-        if (prevY > astroY && p.y <= astroY) {
-
-          // Clamp to membrane
+          // snap to membrane
           p.y = astroY;
 
-          // Bounce back into cleft
+          // reflect upward motion only
           if (p.vy < 0) {
             p.vy = -p.vy * 0.96;
           }
@@ -166,9 +150,7 @@ function updateSynapticBurst() {
       }
     }
 
-    // -------------------------------------------
-    // TIME-ONLY DECAY
-    // -------------------------------------------
+    // ---- decay ----
     p.life--;
     p.alpha = map(p.life, 0, NT_LIFE_MAX, 0, 255, true);
 
@@ -199,14 +181,14 @@ function drawSynapticBurst() {
 
 
 // -----------------------------------------------------
-// 🟠 DEBUG DRAW — PHYSICS BOUNDARY (AUTHORITATIVE)
+// 🟠 DEBUG DRAW — PHYSICS BOUNDARY
 // -----------------------------------------------------
 function drawSynapticBurstPhysicsBoundaryDebug() {
 
   if (typeof window.getAstrocyteBoundaryY !== "function") return;
 
   push();
-  stroke(255, 160, 40, 220);   // ORANGE
+  stroke(255, 160, 40, 220);
   strokeWeight(2);
   noFill();
 
@@ -226,7 +208,5 @@ function drawSynapticBurstPhysicsBoundaryDebug() {
 // -----------------------------------------------------
 window.updateSynapticBurst = updateSynapticBurst;
 window.drawSynapticBurst   = drawSynapticBurst;
-
-// DEBUG EXPORT
 window.drawSynapticBurstPhysicsBoundaryDebug =
   drawSynapticBurstPhysicsBoundaryDebug;
