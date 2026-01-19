@@ -1,4 +1,4 @@
-console.log("🫧 synapticBurst loaded — FREE FLOW + FINITE ASTROCYTE (CROSSING-BASED)");
+console.log("🫧 synapticBurst loaded — FREE FLOW + FINITE ASTROCYTE (CROSSING-BASED, ONE-SIDED)");
 
 // =====================================================
 // SYNAPTIC NEUROTRANSMITTER BURST — BIASED FREE GAS
@@ -11,7 +11,7 @@ console.log("🫧 synapticBurst loaded — FREE FLOW + FINITE ASTROCYTE (CROSSIN
 // ✔ Minimal Brownian texture
 // ✔ Time-based decay ONLY
 // ✔ Astrocyte interaction ONLY via visible membrane
-// ✔ Crossing-based collision (NO hover slabs)
+// ✔ One-sided, crossing-based collision (GUARANTEED bounce)
 //
 // ✘ NO NT–NT collisions
 // ✘ NO presynaptic / postsynaptic walls
@@ -20,7 +20,7 @@ console.log("🫧 synapticBurst loaded — FREE FLOW + FINITE ASTROCYTE (CROSSIN
 // CONTRACT:
 // • getAstrocyteBoundaryY(x) MUST return WORLD Y
 // • synapticBurst applies NO offsets
-// • Collision occurs ONLY on membrane crossing
+// • Collision occurs ONLY when NT attempts to ENTER astrocyte
 //
 // =====================================================
 
@@ -58,7 +58,7 @@ const NT_LIFE_MAX = 1400;
 // -----------------------------------------------------
 // GEOMETRY
 // -----------------------------------------------------
-const NT_RADIUS = 2.4; // draw-only (NOT used for collision)
+const NT_RADIUS = 2.4; // draw-only
 
 
 // -----------------------------------------------------
@@ -140,14 +140,13 @@ function updateSynapticBurst() {
     p.vy *= NT_DRAG;
 
     // --- integrate ---
-    const prevX = p.x;
     const prevY = p.y;
 
     p.x += p.vx;
     p.y += p.vy;
 
     // -------------------------------------------
-    // ASTROCYTE COLLISION — CROSSING-BASED
+    // ASTROCYTE MEMBRANE — ONE-SIDED BOUNCE
     // -------------------------------------------
     if (typeof window.getAstrocyteBoundaryY === "function") {
 
@@ -155,40 +154,15 @@ function updateSynapticBurst() {
 
       if (astroY !== null) {
 
-        // Detect downward crossing of membrane
-          if (prevY < astroY && p.y >= astroY) {
+        // NT attempts to ENTER astrocyte from cleft
+        if (prevY < astroY && p.y >= astroY) {
 
-          // Clamp exactly to visible membrane
+          // Clamp exactly to membrane
           p.y = astroY;
 
-          // Estimate surface normal (finite difference)
-          const eps = 1;
-          const yL = window.getAstrocyteBoundaryY(p.x - eps);
-          const yR = window.getAstrocyteBoundaryY(p.x + eps);
-
-          if (yL !== null && yR !== null) {
-          let nx = -(yR - yL);
-          let ny =  2 * eps;
-          
-          // Ensure normal opposes incoming velocity
-          if (p.vx * nx + p.vy * ny > 0) {
-            nx = -nx;
-            ny = -ny;
-}
-
-
-            const mag = Math.hypot(nx, ny) || 1;
-            nx /= mag;
-            ny /= mag;
-
-            // Reflect velocity
-            const dot = p.vx * nx + p.vy * ny;
-            p.vx -= 2 * dot * nx;
-            p.vy -= 2 * dot * ny;
-
-            // Gentle biological damping
-            p.vx *= 0.96;
-            p.vy *= 0.96;
+          // Reflect vertical component ONLY
+          if (p.vy > 0) {
+            p.vy = -p.vy * 0.96; // biological damping
           }
         }
       }
