@@ -1,4 +1,4 @@
-console.log("🫧 synapticBurst loaded — FREE FLOW + FINITE ASTROCYTE (FINAL, HARD-BOUNDARY)");
+console.log("🫧 synapticBurst loaded — FREE FLOW + FINITE ASTROCYTE (CROSSING-ONLY, STABLE)");
 
 // =====================================================
 // SYNAPTIC NEUROTRANSMITTER BURST — BIASED FREE GAS
@@ -10,7 +10,7 @@ console.log("🫧 synapticBurst loaded — FREE FLOW + FINITE ASTROCYTE (FINAL, 
 // ✔ Minimal Brownian texture
 // ✔ Time-based decay ONLY
 // ✔ Astrocyte interaction ONLY via visible membrane
-// ✔ One-sided impermeable membrane (GUARANTEED)
+// ✔ One-sided membrane (CROSSING-BASED — NO SLAB)
 //
 // DEBUG:
 // ✔ ORANGE line = physics boundary used here
@@ -126,26 +126,34 @@ function updateSynapticBurst() {
     p.vy *= NT_DRAG;
 
     // integrate
+    const prevY = p.y;
+
     p.x += p.vx;
     p.y += p.vy;
 
-    // ---- ASTROCYTE HARD BOUNDARY (ONE-SIDED) ----
+    // ---- ASTROCYTE MEMBRANE (ONE-SIDED, CROSSING ONLY) ----
     if (typeof window.getAstrocyteBoundaryY === "function") {
 
       const astroY = window.getAstrocyteBoundaryY(p.x);
 
       if (astroY !== null) {
 
-        // ❗ ABSOLUTE EXCLUSION
-        if (p.y < astroY) {
+        // p5.js Y-axis:
+        //  - smaller Y = higher on screen
+        //  - NT is in cleft when prevY > astroY
+        //  - NT attempts entry when moving upward past astroY
+        const crossedIntoAstrocyte =
+          p.vy < 0 &&          // moving upward
+          prevY > astroY &&    // was in cleft
+          p.y <= astroY;       // crossed membrane
 
-          // snap to membrane
+        if (crossedIntoAstrocyte) {
+
+          // Clamp ONCE to membrane
           p.y = astroY;
 
-          // reflect upward motion only
-          if (p.vy < 0) {
-            p.vy = -p.vy * 0.96;
-          }
+          // Reflect upward velocity
+          p.vy = -p.vy * 0.96;
         }
       }
     }
