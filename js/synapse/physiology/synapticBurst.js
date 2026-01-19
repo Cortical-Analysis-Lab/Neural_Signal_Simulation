@@ -10,16 +10,20 @@ console.log("🫧 synapticBurst loaded — FREE FLOW + FINITE ASTROCYTE");
 // ✔ Velocity-dominated motion
 // ✔ Minimal Brownian texture
 // ✔ Time-based decay ONLY
-// ✔ Astrocyte interaction ONLY within footprint
+// ✔ Astrocyte interaction ONLY via visible membrane
 // ✘ NO NT–NT collisions
 // ✘ NO presynaptic / postsynaptic walls
 // ✘ NO global slabs / invisible planes
+//
+// CONTRACT:
+// • getAstrocyteBoundaryY(x) MUST return WORLD Y
+// • synapticBurst applies NO offsets
 //
 // =====================================================
 
 
 // -----------------------------------------------------
-// STORAGE
+// STORAGE (RELOAD-SAFE)
 // -----------------------------------------------------
 window.synapticNTs = window.synapticNTs || [];
 window.activeNTEmitters = window.activeNTEmitters || [];
@@ -61,7 +65,7 @@ const NT_RADIUS = 2.4;
 window.addEventListener("synapticRelease", (e) => {
 
   const { x, y, strength = 1 } = e.detail || {};
-  if (!isFinite(x) || !isFinite(y)) return;
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return;
 
   window.activeNTEmitters.push({
     x,
@@ -74,7 +78,7 @@ window.addEventListener("synapticRelease", (e) => {
 
 
 // -----------------------------------------------------
-// NT FACTORY — FOUNDATIONAL VERSION (UNCHANGED)
+// NT FACTORY — FOUNDATIONAL VERSION
 // -----------------------------------------------------
 function makeNT(x, y) {
 
@@ -125,40 +129,43 @@ function updateSynapticBurst() {
 
     const p = nts[i];
 
-    // Net forward advection
+    // Net forward advection (toward postsynapse)
     p.vx += NT_ADVECT_X;
 
-    // Gentle texture
+    // Gentle Brownian texture
     p.vx += random(-NT_BROWNIAN, NT_BROWNIAN);
     p.vy += random(-NT_BROWNIAN, NT_BROWNIAN);
 
+    // Drag
     p.vx *= NT_DRAG;
     p.vy *= NT_DRAG;
 
+    // Integrate position
     p.x += p.vx;
     p.y += p.vy;
 
-
     // -------------------------------------------
-    // ASTROCYTE INTERACTION (FINITE & SAFE)
+    // ASTROCYTE INTERACTION (WORLD-SPACE, FINITE)
     // -------------------------------------------
     if (typeof window.getAstrocyteBoundaryY === "function") {
 
       const astroY = window.getAstrocyteBoundaryY(p.x);
 
-      // 🔑 ONLY interact if membrane exists here
+      // 🔑 ONLY interact where membrane exists
       if (astroY !== null && p.y < astroY + NT_RADIUS) {
 
-        // Push NT just outside membrane
+        // Push NT just outside visible membrane
         p.y = astroY + NT_RADIUS;
 
-        // Compute local surface normal
+        // Estimate surface normal via finite difference
         const eps = 1;
+
         const yL = window.getAstrocyteBoundaryY(p.x - eps);
         const yR = window.getAstrocyteBoundaryY(p.x + eps);
 
         if (yL !== null && yR !== null) {
 
+          // Tangent slope → normal
           let nx = -(yR - yL);
           let ny =  2 * eps;
 
@@ -171,13 +178,12 @@ function updateSynapticBurst() {
           p.vx -= 2 * dot * nx;
           p.vy -= 2 * dot * ny;
 
-          // Gentle energy loss
+          // Gentle energy loss (biological damping)
           p.vx *= 0.96;
           p.vy *= 0.96;
         }
       }
     }
-
 
     // -------------------------------------------
     // TIME-ONLY DECAY
