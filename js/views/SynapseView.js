@@ -137,9 +137,10 @@ function drawSynapseView() {
   // ---------------------------------------------------
   // ASTROCYTE (DRAW FIRST)
   // ---------------------------------------------------
-  drawAstrocyteSynapse?.();
-  drawAstrocyteBoundaryDebug();        // 🔴 red = intended
-  drawAstrocytePhysicsBoundaryDebug(); // 🔵 blue = actual
+    drawAstrocyteSynapse();                    // purple astrocyte
+    drawAstrocyteBoundaryDebug();              // red (design intent)
+    drawAstrocytePhysicsBoundaryDebug();       // blue (astrocyte module)
+    drawSynapticBurstPhysicsBoundaryDebug();   // 🟠 ORANGE (NT physics truth)
 
 
   // ---------------------------------------------------
