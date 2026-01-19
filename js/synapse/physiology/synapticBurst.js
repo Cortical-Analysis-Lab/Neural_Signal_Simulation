@@ -1,4 +1,4 @@
-console.log("🫧 synapticBurst loaded — FREE FLOW + FINITE ASTROCYTE (CROSSING-BASED, ONE-SIDED)");
+console.log("🫧 synapticBurst loaded — FREE FLOW + FINITE ASTROCYTE (DEBUGGED)");
 
 // =====================================================
 // SYNAPTIC NEUROTRANSMITTER BURST — BIASED FREE GAS
@@ -11,16 +11,10 @@ console.log("🫧 synapticBurst loaded — FREE FLOW + FINITE ASTROCYTE (CROSSIN
 // ✔ Minimal Brownian texture
 // ✔ Time-based decay ONLY
 // ✔ Astrocyte interaction ONLY via visible membrane
-// ✔ One-sided, crossing-based collision (GUARANTEED bounce)
+// ✔ One-sided, crossing-based collision
 //
-// ✘ NO NT–NT collisions
-// ✘ NO presynaptic / postsynaptic walls
-// ✘ NO global slabs / invisible planes
-//
-// CONTRACT:
-// • getAstrocyteBoundaryY(x) MUST return WORLD Y
-// • synapticBurst applies NO offsets
-// • Collision occurs ONLY when NT attempts to ENTER astrocyte
+// DEBUG ADDITIONS:
+// ✔ ORANGE line = boundary as used by synapticBurst.js
 //
 // =====================================================
 
@@ -80,7 +74,7 @@ window.addEventListener("synapticRelease", (e) => {
 
 
 // -----------------------------------------------------
-// NT FACTORY — FOUNDATIONAL VERSION
+// NT FACTORY
 // -----------------------------------------------------
 function makeNT(x, y) {
 
@@ -100,7 +94,7 @@ function makeNT(x, y) {
 
 
 // -----------------------------------------------------
-// UPDATE LOOP — FREE FLOW + FINITE ASTROCYTE
+// UPDATE LOOP
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
@@ -131,7 +125,7 @@ function updateSynapticBurst() {
 
     const p = nts[i];
 
-    // --- forces ---
+    // Forces
     p.vx += NT_ADVECT_X;
     p.vx += random(-NT_BROWNIAN, NT_BROWNIAN);
     p.vy += random(-NT_BROWNIAN, NT_BROWNIAN);
@@ -139,14 +133,14 @@ function updateSynapticBurst() {
     p.vx *= NT_DRAG;
     p.vy *= NT_DRAG;
 
-    // --- integrate ---
+    // Integrate
     const prevY = p.y;
 
     p.x += p.vx;
     p.y += p.vy;
 
     // -------------------------------------------
-    // ASTROCYTE MEMBRANE — ONE-SIDED BOUNCE
+    // ASTROCYTE MEMBRANE — ONE-SIDED (p5 Y-CORRECT)
     // -------------------------------------------
     if (typeof window.getAstrocyteBoundaryY === "function") {
 
@@ -154,15 +148,19 @@ function updateSynapticBurst() {
 
       if (astroY !== null) {
 
-        // NT attempts to ENTER astrocyte from cleft
-        if (prevY < astroY && p.y >= astroY) {
+        // p5.js Y AXIS:
+        //  - larger Y = lower on screen
+        //  - NT in cleft has Y > astroY
+        //  - NT enters astrocyte when crossing DOWNWARD past astroY
 
-          // Clamp exactly to membrane
+        if (prevY > astroY && p.y <= astroY) {
+
+          // Clamp to membrane
           p.y = astroY;
 
-          // Reflect vertical component ONLY
-          if (p.vy > 0) {
-            p.vy = -p.vy * 0.96; // biological damping
+          // Bounce back into cleft
+          if (p.vy < 0) {
+            p.vy = -p.vy * 0.96;
           }
         }
       }
@@ -180,7 +178,7 @@ function updateSynapticBurst() {
 
 
 // -----------------------------------------------------
-// DRAW
+// DRAW NTs
 // -----------------------------------------------------
 function drawSynapticBurst() {
 
@@ -201,7 +199,34 @@ function drawSynapticBurst() {
 
 
 // -----------------------------------------------------
+// 🟠 DEBUG DRAW — PHYSICS BOUNDARY (AUTHORITATIVE)
+// -----------------------------------------------------
+function drawSynapticBurstPhysicsBoundaryDebug() {
+
+  if (typeof window.getAstrocyteBoundaryY !== "function") return;
+
+  push();
+  stroke(255, 160, 40, 220);   // ORANGE
+  strokeWeight(2);
+  noFill();
+
+  beginShape();
+  for (let x = -300; x <= 300; x += 6) {
+    const y = window.getAstrocyteBoundaryY(x);
+    if (y !== null) vertex(x, y);
+  }
+  endShape();
+
+  pop();
+}
+
+
+// -----------------------------------------------------
 // EXPORTS
 // -----------------------------------------------------
 window.updateSynapticBurst = updateSynapticBurst;
 window.drawSynapticBurst   = drawSynapticBurst;
+
+// DEBUG EXPORT
+window.drawSynapticBurstPhysicsBoundaryDebug =
+  drawSynapticBurstPhysicsBoundaryDebug;
