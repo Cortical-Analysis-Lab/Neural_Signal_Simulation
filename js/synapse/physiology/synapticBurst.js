@@ -156,7 +156,7 @@ function updateSynapticBurst() {
       if (astroY !== null) {
 
         // Detect downward crossing of membrane
-        if (prevY >= astroY && p.y < astroY) {
+          if (prevY < astroY && p.y >= astroY) {
 
           // Clamp exactly to visible membrane
           p.y = astroY;
