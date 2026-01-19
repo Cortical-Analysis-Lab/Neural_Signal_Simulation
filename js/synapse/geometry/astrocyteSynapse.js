@@ -6,7 +6,7 @@ console.log("🟣 astrocyteSynapse loaded");
 const ASTRO_PURPLE = window.COLORS?.astrocyte ?? [185, 145, 220];
 
 // =====================================================
-// ASTROCYTE POSITION (DRAW SPACE ONLY)
+// ASTROCYTE POSITION (WORLD / DRAW SPACE)
 // =====================================================
 const ASTRO_Y_OFFSET = -140;
 
@@ -73,18 +73,14 @@ function drawAstrocyteSynapse() {
 }
 
 // =====================================================
-// 🔑 ASTROCYTE MEMBRANE SAMPLER (PHYSICS SPACE ONLY)
+// 🔑 ASTROCYTE MEMBRANE — LOCAL SHAPE (INTERNAL)
 // =====================================================
 //
-// Returns Y position of the *lower astrocyte membrane*
-// in SYNAPSE-LOCAL coordinates.
+// Returns Y of LOWER astrocyte membrane
+// in *LOCAL* synapse coordinates.
+// Not exported.
 //
-// IMPORTANT:
-// • NO ASTRO_Y_OFFSET here
-// • Finite in X
-// • No clamping outside bounds
-//
-window.getAstrocyteBoundaryY = function (x) {
+function getAstrocyteBoundaryLocalY(x) {
 
   if (!Number.isFinite(x) || x < ASTRO_X_MIN || x > ASTRO_X_MAX) {
     return null;
@@ -93,10 +89,22 @@ window.getAstrocyteBoundaryY = function (x) {
   const t = Math.abs(x) / ASTRO_X_MAX;
 
   // LOWER membrane curvature (local space)
-  return (
-    65 -
-    45 * (t * t)
-  );
+  return 65 - 45 * (t * t);
+}
+
+// =====================================================
+// 🔑 ASTROCYTE MEMBRANE — WORLD SPACE (AUTHORITATIVE)
+// =====================================================
+//
+// This is the ONLY sampler external systems should use.
+// NT physics MUST use this.
+//
+window.getAstrocyteBoundaryY = function (x) {
+
+  const yLocal = getAstrocyteBoundaryLocalY(x);
+  if (yLocal === null) return null;
+
+  return yLocal + ASTRO_Y_OFFSET;
 };
 
 // =====================================================
@@ -108,7 +116,7 @@ function drawAstrocyteBoundaryDebug() {
   if (!D.enabled) return;
 
   push();
-  translate(0, ASTRO_Y_OFFSET); // 🔑 DRAW SPACE ONLY
+  translate(0, ASTRO_Y_OFFSET);
 
   stroke(...D.color, D.alpha);
   strokeWeight(D.lineWeight);
@@ -117,7 +125,7 @@ function drawAstrocyteBoundaryDebug() {
   // ---- boundary curve ----
   beginShape();
   for (let x = ASTRO_X_MIN; x <= ASTRO_X_MAX; x += D.sampleStep) {
-    const y = window.getAstrocyteBoundaryY(x);
+    const y = getAstrocyteBoundaryLocalY(x);
     if (y !== null) vertex(x, y);
   }
   endShape();
@@ -128,7 +136,7 @@ function drawAstrocyteBoundaryDebug() {
     fill(...D.color, 220);
 
     for (let x = ASTRO_X_MIN; x <= ASTRO_X_MAX; x += D.sampleStep * 4) {
-      const y = window.getAstrocyteBoundaryY(x);
+      const y = getAstrocyteBoundaryLocalY(x);
       if (y !== null) circle(x, y, D.pointSize);
     }
   }
@@ -139,8 +147,8 @@ function drawAstrocyteBoundaryDebug() {
     strokeWeight(1);
 
     for (let x = ASTRO_X_MIN + 40; x <= ASTRO_X_MAX - 40; x += 40) {
-      const y1 = window.getAstrocyteBoundaryY(x - 1);
-      const y2 = window.getAstrocyteBoundaryY(x + 1);
+      const y1 = getAstrocyteBoundaryLocalY(x - 1);
+      const y2 = getAstrocyteBoundaryLocalY(x + 1);
       if (y1 === null || y2 === null) continue;
 
       const dx = 2;
@@ -150,7 +158,7 @@ function drawAstrocyteBoundaryDebug() {
       const nx = -dy / mag;
       const ny =  dx / mag;
 
-      const y = window.getAstrocyteBoundaryY(x);
+      const y = getAstrocyteBoundaryLocalY(x);
 
       line(
         x, y,
@@ -168,5 +176,7 @@ function drawAstrocyteBoundaryDebug() {
 // =====================================================
 window.drawAstrocyteSynapse       = drawAstrocyteSynapse;
 window.drawAstrocyteBoundaryDebug = drawAstrocyteBoundaryDebug;
-window.ASTRO_X_MIN               = ASTRO_X_MIN;
-window.ASTRO_X_MAX               = ASTRO_X_MAX;
+
+window.ASTRO_X_MIN   = ASTRO_X_MIN;
+window.ASTRO_X_MAX   = ASTRO_X_MAX;
+window.ASTRO_Y_OFFSET = ASTRO_Y_OFFSET;
