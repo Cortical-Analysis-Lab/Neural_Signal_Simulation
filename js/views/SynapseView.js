@@ -138,7 +138,8 @@ function drawSynapseView() {
   // ASTROCYTE (DRAW FIRST)
   // ---------------------------------------------------
   drawAstrocyteSynapse?.();
-  drawAstrocyteBoundaryDebug?.();   // 🔴 RED LINE NOW VISIBLE
+  drawAstrocyteBoundaryDebug();        // 🔴 red = intended
+  drawAstrocytePhysicsBoundaryDebug(); // 🔵 blue = actual
 
 
   // ---------------------------------------------------
