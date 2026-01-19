@@ -1,4 +1,4 @@
-console.log("🫧 synapticBurst loaded — FREE FLOW + FINITE ASTROCYTE");
+console.log("🫧 synapticBurst loaded — FREE FLOW + FINITE ASTROCYTE (CROSSING-BASED)");
 
 // =====================================================
 // SYNAPTIC NEUROTRANSMITTER BURST — BIASED FREE GAS
@@ -11,6 +11,8 @@ console.log("🫧 synapticBurst loaded — FREE FLOW + FINITE ASTROCYTE");
 // ✔ Minimal Brownian texture
 // ✔ Time-based decay ONLY
 // ✔ Astrocyte interaction ONLY via visible membrane
+// ✔ Crossing-based collision (NO hover slabs)
+//
 // ✘ NO NT–NT collisions
 // ✘ NO presynaptic / postsynaptic walls
 // ✘ NO global slabs / invisible planes
@@ -18,6 +20,7 @@ console.log("🫧 synapticBurst loaded — FREE FLOW + FINITE ASTROCYTE");
 // CONTRACT:
 // • getAstrocyteBoundaryY(x) MUST return WORLD Y
 // • synapticBurst applies NO offsets
+// • Collision occurs ONLY on membrane crossing
 //
 // =====================================================
 
@@ -32,7 +35,6 @@ window.activeNTEmitters = window.activeNTEmitters || [];
 // -----------------------------------------------------
 // CORE TUNING — FLOW + DENSITY
 // -----------------------------------------------------
-
 const NT_STREAM_DURATION_MIN = 16;
 const NT_STREAM_DURATION_MAX = 28;
 
@@ -56,7 +58,7 @@ const NT_LIFE_MAX = 1400;
 // -----------------------------------------------------
 // GEOMETRY
 // -----------------------------------------------------
-const NT_RADIUS = 2.4;
+const NT_RADIUS = 2.4; // draw-only (NOT used for collision)
 
 
 // -----------------------------------------------------
@@ -129,58 +131,59 @@ function updateSynapticBurst() {
 
     const p = nts[i];
 
-    // Net forward advection (toward postsynapse)
+    // --- forces ---
     p.vx += NT_ADVECT_X;
-
-    // Gentle Brownian texture
     p.vx += random(-NT_BROWNIAN, NT_BROWNIAN);
     p.vy += random(-NT_BROWNIAN, NT_BROWNIAN);
 
-    // Drag
     p.vx *= NT_DRAG;
     p.vy *= NT_DRAG;
 
-    // Integrate position
+    // --- integrate ---
+    const prevX = p.x;
+    const prevY = p.y;
+
     p.x += p.vx;
     p.y += p.vy;
 
     // -------------------------------------------
-    // ASTROCYTE INTERACTION (WORLD-SPACE, FINITE)
+    // ASTROCYTE COLLISION — CROSSING-BASED
     // -------------------------------------------
     if (typeof window.getAstrocyteBoundaryY === "function") {
 
       const astroY = window.getAstrocyteBoundaryY(p.x);
 
-      // 🔑 ONLY interact where membrane exists
-      if (astroY !== null && p.y < astroY + NT_RADIUS) {
+      if (astroY !== null) {
 
-        // Push NT just outside visible membrane
-        p.y = astroY + NT_RADIUS;
+        // Detect downward crossing of membrane
+        if (prevY >= astroY && p.y < astroY) {
 
-        // Estimate surface normal via finite difference
-        const eps = 1;
+          // Clamp exactly to visible membrane
+          p.y = astroY;
 
-        const yL = window.getAstrocyteBoundaryY(p.x - eps);
-        const yR = window.getAstrocyteBoundaryY(p.x + eps);
+          // Estimate surface normal (finite difference)
+          const eps = 1;
+          const yL = window.getAstrocyteBoundaryY(p.x - eps);
+          const yR = window.getAstrocyteBoundaryY(p.x + eps);
 
-        if (yL !== null && yR !== null) {
+          if (yL !== null && yR !== null) {
 
-          // Tangent slope → normal
-          let nx = -(yR - yL);
-          let ny =  2 * eps;
+            let nx = -(yR - yL);
+            let ny =  2 * eps;
 
-          const mag = Math.hypot(nx, ny) || 1;
-          nx /= mag;
-          ny /= mag;
+            const mag = Math.hypot(nx, ny) || 1;
+            nx /= mag;
+            ny /= mag;
 
-          // Reflect velocity
-          const dot = p.vx * nx + p.vy * ny;
-          p.vx -= 2 * dot * nx;
-          p.vy -= 2 * dot * ny;
+            // Reflect velocity
+            const dot = p.vx * nx + p.vy * ny;
+            p.vx -= 2 * dot * nx;
+            p.vy -= 2 * dot * ny;
 
-          // Gentle energy loss (biological damping)
-          p.vx *= 0.96;
-          p.vy *= 0.96;
+            // Gentle biological damping
+            p.vx *= 0.96;
+            p.vy *= 0.96;
+          }
         }
       }
     }
