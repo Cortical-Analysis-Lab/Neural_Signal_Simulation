@@ -45,7 +45,6 @@ const NT_ADVECT_X = 0.018;
 const NT_BROWNIAN = 0.003;
 const NT_DRAG     = 0.995;
 
-// Energy loss on membrane contact
 const NT_MEMBRANE_DAMPING = 0.85;
 
 const NT_LIFE_MIN = 1100;
@@ -56,6 +55,9 @@ const NT_LIFE_MAX = 1400;
 // GEOMETRY (DRAW ONLY)
 // -----------------------------------------------------
 const NT_RADIUS = 2.4;
+
+// 🔒 IMPORTANT: constraint plane offset (INSIDE astrocyte)
+const ASTRO_CONSTRAINT_OFFSET = 3; // px — tune 2–5 if desired
 
 
 // -----------------------------------------------------
@@ -132,7 +134,9 @@ function updateSynapticBurst() {
     p.vx *= NT_DRAG;
     p.vy *= NT_DRAG;
 
-    // Integrate
+    // Integrate (SAVE PREVIOUS POSITION)
+    const prevY = p.y;
+
     p.x += p.vx;
     p.y += p.vy;
 
@@ -142,22 +146,22 @@ function updateSynapticBurst() {
       const astroY = window.getAstrocyteBoundaryY(p.x);
 
       if (astroY !== null) {
-      
+
         const constraintY = astroY + ASTRO_CONSTRAINT_OFFSET;
-      
-        if (p.y < constraintY) {
-      
-          // Clamp INSIDE astrocyte, not below membrane
+
+        // 🔒 BLOCK ONLY ON ATTEMPTED PENETRATION
+        if (prevY >= constraintY && p.y < constraintY) {
+
+          // Clamp exactly to constraint plane
           p.y = constraintY;
-      
-          // Kill velocity into membrane
+
+          // Remove normal velocity
           if (p.vy < 0) p.vy = 0;
-      
+
           // Tangential settling
           p.vx *= NT_MEMBRANE_DAMPING;
         }
       }
-
     }
 
     // Decay
@@ -191,7 +195,7 @@ function drawSynapticBurst() {
 
 
 // -----------------------------------------------------
-// 🟠 DEBUG DRAW — CONSTRAINT PLANE
+// 🟠 DEBUG DRAW — CONSTRAINT PLANE (AUTHORITATIVE)
 // -----------------------------------------------------
 function drawSynapticBurstPhysicsBoundaryDebug() {
 
@@ -204,9 +208,8 @@ function drawSynapticBurstPhysicsBoundaryDebug() {
 
   beginShape();
   for (let x = -300; x <= 300; x += 6) {
-  const y = window.getAstrocyteBoundaryY(x);
-  if (y !== null) vertex(x, y + ASTRO_CONSTRAINT_OFFSET);
-
+    const y = window.getAstrocyteBoundaryY(x);
+    if (y !== null) vertex(x, y + ASTRO_CONSTRAINT_OFFSET);
   }
   endShape();
 
