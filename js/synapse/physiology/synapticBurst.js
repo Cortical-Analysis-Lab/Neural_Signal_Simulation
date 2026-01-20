@@ -9,13 +9,12 @@ console.log("🫧 synapticBurst loaded — FREE FLOW + ASTROCYTE CONSTRAINT PLAN
 // ✔ Net drift toward postsynapse (+X)
 // ✔ Minimal Brownian texture
 // ✔ Time-based decay ONLY
-// ✔ Astrocyte membrane = HARD, ONE-SIDED CONSTRAINT PLANE
+// ✔ Astrocyte membrane = HARD CONSTRAINT PLANE
 //
-// BEHAVIOR:
-// • NTs NEVER pass above membrane
-// • Constraint applies ONLY on attempted penetration
-// • NTs lose energy and may settle
-// • NO slabs, NO hovering, NO hidden clamps
+// GUARANTEE:
+// • NTs NEVER exist above membrane
+// • Identical behavior to fusion plane
+// • No tunneling, no slabs, no hover layers
 //
 // DEBUG:
 // ✔ ORANGE line = constraint plane used here
@@ -98,7 +97,7 @@ function makeNT(x, y) {
 
 
 // -----------------------------------------------------
-// UPDATE LOOP — CONSTRAINT PLANE PHYSICS (SLAB-FREE)
+// UPDATE LOOP — HARD CONSTRAINT (FUSION-PLANE STYLE)
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
@@ -120,12 +119,12 @@ function updateSynapticBurst() {
 
   if (!nts.length) return;
 
-  // ---- particle dynamics ----
+  // ---- dynamics ----
   for (let i = nts.length - 1; i >= 0; i--) {
 
     const p = nts[i];
 
-    // --- forces ---
+    // Forces
     p.vx += NT_ADVECT_X;
     p.vx += random(-NT_BROWNIAN, NT_BROWNIAN);
     p.vy += random(-NT_BROWNIAN, NT_BROWNIAN);
@@ -133,36 +132,29 @@ function updateSynapticBurst() {
     p.vx *= NT_DRAG;
     p.vy *= NT_DRAG;
 
-    // --- integrate ---
-    const prevY = p.y;
-
+    // Integrate
     p.x += p.vx;
     p.y += p.vy;
 
-    // ---- ASTROCYTE CONSTRAINT PLANE (FUSION-PLANE STYLE) ----
+    // ---- ASTROCYTE HARD CONSTRAINT ----
     if (typeof window.getAstrocyteBoundaryY === "function") {
 
       const astroY = window.getAstrocyteBoundaryY(p.x);
 
-      if (astroY !== null) {
+      if (astroY !== null && p.y < astroY) {
 
-        // NT lives BELOW membrane (larger Y in p5)
-        // Block ONLY if NT attempts to cross upward INTO astrocyte
-        if (p.vy < 0 && prevY >= astroY && p.y < astroY) {
+        // Absolute positional invariant
+        p.y = astroY;
 
-          // Snap exactly to membrane
-          p.y = astroY;
+        // Kill velocity into membrane
+        if (p.vy < 0) p.vy = 0;
 
-          // Remove normal velocity
-          p.vy = 0;
-
-          // Tangential damping (settling)
-          p.vx *= NT_MEMBRANE_DAMPING;
-        }
+        // Lateral settling
+        p.vx *= NT_MEMBRANE_DAMPING;
       }
     }
 
-    // ---- decay ----
+    // Decay
     p.life--;
     p.alpha = map(p.life, 0, NT_LIFE_MAX, 0, 255, true);
 
@@ -193,7 +185,7 @@ function drawSynapticBurst() {
 
 
 // -----------------------------------------------------
-// 🟠 DEBUG DRAW — CONSTRAINT PLANE (AUTHORITATIVE)
+// 🟠 DEBUG DRAW — CONSTRAINT PLANE
 // -----------------------------------------------------
 function drawSynapticBurstPhysicsBoundaryDebug() {
 
