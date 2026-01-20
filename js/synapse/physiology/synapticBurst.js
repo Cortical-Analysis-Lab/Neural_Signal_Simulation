@@ -1,4 +1,4 @@
-console.log("🫧 synapticBurst loaded — FREE FLOW + FINITE ASTROCYTE (CROSSING-ONLY, STABLE)");
+console.log("🫧 synapticBurst loaded — FREE FLOW + ASTROCYTE CONSTRAINT PLANE");
 
 // =====================================================
 // SYNAPTIC NEUROTRANSMITTER BURST — BIASED FREE GAS
@@ -9,11 +9,15 @@ console.log("🫧 synapticBurst loaded — FREE FLOW + FINITE ASTROCYTE (CROSSIN
 // ✔ Net drift toward postsynapse (+X)
 // ✔ Minimal Brownian texture
 // ✔ Time-based decay ONLY
-// ✔ Astrocyte interaction ONLY via visible membrane
-// ✔ One-sided membrane (CROSSING-BASED — NO SLAB)
+// ✔ Astrocyte membrane = HARD CONSTRAINT PLANE
+//
+// BEHAVIOR:
+// • NTs NEVER pass above astrocyte membrane
+// • NTs lose energy on contact
+// • NTs may slide and settle on membrane
 //
 // DEBUG:
-// ✔ ORANGE line = physics boundary used here
+// ✔ ORANGE line = constraint plane used here
 //
 // =====================================================
 
@@ -40,6 +44,9 @@ const NT_INITIAL_SPREAD = 0.75;
 const NT_ADVECT_X = 0.018;
 const NT_BROWNIAN = 0.003;
 const NT_DRAG     = 0.995;
+
+// Energy loss on membrane contact
+const NT_MEMBRANE_DAMPING = 0.85;
 
 const NT_LIFE_MIN = 1100;
 const NT_LIFE_MAX = 1400;
@@ -90,14 +97,14 @@ function makeNT(x, y) {
 
 
 // -----------------------------------------------------
-// UPDATE LOOP
+// UPDATE LOOP — CONSTRAINT PLANE PHYSICS
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
   const nts = window.synapticNTs;
   const emitters = window.activeNTEmitters;
 
-  // ---- streaming emission ----
+  // ---- emission ----
   for (let i = emitters.length - 1; i >= 0; i--) {
 
     const e = emitters[i];
@@ -117,7 +124,7 @@ function updateSynapticBurst() {
 
     const p = nts[i];
 
-    // forces
+    // --- forces ---
     p.vx += NT_ADVECT_X;
     p.vx += random(-NT_BROWNIAN, NT_BROWNIAN);
     p.vy += random(-NT_BROWNIAN, NT_BROWNIAN);
@@ -125,35 +132,30 @@ function updateSynapticBurst() {
     p.vx *= NT_DRAG;
     p.vy *= NT_DRAG;
 
-    // integrate
-    const prevY = p.y;
-
+    // --- integrate ---
     p.x += p.vx;
     p.y += p.vy;
 
-    // ---- ASTROCYTE MEMBRANE (ONE-SIDED, CROSSING ONLY) ----
+    // ---- ASTROCYTE CONSTRAINT PLANE ----
     if (typeof window.getAstrocyteBoundaryY === "function") {
 
       const astroY = window.getAstrocyteBoundaryY(p.x);
 
       if (astroY !== null) {
 
-        // p5.js Y-axis:
-        //  - smaller Y = higher on screen
-        //  - NT is in cleft when prevY > astroY
-        //  - NT attempts entry when moving upward past astroY
-        const crossedIntoAstrocyte =
-          p.vy < 0 &&          // moving upward
-          prevY > astroY &&    // was in cleft
-          p.y <= astroY;       // crossed membrane
+        // HARD positional constraint (like fusion plane)
+        if (p.y < astroY) {
 
-        if (crossedIntoAstrocyte) {
-
-          // Clamp ONCE to membrane
+          // Clamp position
           p.y = astroY;
 
-          // Reflect upward velocity
-          p.vy = -p.vy * 0.96;
+          // Kill upward velocity
+          if (p.vy < 0) {
+            p.vy = 0;
+          }
+
+          // Tangential energy loss (settling)
+          p.vx *= NT_MEMBRANE_DAMPING;
         }
       }
     }
@@ -189,7 +191,7 @@ function drawSynapticBurst() {
 
 
 // -----------------------------------------------------
-// 🟠 DEBUG DRAW — PHYSICS BOUNDARY
+// 🟠 DEBUG DRAW — CONSTRAINT PLANE
 // -----------------------------------------------------
 function drawSynapticBurstPhysicsBoundaryDebug() {
 
