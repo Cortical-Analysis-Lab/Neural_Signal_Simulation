@@ -204,8 +204,9 @@ function drawSynapticBurstPhysicsBoundaryDebug() {
 
   beginShape();
   for (let x = -300; x <= 300; x += 6) {
-    const y = window.getAstrocyteBoundaryY(x);
-    if (y !== null) vertex(x, y);
+  const y = window.getAstrocyteBoundaryY(x);
+  if (y !== null) vertex(x, y + ASTRO_CONSTRAINT_OFFSET);
+
   }
   endShape();
 
