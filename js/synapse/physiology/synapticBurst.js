@@ -1,4 +1,4 @@
-console.log("🫧 synapticBurst loaded — FREE FLOW + ASTROCYTE CONSTRAINT PLANE");
+console.log("🫧 synapticBurst loaded — FREE FLOW + ASTROCYTE CONSTRAINT PLANE (LOCKED)");
 
 // =====================================================
 // SYNAPTIC NEUROTRANSMITTER BURST — BIASED FREE GAS
@@ -9,12 +9,13 @@ console.log("🫧 synapticBurst loaded — FREE FLOW + ASTROCYTE CONSTRAINT PLAN
 // ✔ Net drift toward postsynapse (+X)
 // ✔ Minimal Brownian texture
 // ✔ Time-based decay ONLY
-// ✔ Astrocyte membrane = HARD CONSTRAINT PLANE
+// ✔ Astrocyte membrane = HARD, ONE-SIDED CONSTRAINT PLANE
 //
 // BEHAVIOR:
-// • NTs NEVER pass above astrocyte membrane
-// • NTs lose energy on contact
-// • NTs may slide and settle on membrane
+// • NTs NEVER pass above membrane
+// • Constraint applies ONLY on attempted penetration
+// • NTs lose energy and may settle
+// • NO slabs, NO hovering, NO hidden clamps
 //
 // DEBUG:
 // ✔ ORANGE line = constraint plane used here
@@ -97,7 +98,7 @@ function makeNT(x, y) {
 
 
 // -----------------------------------------------------
-// UPDATE LOOP — CONSTRAINT PLANE PHYSICS
+// UPDATE LOOP — CONSTRAINT PLANE PHYSICS (SLAB-FREE)
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
@@ -133,28 +134,29 @@ function updateSynapticBurst() {
     p.vy *= NT_DRAG;
 
     // --- integrate ---
+    const prevY = p.y;
+
     p.x += p.vx;
     p.y += p.vy;
 
-    // ---- ASTROCYTE CONSTRAINT PLANE ----
+    // ---- ASTROCYTE CONSTRAINT PLANE (FUSION-PLANE STYLE) ----
     if (typeof window.getAstrocyteBoundaryY === "function") {
 
       const astroY = window.getAstrocyteBoundaryY(p.x);
 
       if (astroY !== null) {
 
-        // HARD positional constraint (like fusion plane)
-        if (p.y < astroY) {
+        // NT lives BELOW membrane (larger Y in p5)
+        // Block ONLY if NT attempts to cross upward INTO astrocyte
+        if (p.vy < 0 && prevY >= astroY && p.y < astroY) {
 
-          // Clamp position
+          // Snap exactly to membrane
           p.y = astroY;
 
-          // Kill upward velocity
-          if (p.vy < 0) {
-            p.vy = 0;
-          }
+          // Remove normal velocity
+          p.vy = 0;
 
-          // Tangential energy loss (settling)
+          // Tangential damping (settling)
           p.vx *= NT_MEMBRANE_DAMPING;
         }
       }
@@ -191,7 +193,7 @@ function drawSynapticBurst() {
 
 
 // -----------------------------------------------------
-// 🟠 DEBUG DRAW — CONSTRAINT PLANE
+// 🟠 DEBUG DRAW — CONSTRAINT PLANE (AUTHORITATIVE)
 // -----------------------------------------------------
 function drawSynapticBurstPhysicsBoundaryDebug() {
 
