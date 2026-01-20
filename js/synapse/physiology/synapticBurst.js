@@ -141,17 +141,23 @@ function updateSynapticBurst() {
 
       const astroY = window.getAstrocyteBoundaryY(p.x);
 
-      if (astroY !== null && p.y < astroY) {
-
-        // Absolute positional invariant
-        p.y = astroY;
-
-        // Kill velocity into membrane
-        if (p.vy < 0) p.vy = 0;
-
-        // Lateral settling
-        p.vx *= NT_MEMBRANE_DAMPING;
+      if (astroY !== null) {
+      
+        const constraintY = astroY + ASTRO_CONSTRAINT_OFFSET;
+      
+        if (p.y < constraintY) {
+      
+          // Clamp INSIDE astrocyte, not below membrane
+          p.y = constraintY;
+      
+          // Kill velocity into membrane
+          if (p.vy < 0) p.vy = 0;
+      
+          // Tangential settling
+          p.vx *= NT_MEMBRANE_DAMPING;
+        }
       }
+
     }
 
     // Decay
