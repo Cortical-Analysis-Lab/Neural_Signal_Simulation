@@ -135,39 +135,34 @@ function updateSynapticBurst() {
     // store previous position
     const prevY = p.y;
 
-    // integrate
+    // --- integrate ---
     p.x += p.vx;
     p.y += p.vy;
-
+    
     // -------------------------------------------------
-    // ASTROCYTE CONSTRAINT — CROSSING ONLY (NO SLAB)
+    // ASTROCYTE HARD CONSTRAINT — HALF-SPACE ENFORCEMENT
     // -------------------------------------------------
     if (typeof window.getAstrocyteBoundaryY === "function") {
-
+    
       const astroY = window.getAstrocyteBoundaryY(p.x);
+    
       if (astroY !== null) {
-
-        // p5.js coordinates:
-        // - larger Y = lower on screen
-        // - NTs live BELOW astrocyte (p.y > astroY)
-
-        const wasBelow = prevY > astroY;
-        const isAbove  = p.y   < astroY;
-
-        // 🚨 ONLY react on actual penetration attempt
-        if (wasBelow && isAbove) {
-
-          // snap exactly to membrane
+    
+        // NTs are only allowed BELOW the membrane (larger Y)
+        if (p.y < astroY) {
+    
+          // Clamp exactly to membrane
           p.y = astroY;
-
-          // kill inward velocity
+    
+          // Remove velocity INTO astrocyte
           if (p.vy < 0) p.vy = 0;
-
-          // tangential settling
+    
+          // Tangential damping (slide & settle)
           p.vx *= NT_MEMBRANE_DAMPING;
         }
       }
     }
+
 
     // decay
     p.life--;
