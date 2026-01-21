@@ -44,7 +44,7 @@ const NT_INITIAL_SPREAD = 0.95;
 
 const NT_ADVECT_X = 0.018;
 const NT_BROWNIAN = 0.003;
-const NT_DRAG     = 1.15;
+const NT_DRAG     = 0.9;
 
 const NT_MEMBRANE_DAMPING = 0.85;
 
