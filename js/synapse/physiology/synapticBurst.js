@@ -9,16 +9,16 @@ console.log("🫧 synapticBurst loaded — FREE FLOW + ASTROCYTE CONSTRAINT (FUS
 // ✔ Net drift toward postsynapse (+X)
 // ✔ Minimal Brownian texture
 // ✔ Time-based decay ONLY
-// ✔ Astrocyte membrane = HARD CONSTRAINT PLANE
+// ✔ Astrocyte membrane = HARD CONSTRAINT SURFACE
 //
 // GUARANTEES:
 // • NTs NEVER exist inside astrocyte
 // • Constraint matches membrane exactly
-// • NO slabs, NO hover layers, NO offsets
-// • Identical logic to presynaptic fusion plane
+// • NO slabs, NO hover layers
+// • Crossing-based (IDENTICAL TO FUSION PLANE)
 //
 // DEBUG:
-// • ORANGE = constraint plane used here
+// • ORANGE = constraint surface used here
 //
 // =====================================================
 
@@ -97,7 +97,7 @@ function makeNT(x, y) {
 
 
 // -----------------------------------------------------
-// UPDATE LOOP — TRUE CONSTRAINT PLANE
+// UPDATE LOOP — CROSSING-BASED CONSTRAINT
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
@@ -132,28 +132,38 @@ function updateSynapticBurst() {
     p.vx *= NT_DRAG;
     p.vy *= NT_DRAG;
 
+    // store previous position
+    const prevY = p.y;
+
     // integrate
     p.x += p.vx;
     p.y += p.vy;
 
     // -------------------------------------------------
-    // ASTROCYTE CONSTRAINT — EXACTLY LIKE FUSION PLANE
+    // ASTROCYTE CONSTRAINT — CROSSING ONLY (NO SLAB)
     // -------------------------------------------------
     if (typeof window.getAstrocyteBoundaryY === "function") {
 
       const astroY = window.getAstrocyteBoundaryY(p.x);
       if (astroY !== null) {
 
-        // NTs live BELOW membrane (larger Y in p5)
-        if (p.y < astroY) {
+        // p5.js coordinates:
+        // - larger Y = lower on screen
+        // - NTs live BELOW astrocyte (p.y > astroY)
 
-          // Snap EXACTLY to membrane
+        const wasBelow = prevY > astroY;
+        const isAbove  = p.y   < astroY;
+
+        // 🚨 ONLY react on actual penetration attempt
+        if (wasBelow && isAbove) {
+
+          // snap exactly to membrane
           p.y = astroY;
 
-          // Remove inward velocity
+          // kill inward velocity
           if (p.vy < 0) p.vy = 0;
 
-          // Tangential settling
+          // tangential settling
           p.vx *= NT_MEMBRANE_DAMPING;
         }
       }
@@ -190,7 +200,7 @@ function drawSynapticBurst() {
 
 
 // -----------------------------------------------------
-// 🟠 DEBUG DRAW — CONSTRAINT PLANE
+// 🟠 DEBUG DRAW — CONSTRAINT SURFACE
 // -----------------------------------------------------
 function drawSynapticBurstPhysicsBoundaryDebug() {
 
