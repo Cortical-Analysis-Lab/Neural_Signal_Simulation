@@ -1,4 +1,4 @@
-console.log("🫧 synapticBurst loaded — FREE FLOW + ASTROCYTE CONSTRAINT PLANE (LOCKED)");
+console.log("🫧 synapticBurst loaded — FREE FLOW + ASTROCYTE CONSTRAINT (FUSION-PLANE STYLE)");
 
 // =====================================================
 // SYNAPTIC NEUROTRANSMITTER BURST — BIASED FREE GAS
@@ -11,13 +11,14 @@ console.log("🫧 synapticBurst loaded — FREE FLOW + ASTROCYTE CONSTRAINT PLAN
 // ✔ Time-based decay ONLY
 // ✔ Astrocyte membrane = HARD CONSTRAINT PLANE
 //
-// GUARANTEE:
-// • NTs NEVER exist above membrane
-// • Identical behavior to fusion plane
-// • No tunneling, no slabs, no hover layers
+// GUARANTEES:
+// • NTs NEVER exist inside astrocyte
+// • Constraint matches membrane exactly
+// • NO slabs, NO hover layers, NO offsets
+// • Identical logic to presynaptic fusion plane
 //
 // DEBUG:
-// ✔ ORANGE line = constraint plane used here
+// • ORANGE = constraint plane used here
 //
 // =====================================================
 
@@ -55,9 +56,6 @@ const NT_LIFE_MAX = 1400;
 // GEOMETRY (DRAW ONLY)
 // -----------------------------------------------------
 const NT_RADIUS = 2.4;
-
-// 🔒 IMPORTANT: constraint plane offset (INSIDE astrocyte)
-const ASTRO_CONSTRAINT_OFFSET = 3; // px — tune 2–5 if desired
 
 
 // -----------------------------------------------------
@@ -99,7 +97,7 @@ function makeNT(x, y) {
 
 
 // -----------------------------------------------------
-// UPDATE LOOP — HARD CONSTRAINT (FUSION-PLANE STYLE)
+// UPDATE LOOP — TRUE CONSTRAINT PLANE
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
@@ -126,7 +124,7 @@ function updateSynapticBurst() {
 
     const p = nts[i];
 
-    // Forces
+    // forces
     p.vx += NT_ADVECT_X;
     p.vx += random(-NT_BROWNIAN, NT_BROWNIAN);
     p.vy += random(-NT_BROWNIAN, NT_BROWNIAN);
@@ -134,28 +132,25 @@ function updateSynapticBurst() {
     p.vx *= NT_DRAG;
     p.vy *= NT_DRAG;
 
-    // Integrate (SAVE PREVIOUS POSITION)
-    const prevY = p.y;
-
+    // integrate
     p.x += p.vx;
     p.y += p.vy;
 
-    // ---- ASTROCYTE HARD CONSTRAINT ----
+    // -------------------------------------------------
+    // ASTROCYTE CONSTRAINT — EXACTLY LIKE FUSION PLANE
+    // -------------------------------------------------
     if (typeof window.getAstrocyteBoundaryY === "function") {
 
       const astroY = window.getAstrocyteBoundaryY(p.x);
-
       if (astroY !== null) {
 
-        const constraintY = astroY + ASTRO_CONSTRAINT_OFFSET;
+        // NTs live BELOW membrane (larger Y in p5)
+        if (p.y < astroY) {
 
-        // 🔒 BLOCK ONLY ON ATTEMPTED PENETRATION
-        if (prevY >= constraintY && p.y < constraintY) {
+          // Snap EXACTLY to membrane
+          p.y = astroY;
 
-          // Clamp exactly to constraint plane
-          p.y = constraintY;
-
-          // Remove normal velocity
+          // Remove inward velocity
           if (p.vy < 0) p.vy = 0;
 
           // Tangential settling
@@ -164,7 +159,7 @@ function updateSynapticBurst() {
       }
     }
 
-    // Decay
+    // decay
     p.life--;
     p.alpha = map(p.life, 0, NT_LIFE_MAX, 0, 255, true);
 
@@ -195,7 +190,7 @@ function drawSynapticBurst() {
 
 
 // -----------------------------------------------------
-// 🟠 DEBUG DRAW — CONSTRAINT PLANE (AUTHORITATIVE)
+// 🟠 DEBUG DRAW — CONSTRAINT PLANE
 // -----------------------------------------------------
 function drawSynapticBurstPhysicsBoundaryDebug() {
 
@@ -207,9 +202,9 @@ function drawSynapticBurstPhysicsBoundaryDebug() {
   noFill();
 
   beginShape();
-  for (let x = -300; x <= 300; x += 6) {
+  for (let x = window.ASTRO_X_MIN; x <= window.ASTRO_X_MAX; x += 6) {
     const y = window.getAstrocyteBoundaryY(x);
-    if (y !== null) vertex(x, y + ASTRO_CONSTRAINT_OFFSET);
+    if (y !== null) vertex(x, y);
   }
   endShape();
 
