@@ -42,7 +42,7 @@ const NT_PER_FRAME_MAX = 2;
 const NT_INITIAL_SPEED  = 0.26;
 const NT_INITIAL_SPREAD = 1.2;
 
-const NT_ADVECT_X = 0.018;
+const NT_ADVECT_X = 0.01;
 const NT_BROWNIAN = 0.003;
 const NT_DRAG     = 0.985;
 
