@@ -1,29 +1,34 @@
-console.log("🟡 postSynapse loaded");
+console.log("🟡 postSynapse loaded — GEOMETRY AUTHORITY");
 
 // =====================================================
-// POSTSYNAPTIC NEURON — GEOMETRY ONLY (HARD CONTRACT)
+// POSTSYNAPTIC NEURON — GEOMETRY + CONSTRAINT AUTHORITY
 // =====================================================
 //
-// 🔒 CONTRACT (ENFORCED):
-// • DRAWING ONLY — NO PHYSICS
-// • NO COLLISION LOGIC
-// • NO BOUNDARY SAMPLERS (FOR PHYSICS)
-// • NO POSITIONING / TRANSLATION INTO WORLD SPACE
-// • NO SIDE EFFECTS
+// 🔒 CONTRACT (LOCKED):
+// • Owns postsynaptic membrane geometry
+// • Owns NT constraint surface (membrane-normal)
+// • NO physics integration here
+// • synapticBurst.js MUST query this file
 //
-// ✅ DEBUG VISUALIZATION IS ALLOWED
+// This mirrors preSynapse.js exactly.
 //
 // =====================================================
 
 
 // -----------------------------------------------------
-// 🔐 EXPLICIT PHYSICS DISABLE FLAG
+// POSTSYNAPTIC NT STOP PLANE (AUTHORITATIVE)
 // -----------------------------------------------------
-window.POSTSYNAPSE_HAS_PHYSICS = false;
+//
+// This is analogous to SYNAPSE_FUSION_PLANE_X
+// • NOT a world X
+// • Offset along membrane normal
+// • Used ONLY by synapticBurst.js
+//
+window.POSTSYNAPSE_NT_STOP_X = 0;
 
 
 // -----------------------------------------------------
-// DRAW — POSTSYNAPTIC NEURON (LOCAL SPACE ONLY)
+// DRAW — POSTSYNAPTIC NEURON (GEOMETRY ONLY)
 // -----------------------------------------------------
 function drawPostSynapse() {
   push();
@@ -31,7 +36,7 @@ function drawPostSynapse() {
   // Faces synaptic cleft (LEFT)
   scale(+1, 1);
 
-  // Neuron body (pure geometry)
+  // Authoritative neuron geometry
   drawTNeuronShape(+1);
 
   // Postsynaptic density (visual only)
@@ -45,34 +50,65 @@ function drawPostSynapse() {
 
 
 // =====================================================
-// 🟦 DEBUG DRAW — POSTSYNAPTIC MEMBRANE (VISUAL ONLY)
+// 🔑 POSTSYNAPTIC MEMBRANE SURFACE SAMPLER (AUTHORITATIVE)
 // =====================================================
 //
-// • Geometry-derived
-// • NO physics meaning
-// • Matches neuronShape.js exactly
-// • Safe to compare against NT paths
+// MUST match neuronShape.js exactly
+// Returns membrane-normal X at Y
 //
+// NTs, receptors, and future plasticity depend on this
+//
+window.getPostSynapticMembraneX = function (y) {
+
+  const barHalf = 140;
+  const rBar    = 80;
+
+  // ---------------- Top rounded corner ----------------
+  if (y < -barHalf + rBar) {
+    const dy = y + barHalf - rBar;
+    return rBar - Math.sqrt(
+      Math.max(0, rBar * rBar - dy * dy)
+    );
+  }
+
+  // ---------------- Bottom rounded corner ----------------
+  if (y > barHalf - rBar) {
+    const dy = y - (barHalf - rBar);
+    return rBar - Math.sqrt(
+      Math.max(0, rBar * rBar - dy * dy)
+    );
+  }
+
+  // ---------------- Flat synaptic face ----------------
+  return 0;
+};
+
+
 // =====================================================
+// 🔵 DEBUG DRAW — POSTSYNAPTIC MEMBRANE (GEOMETRY)
+// =====================================================
+//
+// • Cyan dashed line
+// • Visual reference ONLY
+// • No physics meaning
+//
 function drawPostSynapseBoundaryDebug() {
 
   if (!window.SHOW_SYNAPSE_DEBUG) return;
-  if (typeof window.getSynapticMembraneX !== "function") return;
 
   const H    = 140;
   const step = 4;
 
   push();
-  stroke(80, 220, 255, 200);   // cyan
+  stroke(80, 220, 255, 200);
   strokeWeight(2);
   noFill();
 
-  // Dashed appearance (visual cue: NOT a constraint)
   drawingContext.setLineDash([6, 6]);
 
   beginShape();
   for (let y = -H; y <= H; y += step) {
-    const x = window.getSynapticMembraneX(y);
+    const x = window.getPostSynapticMembraneX(y);
     vertex(x, y);
   }
   endShape();
@@ -82,11 +118,45 @@ function drawPostSynapseBoundaryDebug() {
 }
 
 
+// =====================================================
+// 🟠 DEBUG DRAW — NT CONSTRAINT PLANE (PHYSICS TRUTH)
+// =====================================================
+//
+// • EXACT surface used by synapticBurst.js
+// • Curvature-aware
+// • No slab possible
+//
+function drawPostSynapseNTStopPlaneDebug() {
+
+  if (!window.SHOW_SYNAPSE_DEBUG) return;
+
+  const H    = 140;
+  const step = 4;
+
+  push();
+  stroke(255, 160, 40, 220);
+  strokeWeight(2);
+  noFill();
+
+  beginShape();
+  for (let y = -H; y <= H; y += step) {
+    const membraneX = window.getPostSynapticMembraneX(y);
+    vertex(
+      membraneX + window.POSTSYNAPSE_NT_STOP_X,
+      y
+    );
+  }
+  endShape();
+
+  pop();
+}
+
+
 // -----------------------------------------------------
-// 🔒 SANITY CHECK (DEV MODE ONLY)
+// 🔒 SANITY CHECK
 // -----------------------------------------------------
 if (window.DEBUG_SYNapseContracts) {
-  console.log("🔒 postSynapse contract: GEOMETRY ONLY (debug draw allowed)");
+  console.log("🔒 postSynapse contract: GEOMETRY + NT CONSTRAINT AUTHORITY");
 }
 
 
@@ -95,3 +165,5 @@ if (window.DEBUG_SYNapseContracts) {
 // -----------------------------------------------------
 window.drawPostSynapse = drawPostSynapse;
 window.drawPostSynapseBoundaryDebug = drawPostSynapseBoundaryDebug;
+window.drawPostSynapseNTStopPlaneDebug =
+  drawPostSynapseNTStopPlaneDebug;
