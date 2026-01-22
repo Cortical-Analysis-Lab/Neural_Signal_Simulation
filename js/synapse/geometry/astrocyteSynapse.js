@@ -17,17 +17,17 @@ const ASTRO_X_MIN = -220;
 const ASTRO_X_MAX =  220;
 
 // =====================================================
-// 🔧 DEBUG CONFIG
+// 🔧 DEBUG CONFIG (VISUAL ONLY)
 // =====================================================
 window.DEBUG_ASTROCYTE = window.DEBUG_ASTROCYTE ?? {
   enabled: true,
 
-  // Red = geometry
+  // Red = geometry intent
   color: [255, 80, 80],
   alpha: 190,
   lineWeight: 2,
 
-  // Blue = constraint surface (truth)
+  // Blue = membrane surface (constraint reference)
   physicsColor: [80, 160, 255],
   physicsAlpha: 220,
   physicsWeight: 2,
@@ -67,15 +67,15 @@ function drawAstrocyteSynapse() {
 }
 
 // =====================================================
-// 🔑 ASTROCYTE MEMBRANE — NORMAL-SPACE DEFINITION
+// 🔑 ASTROCYTE MEMBRANE — LOCAL GEOMETRY
 // =====================================================
 //
-// IMPORTANT:
-// • This is the astrocyte equivalent of getSynapticMembraneX(y)
-// • It defines the LOWER membrane surface
-// • NTs are ONLY allowed with y >= this value
+// • Defines the LOWER astrocyte membrane in LOCAL space
+// • NO offsets
+// • NO physics
+// • Geometry only
 //
-window.getAstrocyteMembraneY = function (x) {
+function getAstrocyteMembraneLocalY(x) {
 
   if (!Number.isFinite(x) || x < ASTRO_X_MIN || x > ASTRO_X_MAX) {
     return null;
@@ -83,11 +83,46 @@ window.getAstrocyteMembraneY = function (x) {
 
   const t = Math.abs(x) / ASTRO_X_MAX;
 
-  // Local membrane curvature (authoritative)
-  const yLocal = 65 - 45 * (t * t);
+  // Authoritative membrane curvature
+  return 65 - 45 * (t * t);
+}
 
-  // Convert to world space
+// =====================================================
+// 🔑 ASTROCYTE MEMBRANE — WORLD SPACE SAMPLER (AUTHORITATIVE)
+// =====================================================
+//
+// 🔒 SINGLE SOURCE OF TRUTH
+// Analogous to getSynapticMembraneX(y)
+//
+// • Returns membrane Y at world X
+// • Defines allowed half-space for NTs
+// • NTs must satisfy: y >= membraneY
+//
+window.getAstrocyteMembraneY = function (x) {
+
+  const yLocal = getAstrocyteMembraneLocalY(x);
+  if (yLocal === null) return null;
+
   return yLocal + ASTRO_Y_OFFSET;
+};
+
+// =====================================================
+// 🔑 ASTROCYTE MEMBRANE — PENETRATION HELPER
+// =====================================================
+//
+// Utility for elastic confinement (USED ELSEWHERE)
+//
+// Returns:
+//   > 0  → penetration depth into astrocyte
+//   = 0  → exactly on membrane
+//   < 0  → safely below membrane
+//
+window.getAstrocytePenetration = function (x, y) {
+
+  const yMem = window.getAstrocyteMembraneY(x);
+  if (yMem === null) return null;
+
+  return yMem - y;
 };
 
 // =====================================================
@@ -107,9 +142,8 @@ function drawAstrocyteBoundaryDebug() {
 
   beginShape();
   for (let x = ASTRO_X_MIN; x <= ASTRO_X_MAX; x += D.sampleStep) {
-    const t = Math.abs(x) / ASTRO_X_MAX;
-    const y = 65 - 45 * (t * t);
-    vertex(x, y);
+    const y = getAstrocyteMembraneLocalY(x);
+    if (y !== null) vertex(x, y);
   }
   endShape();
 
@@ -117,7 +151,7 @@ function drawAstrocyteBoundaryDebug() {
 }
 
 // =====================================================
-// 🔵 DEBUG DRAW — CONSTRAINT SURFACE (BLUE)
+// 🔵 DEBUG DRAW — MEMBRANE SURFACE (BLUE)
 // =====================================================
 function drawAstrocytePhysicsBoundaryDebug() {
 
