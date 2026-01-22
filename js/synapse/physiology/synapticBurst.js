@@ -97,7 +97,7 @@ function makeNT(x, y) {
 
 
 // -----------------------------------------------------
-// UPDATE LOOP — CROSSING-BASED CONSTRAINT
+// UPDATE LOOP — CROSSING-BASED CONSTRAINT (CORRECT)
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
@@ -135,34 +135,34 @@ function updateSynapticBurst() {
     // store previous position
     const prevY = p.y;
 
-    // --- integrate ---
+    // integrate
     p.x += p.vx;
     p.y += p.vy;
-    
+
     // -------------------------------------------------
-    // ASTROCYTE HARD CONSTRAINT — HALF-SPACE ENFORCEMENT
+    // ASTROCYTE CONSTRAINT — TRUE FUSION-PLANE LOGIC
     // -------------------------------------------------
-    if (typeof window.getAstrocyteBoundaryY === "function") {
-    
-      const astroY = window.getAstrocyteBoundaryY(p.x);
-    
-      if (astroY !== null) {
-    
-        // NTs are only allowed BELOW the membrane (larger Y)
-        if (p.y < astroY) {
-    
-          // Clamp exactly to membrane
-          p.y = astroY;
-    
-          // Remove velocity INTO astrocyte
+    if (typeof window.getAstrocyteMembraneY === "function") {
+
+      const yMem = window.getAstrocyteMembraneY(p.x);
+
+      if (yMem !== null) {
+
+        // NT attempts to CROSS INTO astrocyte
+        // (astrocyte is ABOVE membrane: smaller Y)
+        if (prevY >= yMem && p.y < yMem) {
+
+          // snap exactly to membrane
+          p.y = yMem;
+
+          // remove inward velocity
           if (p.vy < 0) p.vy = 0;
-    
-          // Tangential damping (slide & settle)
+
+          // tangential damping (settle & slide)
           p.vx *= NT_MEMBRANE_DAMPING;
         }
       }
     }
-
 
     // decay
     p.life--;
@@ -199,7 +199,7 @@ function drawSynapticBurst() {
 // -----------------------------------------------------
 function drawSynapticBurstPhysicsBoundaryDebug() {
 
-  if (typeof window.getAstrocyteBoundaryY !== "function") return;
+  if (typeof window.getAstrocyteMembraneY !== "function") return;
 
   push();
   stroke(255, 160, 40, 220);
@@ -208,7 +208,7 @@ function drawSynapticBurstPhysicsBoundaryDebug() {
 
   beginShape();
   for (let x = window.ASTRO_X_MIN; x <= window.ASTRO_X_MAX; x += 6) {
-    const y = window.getAstrocyteBoundaryY(x);
+    const y = window.getAstrocyteMembraneY(x);
     if (y !== null) vertex(x, y);
   }
   endShape();
