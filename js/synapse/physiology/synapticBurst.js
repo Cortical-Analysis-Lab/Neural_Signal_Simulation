@@ -5,16 +5,18 @@ console.log("🫧 synapticBurst loaded — EMISSION + LIFETIME ONLY");
 // =====================================================
 //
 // RESPONSIBILITIES:
-// ✔ Continuous NT emission
-// ✔ NT lifetime management
-// ✔ Calls NTmotion for movement + constraints
-// ✔ Calls NTgeometry for drawing
+// ✔ Receive synapticRelease events
+// ✔ Emit NTs over time (streaming)
+// ✔ Manage NT lifetime + alpha
+// ✔ Delegate motion to NTmotion.js
+// ✔ Delegate drawing to NTgeometry.js
 //
 // HARD RULES:
 // • NO geometry definitions
 // • NO constraint logic
 // • NO membrane math
 // • NO position clamping
+// • NO force application
 //
 // =====================================================
 
@@ -22,12 +24,12 @@ console.log("🫧 synapticBurst loaded — EMISSION + LIFETIME ONLY");
 // -----------------------------------------------------
 // STORAGE (RELOAD SAFE)
 // -----------------------------------------------------
-window.synapticNTs = window.synapticNTs || [];
+window.synapticNTs       = window.synapticNTs       || [];
 window.activeNTEmitters = window.activeNTEmitters || [];
 
 
 // -----------------------------------------------------
-// EMISSION TUNING
+// EMISSION TUNING (TIME DOMAIN ONLY)
 // -----------------------------------------------------
 const NT_STREAM_DURATION_MIN = 16;
 const NT_STREAM_DURATION_MAX = 28;
@@ -40,7 +42,12 @@ const NT_LIFE_MAX = 1400;
 
 
 // -----------------------------------------------------
-// RELEASE EVENT (AUTHORITATIVE)
+// RELEASE EVENT — ENTRY POINT FROM VESICLES
+// -----------------------------------------------------
+//
+// vesicleRelease.js is the ONLY file allowed
+// to dispatch this event.
+//
 // -----------------------------------------------------
 window.addEventListener("synapticRelease", (e) => {
 
@@ -58,8 +65,13 @@ window.addEventListener("synapticRelease", (e) => {
 
 
 // -----------------------------------------------------
-// NT FACTORY (STRUCTURE ONLY)
+// NT FACTORY — STRUCTURE ONLY
 // -----------------------------------------------------
+//
+// NO forces
+// NO constraints
+// NO geometry
+//
 function makeNT(x, y) {
 
   return {
@@ -80,12 +92,12 @@ function makeNT(x, y) {
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
-  const nts = window.synapticNTs;
+  const nts      = window.synapticNTs;
   const emitters = window.activeNTEmitters;
 
-  // ----------------------------
-  // 1️⃣ Emit NTs
-  // ----------------------------
+  // ---------------------------------------------------
+  // 1️⃣ EMISSION (TIME-BASED STREAMING)
+  // ---------------------------------------------------
   for (let i = emitters.length - 1; i >= 0; i--) {
 
     const e = emitters[i];
@@ -104,17 +116,18 @@ function updateSynapticBurst() {
 
   if (!nts.length) return;
 
-  // ----------------------------
-  // 2️⃣ Motion + constraints
-  // ----------------------------
+  // ---------------------------------------------------
+  // 2️⃣ MOTION + CONSTRAINTS (DELEGATED)
+  // ---------------------------------------------------
   //
-  // 🔒 THIS is where astrocyte confinement happens
+  // NTmotion.js is the ONLY file allowed
+  // to move NTs or apply membrane interaction
   //
   window.updateNTMotion?.(nts);
 
-  // ----------------------------
-  // 3️⃣ Lifetime decay ONLY
-  // ----------------------------
+  // ---------------------------------------------------
+  // 3️⃣ LIFETIME + ALPHA (OWNED HERE)
+  // ---------------------------------------------------
   for (let i = nts.length - 1; i >= 0; i--) {
 
     const p = nts[i];
@@ -130,8 +143,12 @@ function updateSynapticBurst() {
 
 
 // -----------------------------------------------------
-// DRAW — PURE GEOMETRY
+// DRAW — PURE DELEGATION
 // -----------------------------------------------------
+//
+// NTgeometry.js is the ONLY file
+// that knows how NTs look
+//
 function drawSynapticBurst() {
 
   if (!window.synapticNTs.length) return;
@@ -144,3 +161,11 @@ function drawSynapticBurst() {
 // -----------------------------------------------------
 window.updateSynapticBurst = updateSynapticBurst;
 window.drawSynapticBurst   = drawSynapticBurst;
+
+
+// -----------------------------------------------------
+// 🔒 CONTRACT ASSERTION
+// -----------------------------------------------------
+if (window.DEBUG_SYNapseContracts) {
+  console.log("🔒 synapticBurst contract: EMISSION + LIFETIME ONLY");
+}
