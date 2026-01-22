@@ -93,7 +93,6 @@ function drawSynapseView() {
   const viewX = (width  - viewW) / 2;
   const viewY = (height - viewH) / 2;
 
-
   // ---------------------------------------------------
   // 🔒 HARD CLIP (CANVAS-NATIVE)
   // ---------------------------------------------------
@@ -102,13 +101,11 @@ function drawSynapseView() {
   drawingContext.rect(viewX, viewY, viewW, viewH);
   drawingContext.clip();
 
-
   // ---------------------------------------------------
   // CENTER + SCALE SYNAPSE WORLD
   // ---------------------------------------------------
   translate(viewX + viewW / 2, viewY + viewH / 2);
   scale(fitScale);
-
 
   // ---------------------------------------------------
   // INPUT + ELECTRICAL
@@ -117,7 +114,6 @@ function drawSynapseView() {
   updateVoltageWave?.();
 
   ensureVesiclePoolInitialized();
-
 
   // ---------------------------------------------------
   // UPDATE ORDER (AUTHORITATIVE)
@@ -128,26 +124,23 @@ function drawSynapseView() {
   updateVesicleRelease?.();
   updateVesicleRecycling?.();
 
-  // 🔑 NT emission + lifetime only
+  // NT emission + lifetime only
   updateSynapticBurst?.();
 
-  // 🔑 NT motion + constraints (force-based)
+  // NT motion + astrocyte constraint (FORCE + INTEGRATION)
   updateNTMotion?.(window.synapticNTs);
-
 
   strokeWeight(6);
   strokeJoin(ROUND);
   strokeCap(ROUND);
 
-
   // ---------------------------------------------------
-  // ASTROCYTE (DRAW FIRST)
+  // ASTROCYTE (DRAW FIRST — BACKGROUND ANCHOR)
   // ---------------------------------------------------
-  drawAstrocyteSynapse();              // purple astrocyte
-  drawAstrocyteBoundaryDebug();        // red (geometry intent)
-  drawAstrocytePhysicsBoundaryDebug(); // blue (membrane surface)
-  drawNTConstraintDebug?.();           // 🟠 ORANGE (NT physics truth)
-
+  drawAstrocyteSynapse?.();              // purple geometry
+  drawAstrocyteBoundaryDebug?.();        // red (geometry intent)
+  drawAstrocytePhysicsBoundaryDebug?.(); // blue (membrane surface)
+  drawNTConstraintDebug?.();             // 🟠 ORANGE (NT physics truth)
 
   // ---------------------------------------------------
   // PRESYNAPTIC TERMINAL
@@ -166,9 +159,8 @@ function drawSynapseView() {
   }
 
   drawPreSynapse?.();
-  drawSynapticBurst?.();   // NT geometry only
+  drawSynapticBurst?.();   // NT geometry ONLY
   pop();
-
 
   // ---------------------------------------------------
   // POSTSYNAPTIC TERMINAL
@@ -177,17 +169,15 @@ function drawSynapseView() {
   translate(POST_X, NEURON_Y);
 
   drawPostSynapse?.();
-  drawPostSynapseBoundaryDebug?.();  // cyan (geometry only)
+  drawPostSynapseBoundaryDebug?.(); // cyan (geometry only)
 
   pop();
-
 
   // ---------------------------------------------------
   // RESTORE CLIP + STATE
   // ---------------------------------------------------
   drawingContext.restore();
   pop();
-
 
   // ---------------------------------------------------
   // DEBUG PROBE
