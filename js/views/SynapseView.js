@@ -169,8 +169,12 @@ function drawSynapseView() {
   // ---------------------------------------------------
   push();
   translate(POST_X, NEURON_Y);
+  
   drawPostSynapse?.();
+  drawPostSynapseBoundaryDebug?.();   // 🟦 postsynaptic membrane (debug)
+  
   pop();
+
 
 
   // ---------------------------------------------------
