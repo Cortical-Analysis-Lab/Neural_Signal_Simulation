@@ -12,10 +12,10 @@ console.log("🫧 synapticBurst loaded — FREE FLOW + ASTROCYTE CONSTRAINT (FUS
 // ✔ Astrocyte membrane = HARD CONSTRAINT SURFACE
 //
 // GUARANTEES:
-// • NTs NEVER exist inside astrocyte
+// • NTs NEVER enter astrocyte
 // • Constraint matches membrane exactly
 // • NO slabs, NO hover layers
-// • Crossing-based (IDENTICAL TO FUSION PLANE)
+// • Crossing-based (IDENTICAL to fusion plane)
 //
 // DEBUG:
 // • ORANGE = constraint surface used here
@@ -42,7 +42,7 @@ const NT_PER_FRAME_MAX = 2;
 const NT_INITIAL_SPEED  = 0.26;
 const NT_INITIAL_SPREAD = 4.5;
 
-const NT_ADVECT_X = 0.01;
+const NT_ADVECT_X = 0.01;     // net drift toward postsynapse
 const NT_BROWNIAN = 0.003;
 const NT_DRAG     = 0.985;
 
@@ -97,7 +97,7 @@ function makeNT(x, y) {
 
 
 // -----------------------------------------------------
-// UPDATE LOOP — CROSSING-BASED CONSTRAINT (CORRECT)
+// UPDATE LOOP — TRUE CROSSING-BASED CONSTRAINT
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
@@ -124,7 +124,7 @@ function updateSynapticBurst() {
 
     const p = nts[i];
 
-    // forces
+    // ---- forces ----
     p.vx += NT_ADVECT_X;
     p.vx += random(-NT_BROWNIAN, NT_BROWNIAN);
     p.vy += random(-NT_BROWNIAN, NT_BROWNIAN);
@@ -132,39 +132,39 @@ function updateSynapticBurst() {
     p.vx *= NT_DRAG;
     p.vy *= NT_DRAG;
 
-    // store previous position
+    // ---- store previous position ----
     const prevY = p.y;
 
-    // integrate
+    // ---- integrate ----
     p.x += p.vx;
     p.y += p.vy;
 
     // -------------------------------------------------
-    // ASTROCYTE CONSTRAINT — TRUE FUSION-PLANE LOGIC
+    // ASTROCYTE CONSTRAINT — CROSSING TEST (NO SLAB)
     // -------------------------------------------------
-    if (typeof window.getAstrocyteMembraneY === "function") {
+    if (typeof window.getAstrocyteBoundaryY === "function") {
 
-      const yMem = window.getAstrocyteMembraneY(p.x);
+      const membraneY = window.getAstrocyteBoundaryY(p.x);
 
-      if (yMem !== null) {
+      if (membraneY !== null) {
 
-        // NT attempts to CROSS INTO astrocyte
-        // (astrocyte is ABOVE membrane: smaller Y)
-        if (prevY >= yMem && p.y < yMem) {
+        // Astrocyte is ABOVE membrane (smaller Y in p5)
+        // Block ONLY if NT crosses upward through membrane
+        if (prevY >= membraneY && p.y < membraneY) {
 
-          // snap exactly to membrane
-          p.y = yMem;
+          // Snap exactly to membrane
+          p.y = membraneY;
 
-          // remove inward velocity
+          // Remove inward velocity
           if (p.vy < 0) p.vy = 0;
 
-          // tangential damping (settle & slide)
+          // Tangential settling
           p.vx *= NT_MEMBRANE_DAMPING;
         }
       }
     }
 
-    // decay
+    // ---- decay ----
     p.life--;
     p.alpha = map(p.life, 0, NT_LIFE_MAX, 0, 255, true);
 
@@ -195,11 +195,11 @@ function drawSynapticBurst() {
 
 
 // -----------------------------------------------------
-// 🟠 DEBUG DRAW — CONSTRAINT SURFACE
+// 🟠 DEBUG DRAW — CONSTRAINT SURFACE (PHYSICS TRUTH)
 // -----------------------------------------------------
 function drawSynapticBurstPhysicsBoundaryDebug() {
 
-  if (typeof window.getAstrocyteMembraneY !== "function") return;
+  if (typeof window.getAstrocyteBoundaryY !== "function") return;
 
   push();
   stroke(255, 160, 40, 220);
@@ -208,7 +208,7 @@ function drawSynapticBurstPhysicsBoundaryDebug() {
 
   beginShape();
   for (let x = window.ASTRO_X_MIN; x <= window.ASTRO_X_MAX; x += 6) {
-    const y = window.getAstrocyteMembraneY(x);
+    const y = window.getAstrocyteBoundaryY(x);
     if (y !== null) vertex(x, y);
   }
   endShape();
