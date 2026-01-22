@@ -11,7 +11,7 @@ const ASTRO_PURPLE = window.COLORS?.astrocyte ?? [185, 145, 220];
 const ASTRO_Y_OFFSET = -140;
 
 // =====================================================
-// ASTROCYTE EXTENT (AUTHORITATIVE)
+// ASTROCYTE EXTENT (AUTHORITATIVE DOMAIN)
 // =====================================================
 const ASTRO_X_MIN = -220;
 const ASTRO_X_MAX =  220;
@@ -22,19 +22,17 @@ const ASTRO_X_MAX =  220;
 window.DEBUG_ASTROCYTE = window.DEBUG_ASTROCYTE ?? {
   enabled: true,
 
-  // Red = intended geometry
+  // Red = geometry
   color: [255, 80, 80],
   alpha: 190,
   lineWeight: 2,
 
-  // Blue = physics / constraint truth
+  // Blue = constraint surface (truth)
   physicsColor: [80, 160, 255],
   physicsAlpha: 220,
   physicsWeight: 2,
 
-  sampleStep: 6,
-  drawPoints: true,
-  pointSize: 4
+  sampleStep: 6
 };
 
 // =====================================================
@@ -69,13 +67,15 @@ function drawAstrocyteSynapse() {
 }
 
 // =====================================================
-// 🔑 ASTROCYTE MEMBRANE — LOCAL CURVATURE
+// 🔑 ASTROCYTE MEMBRANE — NORMAL-SPACE DEFINITION
 // =====================================================
 //
-// This defines the membrane shape in LOCAL space only.
-// No offsets. No physics. Geometry only.
+// IMPORTANT:
+// • This is the astrocyte equivalent of getSynapticMembraneX(y)
+// • It defines the LOWER membrane surface
+// • NTs are ONLY allowed with y >= this value
 //
-function getAstrocyteBoundaryLocalY(x) {
+window.getAstrocyteMembraneY = function (x) {
 
   if (!Number.isFinite(x) || x < ASTRO_X_MIN || x > ASTRO_X_MAX) {
     return null;
@@ -83,31 +83,15 @@ function getAstrocyteBoundaryLocalY(x) {
 
   const t = Math.abs(x) / ASTRO_X_MAX;
 
-  // LOWER membrane curvature (local space)
-  return 65 - 45 * (t * t);
-}
+  // Local membrane curvature (authoritative)
+  const yLocal = 65 - 45 * (t * t);
 
-// =====================================================
-// 🔑 ASTROCYTE MEMBRANE — WORLD SPACE (AUTHORITATIVE)
-// =====================================================
-//
-// THIS IS THE CONSTRAINT PLANE.
-// Analogous to SYNAPSE_FUSION_PLANE_X.
-//
-// • World space
-// • Single source of truth
-// • Used by ALL physics
-//
-window.getAstrocyteBoundaryY = function (x) {
-
-  const yLocal = getAstrocyteBoundaryLocalY(x);
-  if (yLocal === null) return null;
-
+  // Convert to world space
   return yLocal + ASTRO_Y_OFFSET;
 };
 
 // =====================================================
-// 🔴 DEBUG DRAW — MEMBRANE (RED, GEOMETRY)
+// 🔴 DEBUG DRAW — GEOMETRY (RED)
 // =====================================================
 function drawAstrocyteBoundaryDebug() {
 
@@ -123,8 +107,9 @@ function drawAstrocyteBoundaryDebug() {
 
   beginShape();
   for (let x = ASTRO_X_MIN; x <= ASTRO_X_MAX; x += D.sampleStep) {
-    const y = getAstrocyteBoundaryLocalY(x);
-    if (y !== null) vertex(x, y);
+    const t = Math.abs(x) / ASTRO_X_MAX;
+    const y = 65 - 45 * (t * t);
+    vertex(x, y);
   }
   endShape();
 
@@ -132,7 +117,7 @@ function drawAstrocyteBoundaryDebug() {
 }
 
 // =====================================================
-// 🔵 DEBUG DRAW — MEMBRANE (BLUE, CONSTRAINT)
+// 🔵 DEBUG DRAW — CONSTRAINT SURFACE (BLUE)
 // =====================================================
 function drawAstrocytePhysicsBoundaryDebug() {
 
@@ -146,7 +131,7 @@ function drawAstrocytePhysicsBoundaryDebug() {
 
   beginShape();
   for (let x = ASTRO_X_MIN; x <= ASTRO_X_MAX; x += D.sampleStep) {
-    const y = window.getAstrocyteBoundaryY(x);
+    const y = window.getAstrocyteMembraneY(x);
     if (y !== null) vertex(x, y);
   }
   endShape();
