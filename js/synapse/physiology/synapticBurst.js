@@ -1,38 +1,33 @@
-console.log("🫧 synapticBurst loaded — FREE FLOW + ASTROCYTE CONSTRAINT (CURVED, NO SLABS)");
+console.log("🫧 synapticBurst loaded — EMISSION + LIFETIME ONLY");
 
 // =====================================================
-// SYNAPTIC NEUROTRANSMITTER BURST — BIASED FREE GAS
+// SYNAPTIC NEUROTRANSMITTER BURST — ORCHESTRATOR
 // =====================================================
 //
-// ✔ Continuous streaming
-// ✔ Wide spatial plume
-// ✔ Net drift toward postsynapse (+X)
-// ✔ Minimal Brownian texture
-// ✔ Time-based decay ONLY
-// ✔ Astrocyte membrane = HARD CURVED CONSTRAINT
+// RESPONSIBILITIES:
+// ✔ Continuous NT emission
+// ✔ NT lifetime management
+// ✔ Calls NTmotion for movement + constraints
+// ✔ Calls NTgeometry for drawing
 //
-// GUARANTEES:
-// • NTs NEVER enter astrocyte
-// • Constraint matches astrocyte membrane exactly
-// • NO slabs
-// • NO hover layers
-// • Crossing-based ONLY (fusion-plane style)
-//
-// DEBUG:
-// • ORANGE = constraint surface used here
+// HARD RULES:
+// • NO geometry definitions
+// • NO constraint logic
+// • NO membrane math
+// • NO position clamping
 //
 // =====================================================
 
 
 // -----------------------------------------------------
-// STORAGE (RELOAD-SAFE)
+// STORAGE (RELOAD SAFE)
 // -----------------------------------------------------
 window.synapticNTs = window.synapticNTs || [];
 window.activeNTEmitters = window.activeNTEmitters || [];
 
 
 // -----------------------------------------------------
-// CORE TUNING
+// EMISSION TUNING
 // -----------------------------------------------------
 const NT_STREAM_DURATION_MIN = 16;
 const NT_STREAM_DURATION_MAX = 28;
@@ -40,27 +35,12 @@ const NT_STREAM_DURATION_MAX = 28;
 const NT_PER_FRAME_MIN = 1;
 const NT_PER_FRAME_MAX = 2;
 
-const NT_INITIAL_SPEED  = 0.26;
-const NT_INITIAL_SPREAD = 4.5;
-
-const NT_ADVECT_X = 0.01;   // drift toward postsynapse
-const NT_BROWNIAN = 0.003;
-const NT_DRAG     = 0.985;
-
-const NT_MEMBRANE_DAMPING = 0.85;
-
 const NT_LIFE_MIN = 1100;
 const NT_LIFE_MAX = 1400;
 
 
 // -----------------------------------------------------
-// GEOMETRY (DRAW ONLY)
-// -----------------------------------------------------
-const NT_RADIUS = 2.4;
-
-
-// -----------------------------------------------------
-// RELEASE EVENT
+// RELEASE EVENT (AUTHORITATIVE)
 // -----------------------------------------------------
 window.addEventListener("synapticRelease", (e) => {
 
@@ -78,18 +58,16 @@ window.addEventListener("synapticRelease", (e) => {
 
 
 // -----------------------------------------------------
-// NT FACTORY
+// NT FACTORY (STRUCTURE ONLY)
 // -----------------------------------------------------
 function makeNT(x, y) {
-
-  const angle = random(-NT_INITIAL_SPREAD, NT_INITIAL_SPREAD);
 
   return {
     x: x + random(-4, 4),
     y: y + random(-6, 6),
 
-    vx: Math.cos(angle) * NT_INITIAL_SPEED,
-    vy: Math.sin(angle) * NT_INITIAL_SPEED,
+    vx: random(-0.05, 0.05),
+    vy: random(-0.05, 0.05),
 
     life: random(NT_LIFE_MIN, NT_LIFE_MAX),
     alpha: 255
@@ -98,123 +76,66 @@ function makeNT(x, y) {
 
 
 // -----------------------------------------------------
-// UPDATE LOOP — TRUE CROSSING-BASED CONSTRAINT
+// MAIN UPDATE — ORCHESTRATION ONLY
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
   const nts = window.synapticNTs;
   const emitters = window.activeNTEmitters;
 
-  // ---------------- emission ----------------
+  // ----------------------------
+  // 1️⃣ Emit NTs
+  // ----------------------------
   for (let i = emitters.length - 1; i >= 0; i--) {
 
     const e = emitters[i];
-    const n = Math.floor(random(NT_PER_FRAME_MIN, NT_PER_FRAME_MAX + 1));
+    const count = Math.floor(
+      random(NT_PER_FRAME_MIN, NT_PER_FRAME_MAX + 1)
+    );
 
-    for (let k = 0; k < n; k++) {
+    for (let k = 0; k < count; k++) {
       nts.push(makeNT(e.x, e.y));
     }
 
-    if (--e.framesLeft <= 0) emitters.splice(i, 1);
+    if (--e.framesLeft <= 0) {
+      emitters.splice(i, 1);
+    }
   }
 
   if (!nts.length) return;
 
-  // ---------------- dynamics ----------------
+  // ----------------------------
+  // 2️⃣ Motion + constraints
+  // ----------------------------
+  //
+  // 🔒 THIS is where astrocyte confinement happens
+  //
+  window.updateNTMotion?.(nts);
+
+  // ----------------------------
+  // 3️⃣ Lifetime decay ONLY
+  // ----------------------------
   for (let i = nts.length - 1; i >= 0; i--) {
 
     const p = nts[i];
-
-    // --- forces ---
-    p.vx += NT_ADVECT_X;
-    p.vx += random(-NT_BROWNIAN, NT_BROWNIAN);
-    p.vy += random(-NT_BROWNIAN, NT_BROWNIAN);
-
-    p.vx *= NT_DRAG;
-    p.vy *= NT_DRAG;
-
-    // --- store previous position ---
-    const prevY = p.y;
-
-    // --- integrate ---
-    p.x += p.vx;
-    p.y += p.vy;
-
-    // -------------------------------------------------
-    // ASTROCYTE MEMBRANE CONSTRAINT (NO SLAB)
-    // -------------------------------------------------
-    if (typeof window.getAstrocyteMembraneY === "function") {
-
-      const membraneY = window.getAstrocyteMembraneY(p.x);
-
-      if (membraneY !== null) {
-
-        // Astrocyte exists ABOVE the membrane (smaller Y)
-        // Block ONLY if NT crosses upward through membrane
-        if (prevY >= membraneY && p.y < membraneY) {
-
-          // Clamp exactly to membrane
-          p.y = membraneY;
-
-          // Remove inward velocity
-          if (p.vy < 0) p.vy = 0;
-
-          // Tangential settling along membrane
-          p.vx *= NT_MEMBRANE_DAMPING;
-        }
-      }
-    }
-
-    // --- decay ---
     p.life--;
+
     p.alpha = map(p.life, 0, NT_LIFE_MAX, 0, 255, true);
 
-    if (p.life <= 0) nts.splice(i, 1);
+    if (p.life <= 0) {
+      nts.splice(i, 1);
+    }
   }
 }
 
 
 // -----------------------------------------------------
-// DRAW NTs
+// DRAW — PURE GEOMETRY
 // -----------------------------------------------------
 function drawSynapticBurst() {
 
   if (!window.synapticNTs.length) return;
-
-  push();
-  noStroke();
-  blendMode(ADD);
-
-  for (const p of window.synapticNTs) {
-    fill(185, 120, 255, p.alpha);
-    circle(p.x, p.y, NT_RADIUS);
-  }
-
-  blendMode(BLEND);
-  pop();
-}
-
-
-// -----------------------------------------------------
-// 🟠 DEBUG DRAW — MEMBRANE USED FOR PHYSICS
-// -----------------------------------------------------
-function drawSynapticBurstPhysicsBoundaryDebug() {
-
-  if (typeof window.getAstrocyteMembraneY !== "function") return;
-
-  push();
-  stroke(255, 160, 40, 220);
-  strokeWeight(2);
-  noFill();
-
-  beginShape();
-  for (let x = window.ASTRO_X_MIN; x <= window.ASTRO_X_MAX; x += 6) {
-    const y = window.getAstrocyteMembraneY(x);
-    if (y !== null) vertex(x, y);
-  }
-  endShape();
-
-  pop();
+  window.drawNTGeometry?.(window.synapticNTs);
 }
 
 
@@ -223,5 +144,3 @@ function drawSynapticBurstPhysicsBoundaryDebug() {
 // -----------------------------------------------------
 window.updateSynapticBurst = updateSynapticBurst;
 window.drawSynapticBurst   = drawSynapticBurst;
-window.drawSynapticBurstPhysicsBoundaryDebug =
-  drawSynapticBurstPhysicsBoundaryDebug;
