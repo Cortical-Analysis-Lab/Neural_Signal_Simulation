@@ -171,8 +171,9 @@ function drawSynapseView() {
   translate(POST_X, NEURON_Y);
   
   drawPostSynapse?.();
-  drawPostSynapseBoundaryDebug?.();   // 🟦 postsynaptic membrane (debug)
-  
+  drawPostSynapseBoundaryDebug();        // cyan (geometry)
+  drawPostSynapseNTStopPlaneDebug();     // 🟠 ORANGE (NT physics truth)
+
   pop();
 
 
