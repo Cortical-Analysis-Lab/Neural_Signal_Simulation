@@ -1,4 +1,4 @@
-console.log("🫧 synapticBurst loaded — FREE FLOW + ASTROCYTE CONSTRAINT (FUSION-PLANE STYLE)");
+console.log("🫧 synapticBurst loaded — FREE FLOW + ASTROCYTE CONSTRAINT (CURVED, NO SLABS)");
 
 // =====================================================
 // SYNAPTIC NEUROTRANSMITTER BURST — BIASED FREE GAS
@@ -9,13 +9,14 @@ console.log("🫧 synapticBurst loaded — FREE FLOW + ASTROCYTE CONSTRAINT (FUS
 // ✔ Net drift toward postsynapse (+X)
 // ✔ Minimal Brownian texture
 // ✔ Time-based decay ONLY
-// ✔ Astrocyte membrane = HARD CONSTRAINT SURFACE
+// ✔ Astrocyte membrane = HARD CURVED CONSTRAINT
 //
 // GUARANTEES:
 // • NTs NEVER enter astrocyte
-// • Constraint matches membrane exactly
-// • NO slabs, NO hover layers
-// • Crossing-based (IDENTICAL to fusion plane)
+// • Constraint matches astrocyte membrane exactly
+// • NO slabs
+// • NO hover layers
+// • Crossing-based ONLY (fusion-plane style)
 //
 // DEBUG:
 // • ORANGE = constraint surface used here
@@ -42,7 +43,7 @@ const NT_PER_FRAME_MAX = 2;
 const NT_INITIAL_SPEED  = 0.26;
 const NT_INITIAL_SPREAD = 4.5;
 
-const NT_ADVECT_X = 0.01;     // net drift toward postsynapse
+const NT_ADVECT_X = 0.01;   // drift toward postsynapse
 const NT_BROWNIAN = 0.003;
 const NT_DRAG     = 0.985;
 
@@ -104,7 +105,7 @@ function updateSynapticBurst() {
   const nts = window.synapticNTs;
   const emitters = window.activeNTEmitters;
 
-  // ---- emission ----
+  // ---------------- emission ----------------
   for (let i = emitters.length - 1; i >= 0; i--) {
 
     const e = emitters[i];
@@ -119,12 +120,12 @@ function updateSynapticBurst() {
 
   if (!nts.length) return;
 
-  // ---- dynamics ----
+  // ---------------- dynamics ----------------
   for (let i = nts.length - 1; i >= 0; i--) {
 
     const p = nts[i];
 
-    // ---- forces ----
+    // --- forces ---
     p.vx += NT_ADVECT_X;
     p.vx += random(-NT_BROWNIAN, NT_BROWNIAN);
     p.vy += random(-NT_BROWNIAN, NT_BROWNIAN);
@@ -132,39 +133,39 @@ function updateSynapticBurst() {
     p.vx *= NT_DRAG;
     p.vy *= NT_DRAG;
 
-    // ---- store previous position ----
+    // --- store previous position ---
     const prevY = p.y;
 
-    // ---- integrate ----
+    // --- integrate ---
     p.x += p.vx;
     p.y += p.vy;
 
     // -------------------------------------------------
-    // ASTROCYTE CONSTRAINT — CROSSING TEST (NO SLAB)
+    // ASTROCYTE MEMBRANE CONSTRAINT (NO SLAB)
     // -------------------------------------------------
-    if (typeof window.getAstrocyteBoundaryY === "function") {
+    if (typeof window.getAstrocyteMembraneY === "function") {
 
-      const membraneY = window.getAstrocyteBoundaryY(p.x);
+      const membraneY = window.getAstrocyteMembraneY(p.x);
 
       if (membraneY !== null) {
 
-        // Astrocyte is ABOVE membrane (smaller Y in p5)
+        // Astrocyte exists ABOVE the membrane (smaller Y)
         // Block ONLY if NT crosses upward through membrane
         if (prevY >= membraneY && p.y < membraneY) {
 
-          // Snap exactly to membrane
+          // Clamp exactly to membrane
           p.y = membraneY;
 
           // Remove inward velocity
           if (p.vy < 0) p.vy = 0;
 
-          // Tangential settling
+          // Tangential settling along membrane
           p.vx *= NT_MEMBRANE_DAMPING;
         }
       }
     }
 
-    // ---- decay ----
+    // --- decay ---
     p.life--;
     p.alpha = map(p.life, 0, NT_LIFE_MAX, 0, 255, true);
 
@@ -195,11 +196,11 @@ function drawSynapticBurst() {
 
 
 // -----------------------------------------------------
-// 🟠 DEBUG DRAW — CONSTRAINT SURFACE (PHYSICS TRUTH)
+// 🟠 DEBUG DRAW — MEMBRANE USED FOR PHYSICS
 // -----------------------------------------------------
 function drawSynapticBurstPhysicsBoundaryDebug() {
 
-  if (typeof window.getAstrocyteBoundaryY !== "function") return;
+  if (typeof window.getAstrocyteMembraneY !== "function") return;
 
   push();
   stroke(255, 160, 40, 220);
@@ -208,7 +209,7 @@ function drawSynapticBurstPhysicsBoundaryDebug() {
 
   beginShape();
   for (let x = window.ASTRO_X_MIN; x <= window.ASTRO_X_MAX; x += 6) {
-    const y = window.getAstrocyteBoundaryY(x);
+    const y = window.getAstrocyteMembraneY(x);
     if (y !== null) vertex(x, y);
   }
   endShape();
