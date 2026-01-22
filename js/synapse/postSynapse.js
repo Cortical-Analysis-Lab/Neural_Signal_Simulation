@@ -1,34 +1,28 @@
 console.log("🟡 postSynapse loaded — GEOMETRY AUTHORITY");
 
 // =====================================================
-// POSTSYNAPTIC NEURON — GEOMETRY + CONSTRAINT AUTHORITY
+// POSTSYNAPTIC NEURON — GEOMETRY ONLY
 // =====================================================
 //
-// 🔒 CONTRACT (LOCKED):
-// • Owns postsynaptic membrane geometry
-// • Owns NT constraint surface (membrane-normal)
-// • NO physics integration here
-// • synapticBurst.js MUST query this file
+// 🔒 HARD CONTRACT (LOCKED):
+// • Owns postsynaptic membrane GEOMETRY
+// • Exposes membrane sampler (geometry space)
+// • Draws neuron + PSD
+// • Visual debug ONLY
 //
-// This mirrors preSynapse.js exactly.
+// 🚫 THIS FILE MUST NOT:
+// • Apply NT constraints
+// • Define stop planes
+// • Modify NT motion
+// • Perform physics
+//
+// NT constraints are owned by NTmotion.js
 //
 // =====================================================
 
 
 // -----------------------------------------------------
-// POSTSYNAPTIC NT STOP PLANE (AUTHORITATIVE)
-// -----------------------------------------------------
-//
-// This is analogous to SYNAPSE_FUSION_PLANE_X
-// • NOT a world X
-// • Offset along membrane normal
-// • Used ONLY by synapticBurst.js
-//
-window.POSTSYNAPSE_NT_STOP_X = 0;
-
-
-// -----------------------------------------------------
-// DRAW — POSTSYNAPTIC NEURON (GEOMETRY ONLY)
+// DRAW — POSTSYNAPTIC NEURON (LOCAL SPACE)
 // -----------------------------------------------------
 function drawPostSynapse() {
   push();
@@ -50,13 +44,15 @@ function drawPostSynapse() {
 
 
 // =====================================================
-// 🔑 POSTSYNAPTIC MEMBRANE SURFACE SAMPLER (AUTHORITATIVE)
+// 🔑 POSTSYNAPTIC MEMBRANE SAMPLER (GEOMETRY ONLY)
 // =====================================================
 //
 // MUST match neuronShape.js exactly
-// Returns membrane-normal X at Y
+// Returns membrane-normal X at local Y
 //
-// NTs, receptors, and future plasticity depend on this
+// Used by:
+// • NTmotion.js (constraints)
+// • Debug visualization
 //
 window.getPostSynapticMembraneX = function (y) {
 
@@ -90,11 +86,12 @@ window.getPostSynapticMembraneX = function (y) {
 //
 // • Cyan dashed line
 // • Visual reference ONLY
-// • No physics meaning
+// • NOT a constraint
 //
 function drawPostSynapseBoundaryDebug() {
 
   if (!window.SHOW_SYNAPSE_DEBUG) return;
+  if (typeof window.getPostSynapticMembraneX !== "function") return;
 
   const H    = 140;
   const step = 4;
@@ -118,45 +115,11 @@ function drawPostSynapseBoundaryDebug() {
 }
 
 
-// =====================================================
-// 🟠 DEBUG DRAW — NT CONSTRAINT PLANE (PHYSICS TRUTH)
-// =====================================================
-//
-// • EXACT surface used by synapticBurst.js
-// • Curvature-aware
-// • No slab possible
-//
-function drawPostSynapseNTStopPlaneDebug() {
-
-  if (!window.SHOW_SYNAPSE_DEBUG) return;
-
-  const H    = 140;
-  const step = 4;
-
-  push();
-  stroke(255, 160, 40, 220);
-  strokeWeight(2);
-  noFill();
-
-  beginShape();
-  for (let y = -H; y <= H; y += step) {
-    const membraneX = window.getPostSynapticMembraneX(y);
-    vertex(
-      membraneX + window.POSTSYNAPSE_NT_STOP_X,
-      y
-    );
-  }
-  endShape();
-
-  pop();
-}
-
-
 // -----------------------------------------------------
 // 🔒 SANITY CHECK
 // -----------------------------------------------------
 if (window.DEBUG_SYNapseContracts) {
-  console.log("🔒 postSynapse contract: GEOMETRY + NT CONSTRAINT AUTHORITY");
+  console.log("🔒 postSynapse contract: GEOMETRY ONLY");
 }
 
 
@@ -165,5 +128,3 @@ if (window.DEBUG_SYNapseContracts) {
 // -----------------------------------------------------
 window.drawPostSynapse = drawPostSynapse;
 window.drawPostSynapseBoundaryDebug = drawPostSynapseBoundaryDebug;
-window.drawPostSynapseNTStopPlaneDebug =
-  drawPostSynapseNTStopPlaneDebug;
