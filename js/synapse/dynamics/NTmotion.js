@@ -8,10 +8,10 @@ console.log("🫧 NTmotion loaded — MOTION & CONSTRAINT AUTHORITY");
 // ✔ Brownian motion
 // ✔ Directed advection toward postsynapse
 // ✔ Drag
-// ✔ Astrocyte membrane confinement (elastic, no slabs)
+// ✔ Elastic astrocyte membrane confinement (NO SLABS)
 //
 // HARD RULES:
-// • NEVER draw
+// • NEVER draw NTs
 // • NEVER spawn NTs
 // • NEVER define geometry
 // • NEVER fade alpha
@@ -38,7 +38,7 @@ const NT_DRAG = 0.985;
 // 🔧 ASTROCYTE CONSTRAINT (ELASTIC — NO SLAB)
 // -----------------------------------------------------
 
-// Spring strength against membrane penetration
+// Spring response to penetration
 const ASTRO_WALL_K = 0.12;
 
 // Tangential damping when contacting membrane
@@ -49,7 +49,7 @@ const NT_MAX_SPEED = 0.6;
 
 
 // -----------------------------------------------------
-// MAIN UPDATE — MOTION ONLY
+// MAIN UPDATE — FORCE + INTEGRATION ONLY
 // -----------------------------------------------------
 //
 // Expects NT objects of shape:
@@ -80,13 +80,13 @@ window.updateNTMotion = function (nts) {
 
     if (penetration !== null && penetration > 0) {
 
-      // Push NT downward (normal force)
+      // Normal push OUT of astrocyte
       p.vy += penetration * ASTRO_WALL_K;
 
-      // Kill inward velocity
+      // Kill inward normal velocity
       if (p.vy < 0) p.vy = 0;
 
-      // Tangential settling
+      // Tangential settling along membrane
       p.vx *= ASTRO_TANGENTIAL_DAMPING;
     }
 
@@ -111,6 +111,37 @@ window.updateNTMotion = function (nts) {
     p.x += p.vx;
     p.y += p.vy;
   }
+};
+
+
+// =====================================================
+// 🟠 DEBUG DRAW — NT CONSTRAINT SURFACE (PHYSICS TRUTH)
+// =====================================================
+//
+// • Draws the ACTUAL constraint used by NT physics
+// • Samples authoritative astrocyte geometry
+// • NO slabs possible
+// • Visual only
+//
+// =====================================================
+window.drawNTConstraintDebug = function () {
+
+  if (!window.SHOW_SYNAPSE_DEBUG) return;
+  if (typeof window.getAstrocyteMembraneY !== "function") return;
+
+  push();
+  stroke(255, 160, 40, 220); // orange
+  strokeWeight(2);
+  noFill();
+
+  beginShape();
+  for (let x = window.ASTRO_X_MIN; x <= window.ASTRO_X_MAX; x += 6) {
+    const y = window.getAstrocyteMembraneY(x);
+    if (y !== null) vertex(x, y);
+  }
+  endShape();
+
+  pop();
 };
 
 
