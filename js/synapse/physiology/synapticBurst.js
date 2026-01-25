@@ -24,8 +24,8 @@ console.log("🫧 synapticBurst loaded — EMISSION + LIFETIME ONLY");
 // -----------------------------------------------------
 // STORAGE (RELOAD SAFE)
 // -----------------------------------------------------
-window.synapticNTs       = window.synapticNTs       || [];
-window.activeNTEmitters = window.activeNTEmitters || [];
+window.synapticNTs        = window.synapticNTs        || [];
+window.activeNTEmitters  = window.activeNTEmitters  || [];
 
 
 // -----------------------------------------------------
@@ -44,37 +44,40 @@ const NT_LIFE_MAX = 1400;
 // -----------------------------------------------------
 // RELEASE EVENT — ENTRY POINT FROM VESICLES
 // -----------------------------------------------------
-//
-// vesicleRelease.js is the ONLY file allowed
-// to dispatch this event.
-//
-// -----------------------------------------------------
 window.addEventListener("synapticRelease", (e) => {
 
+  console.log("🟣 synapticBurst RECEIVED synapticRelease", e.detail);
+
   const { x, y, strength = 1 } = e.detail || {};
-  if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+    console.warn("⚠️ synapticRelease ignored (bad coords)", e.detail);
+    return;
+  }
+
+  const frames =
+    Math.floor(
+      random(NT_STREAM_DURATION_MIN, NT_STREAM_DURATION_MAX) * strength
+    );
 
   window.activeNTEmitters.push({
     x,
     y,
-    framesLeft: Math.floor(
-      random(NT_STREAM_DURATION_MIN, NT_STREAM_DURATION_MAX) * strength
-    )
+    framesLeft: frames
   });
+
+  console.log(
+    "🟢 NT emitter created @",
+    { x: x.toFixed(1), y: y.toFixed(1), frames }
+  );
 });
 
 
 // -----------------------------------------------------
 // NT FACTORY — STRUCTURE ONLY
 // -----------------------------------------------------
-//
-// NO forces
-// NO constraints
-// NO geometry
-//
 function makeNT(x, y) {
 
-  return {
+  const nt = {
     x: x + random(-4, 4),
     y: y + random(-6, 6),
 
@@ -84,6 +87,8 @@ function makeNT(x, y) {
     life: random(NT_LIFE_MIN, NT_LIFE_MAX),
     alpha: 255
   };
+
+  return nt;
 }
 
 
@@ -96,7 +101,7 @@ function updateSynapticBurst() {
   const emitters = window.activeNTEmitters;
 
   // ---------------------------------------------------
-  // 1️⃣ EMISSION (TIME-BASED STREAMING)
+  // 1️⃣ EMISSION
   // ---------------------------------------------------
   for (let i = emitters.length - 1; i >= 0; i--) {
 
@@ -106,12 +111,24 @@ function updateSynapticBurst() {
     );
 
     for (let k = 0; k < count; k++) {
-      nts.push(makeNT(e.x, e.y));
+      const nt = makeNT(e.x, e.y);
+      nts.push(nt);
     }
 
-    if (--e.framesLeft <= 0) {
+    e.framesLeft--;
+
+    if (e.framesLeft <= 0) {
       emitters.splice(i, 1);
     }
+  }
+
+  // 🔍 DEBUG: confirm NT existence
+  if (window.SHOW_SYNAPSE_DEBUG && frameCount % 30 === 0) {
+    console.log(
+      "🫧 NT status",
+      "emitters:", emitters.length,
+      "NTs:", nts.length
+    );
   }
 
   if (!nts.length) return;
@@ -119,14 +136,14 @@ function updateSynapticBurst() {
   // ---------------------------------------------------
   // 2️⃣ MOTION + CONSTRAINTS (DELEGATED)
   // ---------------------------------------------------
-  //
-  // NTmotion.js is the ONLY file allowed
-  // to move NTs or apply membrane interaction
-  //
-  window.updateNTMotion?.(nts);
+  if (typeof window.updateNTMotion !== "function") {
+    console.warn("⚠️ updateNTMotion not defined");
+  } else {
+    window.updateNTMotion(nts);
+  }
 
   // ---------------------------------------------------
-  // 3️⃣ LIFETIME + ALPHA (OWNED HERE)
+  // 3️⃣ LIFETIME + ALPHA
   // ---------------------------------------------------
   for (let i = nts.length - 1; i >= 0; i--) {
 
@@ -145,14 +162,16 @@ function updateSynapticBurst() {
 // -----------------------------------------------------
 // DRAW — PURE DELEGATION
 // -----------------------------------------------------
-//
-// NTgeometry.js is the ONLY file
-// that knows how NTs look
-//
 function drawSynapticBurst() {
 
   if (!window.synapticNTs.length) return;
-  window.drawNTGeometry?.(window.synapticNTs);
+
+  if (typeof window.drawNTGeometry !== "function") {
+    console.warn("⚠️ drawNTGeometry not defined");
+    return;
+  }
+
+  window.drawNTGeometry(window.synapticNTs);
 }
 
 
