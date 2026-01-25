@@ -28,25 +28,18 @@ window.NT_RADIUS = 2.4;
 // -----------------------------------------------------
 // 🎨 COLOR MODEL (AUTHORITATIVE)
 // -----------------------------------------------------
-//
-// NTs are ALWAYS purple
-// Alpha is supplied externally (lifecycle-owned)
-//
 function ntFillColor(alpha = 255) {
   return color(185, 120, 255, alpha);
 }
 
 
 // -----------------------------------------------------
-// MAIN DRAW ENTRY
+// MAIN DRAW ENTRY (AUTHORITATIVE)
 // -----------------------------------------------------
 //
-// Draws ALL NTs in synaptic space
-// Expects NT objects of shape:
-//   { x, y, alpha }
+// synapticBurst.js EXPECTS this name
 //
-// -----------------------------------------------------
-window.drawNTs = function (nts) {
+window.drawNTGeometry = function (nts) {
 
   if (!Array.isArray(nts) || nts.length === 0) return;
 
@@ -75,9 +68,6 @@ window.drawNTs = function (nts) {
 // -----------------------------------------------------
 // 🟦 DEBUG DRAW — NT ORIGINS (OPTIONAL)
 // -----------------------------------------------------
-//
-// Useful for confirming emission alignment
-//
 window.drawNTDebugPoints = function (nts) {
 
   if (!window.SHOW_SYNAPSE_DEBUG) return;
