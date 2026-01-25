@@ -8,8 +8,7 @@ console.log("🫧 synapticBurst loaded — EMISSION + LIFETIME ONLY");
 // ✔ Receive synapticRelease events
 // ✔ Emit NTs over time (streaming)
 // ✔ Manage NT lifetime + alpha
-// ✔ Delegate motion to NTmotion.js
-// ✔ Delegate drawing to NTgeometry.js
+// ✔ Delegate DRAWING to NTgeometry.js
 //
 // HARD RULES:
 // • NO geometry definitions
@@ -17,6 +16,7 @@ console.log("🫧 synapticBurst loaded — EMISSION + LIFETIME ONLY");
 // • NO membrane math
 // • NO position clamping
 // • NO force application
+// • NO motion integration
 //
 // =====================================================
 
@@ -24,8 +24,8 @@ console.log("🫧 synapticBurst loaded — EMISSION + LIFETIME ONLY");
 // -----------------------------------------------------
 // STORAGE (RELOAD SAFE)
 // -----------------------------------------------------
-window.synapticNTs        = window.synapticNTs        || [];
-window.activeNTEmitters  = window.activeNTEmitters  || [];
+window.synapticNTs       = window.synapticNTs       || [];
+window.activeNTEmitters = window.activeNTEmitters || [];
 
 
 // -----------------------------------------------------
@@ -46,13 +46,8 @@ const NT_LIFE_MAX = 1400;
 // -----------------------------------------------------
 window.addEventListener("synapticRelease", (e) => {
 
-  console.log("🟣 synapticBurst RECEIVED synapticRelease", e.detail);
-
   const { x, y, strength = 1 } = e.detail || {};
-  if (!Number.isFinite(x) || !Number.isFinite(y)) {
-    console.warn("⚠️ synapticRelease ignored (bad coords)", e.detail);
-    return;
-  }
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return;
 
   const frames =
     Math.floor(
@@ -65,10 +60,12 @@ window.addEventListener("synapticRelease", (e) => {
     framesLeft: frames
   });
 
-  console.log(
-    "🟢 NT emitter created @",
-    { x: x.toFixed(1), y: y.toFixed(1), frames }
-  );
+  if (window.SHOW_SYNAPSE_DEBUG) {
+    console.log(
+      "🟢 NT emitter created",
+      { x: x.toFixed(1), y: y.toFixed(1), frames }
+    );
+  }
 });
 
 
@@ -77,23 +74,23 @@ window.addEventListener("synapticRelease", (e) => {
 // -----------------------------------------------------
 function makeNT(x, y) {
 
-  const nt = {
+  return {
     x: x + random(-4, 4),
     y: y + random(-6, 6),
 
+    // Motion state (used by NTmotion.js)
     vx: random(-0.05, 0.05),
     vy: random(-0.05, 0.05),
 
+    // Lifetime
     life: random(NT_LIFE_MIN, NT_LIFE_MAX),
     alpha: 255
   };
-
-  return nt;
 }
 
 
 // -----------------------------------------------------
-// MAIN UPDATE — ORCHESTRATION ONLY
+// MAIN UPDATE — EMISSION + LIFETIME ONLY
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
@@ -101,7 +98,7 @@ function updateSynapticBurst() {
   const emitters = window.activeNTEmitters;
 
   // ---------------------------------------------------
-  // 1️⃣ EMISSION
+  // 1️⃣ EMIT NTs (TIME-BASED STREAMING)
   // ---------------------------------------------------
   for (let i = emitters.length - 1; i >= 0; i--) {
 
@@ -111,46 +108,32 @@ function updateSynapticBurst() {
     );
 
     for (let k = 0; k < count; k++) {
-      const nt = makeNT(e.x, e.y);
-      nts.push(nt);
+      nts.push(makeNT(e.x, e.y));
     }
 
-    e.framesLeft--;
-
-    if (e.framesLeft <= 0) {
+    if (--e.framesLeft <= 0) {
       emitters.splice(i, 1);
     }
-  }
-
-  // 🔍 DEBUG: confirm NT existence
-  if (window.SHOW_SYNAPSE_DEBUG && frameCount % 30 === 0) {
-    console.log(
-      "🫧 NT status",
-      "emitters:", emitters.length,
-      "NTs:", nts.length
-    );
   }
 
   if (!nts.length) return;
 
   // ---------------------------------------------------
-  // 2️⃣ MOTION + CONSTRAINTS (DELEGATED)
-  // ---------------------------------------------------
-  if (typeof window.updateNTMotion !== "function") {
-    console.warn("⚠️ updateNTMotion not defined");
-  } else {
-    window.updateNTMotion(nts);
-  }
-
-  // ---------------------------------------------------
-  // 3️⃣ LIFETIME + ALPHA
+  // 2️⃣ LIFETIME + ALPHA ONLY
   // ---------------------------------------------------
   for (let i = nts.length - 1; i >= 0; i--) {
 
     const p = nts[i];
     p.life--;
 
-    p.alpha = map(p.life, 0, NT_LIFE_MAX, 0, 255, true);
+    p.alpha = map(
+      p.life,
+      0,
+      NT_LIFE_MAX,
+      0,
+      255,
+      true
+    );
 
     if (p.life <= 0) {
       nts.splice(i, 1);
@@ -160,13 +143,14 @@ function updateSynapticBurst() {
 
 
 // -----------------------------------------------------
-// DRAW — PURE DELEGATION
+// DRAW — PURE GEOMETRY DELEGATION
 // -----------------------------------------------------
 function drawSynapticBurst() {
 
   if (!window.synapticNTs.length) return;
+  if (typeof window.drawNTs !== "function") return;
 
-  window.drawNTGeometry(window.synapticNTs);
+  window.drawNTs(window.synapticNTs);
 }
 
 
