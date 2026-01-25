@@ -124,23 +124,23 @@ function drawSynapseView() {
   updateVesicleRelease?.();
   updateVesicleRecycling?.();
 
-  // NT emission + lifetime only
+  // NT emission + lifetime
   updateSynapticBurst?.();
 
-  // NT motion + astrocyte constraint (FORCE + INTEGRATION)
+  // NT motion + astrocyte constraint
   updateNTMotion?.(window.synapticNTs);
 
   strokeWeight(6);
   strokeJoin(ROUND);
   strokeCap(ROUND);
 
-  // ---------------------------------------------------
-  // ASTROCYTE (DRAW FIRST — BACKGROUND ANCHOR)
-  // ---------------------------------------------------
-  drawAstrocyteSynapse?.();              // purple geometry
-  drawAstrocyteBoundaryDebug?.();        // red (geometry intent)
-  drawAstrocytePhysicsBoundaryDebug?.(); // blue (membrane surface)
-  drawNTConstraintDebug?.();             // 🟠 ORANGE (NT physics truth)
+  // ===================================================
+  // ASTROCYTE — DRAW ORDER MATTERS
+  // ===================================================
+  drawAstrocyteSynapse?.();        // purple tissue (fill)
+  drawAstrocyteMembrane?.();       // 🔑 ACTUAL MEMBRANE
+  drawAstrocyteBoundaryDebug?.();  // red (local intent)
+  drawAstrocytePhysicsBoundaryDebug?.(); // blue (world truth)
 
   // ---------------------------------------------------
   // PRESYNAPTIC TERMINAL
@@ -169,7 +169,7 @@ function drawSynapseView() {
   translate(POST_X, NEURON_Y);
 
   drawPostSynapse?.();
-  drawPostSynapseBoundaryDebug?.(); // cyan (geometry only)
+  drawPostSynapseBoundaryDebug?.(); // cyan geometry
 
   pop();
 
@@ -178,21 +178,6 @@ function drawSynapseView() {
   // ---------------------------------------------------
   drawingContext.restore();
   pop();
-
-  // ---------------------------------------------------
-  // DEBUG PROBE
-  // ---------------------------------------------------
-  if (window.SHOW_SYNAPSE_DEBUG && frameCount % 60 === 0) {
-    console.log(
-      "🧪 vesicles:",
-      window.synapseVesicles?.length,
-      window.synapseVesicles?.map(v => ({
-        x: v.x?.toFixed(1),
-        y: v.y?.toFixed(1),
-        state: v.state
-      }))
-    );
-  }
 }
 
 
