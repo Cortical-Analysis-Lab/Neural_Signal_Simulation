@@ -166,11 +166,6 @@ function drawSynapticBurst() {
 
   if (!window.synapticNTs.length) return;
 
-  if (typeof window.drawNTGeometry !== "function") {
-    console.warn("⚠️ drawNTGeometry not defined");
-    return;
-  }
-
   window.drawNTGeometry(window.synapticNTs);
 }
 
