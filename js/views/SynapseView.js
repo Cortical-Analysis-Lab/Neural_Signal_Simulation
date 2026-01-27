@@ -8,8 +8,16 @@ console.log("🔬 SynapseView loaded — SCREEN-FRAMED, CLIPPED (FIXED)");
 // ✔ Fixed aspect ratio
 // ✔ Uniform scaling across screen sizes
 // ✔ HARD viewport clipping (Canvas-native)
-// ✔ Vesicles drawn ONLY in preSynapse.js
-// ✔ NT motion & constraints owned by NTmotion.js
+//
+// RESPONSIBILITIES:
+// • Calls update functions in correct order
+// • Draws geometry in correct visual order
+// • Owns NO physics
+// • Owns NO constraints
+//
+// NT confinement lives in:
+// → cleftGeometry.js
+// → NTmotion.js
 //
 // =====================================================
 
@@ -107,17 +115,19 @@ function drawSynapseView() {
   translate(viewX + viewW / 2, viewY + viewH / 2);
   scale(fitScale);
 
-  // ---------------------------------------------------
+
+  // ===================================================
   // INPUT + ELECTRICAL
-  // ---------------------------------------------------
+  // ===================================================
   handleSynapseInput();
   updateVoltageWave?.();
 
   ensureVesiclePoolInitialized();
 
-  // ---------------------------------------------------
-  // UPDATE ORDER (AUTHORITATIVE)
-  // ---------------------------------------------------
+
+  // ===================================================
+  // UPDATE ORDER — PHYSICS FIRST, GEOMETRY LATER
+  // ===================================================
   updateVesicleLoading?.();
   updateVesicleMotion?.();
   updateVesiclePools?.();
@@ -127,24 +137,42 @@ function drawSynapseView() {
   // NT emission + lifetime
   updateSynapticBurst?.();
 
-  // NT motion + astrocyte constraint
+  // NT motion + confinement (cleft-based)
   updateNTMotion?.(window.synapticNTs);
+
 
   strokeWeight(6);
   strokeJoin(ROUND);
   strokeCap(ROUND);
 
-  // ===================================================
-  // ASTROCYTE — DRAW ORDER MATTERS
-  // ===================================================
-  drawAstrocyteSynapse?.();        // purple tissue (fill)
-  drawAstrocyteMembrane?.();       // 🔑 ACTUAL MEMBRANE
-  drawAstrocyteBoundaryDebug?.();  // red (local intent)
-  drawAstrocytePhysicsBoundaryDebug?.(); // blue (world truth)
 
-  // ---------------------------------------------------
+  // ===================================================
+  // BACKGROUND GEOMETRY (NO NTs YET)
+  // ===================================================
+
+  // Astrocyte tissue mass (pure fill)
+  drawAstrocyteSynapse?.();
+
+  // 🔑 Astrocyte membrane (visual == physics)
+  drawAstrocyteMembrane?.();
+
+  // Debug overlays (optional)
+  drawAstrocyteBoundaryDebug?.();
+  drawAstrocytePhysicsBoundaryDebug?.();
+
+
+  // ===================================================
+  // CLEF T GEOMETRY (OPTIONAL DEBUG)
+  // ===================================================
+  //
+  // Rounded square enclosure will live here
+  //
+  // drawCleftBoundaryDebug?.();   // 🟠 future single source
+
+
+  // ===================================================
   // PRESYNAPTIC TERMINAL
-  // ---------------------------------------------------
+  // ===================================================
   push();
   translate(PRE_X, NEURON_Y);
 
@@ -159,19 +187,24 @@ function drawSynapseView() {
   }
 
   drawPreSynapse?.();
-  drawSynapticBurst?.();   // NT geometry ONLY
+
+  // NTs draw in cleft space ONLY
+  drawSynapticBurst?.();
+
   pop();
 
-  // ---------------------------------------------------
+
+  // ===================================================
   // POSTSYNAPTIC TERMINAL
-  // ---------------------------------------------------
+  // ===================================================
   push();
   translate(POST_X, NEURON_Y);
 
   drawPostSynapse?.();
-  drawPostSynapseBoundaryDebug?.(); // cyan geometry
+  drawPostSynapseBoundaryDebug?.(); // cyan geometry reference
 
   pop();
+
 
   // ---------------------------------------------------
   // RESTORE CLIP + STATE
