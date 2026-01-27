@@ -72,15 +72,23 @@ window.addEventListener("synapticRelease", (e) => {
 // -----------------------------------------------------
 // NT FACTORY — STRUCTURE ONLY
 // -----------------------------------------------------
+//
+// 🔑 CRITICAL CHANGE:
+// NTs are spawned *inside the cleft* with forward bias
+//
 function makeNT(x, y) {
 
-  return {
-    x: x + random(-4, 4),
-    y: y + random(-6, 6),
+  // Push NT INTO cleft toward postsynapse
+  const spawnX = x + 6;              // rightward bias
+  const spawnY = y + random(-4, 4);  // small vertical spread
 
-    // Motion state (used by NTmotion.js)
-    vx: random(-0.05, 0.05),
-    vy: random(-0.05, 0.05),
+  return {
+    x: spawnX,
+    y: spawnY,
+
+    // Initial momentum (used later by NTmotion.js)
+    vx: random(0.04, 0.08),
+    vy: random(-0.03, 0.03),
 
     // Lifetime
     life: random(NT_LIFE_MIN, NT_LIFE_MAX),
@@ -151,7 +159,7 @@ function drawSynapticBurst() {
   if (typeof window.drawNTGeometry !== "function") return;
 
   window.drawNTGeometry(window.synapticNTs);
-  }
+}
 
 
 // -----------------------------------------------------
