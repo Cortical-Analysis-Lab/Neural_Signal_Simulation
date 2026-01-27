@@ -6,9 +6,9 @@ console.log("🟡 postSynapse loaded — GEOMETRY AUTHORITY");
 //
 // 🔒 HARD CONTRACT (LOCKED):
 // • Owns postsynaptic membrane GEOMETRY
-// • Exposes membrane sampler (geometry space)
-// • Draws neuron + PSD
-// • Visual debug ONLY
+// • Exposes membrane sampler (local geometry space)
+// • Draws neuron body + PSD
+// • Provides debug visualization ONLY
 //
 // 🚫 THIS FILE MUST NOT:
 // • Apply NT constraints
@@ -16,7 +16,7 @@ console.log("🟡 postSynapse loaded — GEOMETRY AUTHORITY");
 // • Modify NT motion
 // • Perform physics
 //
-// NT constraints are owned by NTmotion.js
+// NT confinement is owned by cleftGeometry.js
 //
 // =====================================================
 
@@ -24,7 +24,14 @@ console.log("🟡 postSynapse loaded — GEOMETRY AUTHORITY");
 // -----------------------------------------------------
 // DRAW — POSTSYNAPTIC NEURON (LOCAL SPACE)
 // -----------------------------------------------------
+//
+// Coordinate system:
+// • Local to SynapseView
+// • +X faces AWAY from cleft
+// • −X faces INTO cleft
+//
 function drawPostSynapse() {
+
   push();
 
   // Faces synaptic cleft (LEFT)
@@ -47,11 +54,13 @@ function drawPostSynapse() {
 // 🔑 POSTSYNAPTIC MEMBRANE SAMPLER (GEOMETRY ONLY)
 // =====================================================
 //
-// MUST match neuronShape.js exactly
-// Returns membrane-normal X at local Y
+// MUST match neuronShape.js EXACTLY
+//
+// Returns:
+// • membrane-normal X at given local Y
 //
 // Used by:
-// • NTmotion.js (constraints)
+// • cleftGeometry.js (boundary construction)
 // • Debug visualization
 //
 window.getPostSynapticMembraneX = function (y) {
@@ -84,7 +93,7 @@ window.getPostSynapticMembraneX = function (y) {
 // 🔵 DEBUG DRAW — POSTSYNAPTIC MEMBRANE (GEOMETRY)
 // =====================================================
 //
-// • Cyan dashed line
+// • Cyan dashed curve
 // • Visual reference ONLY
 // • NOT a constraint
 //
@@ -105,8 +114,10 @@ function drawPostSynapseBoundaryDebug() {
 
   beginShape();
   for (let y = -H; y <= H; y += step) {
-    const x = window.getPostSynapticMembraneX(y);
-    vertex(x, y);
+    vertex(
+      window.getPostSynapticMembraneX(y),
+      y
+    );
   }
   endShape();
 
@@ -116,10 +127,10 @@ function drawPostSynapseBoundaryDebug() {
 
 
 // -----------------------------------------------------
-// 🔒 SANITY CHECK
+// 🔒 SANITY CHECK — CONTRACT LOCK
 // -----------------------------------------------------
 if (window.DEBUG_SYNapseContracts) {
-  console.log("🔒 postSynapse contract: GEOMETRY ONLY");
+  console.log("🔒 postSynapse contract: GEOMETRY ONLY (cleft-ready)");
 }
 
 
