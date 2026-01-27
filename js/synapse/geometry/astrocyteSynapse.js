@@ -42,11 +42,12 @@ const ASTRO_X_MAX =  220;
 // 🔑 MEMBRANE GEOMETRY (AUTHORITATIVE)
 // =====================================================
 //
-// This is the ONE curve that:
-// • NTs collide with
-// • Physics uses
-// • Debug draws
-// • Visual membrane represents
+// THIS curve is used by:
+// • NT constraints
+// • Visual membrane
+// • Debug overlays
+//
+// There are NO other membrane definitions.
 //
 const ASTRO_MEMBRANE_BASE_Y   = 48;
 const ASTRO_MEMBRANE_CURVATURE = 28;
@@ -73,11 +74,62 @@ window.DEBUG_ASTROCYTE = window.DEBUG_ASTROCYTE ?? {
 
 
 // =====================================================
-// ASTROCYTIC ENDFOOT — FILL ONLY (LOCAL SPACE)
+// 🔑 ASTROCYTE MEMBRANE — LOCAL SPACE (THE ONE CURVE)
 // =====================================================
 //
-// ❗ Purely visual tissue mass
+// • LOCAL space
+// • NO offsets
+// • NO physics
+//
+function astrocyteMembraneLocalY(x) {
+
+  if (!Number.isFinite(x)) return null;
+  if (x < ASTRO_X_MIN || x > ASTRO_X_MAX) return null;
+
+  const t = Math.abs(x) / ASTRO_X_MAX;
+
+  return (
+    ASTRO_MEMBRANE_BASE_Y -
+    ASTRO_MEMBRANE_CURVATURE * (t * t)
+  );
+}
+
+
+// =====================================================
+// 🔑 ASTROCYTE MEMBRANE — WORLD SPACE SAMPLER (LOCKED)
+// =====================================================
+//
+// 🔒 SINGLE SOURCE OF TRUTH
+// All physics & NT logic must call THIS
+//
+window.getAstrocyteMembraneY = function (x) {
+
+  const yLocal = astrocyteMembraneLocalY(x);
+  if (yLocal === null) return null;
+
+  return yLocal + ASTRO_Y_OFFSET;
+};
+
+
+// =====================================================
+// 🔑 ASTROCYTE MEMBRANE — PENETRATION QUERY
+// =====================================================
+window.getAstrocytePenetration = function (x, y) {
+
+  const yMem = window.getAstrocyteMembraneY(x);
+  if (yMem === null) return null;
+
+  // >0 = inside astrocyte
+  return yMem - y;
+};
+
+
+// =====================================================
+// ASTROCYTIC ENDFOOT — FILL MASS ONLY (LOCAL SPACE)
+// =====================================================
+//
 // ❗ NOT used for constraints
+// ❗ Tissue bulk only
 //
 function drawAstrocyteSynapse() {
 
@@ -110,58 +162,10 @@ function drawAstrocyteSynapse() {
 
 
 // =====================================================
-// 🔑 ASTROCYTE MEMBRANE — LOCAL SPACE
+// 🟣 VISUAL MEMBRANE — EXACT PHYSICS CURVE
 // =====================================================
 //
-// Defines the LOWER membrane surface
-// NO offsets, NO physics
-//
-function getAstrocyteMembraneLocalY(x) {
-
-  if (!Number.isFinite(x)) return null;
-  if (x < ASTRO_X_MIN || x > ASTRO_X_MAX) return null;
-
-  const t = Math.abs(x) / ASTRO_X_MAX;
-
-  return (
-    ASTRO_MEMBRANE_BASE_Y -
-    ASTRO_MEMBRANE_CURVATURE * (t * t)
-  );
-}
-
-
-// =====================================================
-// 🔑 ASTROCYTE MEMBRANE — WORLD SPACE SAMPLER
-// =====================================================
-//
-// 🔒 SINGLE SOURCE OF TRUTH
-//
-window.getAstrocyteMembraneY = function (x) {
-
-  const yLocal = getAstrocyteMembraneLocalY(x);
-  if (yLocal === null) return null;
-
-  return yLocal + ASTRO_Y_OFFSET;
-};
-
-
-// =====================================================
-// 🔑 ASTROCYTE MEMBRANE — PENETRATION QUERY
-// =====================================================
-window.getAstrocytePenetration = function (x, y) {
-
-  const yMem = window.getAstrocyteMembraneY(x);
-  if (yMem === null) return null;
-
-  return yMem - y;
-};
-
-
-// =====================================================
-// 🟣 VISUAL MEMBRANE (AUTHORITATIVE)
-// =====================================================
-//
-// This line is what NTs actually touch
+// NTs touch THIS line
 //
 function drawAstrocyteMembrane() {
 
@@ -174,7 +178,7 @@ function drawAstrocyteMembrane() {
 
   beginShape();
   for (let x = ASTRO_X_MIN; x <= ASTRO_X_MAX; x += 4) {
-    vertex(x, getAstrocyteMembraneLocalY(x));
+    vertex(x, astrocyteMembraneLocalY(x));
   }
   endShape();
 
@@ -183,7 +187,7 @@ function drawAstrocyteMembrane() {
 
 
 // =====================================================
-// 🔴 DEBUG DRAW — LOCAL MEMBRANE (RED)
+// 🔴 DEBUG — LOCAL MEMBRANE (RED)
 // =====================================================
 function drawAstrocyteBoundaryDebug() {
 
@@ -199,7 +203,7 @@ function drawAstrocyteBoundaryDebug() {
 
   beginShape();
   for (let x = ASTRO_X_MIN; x <= ASTRO_X_MAX; x += D.sampleStep) {
-    vertex(x, getAstrocyteMembraneLocalY(x));
+    vertex(x, astrocyteMembraneLocalY(x));
   }
   endShape();
 
@@ -208,7 +212,7 @@ function drawAstrocyteBoundaryDebug() {
 
 
 // =====================================================
-// 🔵 DEBUG DRAW — WORLD MEMBRANE (BLUE)
+// 🔵 DEBUG — WORLD MEMBRANE (BLUE)
 // =====================================================
 function drawAstrocytePhysicsBoundaryDebug() {
 
@@ -222,8 +226,7 @@ function drawAstrocytePhysicsBoundaryDebug() {
 
   beginShape();
   for (let x = ASTRO_X_MIN; x <= ASTRO_X_MAX; x += D.sampleStep) {
-    const y = window.getAstrocyteMembraneY(x);
-    if (y !== null) vertex(x, y);
+    vertex(x, window.getAstrocyteMembraneY(x));
   }
   endShape();
 
@@ -239,6 +242,6 @@ window.drawAstrocyteMembrane             = drawAstrocyteMembrane;
 window.drawAstrocyteBoundaryDebug        = drawAstrocyteBoundaryDebug;
 window.drawAstrocytePhysicsBoundaryDebug = drawAstrocytePhysicsBoundaryDebug;
 
-window.ASTRO_X_MIN    = ASTRO_X_MIN;
-window.ASTRO_X_MAX    = ASTRO_X_MAX;
-window.ASTRO_Y_OFFSET = ASTRO_Y_OFFSET;
+window.ASTRO_X_MIN     = ASTRO_X_MIN;
+window.ASTRO_X_MAX     = ASTRO_X_MAX;
+window.ASTRO_Y_OFFSET  = ASTRO_Y_OFFSET;
