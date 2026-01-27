@@ -148,7 +148,7 @@ function updateSynapticBurst() {
 function drawSynapticBurst() {
 
   if (!window.synapticNTs.length) return;
-  if (typeof window.drawNTs !== "function") return;
+  if (typeof window.drawNTGeometry !== "function") return;
 
   window.drawNTGeometry(window.synapticNTs);
   }
