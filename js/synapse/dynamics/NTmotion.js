@@ -17,6 +17,9 @@ console.log("🫧 NTmotion loaded — MOTION & CLEFT CONSTRAINT AUTHORITY");
 // • NEVER fade alpha
 // • NEVER clamp position directly
 //
+// ALL CONSTRAINT GEOMETRY IS OWNED BY:
+// → synapticCleftGeometry.js
+//
 // =====================================================
 
 
@@ -38,7 +41,7 @@ const NT_MAX_SPEED = 0.6;
 
 
 // -----------------------------------------------------
-// 🔧 CLEFT CONSTRAINT RESPONSE (ELASTIC, NO SLABS)
+// 🔧 CLEFT CONSTRAINT RESPONSE (ELASTIC)
 // -----------------------------------------------------
 
 // Spring strength pulling NT back into cleft
@@ -72,37 +75,51 @@ window.updateNTMotion = function (nts) {
   for (const p of nts) {
 
     // ---------------------------------------------
-    // 1️⃣ Apply forces
+    // 1️⃣ Apply forces (free space)
     // ---------------------------------------------
     p.vx += NT_ADVECT_X;
     p.vx += random(-NT_BROWNIAN, NT_BROWNIAN);
     p.vy += random(-NT_BROWNIAN, NT_BROWNIAN);
 
+
     // ---------------------------------------------
-    // 2️⃣ Elastic synaptic cleft confinement
+    // 2️⃣ Predict next position
     // ---------------------------------------------
-    if (!window.isInsideSynapticCleft(p.x, p.y)) {
+    const nx = p.x + p.vx;
+    const ny = p.y + p.vy;
+
+
+    // ---------------------------------------------
+    // 3️⃣ Elastic synaptic cleft confinement
+    // ---------------------------------------------
+    if (!window.isInsideSynapticCleft(nx, ny)) {
 
       const projected =
-        window.projectToSynapticCleft(p.x, p.y);
+        window.projectToSynapticCleft(nx, ny);
 
-      // Spring force toward interior
-      p.vx += (projected.x - p.x) * CLEFT_WALL_K;
-      p.vy += (projected.y - p.y) * CLEFT_WALL_K;
+      // Vector back into legal volume
+      const dx = projected.x - nx;
+      const dy = projected.y - ny;
 
-      // Tangential damping
+      // Normal spring response
+      p.vx += dx * CLEFT_WALL_K;
+      p.vy += dy * CLEFT_WALL_K;
+
+      // Tangential damping (smooth wall sliding)
       p.vx *= CLEFT_TANGENTIAL_DAMPING;
       p.vy *= CLEFT_TANGENTIAL_DAMPING;
     }
 
+
     // ---------------------------------------------
-    // 3️⃣ Drag
+    // 4️⃣ Drag
     // ---------------------------------------------
     p.vx *= NT_DRAG;
     p.vy *= NT_DRAG;
 
+
     // ---------------------------------------------
-    // 4️⃣ Safety speed clamp
+    // 5️⃣ Safety speed clamp
     // ---------------------------------------------
     const speed = Math.hypot(p.vx, p.vy);
     if (speed > NT_MAX_SPEED) {
@@ -111,8 +128,9 @@ window.updateNTMotion = function (nts) {
       p.vy *= k;
     }
 
+
     // ---------------------------------------------
-    // 5️⃣ Integrate (ONLY place where position moves)
+    // 6️⃣ Integrate (ONLY place where position moves)
     // ---------------------------------------------
     p.x += p.vx;
     p.y += p.vy;
@@ -124,8 +142,8 @@ window.updateNTMotion = function (nts) {
 // 🟠 DEBUG DRAW — CLEFT CONSTRAINT (PHYSICS TRUTH)
 // =====================================================
 //
-// Delegated to cleftGeometry.js
-// This function exists ONLY for SynapseView compatibility
+// Delegated to synapticCleftGeometry.js
+// Exists only for SynapseView compatibility
 //
 // =====================================================
 window.drawNTConstraintDebug = function () {
