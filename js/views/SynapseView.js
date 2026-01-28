@@ -163,7 +163,16 @@ function drawSynapseView() {
   // ===================================================
   push();
   translate(PRE_X, NEURON_Y);
+  
+  // FORCE VISIBILITY
+  stroke(255, 0, 0);
+  strokeWeight(4);
+  noFill();
+  drawingContext.setLineDash([8, 4]);
+  
   window.drawSynapticCleftDebug?.();
+  
+  drawingContext.setLineDash([]);
   pop();
 
 
