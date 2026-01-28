@@ -161,6 +161,8 @@ function drawSynapseView() {
   // ===================================================
   // 🔴 CLEFT CONSTRAINT DEBUG (PHYSICS TRUTH)
   // ===================================================
+  window.SHOW_SYNAPSE_DEBUG = true
+
   window.drawSynapticCleftDebug?.();
 
 
