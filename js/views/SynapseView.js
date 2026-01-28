@@ -158,10 +158,12 @@ function drawSynapseView() {
   drawAstrocytePhysicsBoundaryDebug?.();
 
       
-// ===================================================
-// 🔴 CLEFT CONSTRAINT DEBUG (PHYSICS TRUTH)
-// ===================================================
-drawSynapticCleftDebug?.();
+  // ===================================================
+  // 🔴 CLEFT CONSTRAINT DEBUG (PHYSICS TRUTH)
+  // ===================================================
+  if (typeof window.drawSynapticCleftDebug === "function") {
+    window.drawSynapticCleftDebug();
+  }
 
 
 
