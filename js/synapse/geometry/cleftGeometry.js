@@ -1,4 +1,4 @@
-console.log("🟥 synapticCleftGeometry loaded — CLEFT DOMAIN AUTHORITY");
+console.log("🟥 cleftGeometry loaded — CLEFT DOMAIN AUTHORITY");
 
 // =====================================================
 // SYNAPTIC CLEFT GEOMETRY — SINGLE CONSTRAINT SOURCE
