@@ -137,9 +137,6 @@ function drawSynapseView() {
   // NT emission + lifetime
   updateSynapticBurst?.();
 
-  // NT motion + confinement (cleft-based)
-  updateNTMotion?.(window.synapticNTs);
-
 
   strokeWeight(6);
   strokeJoin(ROUND);
