@@ -6,7 +6,7 @@ console.log("🟥 cleftGeometry loaded — CLEFT DOMAIN AUTHORITY");
 //
 // ✔ Defines NT confinement volume
 // ✔ FILLED rounded rectangle (capsule-like)
-// ✔ World-space
+// ✔ World-space (synapse-local coordinates)
 // ✔ NO forces
 // ✔ NO motion
 //
@@ -16,25 +16,38 @@ console.log("🟥 cleftGeometry loaded — CLEFT DOMAIN AUTHORITY");
 
 
 // -----------------------------------------------------
-// CLEFT BOUNDS (WORLD SPACE)
+// 🎛️ CLEFT POSITION & SIZE TUNING (ONLY EDIT THESE)
 // -----------------------------------------------------
-const CLEFT_LEFT   = -95;   // presynaptic membrane
-const CLEFT_RIGHT  = +95;   // postsynaptic membrane
-const CLEFT_TOP    = -135;  // astrocyte endfoot
-const CLEFT_BOTTOM = +80;   // optional floor
 
-const CLEFT_RADIUS = 22;
+// Horizontal size (controls cleft width)
+const CLEFT_HALF_WIDTH = 135;   // ⬅️ increase = wider cleft
+
+// Vertical placement
+const CLEFT_Y_CENTER   = 55;    // ⬅️ increase = move cleft DOWN
+const CLEFT_HEIGHT     = 240;   // ⬅️ increase = taller cleft
+
+// Corner rounding
+const CLEFT_RADIUS     = 28;    // ⬅️ smoothness of capsule corners
+
+
+// -----------------------------------------------------
+// DERIVED BOUNDS (DO NOT TUNE BELOW)
+// -----------------------------------------------------
+const CLEFT_LEFT   = -CLEFT_HALF_WIDTH;
+const CLEFT_RIGHT  = +CLEFT_HALF_WIDTH;
+
+const CLEFT_TOP    = CLEFT_Y_CENTER - CLEFT_HEIGHT / 2;
+const CLEFT_BOTTOM = CLEFT_Y_CENTER + CLEFT_HEIGHT / 2;
 
 
 // -----------------------------------------------------
 // 🔑 FILLED POINT-IN-CLEFT TEST (AUTHORITATIVE)
 // -----------------------------------------------------
 //
-// Definition:
-// A point is inside the cleft if it lies inside:
-//   1) The central rectangle
-//   2) The left/right side rectangles
-//   3) Any of the four corner quarter-circles
+// A point is inside if it lies within:
+//   1) Central rectangle
+//   2) Vertical side rectangles
+//   3) One of four quarter-circles
 //
 window.isInsideSynapticCleft = function (x, y) {
 
@@ -79,11 +92,11 @@ window.isInsideSynapticCleft = function (x, y) {
 // -----------------------------------------------------
 //
 // Used ONLY when NT attempts to leave cleft.
-// Returns closest legal point on boundary.
+// Returns closest legal boundary point.
 //
 window.projectToSynapticCleft = function (x, y) {
 
-  // Clamp to rectangle core
+  // Clamp into core rectangle
   let px = Math.min(
     Math.max(x, CLEFT_LEFT + CLEFT_RADIUS),
     CLEFT_RIGHT - CLEFT_RADIUS
@@ -94,7 +107,7 @@ window.projectToSynapticCleft = function (x, y) {
     CLEFT_BOTTOM - CLEFT_RADIUS
   );
 
-  // Identify nearest corner
+  // Determine nearest corner center
   const cx = x < px ? CLEFT_LEFT + CLEFT_RADIUS :
              x > px ? CLEFT_RIGHT - CLEFT_RADIUS : px;
 
@@ -124,18 +137,15 @@ window.projectToSynapticCleft = function (x, y) {
 // 🔴 DEBUG DRAW — CLEFT CONSTRAINT (PHYSICS TRUTH)
 // -----------------------------------------------------
 //
-// This RED outline is the *actual volume* NTs are
-// allowed to occupy.
-//
-// If NTs stick to this line → constraint bug
-// If NTs move freely inside → correct
+// This red outline is the *exact volume*
+// NTs are allowed to occupy.
 //
 window.drawSynapticCleftDebug = function () {
 
   if (!window.SHOW_SYNAPSE_DEBUG) return;
 
   push();
-  stroke(255, 60, 60, 220);   // 🔴 RED = PHYSICS TRUTH
+  stroke(255, 60, 60, 220);   // 🔴 PHYSICS TRUTH
   strokeWeight(2);
   noFill();
 
