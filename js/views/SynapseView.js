@@ -157,14 +157,12 @@ function drawSynapseView() {
   drawAstrocyteBoundaryDebug?.();
   drawAstrocytePhysicsBoundaryDebug?.();
 
+      
+// ===================================================
+// 🔴 CLEFT CONSTRAINT DEBUG (PHYSICS TRUTH)
+// ===================================================
+drawSynapticCleftDebug?.();
 
-  // ===================================================
-  // CLEF T GEOMETRY (OPTIONAL DEBUG)
-  // ===================================================
-  //
-  // Rounded square enclosure will live here
-  //
-  // drawCleftBoundaryDebug?.();   // 🟠 future single source
 
 
   // ===================================================
