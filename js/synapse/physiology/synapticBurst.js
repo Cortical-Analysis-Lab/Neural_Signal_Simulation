@@ -1,4 +1,4 @@
-console.log("🫧 synapticBurst loaded — EMISSION + LIFETIME ONLY");
+console.log("🫧 synapticBurst loaded — EMISSION + LIFETIME AUTHORITY");
 
 // =====================================================
 // SYNAPTIC NEUROTRANSMITTER BURST — ORCHESTRATOR
@@ -8,15 +8,16 @@ console.log("🫧 synapticBurst loaded — EMISSION + LIFETIME ONLY");
 // ✔ Receive synapticRelease events
 // ✔ Emit NTs over time (streaming)
 // ✔ Manage NT lifetime + alpha
+// ✔ Delegate MOTION to NTmotion.js
 // ✔ Delegate DRAWING to NTgeometry.js
 //
-// HARD RULES:
+// HARD RULES (ENFORCED):
 // • NO geometry definitions
 // • NO constraint logic
 // • NO membrane math
 // • NO position clamping
-// • NO force application
-// • NO motion integration
+// • NO force definitions
+// • NO integration math
 //
 // =====================================================
 
@@ -73,24 +74,23 @@ window.addEventListener("synapticRelease", (e) => {
 // NT FACTORY — STRUCTURE ONLY
 // -----------------------------------------------------
 //
-// 🔑 CRITICAL CHANGE:
-// NTs are spawned *inside the cleft* with forward bias
+// ✔ Spawns NTs INSIDE cleft
+// ✔ Adds forward bias toward postsynapse
+// ❌ No forces defined here
 //
 function makeNT(x, y) {
 
-  // Push NT INTO cleft toward postsynapse
-  const spawnX = x + 6;              // rightward bias
-  const spawnY = y + random(-4, 4);  // small vertical spread
-
   return {
-    x: spawnX,
-    y: spawnY,
+    // Slight push into cleft volume
+    x: x + 6,
+    y: y + random(-4, 4),
 
-    // Initial momentum (used later by NTmotion.js)
+    // Initial momentum seed ONLY
+    // (motion authority lives elsewhere)
     vx: random(0.04, 0.08),
     vy: random(-0.03, 0.03),
 
-    // Lifetime
+    // Lifetime state
     life: random(NT_LIFE_MIN, NT_LIFE_MAX),
     alpha: 255
   };
@@ -98,7 +98,7 @@ function makeNT(x, y) {
 
 
 // -----------------------------------------------------
-// MAIN UPDATE — EMISSION + LIFETIME ONLY
+// MAIN UPDATE — EMISSION + MOTION DELEGATION + LIFETIME
 // -----------------------------------------------------
 function updateSynapticBurst() {
 
@@ -127,7 +127,17 @@ function updateSynapticBurst() {
   if (!nts.length) return;
 
   // ---------------------------------------------------
-  // 2️⃣ LIFETIME + ALPHA ONLY
+  // 2️⃣ MOTION (DELEGATED — SINGLE AUTHORITY)
+  // ---------------------------------------------------
+  //
+  // 🔑 NTmotion.js owns ALL physics + integration
+  //
+  if (typeof window.updateNTMotion === "function") {
+    window.updateNTMotion(nts);
+  }
+
+  // ---------------------------------------------------
+  // 3️⃣ LIFETIME + ALPHA (OWNED HERE)
   // ---------------------------------------------------
   for (let i = nts.length - 1; i >= 0; i--) {
 
