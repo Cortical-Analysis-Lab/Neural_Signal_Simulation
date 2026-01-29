@@ -20,11 +20,11 @@ console.log("🟥 cleftGeometry loaded — CLEFT DOMAIN AUTHORITY");
 // -----------------------------------------------------
 
 // Horizontal size (controls cleft width)
-const CLEFT_HALF_WIDTH = 115;   // ⬅️ increase = wider cleft
+const CLEFT_HALF_WIDTH = 125;   // ⬅️ increase = wider cleft
 
 // Vertical placement
 const CLEFT_Y_CENTER   = 55;    // ⬅️ increase = move cleft DOWN
-const CLEFT_HEIGHT     = 250;   // ⬅️ increase = taller cleft
+const CLEFT_HEIGHT     = 255;   // ⬅️ increase = taller cleft
 
 // Corner rounding
 const CLEFT_RADIUS     = 28;    // ⬅️ smoothness of capsule corners
