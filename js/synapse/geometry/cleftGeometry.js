@@ -5,12 +5,12 @@ console.log("🟥 cleftGeometry loaded — CLEFT DOMAIN AUTHORITY");
 // =====================================================
 //
 // ✔ Defines NT confinement volume
-// ✔ FILLED rounded rectangle (capsule-like)
-// ✔ World-space (synapse-local coordinates)
+// ✔ Filled rounded-rectangle (capsule-like)
+// ✔ Synapse-local world coordinates
 // ✔ NO forces
 // ✔ NO motion
 //
-// 🔒 Geometry-only authority
+// 🔒 Physics + debug share identical geometry
 //
 // =====================================================
 
@@ -19,19 +19,19 @@ console.log("🟥 cleftGeometry loaded — CLEFT DOMAIN AUTHORITY");
 // 🎛️ CLEFT POSITION & SIZE TUNING (ONLY EDIT THESE)
 // -----------------------------------------------------
 
-// Horizontal size (controls cleft width)
-const CLEFT_HALF_WIDTH = 125;   // ⬅️ increase = wider cleft
+// Horizontal size
+const CLEFT_HALF_WIDTH = 125;   // ⬅ wider = increase
 
 // Vertical placement
-const CLEFT_Y_CENTER   = 55;    // ⬅️ increase = move cleft DOWN
-const CLEFT_HEIGHT     = 255;   // ⬅️ increase = taller cleft
+const CLEFT_Y_CENTER   = 55;    // ⬅ down = increase
+const CLEFT_HEIGHT     = 255;   // ⬅ taller = increase
 
 // Corner rounding
-const CLEFT_RADIUS     = 28;    // ⬅️ smoothness of capsule corners
+const CLEFT_RADIUS     = 28;    // ⬅ smoothness
 
 
 // -----------------------------------------------------
-// DERIVED BOUNDS (DO NOT TUNE BELOW)
+// DERIVED BOUNDS (DO NOT EDIT BELOW)
 // -----------------------------------------------------
 const CLEFT_LEFT   = -CLEFT_HALF_WIDTH;
 const CLEFT_RIGHT  = +CLEFT_HALF_WIDTH;
@@ -41,17 +41,11 @@ const CLEFT_BOTTOM = CLEFT_Y_CENTER + CLEFT_HEIGHT / 2;
 
 
 // -----------------------------------------------------
-// 🔑 FILLED POINT-IN-CLEFT TEST (AUTHORITATIVE)
+// 🔑 FILLED POINT-IN-CLEFT TEST (PHYSICS TRUTH)
 // -----------------------------------------------------
-//
-// A point is inside if it lies within:
-//   1) Central rectangle
-//   2) Vertical side rectangles
-//   3) One of four quarter-circles
-//
 window.isInsideSynapticCleft = function (x, y) {
 
-  // --- Central rectangle ---
+  // Central rectangle
   if (
     x >= CLEFT_LEFT + CLEFT_RADIUS &&
     x <= CLEFT_RIGHT - CLEFT_RADIUS &&
@@ -59,7 +53,7 @@ window.isInsideSynapticCleft = function (x, y) {
     y <= CLEFT_BOTTOM
   ) return true;
 
-  // --- Vertical side rectangles ---
+  // Vertical side rectangles
   if (
     x >= CLEFT_LEFT &&
     x <= CLEFT_RIGHT &&
@@ -67,7 +61,7 @@ window.isInsideSynapticCleft = function (x, y) {
     y <= CLEFT_BOTTOM - CLEFT_RADIUS
   ) return true;
 
-  // --- Corner circles ---
+  // Corner quarter-circles
   const corners = [
     { cx: CLEFT_LEFT  + CLEFT_RADIUS, cy: CLEFT_TOP    + CLEFT_RADIUS },
     { cx: CLEFT_RIGHT - CLEFT_RADIUS, cy: CLEFT_TOP    + CLEFT_RADIUS },
@@ -90,13 +84,9 @@ window.isInsideSynapticCleft = function (x, y) {
 // -----------------------------------------------------
 // 🔑 PROJECT POINT TO CLEFT (MINIMAL CORRECTION)
 // -----------------------------------------------------
-//
-// Used ONLY when NT attempts to leave cleft.
-// Returns closest legal boundary point.
-//
 window.projectToSynapticCleft = function (x, y) {
 
-  // Clamp into core rectangle
+  // Clamp into inner rectangle
   let px = Math.min(
     Math.max(x, CLEFT_LEFT + CLEFT_RADIUS),
     CLEFT_RIGHT - CLEFT_RADIUS
@@ -107,7 +97,7 @@ window.projectToSynapticCleft = function (x, y) {
     CLEFT_BOTTOM - CLEFT_RADIUS
   );
 
-  // Determine nearest corner center
+  // Nearest corner center
   const cx = x < px ? CLEFT_LEFT + CLEFT_RADIUS :
              x > px ? CLEFT_RIGHT - CLEFT_RADIUS : px;
 
@@ -119,9 +109,7 @@ window.projectToSynapticCleft = function (x, y) {
 
   const d2 = dx * dx + dy * dy;
 
-  if (d2 === 0) {
-    return { x: px, y: py };
-  }
+  if (d2 === 0) return { x: px, y: py };
 
   const d = Math.sqrt(d2);
   const k = CLEFT_RADIUS / d;
@@ -134,28 +122,44 @@ window.projectToSynapticCleft = function (x, y) {
 
 
 // -----------------------------------------------------
-// 🔴 DEBUG DRAW — CLEFT CONSTRAINT (PHYSICS TRUTH)
+// 🔴 DEBUG DRAW — EXACT PHYSICS GEOMETRY
 // -----------------------------------------------------
 //
-// This red outline is the *exact volume*
-// NTs are allowed to occupy.
+// This outline is generated from the SAME math
+// used by isInsideSynapticCleft().
 //
 window.drawSynapticCleftDebug = function () {
 
   if (!window.SHOW_SYNAPSE_DEBUG) return;
 
   push();
-  stroke(255, 60, 60, 220);   // 🔴 PHYSICS TRUTH
+  stroke(255, 60, 60, 220);
   strokeWeight(2);
   noFill();
 
+  // Central rectangle
+  rect(
+    CLEFT_LEFT + CLEFT_RADIUS,
+    CLEFT_TOP,
+    (CLEFT_RIGHT - CLEFT_LEFT) - 2 * CLEFT_RADIUS,
+    CLEFT_BOTTOM - CLEFT_TOP
+  );
+
+  // Vertical rectangle
   rect(
     CLEFT_LEFT,
-    CLEFT_TOP,
+    CLEFT_TOP + CLEFT_RADIUS,
     CLEFT_RIGHT - CLEFT_LEFT,
-    CLEFT_BOTTOM - CLEFT_TOP,
-    CLEFT_RADIUS
+    (CLEFT_BOTTOM - CLEFT_TOP) - 2 * CLEFT_RADIUS
   );
+
+  // Corner arcs
+  const r = CLEFT_RADIUS * 2;
+
+  arc(CLEFT_LEFT  + CLEFT_RADIUS, CLEFT_TOP    + CLEFT_RADIUS, r, r, PI, PI + HALF_PI);
+  arc(CLEFT_RIGHT - CLEFT_RADIUS, CLEFT_TOP    + CLEFT_RADIUS, r, r, PI + HALF_PI, TWO_PI);
+  arc(CLEFT_RIGHT - CLEFT_RADIUS, CLEFT_BOTTOM - CLEFT_RADIUS, r, r, 0, HALF_PI);
+  arc(CLEFT_LEFT  + CLEFT_RADIUS, CLEFT_BOTTOM - CLEFT_RADIUS, r, r, HALF_PI, PI);
 
   pop();
 };
