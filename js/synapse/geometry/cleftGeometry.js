@@ -1,16 +1,16 @@
-console.log("🟥 cleftGeometry loaded — CLEFT DOMAIN AUTHORITY");
+console.log("🟥 cleftGeometry loaded — DEBUG ONLY (PHYSICS DISABLED)");
 
 // =====================================================
-// SYNAPTIC CLEFT GEOMETRY — SINGLE CONSTRAINT SOURCE
+// SYNAPTIC CLEFT GEOMETRY — VISUAL REFERENCE ONLY
 // =====================================================
 //
-// ✔ Defines NT confinement volume
-// ✔ Rounded rectangle (capsule-like)
+// ✔ Draws red cleft outline
 // ✔ Synapse-local coordinates
-// ✔ NO forces
-// ✔ NO motion
+// ✘ NO confinement
+// ✘ NO projection
+// ✘ NO physics influence
 //
-// 🔒 Physics + debug share identical geometry
+// 🔥 Temporary diagnostic mode
 //
 // =====================================================
 
@@ -41,94 +41,32 @@ const CLEFT_BOTTOM = CLEFT_Y_CENTER + CLEFT_HEIGHT / 2;
 
 
 // -----------------------------------------------------
-// 🔑 POINT-IN-CLEFT TEST (PHYSICS TRUTH)
+// 🚫 PHYSICS DISABLED — PASS-THROUGH STUBS
 // -----------------------------------------------------
+
+// Everything is considered "inside"
 window.isInsideSynapticCleft = function (x, y) {
-
-  // Inner rectangle
-  if (
-    x >= CLEFT_LEFT + CLEFT_RADIUS &&
-    x <= CLEFT_RIGHT - CLEFT_RADIUS &&
-    y >= CLEFT_TOP &&
-    y <= CLEFT_BOTTOM
-  ) return true;
-
-  if (
-    x >= CLEFT_LEFT &&
-    x <= CLEFT_RIGHT &&
-    y >= CLEFT_TOP + CLEFT_RADIUS &&
-    y <= CLEFT_BOTTOM - CLEFT_RADIUS
-  ) return true;
-
-  // Corner arcs
-  const corners = [
-    [CLEFT_LEFT  + CLEFT_RADIUS, CLEFT_TOP    + CLEFT_RADIUS],
-    [CLEFT_RIGHT - CLEFT_RADIUS, CLEFT_TOP    + CLEFT_RADIUS],
-    [CLEFT_RIGHT - CLEFT_RADIUS, CLEFT_BOTTOM - CLEFT_RADIUS],
-    [CLEFT_LEFT  + CLEFT_RADIUS, CLEFT_BOTTOM - CLEFT_RADIUS]
-  ];
-
-  for (const [cx, cy] of corners) {
-    const dx = x - cx;
-    const dy = y - cy;
-    if (dx * dx + dy * dy <= CLEFT_RADIUS * CLEFT_RADIUS) {
-      return true;
-    }
-  }
-
-  return false;
+  return true;
 };
 
-
-// -----------------------------------------------------
-// 🔑 PROJECT POINT TO CLEFT
-// -----------------------------------------------------
+// No projection / correction
 window.projectToSynapticCleft = function (x, y) {
-
-  let px = constrain(
-    x,
-    CLEFT_LEFT + CLEFT_RADIUS,
-    CLEFT_RIGHT - CLEFT_RADIUS
-  );
-
-  let py = constrain(
-    y,
-    CLEFT_TOP + CLEFT_RADIUS,
-    CLEFT_BOTTOM - CLEFT_RADIUS
-  );
-
-  const cx = x < px ? CLEFT_LEFT + CLEFT_RADIUS :
-             x > px ? CLEFT_RIGHT - CLEFT_RADIUS : px;
-
-  const cy = y < py ? CLEFT_TOP + CLEFT_RADIUS :
-             y > py ? CLEFT_BOTTOM - CLEFT_RADIUS : py;
-
-  const dx = x - cx;
-  const dy = y - cy;
-
-  const d = Math.hypot(dx, dy);
-  if (d === 0) return { x: px, y: py };
-
-  return {
-    x: cx + (dx / d) * CLEFT_RADIUS,
-    y: cy + (dy / d) * CLEFT_RADIUS
-  };
+  return { x, y };
 };
 
 
 // -----------------------------------------------------
-// 🔴 DEBUG DRAW — EXACT PHYSICS BOUNDARY
+// 🔴 DEBUG DRAW — VISUAL REFERENCE ONLY
 // -----------------------------------------------------
 window.drawSynapticCleftDebug = function () {
 
   if (!window.SHOW_SYNAPSE_DEBUG) return;
 
   push();
-  stroke(255, 60, 60, 220);
+  stroke(255, 60, 60, 220);   // 🔴 debug red
   strokeWeight(2);
   noFill();
 
-  // SINGLE continuous outline — matches physics exactly
   rect(
     CLEFT_LEFT,
     CLEFT_TOP,
