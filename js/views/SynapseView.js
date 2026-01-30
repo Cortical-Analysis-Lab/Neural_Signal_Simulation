@@ -121,11 +121,12 @@ function drawSynapseView() {
   // ===================================================
   handleSynapseInput();
   updateVoltageWave?.();
+
   ensureVesiclePoolInitialized();
 
 
   // ===================================================
-  // UPDATE ORDER — PHYSICS FIRST
+  // UPDATE ORDER — PHYSICS FIRST, GEOMETRY LATER
   // ===================================================
   updateVesicleLoading?.();
   updateVesicleMotion?.();
@@ -133,7 +134,7 @@ function drawSynapseView() {
   updateVesicleRelease?.();
   updateVesicleRecycling?.();
 
-  // NT emission + lifetime ONLY
+  // NT emission + lifetime
   updateSynapticBurst?.();
 
 
@@ -143,24 +144,36 @@ function drawSynapseView() {
 
 
   // ===================================================
-  // BACKGROUND GEOMETRY
+  // BACKGROUND GEOMETRY (NO NTs YET)
   // ===================================================
+
+  // Astrocyte tissue mass (pure fill)
   drawAstrocyteSynapse?.();
+
+  // 🔑 Astrocyte membrane (visual == physics)
   drawAstrocyteMembrane?.();
+
+  // Debug overlays (optional)
   drawAstrocyteBoundaryDebug?.();
   drawAstrocytePhysicsBoundaryDebug?.();
 
+      
+  // ===================================================
+  // 🔴 CLEFT CONSTRAINT DEBUG (PHYSICS TRUTH)
+  // ===================================================
+  window.SHOW_SYNAPSE_DEBUG = true
+
+  window.drawSynapticCleftDebug?.();
+
+
+
+
 
   // ===================================================
-  // PRESYNAPTIC + CLEFT SPACE (AUTHORITATIVE)
+  // PRESYNAPTIC TERMINAL
   // ===================================================
   push();
   translate(PRE_X, NEURON_Y);
-
-  // 🔴 CLEFT CONSTRAINT DEBUG — SAME SPACE AS NTs
-  if (window.SHOW_SYNAPSE_DEBUG) {
-    window.drawSynapticCleftDebug?.();
-  }
 
   if (
     typeof calibratePath === "function" &&
@@ -174,7 +187,7 @@ function drawSynapseView() {
 
   drawPreSynapse?.();
 
-  // NTs (motion already handled by NTmotion.js)
+  // NTs draw in cleft space ONLY
   drawSynapticBurst?.();
 
   pop();
@@ -187,7 +200,7 @@ function drawSynapseView() {
   translate(POST_X, NEURON_Y);
 
   drawPostSynapse?.();
-  drawPostSynapseBoundaryDebug?.();
+  drawPostSynapseBoundaryDebug?.(); // cyan geometry reference
 
   pop();
 
