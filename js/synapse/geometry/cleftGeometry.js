@@ -5,12 +5,12 @@ console.log("🟥 cleftGeometry loaded — DEBUG ONLY (PHYSICS DISABLED)");
 // =====================================================
 //
 // ✔ Draws red cleft outline
-// ✔ Synapse-local coordinates
+// ✔ Synapse-local coordinates (same space as NTs)
 // ✘ NO confinement
 // ✘ NO projection
 // ✘ NO physics influence
 //
-// 🔥 Temporary diagnostic mode
+// 🔥 TEMPORARY DIAGNOSTIC MODE
 //
 // =====================================================
 
@@ -19,14 +19,16 @@ console.log("🟥 cleftGeometry loaded — DEBUG ONLY (PHYSICS DISABLED)");
 // 🎛️ CLEFT POSITION & SIZE TUNING (ONLY EDIT THESE)
 // -----------------------------------------------------
 
-// Horizontal size
+// Horizontal half-width of cleft
 const CLEFT_HALF_WIDTH = 125;
 
-// Vertical placement
+// Vertical placement (positive = down)
 const CLEFT_Y_CENTER   = 55;
+
+// Total height
 const CLEFT_HEIGHT     = 255;
 
-// Corner rounding
+// Corner rounding radius
 const CLEFT_RADIUS     = 28;
 
 
@@ -41,15 +43,18 @@ const CLEFT_BOTTOM = CLEFT_Y_CENTER + CLEFT_HEIGHT / 2;
 
 
 // -----------------------------------------------------
-// 🚫 PHYSICS DISABLED — PASS-THROUGH STUBS
+// 🚫 PHYSICS DISABLED — EXPLICIT PASS-THROUGH
 // -----------------------------------------------------
-
-// Everything is considered "inside"
-window.isInsideSynapticCleft = function (x, y) {
+//
+// These stubs exist ONLY so NTmotion.js
+// does not crash if it is still calling them.
+//
+// They MUST NOT influence motion.
+//
+window.isInsideSynapticCleft = function () {
   return true;
 };
 
-// No projection / correction
 window.projectToSynapticCleft = function (x, y) {
   return { x, y };
 };
@@ -58,12 +63,19 @@ window.projectToSynapticCleft = function (x, y) {
 // -----------------------------------------------------
 // 🔴 DEBUG DRAW — VISUAL REFERENCE ONLY
 // -----------------------------------------------------
+//
+// This red outline is:
+// • NOT a constraint
+// • NOT used by physics
+// • PURELY visual
+//
 window.drawSynapticCleftDebug = function () {
 
   if (!window.SHOW_SYNAPSE_DEBUG) return;
 
   push();
-  stroke(255, 60, 60, 220);   // 🔴 debug red
+
+  stroke(255, 60, 60, 220);   // 🔴 DEBUG RED
   strokeWeight(2);
   noFill();
 
