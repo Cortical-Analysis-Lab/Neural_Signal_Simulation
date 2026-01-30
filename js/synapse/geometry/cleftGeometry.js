@@ -5,8 +5,8 @@ console.log("🟥 cleftGeometry loaded — CLEFT DOMAIN AUTHORITY");
 // =====================================================
 //
 // ✔ Defines NT confinement volume
-// ✔ Filled rounded-rectangle (capsule-like)
-// ✔ Synapse-local world coordinates
+// ✔ Rounded rectangle (capsule-like)
+// ✔ Synapse-local coordinates
 // ✔ NO forces
 // ✔ NO motion
 //
@@ -20,14 +20,14 @@ console.log("🟥 cleftGeometry loaded — CLEFT DOMAIN AUTHORITY");
 // -----------------------------------------------------
 
 // Horizontal size
-const CLEFT_HALF_WIDTH = 125;   // ⬅ wider = increase
+const CLEFT_HALF_WIDTH = 125;
 
 // Vertical placement
-const CLEFT_Y_CENTER   = 55;    // ⬅ down = increase
-const CLEFT_HEIGHT     = 255;   // ⬅ taller = increase
+const CLEFT_Y_CENTER   = 55;
+const CLEFT_HEIGHT     = 255;
 
 // Corner rounding
-const CLEFT_RADIUS     = 28;    // ⬅ smoothness
+const CLEFT_RADIUS     = 28;
 
 
 // -----------------------------------------------------
@@ -41,11 +41,11 @@ const CLEFT_BOTTOM = CLEFT_Y_CENTER + CLEFT_HEIGHT / 2;
 
 
 // -----------------------------------------------------
-// 🔑 FILLED POINT-IN-CLEFT TEST (PHYSICS TRUTH)
+// 🔑 POINT-IN-CLEFT TEST (PHYSICS TRUTH)
 // -----------------------------------------------------
 window.isInsideSynapticCleft = function (x, y) {
 
-  // Central rectangle
+  // Inner rectangle
   if (
     x >= CLEFT_LEFT + CLEFT_RADIUS &&
     x <= CLEFT_RIGHT - CLEFT_RADIUS &&
@@ -53,7 +53,6 @@ window.isInsideSynapticCleft = function (x, y) {
     y <= CLEFT_BOTTOM
   ) return true;
 
-  // Vertical side rectangles
   if (
     x >= CLEFT_LEFT &&
     x <= CLEFT_RIGHT &&
@@ -61,17 +60,17 @@ window.isInsideSynapticCleft = function (x, y) {
     y <= CLEFT_BOTTOM - CLEFT_RADIUS
   ) return true;
 
-  // Corner quarter-circles
+  // Corner arcs
   const corners = [
-    { cx: CLEFT_LEFT  + CLEFT_RADIUS, cy: CLEFT_TOP    + CLEFT_RADIUS },
-    { cx: CLEFT_RIGHT - CLEFT_RADIUS, cy: CLEFT_TOP    + CLEFT_RADIUS },
-    { cx: CLEFT_LEFT  + CLEFT_RADIUS, cy: CLEFT_BOTTOM - CLEFT_RADIUS },
-    { cx: CLEFT_RIGHT - CLEFT_RADIUS, cy: CLEFT_BOTTOM - CLEFT_RADIUS }
+    [CLEFT_LEFT  + CLEFT_RADIUS, CLEFT_TOP    + CLEFT_RADIUS],
+    [CLEFT_RIGHT - CLEFT_RADIUS, CLEFT_TOP    + CLEFT_RADIUS],
+    [CLEFT_RIGHT - CLEFT_RADIUS, CLEFT_BOTTOM - CLEFT_RADIUS],
+    [CLEFT_LEFT  + CLEFT_RADIUS, CLEFT_BOTTOM - CLEFT_RADIUS]
   ];
 
-  for (const c of corners) {
-    const dx = x - c.cx;
-    const dy = y - c.cy;
+  for (const [cx, cy] of corners) {
+    const dx = x - cx;
+    const dy = y - cy;
     if (dx * dx + dy * dy <= CLEFT_RADIUS * CLEFT_RADIUS) {
       return true;
     }
@@ -82,22 +81,22 @@ window.isInsideSynapticCleft = function (x, y) {
 
 
 // -----------------------------------------------------
-// 🔑 PROJECT POINT TO CLEFT (MINIMAL CORRECTION)
+// 🔑 PROJECT POINT TO CLEFT
 // -----------------------------------------------------
 window.projectToSynapticCleft = function (x, y) {
 
-  // Clamp into inner rectangle
-  let px = Math.min(
-    Math.max(x, CLEFT_LEFT + CLEFT_RADIUS),
+  let px = constrain(
+    x,
+    CLEFT_LEFT + CLEFT_RADIUS,
     CLEFT_RIGHT - CLEFT_RADIUS
   );
 
-  let py = Math.min(
-    Math.max(y, CLEFT_TOP + CLEFT_RADIUS),
+  let py = constrain(
+    y,
+    CLEFT_TOP + CLEFT_RADIUS,
     CLEFT_BOTTOM - CLEFT_RADIUS
   );
 
-  // Nearest corner center
   const cx = x < px ? CLEFT_LEFT + CLEFT_RADIUS :
              x > px ? CLEFT_RIGHT - CLEFT_RADIUS : px;
 
@@ -107,27 +106,19 @@ window.projectToSynapticCleft = function (x, y) {
   const dx = x - cx;
   const dy = y - cy;
 
-  const d2 = dx * dx + dy * dy;
-
-  if (d2 === 0) return { x: px, y: py };
-
-  const d = Math.sqrt(d2);
-  const k = CLEFT_RADIUS / d;
+  const d = Math.hypot(dx, dy);
+  if (d === 0) return { x: px, y: py };
 
   return {
-    x: cx + dx * k,
-    y: cy + dy * k
+    x: cx + (dx / d) * CLEFT_RADIUS,
+    y: cy + (dy / d) * CLEFT_RADIUS
   };
 };
 
 
 // -----------------------------------------------------
-// 🔴 DEBUG DRAW — EXACT PHYSICS GEOMETRY
+// 🔴 DEBUG DRAW — EXACT PHYSICS BOUNDARY
 // -----------------------------------------------------
-//
-// This outline is generated from the SAME math
-// used by isInsideSynapticCleft().
-//
 window.drawSynapticCleftDebug = function () {
 
   if (!window.SHOW_SYNAPSE_DEBUG) return;
@@ -137,29 +128,14 @@ window.drawSynapticCleftDebug = function () {
   strokeWeight(2);
   noFill();
 
-  // Central rectangle
-  rect(
-    CLEFT_LEFT + CLEFT_RADIUS,
-    CLEFT_TOP,
-    (CLEFT_RIGHT - CLEFT_LEFT) - 2 * CLEFT_RADIUS,
-    CLEFT_BOTTOM - CLEFT_TOP
-  );
-
-  // Vertical rectangle
+  // SINGLE continuous outline — matches physics exactly
   rect(
     CLEFT_LEFT,
-    CLEFT_TOP + CLEFT_RADIUS,
+    CLEFT_TOP,
     CLEFT_RIGHT - CLEFT_LEFT,
-    (CLEFT_BOTTOM - CLEFT_TOP) - 2 * CLEFT_RADIUS
+    CLEFT_BOTTOM - CLEFT_TOP,
+    CLEFT_RADIUS
   );
-
-  // Corner arcs
-  const r = CLEFT_RADIUS * 2;
-
-  arc(CLEFT_LEFT  + CLEFT_RADIUS, CLEFT_TOP    + CLEFT_RADIUS, r, r, PI, PI + HALF_PI);
-  arc(CLEFT_RIGHT - CLEFT_RADIUS, CLEFT_TOP    + CLEFT_RADIUS, r, r, PI + HALF_PI, TWO_PI);
-  arc(CLEFT_RIGHT - CLEFT_RADIUS, CLEFT_BOTTOM - CLEFT_RADIUS, r, r, 0, HALF_PI);
-  arc(CLEFT_LEFT  + CLEFT_RADIUS, CLEFT_BOTTOM - CLEFT_RADIUS, r, r, HALF_PI, PI);
 
   pop();
 };
