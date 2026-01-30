@@ -8,7 +8,7 @@ console.log("🫧 NTmotion loaded — MOTION & CLEFT CONSTRAINT AUTHORITY");
 // ✔ Brownian motion
 // ✔ Directed advection toward postsynapse
 // ✔ Drag
-// ✔ Elastic confinement to synaptic cleft
+// ✔ OPTIONAL elastic confinement to synaptic cleft
 //
 // HARD RULES:
 // • NEVER draw NTs
@@ -18,7 +18,7 @@ console.log("🫧 NTmotion loaded — MOTION & CLEFT CONSTRAINT AUTHORITY");
 // • NEVER clamp position directly
 //
 // ALL CONSTRAINT GEOMETRY IS OWNED BY:
-// → synapticCleftGeometry.js
+// → cleftGeometry.js
 //
 // =====================================================
 
@@ -52,6 +52,28 @@ const CLEFT_TANGENTIAL_DAMPING = 0.88;
 
 
 // -----------------------------------------------------
+// 🔍 DETECT WHETHER CLEFT PHYSICS IS ACTIVE
+// -----------------------------------------------------
+//
+// If cleftGeometry is in DEBUG mode, these functions
+// are pass-through stubs and confinement must be skipped.
+//
+function cleftPhysicsEnabled() {
+
+  if (
+    typeof window.isInsideSynapticCleft !== "function" ||
+    typeof window.projectToSynapticCleft !== "function"
+  ) {
+    return false;
+  }
+
+  // Heuristic: debug stubs always return true
+  // We test with an impossible point
+  return window.isInsideSynapticCleft(1e9, 1e9) === false;
+}
+
+
+// -----------------------------------------------------
 // MAIN UPDATE — FORCE + INTEGRATION ONLY
 // -----------------------------------------------------
 //
@@ -63,19 +85,12 @@ window.updateNTMotion = function (nts) {
 
   if (!Array.isArray(nts) || nts.length === 0) return;
 
-  // cleftGeometry.js MUST be loaded
-  if (
-    typeof window.isInsideSynapticCleft !== "function" ||
-    typeof window.projectToSynapticCleft !== "function"
-  ) {
-    console.warn("⚠️ NTmotion: cleftGeometry not available");
-    return;
-  }
+  const useCleftConstraint = cleftPhysicsEnabled();
 
   for (const p of nts) {
 
     // ---------------------------------------------
-    // 1️⃣ Apply forces (free space)
+    // 1️⃣ Apply free-space forces
     // ---------------------------------------------
     p.vx += NT_ADVECT_X;
     p.vx += random(-NT_BROWNIAN, NT_BROWNIAN);
@@ -90,22 +105,21 @@ window.updateNTMotion = function (nts) {
 
 
     // ---------------------------------------------
-    // 3️⃣ Elastic synaptic cleft confinement
+    // 3️⃣ OPTIONAL cleft confinement
     // ---------------------------------------------
-    if (!window.isInsideSynapticCleft(nx, ny)) {
+    if (useCleftConstraint && !window.isInsideSynapticCleft(nx, ny)) {
 
       const projected =
         window.projectToSynapticCleft(nx, ny);
 
-      // Vector back into legal volume
       const dx = projected.x - nx;
       const dy = projected.y - ny;
 
-      // Normal spring response
+      // Elastic normal response
       p.vx += dx * CLEFT_WALL_K;
       p.vy += dy * CLEFT_WALL_K;
 
-      // Tangential damping (smooth wall sliding)
+      // Tangential damping
       p.vx *= CLEFT_TANGENTIAL_DAMPING;
       p.vy *= CLEFT_TANGENTIAL_DAMPING;
     }
@@ -130,7 +144,7 @@ window.updateNTMotion = function (nts) {
 
 
     // ---------------------------------------------
-    // 6️⃣ Integrate (ONLY place where position moves)
+    // 6️⃣ Integrate (ONLY place position changes)
     // ---------------------------------------------
     p.x += p.vx;
     p.y += p.vy;
@@ -138,14 +152,9 @@ window.updateNTMotion = function (nts) {
 };
 
 
-// =====================================================
-// 🟠 DEBUG DRAW — CLEFT CONSTRAINT (PHYSICS TRUTH)
-// =====================================================
-//
-// Delegated to synapticCleftGeometry.js
-// Exists only for SynapseView compatibility
-//
-// =====================================================
+// -----------------------------------------------------
+// 🟠 DEBUG DRAW — DELEGATED
+// -----------------------------------------------------
 window.drawNTConstraintDebug = function () {
 
   if (!window.SHOW_SYNAPSE_DEBUG) return;
@@ -158,5 +167,5 @@ window.drawNTConstraintDebug = function () {
 // 🔒 CONTRACT ASSERTION
 // -----------------------------------------------------
 if (window.DEBUG_SYNapseContracts) {
-  console.log("🔒 NTmotion contract: FORCE + INTEGRATION ONLY (CLEFT-BOUND)");
+  console.log("🔒 NTmotion contract: FORCE + INTEGRATION ONLY");
 }
