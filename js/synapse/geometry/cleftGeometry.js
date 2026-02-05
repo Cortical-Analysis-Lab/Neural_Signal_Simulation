@@ -22,18 +22,14 @@ console.log("🟢 cleftGeometry loaded — CURVED CLEFT PHYSICS ENABLED");
 // 🎛️ CLEFT GEOMETRY PARAMETERS
 // -----------------------------------------------------
 
-// Terminal positions (from SynapseView.js)
-const PRE_X  = -130;
-const POST_X = +130;
-const NEURON_Y = 40;
+// Terminal positions (imported from SynapseView.js globals)
+// PRE_X, POST_X, NEURON_Y are defined in SynapseView.js
 
 // Cleft gap width (distance between membrane surfaces)
 const CLEFT_WIDTH = 20;
 
 // Vertical extent
 const CLEFT_HEIGHT = 280;
-const CLEFT_Y_MIN = NEURON_Y - CLEFT_HEIGHT / 2;
-const CLEFT_Y_MAX = NEURON_Y + CLEFT_HEIGHT / 2;
 
 
 // -----------------------------------------------------
@@ -44,21 +40,29 @@ const CLEFT_Y_MAX = NEURON_Y + CLEFT_HEIGHT / 2;
 // in SYNAPSE-LOCAL coordinates
 //
 function getPresynapticBoundary(y) {
+  // Get terminal position and neuron Y from SynapseView globals
+  const preX = window.PRE_X ?? -130;
+  const neuronY = window.NEURON_Y ?? 40;
+  
   // Pre is at PRE_X (-130), rotated π, so membrane faces RIGHT (+X)
   // In synapse-local space, it's at PRE_X + membraneOffset
-  const localY = y - NEURON_Y;
+  const localY = y - neuronY;
   const membraneOffset = window.getSynapticMembraneX?.(localY) ?? 0;
   
   // After rotation (π), the membrane that was at +offset is now at -offset
-  return PRE_X - membraneOffset;
+  return preX - membraneOffset;
 }
 
 function getPostsynapticBoundary(y) {
+  // Get terminal position and neuron Y from SynapseView globals
+  const postX = window.POST_X ?? 130;
+  const neuronY = window.NEURON_Y ?? 40;
+  
   // Post is at POST_X (+130), no rotation, membrane faces LEFT (-X)
-  const localY = y - NEURON_Y;
+  const localY = y - neuronY;
   const membraneOffset = window.getPostSynapticMembraneX?.(localY) ?? 0;
   
-  return POST_X - membraneOffset;
+  return postX - membraneOffset;
 }
 
 
@@ -70,8 +74,12 @@ function getPostsynapticBoundary(y) {
 //
 window.isInsideSynapticCleft = function (x, y) {
 
+  const neuronY = window.NEURON_Y ?? 40;
+  const cleftYMin = neuronY - CLEFT_HEIGHT / 2;
+  const cleftYMax = neuronY + CLEFT_HEIGHT / 2;
+
   // Vertical bounds check
-  if (y < CLEFT_Y_MIN || y > CLEFT_Y_MAX) {
+  if (y < cleftYMin || y > cleftYMax) {
     return false;
   }
 
@@ -93,8 +101,12 @@ window.isInsideSynapticCleft = function (x, y) {
 //
 window.projectToSynapticCleft = function (x, y) {
 
+  const neuronY = window.NEURON_Y ?? 40;
+  const cleftYMin = neuronY - CLEFT_HEIGHT / 2;
+  const cleftYMax = neuronY + CLEFT_HEIGHT / 2;
+
   // Clamp Y to vertical bounds
-  let py = constrain(y, CLEFT_Y_MIN, CLEFT_Y_MAX);
+  let py = constrain(y, cleftYMin, cleftYMax);
 
   // Get membrane boundaries at this Y
   const preMembraneX = getPresynapticBoundary(py);
@@ -112,11 +124,11 @@ window.projectToSynapticCleft = function (x, y) {
   }
 
   // Handle vertical boundaries (top/bottom)
-  if (y < CLEFT_Y_MIN) {
-    py = CLEFT_Y_MIN;
+  if (y < cleftYMin) {
+    py = cleftYMin;
     px = constrain(x, preMembraneX, postMembraneX);
-  } else if (y > CLEFT_Y_MAX) {
-    py = CLEFT_Y_MAX;
+  } else if (y > cleftYMax) {
+    py = cleftYMax;
     px = constrain(x, preMembraneX, postMembraneX);
   }
 
@@ -134,6 +146,10 @@ window.drawSynapticCleftDebug = function () {
 
   if (!window.SHOW_SYNAPSE_DEBUG) return;
 
+  const neuronY = window.NEURON_Y ?? 40;
+  const cleftYMin = neuronY - CLEFT_HEIGHT / 2;
+  const cleftYMax = neuronY + CLEFT_HEIGHT / 2;
+
   push();
   stroke(60, 255, 60, 220);   // 🟢 ACTIVE GREEN
   strokeWeight(2);
@@ -143,7 +159,7 @@ window.drawSynapticCleftDebug = function () {
 
   // Draw presynaptic boundary (left wall)
   beginShape();
-  for (let y = CLEFT_Y_MIN; y <= CLEFT_Y_MAX; y += step) {
+  for (let y = cleftYMin; y <= cleftYMax; y += step) {
     const x = getPresynapticBoundary(y);
     vertex(x, y);
   }
@@ -151,20 +167,20 @@ window.drawSynapticCleftDebug = function () {
 
   // Draw postsynaptic boundary (right wall)
   beginShape();
-  for (let y = CLEFT_Y_MIN; y <= CLEFT_Y_MAX; y += step) {
+  for (let y = cleftYMin; y <= cleftYMax; y += step) {
     const x = getPostsynapticBoundary(y);
     vertex(x, y);
   }
   endShape();
 
   // Draw top and bottom horizontal boundaries
-  const topPreX = getPresynapticBoundary(CLEFT_Y_MIN);
-  const topPostX = getPostsynapticBoundary(CLEFT_Y_MIN);
-  line(topPreX, CLEFT_Y_MIN, topPostX, CLEFT_Y_MIN);
+  const topPreX = getPresynapticBoundary(cleftYMin);
+  const topPostX = getPostsynapticBoundary(cleftYMin);
+  line(topPreX, cleftYMin, topPostX, cleftYMin);
 
-  const botPreX = getPresynapticBoundary(CLEFT_Y_MAX);
-  const botPostX = getPostsynapticBoundary(CLEFT_Y_MAX);
-  line(botPreX, CLEFT_Y_MAX, botPostX, CLEFT_Y_MAX);
+  const botPreX = getPresynapticBoundary(cleftYMax);
+  const botPostX = getPostsynapticBoundary(cleftYMax);
+  line(botPreX, cleftYMax, botPostX, cleftYMax);
 
   pop();
 };
