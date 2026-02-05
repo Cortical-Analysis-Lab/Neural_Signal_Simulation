@@ -1,105 +1,86 @@
-console.log("🟢 cleftGeometry loaded — PHYSICS ENABLED");
+console.log("🟢 cleftGeometry loaded — CURVED CLEFT PHYSICS ENABLED");
 
 // =====================================================
-// SYNAPTIC CLEFT GEOMETRY — CONSTRAINT AUTHORITY
+// SYNAPTIC CLEFT GEOMETRY — CURVED CONSTRAINT AUTHORITY
 // =====================================================
 //
 // RESPONSIBILITIES:
-// ✔ Define synaptic cleft shape
+// ✔ Define curved synaptic cleft shape between membranes
 // ✔ Containment detection (isInsideSynapticCleft)
 // ✔ Surface projection (projectToSynapticCleft)
 // ✔ Debug visualization
 //
-// HARD RULES:
-// • NEVER apply forces
-// • NEVER integrate motion
-// • NEVER modify NT velocity directly
-// • ONLY return geometry/projection data
+// CLEFT SHAPE:
+// • Bounded by curved presynaptic membrane (left)
+// • Bounded by curved postsynaptic membrane (right)
+// • Width = physical gap between terminals
 //
 // =====================================================
 
 
 // -----------------------------------------------------
-// 🎛️ CLEFT POSITION & SIZE TUNING (ONLY EDIT THESE)
+// 🎛️ CLEFT GEOMETRY PARAMETERS
 // -----------------------------------------------------
 
-// Horizontal half-width of cleft
-const CLEFT_HALF_WIDTH = 125;
+// Terminal positions (from SynapseView.js)
+const PRE_X  = -130;
+const POST_X = +130;
+const NEURON_Y = 40;
 
-// Vertical placement (positive = down)
-const CLEFT_Y_CENTER   = 55;
+// Cleft gap width (distance between membrane surfaces)
+const CLEFT_WIDTH = 20;
 
-// Total height
-const CLEFT_HEIGHT     = 255;
-
-// Corner rounding radius
-const CLEFT_RADIUS     = 28;
-
-
-// -----------------------------------------------------
-// DERIVED BOUNDS (DO NOT EDIT BELOW)
-// -----------------------------------------------------
-const CLEFT_LEFT   = -CLEFT_HALF_WIDTH;
-const CLEFT_RIGHT  = +CLEFT_HALF_WIDTH;
-const CLEFT_TOP    = CLEFT_Y_CENTER - CLEFT_HEIGHT / 2;
-const CLEFT_BOTTOM = CLEFT_Y_CENTER + CLEFT_HEIGHT / 2;
+// Vertical extent
+const CLEFT_HEIGHT = 280;
+const CLEFT_Y_MIN = NEURON_Y - CLEFT_HEIGHT / 2;
+const CLEFT_Y_MAX = NEURON_Y + CLEFT_HEIGHT / 2;
 
 
 // -----------------------------------------------------
-// 🔍 CONTAINMENT TEST — ROUNDED RECTANGLE
+// 🔍 GET MEMBRANE BOUNDARIES
+// -----------------------------------------------------
+//
+// These functions return the membrane X position at a given Y
+// in SYNAPSE-LOCAL coordinates
+//
+function getPresynapticBoundary(y) {
+  // Pre is at PRE_X (-130), rotated π, so membrane faces RIGHT (+X)
+  // In synapse-local space, it's at PRE_X + membraneOffset
+  const localY = y - NEURON_Y;
+  const membraneOffset = window.getSynapticMembraneX?.(localY) ?? 0;
+  
+  // After rotation (π), the membrane that was at +offset is now at -offset
+  return PRE_X - membraneOffset;
+}
+
+function getPostsynapticBoundary(y) {
+  // Post is at POST_X (+130), no rotation, membrane faces LEFT (-X)
+  const localY = y - NEURON_Y;
+  const membraneOffset = window.getPostSynapticMembraneX?.(localY) ?? 0;
+  
+  return POST_X - membraneOffset;
+}
+
+
+// -----------------------------------------------------
+// 🔍 CONTAINMENT TEST — CURVED CLEFT
 // -----------------------------------------------------
 //
 // Returns TRUE if point (x,y) is INSIDE cleft volume
 //
 window.isInsideSynapticCleft = function (x, y) {
 
-  // Bounding box test (fast rejection)
-  if (x < CLEFT_LEFT || x > CLEFT_RIGHT) return false;
-  if (y < CLEFT_TOP  || y > CLEFT_BOTTOM) return false;
-
-  // Interior rectangle (no corner check needed)
-  if (
-    x >= CLEFT_LEFT + CLEFT_RADIUS &&
-    x <= CLEFT_RIGHT - CLEFT_RADIUS &&
-    y >= CLEFT_TOP + CLEFT_RADIUS &&
-    y <= CLEFT_BOTTOM - CLEFT_RADIUS
-  ) {
-    return true;
+  // Vertical bounds check
+  if (y < CLEFT_Y_MIN || y > CLEFT_Y_MAX) {
+    return false;
   }
 
-  // Check rounded corners
-  let cornerX, cornerY;
+  // Get membrane boundaries at this Y
+  const preMembraneX = getPresynapticBoundary(y);
+  const postMembraneX = getPostsynapticBoundary(y);
 
-  // Top-left corner
-  if (x < CLEFT_LEFT + CLEFT_RADIUS && y < CLEFT_TOP + CLEFT_RADIUS) {
-    cornerX = CLEFT_LEFT + CLEFT_RADIUS;
-    cornerY = CLEFT_TOP + CLEFT_RADIUS;
-    return dist(x, y, cornerX, cornerY) <= CLEFT_RADIUS;
-  }
-
-  // Top-right corner
-  if (x > CLEFT_RIGHT - CLEFT_RADIUS && y < CLEFT_TOP + CLEFT_RADIUS) {
-    cornerX = CLEFT_RIGHT - CLEFT_RADIUS;
-    cornerY = CLEFT_TOP + CLEFT_RADIUS;
-    return dist(x, y, cornerX, cornerY) <= CLEFT_RADIUS;
-  }
-
-  // Bottom-left corner
-  if (x < CLEFT_LEFT + CLEFT_RADIUS && y > CLEFT_BOTTOM - CLEFT_RADIUS) {
-    cornerX = CLEFT_LEFT + CLEFT_RADIUS;
-    cornerY = CLEFT_BOTTOM - CLEFT_RADIUS;
-    return dist(x, y, cornerX, cornerY) <= CLEFT_RADIUS;
-  }
-
-  // Bottom-right corner
-  if (x > CLEFT_RIGHT - CLEFT_RADIUS && y > CLEFT_BOTTOM - CLEFT_RADIUS) {
-    cornerX = CLEFT_RIGHT - CLEFT_RADIUS;
-    cornerY = CLEFT_BOTTOM - CLEFT_RADIUS;
-    return dist(x, y, cornerX, cornerY) <= CLEFT_RADIUS;
-  }
-
-  // Point is in straight edge regions
-  return true;
+  // Point must be between the two membranes
+  return x > preMembraneX && x < postMembraneX;
 };
 
 
@@ -112,81 +93,33 @@ window.isInsideSynapticCleft = function (x, y) {
 //
 window.projectToSynapticCleft = function (x, y) {
 
-  // Clamp to bounding box first
-  let px = constrain(x, CLEFT_LEFT, CLEFT_RIGHT);
-  let py = constrain(y, CLEFT_TOP, CLEFT_BOTTOM);
+  // Clamp Y to vertical bounds
+  let py = constrain(y, CLEFT_Y_MIN, CLEFT_Y_MAX);
 
-  // Determine which edge/corner region we're in
-  const inLeftCornerZone   = x < CLEFT_LEFT + CLEFT_RADIUS;
-  const inRightCornerZone  = x > CLEFT_RIGHT - CLEFT_RADIUS;
-  const inTopCornerZone    = y < CLEFT_TOP + CLEFT_RADIUS;
-  const inBottomCornerZone = y > CLEFT_BOTTOM - CLEFT_RADIUS;
+  // Get membrane boundaries at this Y
+  const preMembraneX = getPresynapticBoundary(py);
+  const postMembraneX = getPostsynapticBoundary(py);
 
-  // ---------------------------------------------
-  // CORNER PROJECTIONS (circular arcs)
-  // ---------------------------------------------
+  let px = x;
 
-  // Top-left corner
-  if (inLeftCornerZone && inTopCornerZone) {
-    const cx = CLEFT_LEFT + CLEFT_RADIUS;
-    const cy = CLEFT_TOP + CLEFT_RADIUS;
-    const d = dist(x, y, cx, cy);
-    
-    if (d > CLEFT_RADIUS) {
-      const angle = atan2(y - cy, x - cx);
-      px = cx + cos(angle) * CLEFT_RADIUS;
-      py = cy + sin(angle) * CLEFT_RADIUS;
-    }
-    return { x: px, y: py };
+  // Project to nearest wall
+  if (x <= preMembraneX) {
+    // Too far left - project to presynaptic membrane
+    px = preMembraneX;
+  } else if (x >= postMembraneX) {
+    // Too far right - project to postsynaptic membrane
+    px = postMembraneX;
   }
 
-  // Top-right corner
-  if (inRightCornerZone && inTopCornerZone) {
-    const cx = CLEFT_RIGHT - CLEFT_RADIUS;
-    const cy = CLEFT_TOP + CLEFT_RADIUS;
-    const d = dist(x, y, cx, cy);
-    
-    if (d > CLEFT_RADIUS) {
-      const angle = atan2(y - cy, x - cx);
-      px = cx + cos(angle) * CLEFT_RADIUS;
-      py = cy + sin(angle) * CLEFT_RADIUS;
-    }
-    return { x: px, y: py };
+  // Handle vertical boundaries (top/bottom)
+  if (y < CLEFT_Y_MIN) {
+    py = CLEFT_Y_MIN;
+    px = constrain(x, preMembraneX, postMembraneX);
+  } else if (y > CLEFT_Y_MAX) {
+    py = CLEFT_Y_MAX;
+    px = constrain(x, preMembraneX, postMembraneX);
   }
 
-  // Bottom-left corner
-  if (inLeftCornerZone && inBottomCornerZone) {
-    const cx = CLEFT_LEFT + CLEFT_RADIUS;
-    const cy = CLEFT_BOTTOM - CLEFT_RADIUS;
-    const d = dist(x, y, cx, cy);
-    
-    if (d > CLEFT_RADIUS) {
-      const angle = atan2(y - cy, x - cx);
-      px = cx + cos(angle) * CLEFT_RADIUS;
-      py = cy + sin(angle) * CLEFT_RADIUS;
-    }
-    return { x: px, y: py };
-  }
-
-  // Bottom-right corner
-  if (inRightCornerZone && inBottomCornerZone) {
-    const cx = CLEFT_RIGHT - CLEFT_RADIUS;
-    const cy = CLEFT_BOTTOM - CLEFT_RADIUS;
-    const d = dist(x, y, cx, cy);
-    
-    if (d > CLEFT_RADIUS) {
-      const angle = atan2(y - cy, x - cx);
-      px = cx + cos(angle) * CLEFT_RADIUS;
-      py = cy + sin(angle) * CLEFT_RADIUS;
-    }
-    return { x: px, y: py };
-  }
-
-  // ---------------------------------------------
-  // STRAIGHT EDGE PROJECTIONS
-  // ---------------------------------------------
-
-  // Already clamped to bounding box
   return { x: px, y: py };
 };
 
@@ -195,7 +128,7 @@ window.projectToSynapticCleft = function (x, y) {
 // 🟢 DEBUG DRAW — ACTIVE CONSTRAINT VISUALIZATION
 // -----------------------------------------------------
 //
-// Green outline indicates ACTIVE physics boundary
+// Draws the curved cleft boundaries
 //
 window.drawSynapticCleftDebug = function () {
 
@@ -206,13 +139,32 @@ window.drawSynapticCleftDebug = function () {
   strokeWeight(2);
   noFill();
 
-  rect(
-    CLEFT_LEFT,
-    CLEFT_TOP,
-    CLEFT_RIGHT - CLEFT_LEFT,
-    CLEFT_BOTTOM - CLEFT_TOP,
-    CLEFT_RADIUS
-  );
+  const step = 3;
+
+  // Draw presynaptic boundary (left wall)
+  beginShape();
+  for (let y = CLEFT_Y_MIN; y <= CLEFT_Y_MAX; y += step) {
+    const x = getPresynapticBoundary(y);
+    vertex(x, y);
+  }
+  endShape();
+
+  // Draw postsynaptic boundary (right wall)
+  beginShape();
+  for (let y = CLEFT_Y_MIN; y <= CLEFT_Y_MAX; y += step) {
+    const x = getPostsynapticBoundary(y);
+    vertex(x, y);
+  }
+  endShape();
+
+  // Draw top and bottom horizontal boundaries
+  const topPreX = getPresynapticBoundary(CLEFT_Y_MIN);
+  const topPostX = getPostsynapticBoundary(CLEFT_Y_MIN);
+  line(topPreX, CLEFT_Y_MIN, topPostX, CLEFT_Y_MIN);
+
+  const botPreX = getPresynapticBoundary(CLEFT_Y_MAX);
+  const botPostX = getPostsynapticBoundary(CLEFT_Y_MAX);
+  line(botPreX, CLEFT_Y_MAX, botPostX, CLEFT_Y_MAX);
 
   pop();
 };
@@ -222,5 +174,5 @@ window.drawSynapticCleftDebug = function () {
 // 🔒 CONTRACT ASSERTION
 // -----------------------------------------------------
 if (window.DEBUG_SYNapseContracts) {
-  console.log("🔒 cleftGeometry contract: GEOMETRY + PROJECTION ONLY");
+  console.log("🔒 cleftGeometry contract: CURVED GEOMETRY + PROJECTION");
 }
